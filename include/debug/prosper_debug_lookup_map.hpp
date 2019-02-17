@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef __PROSPER_DEBUG_LOOKUP_MAP_HPP__
+#define __PROSPER_DEBUG_LOOKUP_MAP_HPP__
+
+#include "prosper_definitions.hpp"
+#include "prosper_includes.hpp"
+#include <memory>
+#include <unordered_map>
+
+namespace prosper
+{
+	class Image;
+	class ImageView;
+	class Sampler;
+	class Buffer;
+	class CommandBuffer;
+	class RenderPass;
+	class Framebuffer;
+	class DescriptorSetGroup;
+	class Shader;
+	namespace debug
+	{
+		enum class ObjectType : uint32_t
+		{
+			Image = 0u,
+			ImageView,
+			Sampler,
+			Buffer,
+			CommandBuffer,
+			RenderPass,
+			Framebuffer,
+			DescriptorSet,
+			Pipeline
+		};
+		struct ShaderPipelineInfo
+		{
+			Shader *shader = nullptr;
+			uint32_t pipelineIdx = std::numeric_limits<uint32_t>::max();
+		};
+		DLLPROSPER void set_debug_mode_enabled(bool b);
+		DLLPROSPER bool is_debug_mode_enabled();
+		DLLPROSPER void register_debug_object(void *vkPtr,void *objPtr,ObjectType type);
+		DLLPROSPER void register_debug_shader_pipeline(void *vkPtr,const ShaderPipelineInfo &pipelineInfo);
+		DLLPROSPER void deregister_debug_object(void *vkPtr);
+
+		DLLPROSPER void *get_object(void *vkObj,ObjectType &type);
+		DLLPROSPER Image *get_image(vk::Image vkImage);
+		DLLPROSPER ImageView *get_image_view(vk::ImageView vkImageView);
+		DLLPROSPER Sampler *get_sampler(vk::Sampler vkSampler);
+		DLLPROSPER Buffer *get_buffer(vk::Buffer vkBuffer);
+		DLLPROSPER CommandBuffer *get_command_buffer(vk::CommandBuffer vkBuffer);
+		DLLPROSPER RenderPass *get_render_pass(vk::RenderPass vkBuffer);
+		DLLPROSPER Framebuffer *get_framebuffer(vk::Framebuffer vkBuffer);
+		DLLPROSPER DescriptorSetGroup *get_descriptor_set_group(vk::DescriptorSet vkBuffer);
+		DLLPROSPER ShaderPipelineInfo *get_shader_pipeline(vk::Pipeline vkPipeline);
+	};
+};
+
+#endif

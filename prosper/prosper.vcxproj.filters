@@ -1,0 +1,288 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\shader">
+      <UniqueIdentifier>{91a69b1a-d236-4187-a01b-b749301ac585}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\shader">
+      <UniqueIdentifier>{a54ca32a-295a-4a9b-b98b-bab4ac1e904b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\buffers">
+      <UniqueIdentifier>{76f19bac-e8c7-423b-8921-3b8f58640c37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\buffers">
+      <UniqueIdentifier>{bf63c5c3-5348-4cfe-bc4d-cd854f371b84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\queries">
+      <UniqueIdentifier>{d62691b5-427a-4acf-97e5-c6a7d841a8da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\queries">
+      <UniqueIdentifier>{b0666185-1740-4669-abb9-01abde80a4a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\image">
+      <UniqueIdentifier>{60336e3e-7ff5-4896-98eb-2bd90db9ae9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\image">
+      <UniqueIdentifier>{c13d1515-e5c9-4440-beb8-d1ce4b8ce3b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\debug">
+      <UniqueIdentifier>{f8c703a6-ea67-42fb-9929-cc2ad600a5a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\debug">
+      <UniqueIdentifier>{3ee72084-a0c1-4d86-bff7-7dd656fbd7b1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\buffers\prosper_buffer.cpp">
+      <Filter>Source Files\buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\buffers\prosper_dynamic_resizable_buffer.cpp">
+      <Filter>Source Files\buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\buffers\prosper_resizable_buffer.cpp">
+      <Filter>Source Files\buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\buffers\prosper_uniform_resizable_buffer.cpp">
+      <Filter>Source Files\buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\debug\prosper_debug.cpp">
+      <Filter>Source Files\debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\debug\prosper_debug_lookup_map.cpp">
+      <Filter>Source Files\debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image\prosper_image.cpp">
+      <Filter>Source Files\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image\prosper_image_view.cpp">
+      <Filter>Source Files\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image\prosper_msaa_texture.cpp">
+      <Filter>Source Files\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image\prosper_render_target.cpp">
+      <Filter>Source Files\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image\prosper_sampler.cpp">
+      <Filter>Source Files\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image\prosper_texture.cpp">
+      <Filter>Source Files\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\queries\prosper_query.cpp">
+      <Filter>Source Files\queries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\queries\prosper_query_pool.cpp">
+      <Filter>Source Files\queries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\queries\prosper_timer_query.cpp">
+      <Filter>Source Files\queries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\queries\prosper_timestamp_query.cpp">
+      <Filter>Source Files\queries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_base_image_processing.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_blur.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_compute.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_copy_image.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_graphics.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_manager.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\shader\prosper_shader_rect.cpp">
+      <Filter>Source Files\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_command_buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_context.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_context_object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_descriptor_set_group.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_fence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_framebuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_glstospv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_memory_tracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_pipeline_cache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_render_pass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_util_barriers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_util_copy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\prosper_util_square_shape.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\stdafx_prosper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\buffers\prosper_buffer.hpp">
+      <Filter>Header Files\buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\buffers\prosper_dynamic_resizable_buffer.hpp">
+      <Filter>Header Files\buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\buffers\prosper_impl_buffer.hpp">
+      <Filter>Header Files\buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\buffers\prosper_resizable_buffer.hpp">
+      <Filter>Header Files\buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\buffers\prosper_uniform_resizable_buffer.hpp">
+      <Filter>Header Files\buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\debug\prosper_debug.hpp">
+      <Filter>Header Files\debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\debug\prosper_debug_lookup_map.hpp">
+      <Filter>Header Files\debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\image\prosper_image.hpp">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\image\prosper_image_view.hpp">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\image\prosper_msaa_texture.hpp">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\image\prosper_render_target.hpp">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\image\prosper_sampler.hpp">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\image\prosper_texture.hpp">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\queries\prosper_query.hpp">
+      <Filter>Header Files\queries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\queries\prosper_query_pool.hpp">
+      <Filter>Header Files\queries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\queries\prosper_timer_query.hpp">
+      <Filter>Header Files\queries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\queries\prosper_timestamp_query.hpp">
+      <Filter>Header Files\queries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\shader\prosper_shader.hpp">
+      <Filter>Header Files\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\shader\prosper_shader_base_image_processing.hpp">
+      <Filter>Header Files\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\shader\prosper_shader_blur.hpp">
+      <Filter>Header Files\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\shader\prosper_shader_copy_image.hpp">
+      <Filter>Header Files\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\shader\prosper_shader_manager.hpp">
+      <Filter>Header Files\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\shader\prosper_shader_rect.hpp">
+      <Filter>Header Files\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_command_buffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_context.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_context_object.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_definitions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_descriptor_set_group.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_fence.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_framebuffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_glstospv.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_includes.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_memory_tracker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_pipeline_cache.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_profiler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_render_pass.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_util.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\prosper_util_square_shape.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\stdafx_prosper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
