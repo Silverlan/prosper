@@ -6,7 +6,7 @@
 #define __PROSPER_SHADER_BLUR_HPP__
 
 #include "shader/prosper_shader.hpp"
-#include <uvec.h>
+#include <mathutil/uvec.h>
 
 namespace prosper
 {

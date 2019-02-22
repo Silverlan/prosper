@@ -12,8 +12,8 @@
 #include <misc/graphics_pipeline_create_info.h>
 #include <cinttypes>
 #include <vulkan/vulkan.hpp>
-#include <util/util_weak_handle.hpp>
-#include <util/util_null_ref.hpp>
+#include <sharedutils/util_weak_handle.hpp>
+#include <sharedutils/util_null_ref.hpp>
 #include <unordered_map>
 #include <optional>
 

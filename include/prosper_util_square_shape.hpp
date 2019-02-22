@@ -9,7 +9,7 @@
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #include <vector>
-#include <uvec.h>
+#include <mathutil/uvec.h>
 
 namespace Anvil
 {

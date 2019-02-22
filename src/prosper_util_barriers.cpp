@@ -7,7 +7,7 @@
 #include "debug/prosper_debug.hpp"
 #include <config.h>
 #include <misc/image_create_info.h>
-#include <util/util.h>
+#include <sharedutils/util.h>
 
 #ifdef DEBUG_VERBOSE
 #include <iostream>

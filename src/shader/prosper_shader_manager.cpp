@@ -8,7 +8,7 @@
 #include "shader/prosper_shader.hpp"
 #include "prosper_pipeline_cache.hpp"
 #include <shaderinfo.h>
-#include <util/util_string.h>
+#include <sharedutils/util_string.h>
 #include <iostream>
 
 prosper::ShaderManager::ShaderManager(Context &context)

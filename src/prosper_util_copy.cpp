@@ -5,7 +5,7 @@
 #include "stdafx_prosper.h"
 #include "prosper_util.hpp"
 #include <misc/image_create_info.h>
-#include <util/util.h>
+#include <sharedutils/util.h>
 
 bool prosper::util::record_blit_texture(Anvil::CommandBufferBase &cmdBuffer,prosper::Texture &texSrc,Anvil::Image &imgDst)
 {

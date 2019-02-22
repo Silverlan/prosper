@@ -26,7 +26,7 @@
 
 #include <string>
 #include <cmath>
-#include <glfw_window.h>
+#include <iglfw/glfw_window.h>
 
 #ifdef _WIN32
 	#define GLFW_EXPOSE_NATIVE_WIN32

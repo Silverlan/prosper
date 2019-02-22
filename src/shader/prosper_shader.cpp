@@ -19,8 +19,8 @@
 #include <misc/render_pass_create_info.h>
 #include <misc/image_view_create_info.h>
 #include <iostream>
-#include <filesystem.h>
-#include <util/util.h>
+#include <fsys/filesystem.h>
+#include <sharedutils/util.h>
 
 /*decltype(Shader::s_shaderFactories) Shader::s_shaderFactories {};
 int32_t Shader::Register(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory)

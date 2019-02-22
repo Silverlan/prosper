@@ -16,7 +16,7 @@
 #include <misc/buffer_create_info.h>
 #include <misc/image_create_info.h>
 #include <misc/image_view_create_info.h>
-#include <util/util.h>
+#include <sharedutils/util.h>
 #include <queue>
 #include <unordered_map>
 

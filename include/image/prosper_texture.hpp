@@ -6,7 +6,7 @@
 #define __PROSPER_TEXTURE_HPP__
 
 #include "image/prosper_image.hpp"
-#include <umath.h>
+#include <mathutil/umath.h>
 
 #pragma warning(push)
 #pragma warning(disable : 4251)

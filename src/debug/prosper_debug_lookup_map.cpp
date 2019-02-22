@@ -14,8 +14,8 @@
 #include "prosper_descriptor_set_group.hpp"
 #include "prosper_context_object.hpp"
 #include "shader/prosper_shader.hpp"
-#include <util/util.h>
-#include <util/util_string.h>
+#include <sharedutils/util.h>
+#include <sharedutils/util_string.h>
 
 #undef GetObject
 

@@ -12,7 +12,7 @@
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "image/prosper_image_view.hpp"
-#include <util/util.h>
+#include <sharedutils/util.h>
 #include <config.h>
 #include <wrappers/image.h>
 #include <wrappers/image_view.h>

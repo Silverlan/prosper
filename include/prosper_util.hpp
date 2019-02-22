@@ -5,7 +5,7 @@
 #ifndef __PROSPER_UTIL_HPP__
 #define __PROSPER_UTIL_HPP__
 
-#include <umath.h>
+#include <mathutil/umath.h>
 #include <functional>
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"

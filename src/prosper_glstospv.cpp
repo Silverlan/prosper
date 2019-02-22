@@ -9,9 +9,9 @@
 #include "prosper_includes.hpp"
 #include "prosper_glstospv.hpp"
 #include "prosper_context.hpp"
-#include <filesystem.h>
-#include <util/util_file.h>
-#include <util/util_string.h>
+#include <fsys/filesystem.h>
+#include <sharedutils/util_file.h>
+#include <sharedutils/util_string.h>
 #include <sstream>
 
 static unsigned int get_line_break(std::string &str,int pos=0)
