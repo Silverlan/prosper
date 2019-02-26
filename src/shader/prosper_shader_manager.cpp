@@ -7,21 +7,21 @@
 #include "prosper_context.hpp"
 #include "shader/prosper_shader.hpp"
 #include "prosper_pipeline_cache.hpp"
-#include <shaderinfo.h>
+#include <sharedutils/util_shaderinfo.hpp>
 #include <sharedutils/util_string.h>
 #include <iostream>
 
 prosper::ShaderManager::ShaderManager(Context &context)
 	: ContextObject(context)
 {}
-util::WeakHandle<ShaderInfo> prosper::ShaderManager::PreRegisterShader(const std::string &identifier)
+util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(const std::string &identifier)
 {
 	auto lidentifier = identifier;
 	ustring::to_lower(lidentifier);
 	auto it = m_shaderInfo.find(lidentifier);
 	if(it != m_shaderInfo.end())
 		return it->second;
-	auto shaderInfo = std::make_shared<ShaderInfo>(lidentifier);
+	auto shaderInfo = std::make_shared<::util::ShaderInfo>(lidentifier);
 	it = m_shaderInfo.insert(std::make_pair(lidentifier,shaderInfo)).first;
 	return it->second;
 }

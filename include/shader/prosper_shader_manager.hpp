@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-class ShaderInfo;
+namespace util {class ShaderInfo;};
 #pragma warning(push)
 #pragma warning(disable : 4251)
 namespace prosper
@@ -22,7 +22,7 @@ namespace prosper
 		ShaderManager(Context &context);
 		~ShaderManager()=default;
 
-		::util::WeakHandle<ShaderInfo> PreRegisterShader(const std::string &identifier);
+		::util::WeakHandle<::util::ShaderInfo> PreRegisterShader(const std::string &identifier);
 		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory);
 		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&,bool&)> &fFactory);
 		::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
@@ -40,7 +40,7 @@ namespace prosper
 		std::unordered_map<std::string,std::shared_ptr<Shader>> m_shaders;
 
 		// Pre-registered shaders
-		std::unordered_map<std::string,std::shared_ptr<ShaderInfo>> m_shaderInfo;
+		std::unordered_map<std::string,std::shared_ptr<::util::ShaderInfo>> m_shaderInfo;
 	};
 };
 

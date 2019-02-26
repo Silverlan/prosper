@@ -159,9 +159,10 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
     curr_frame_wait_semaphore_ptr = m_frameWaitSemaphores[m_lastSemaporeUsed].get();
 
     /* Determine the semaphore which the swapchain image */
-    m_n_swapchain_image = m_swapchainPtr->acquire_image(curr_frame_wait_semaphore_ptr);
+    auto errCode = m_swapchainPtr->acquire_image(curr_frame_wait_semaphore_ptr,&m_n_swapchain_image);
 
 	if(
+		errCode != Anvil::SwapchainOperationErrorCode::SUCCESS ||
 		static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max())) != vk::Result::eSuccess ||
 		m_cmdFences[m_n_swapchain_image]->reset() == false
 	)
@@ -204,16 +205,17 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 
 	//ClearKeepAliveResources(numKeepAliveResources);
 
-	auto res = present_queue_ptr->present(
+	present_queue_ptr->present(
 		m_swapchainPtr.get(),
 		m_n_swapchain_image,
 		1, /* n_wait_semaphores */
-		&signalSemaphore
+		&signalSemaphore,
+		&errCode
 	);
-	if(res != VK_SUCCESS)
+	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS)
 	{
 		std::cout<<"ERROR!"<<std::endl;
-		if(res == VK_ERROR_OUT_OF_DATE_KHR)
+		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
 		{
 			ChangeResolution(m_windowCreationInfo->width,m_windowCreationInfo->height); // prosper TODO: Force reload
 			/*InitVulkan();
@@ -990,7 +992,7 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 {
 	auto &appName = GetAppName();
 	/* Create a Vulkan instance */
-	m_instancePtr = Anvil::Instance::create(
+	m_instancePtr = Anvil::Instance::create(Anvil::InstanceCreateInfo::create(
 		appName, /* app_name */
 		appName, /* engine_name */
 		(m_bValidationEnabled == true) ? [this](
@@ -1000,7 +1002,7 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 			return this->ValidationCallback(severityFlags,message);
 		} :  Anvil::DebugCallbackFunction(),
 		false
-	); /* in_mt_safe */
+	)); /* in_mt_safe */
 
 	if(m_bValidationEnabled == true)
 		prosper::debug::set_debug_mode_enabled(true);
