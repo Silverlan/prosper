@@ -7,6 +7,7 @@
 
 #include <mathutil/umath.h>
 #include <functional>
+#include <optional>
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 
@@ -124,7 +125,7 @@ namespace prosper
 		};
 		struct DLLPROSPER ImageViewCreateInfo
 		{
-			uint32_t baseLayer = 0u;
+			std::optional<uint32_t> baseLayer = {};
 			uint32_t levelCount = 1u;
 			uint32_t baseMipmap = 0u;
 			uint32_t mipmapLevels = std::numeric_limits<uint32_t>::max();

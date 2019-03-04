@@ -60,7 +60,7 @@ std::shared_ptr<Texture> prosper::util::create_texture(
 	if(imageView == nullptr && imageViewCreateInfo != nullptr)
 	{
 		auto originalLevelCount = const_cast<ImageViewCreateInfo*>(imageViewCreateInfo)->levelCount;
-		if((img->GetCreateFlags() &Anvil::ImageCreateFlagBits::CUBE_COMPATIBLE_BIT) != Anvil::ImageCreateFlagBits::NONE && imageViewCreateInfo->baseLayer == 0u)
+		if((img->GetCreateFlags() &Anvil::ImageCreateFlagBits::CUBE_COMPATIBLE_BIT) != Anvil::ImageCreateFlagBits::NONE && imageViewCreateInfo->baseLayer.has_value() == false)
 			const_cast<ImageViewCreateInfo*>(imageViewCreateInfo)->levelCount = 6u; // TODO: Do this properly
 		imageView = create_image_view(dev,*imageViewCreateInfo,img);
 		const_cast<ImageViewCreateInfo*>(imageViewCreateInfo)->levelCount = originalLevelCount;

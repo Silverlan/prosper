@@ -493,7 +493,7 @@ std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::Base
 		case Anvil::ImageViewType::_2D:
 			return ImageView::Create(prosper::Context::GetContext(dev),Anvil::ImageView::create(
 				Anvil::ImageViewCreateInfo::create_2D(
-					&dev,&img->GetAnvilImage(),createInfo.baseLayer,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
+					&dev,&img->GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
 					aspectMask,format,
 					createInfo.swizzleRed,createInfo.swizzleGreen,
 					createInfo.swizzleBlue,createInfo.swizzleAlpha
@@ -502,7 +502,7 @@ std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::Base
 		case Anvil::ImageViewType::_CUBE:
 			return ImageView::Create(prosper::Context::GetContext(dev),Anvil::ImageView::create(
 				Anvil::ImageViewCreateInfo::create_cube_map(
-					&dev,&img->GetAnvilImage(),createInfo.baseLayer,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
+					&dev,&img->GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
 					aspectMask,format,
 					createInfo.swizzleRed,createInfo.swizzleGreen,
 					createInfo.swizzleBlue,createInfo.swizzleAlpha
@@ -511,7 +511,7 @@ std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::Base
 		case Anvil::ImageViewType::_2D_ARRAY:
 			return ImageView::Create(prosper::Context::GetContext(dev),Anvil::ImageView::create(
 				Anvil::ImageViewCreateInfo::create_2D_array(
-					&dev,&img->GetAnvilImage(),createInfo.baseLayer,numLayers,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
+					&dev,&img->GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,numLayers,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
 					aspectMask,format,
 					createInfo.swizzleRed,createInfo.swizzleGreen,
 					createInfo.swizzleBlue,createInfo.swizzleAlpha
