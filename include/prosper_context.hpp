@@ -158,24 +158,16 @@ namespace prosper
 
 		bool IsRecording() const;
 
-		struct DLLPROSPER BufferUpdateInfo
-		{
-			BufferUpdateInfo() {};
-			Anvil::PipelineStageFlags srcStageMask = util::PIPELINE_STAGE_SHADER_INPUT_FLAGS | Anvil::PipelineStageFlagBits::TRANSFER_BIT;
-			Anvil::AccessFlags srcAccessMask = Anvil::AccessFlagBits::SHADER_READ_BIT | Anvil::AccessFlagBits::SHADER_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_READ_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;
-
-			Anvil::PipelineStageFlags dstStageMask = util::PIPELINE_STAGE_SHADER_INPUT_FLAGS | Anvil::PipelineStageFlagBits::TRANSFER_BIT;
-			Anvil::AccessFlags dstAccessMask = Anvil::AccessFlagBits::SHADER_READ_BIT | Anvil::AccessFlagBits::SHADER_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_READ_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;
-		};
-
 		bool ScheduleRecordUpdateBuffer(
 			const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,
-			const BufferUpdateInfo &bufferUpdateInfo={}
+			Anvil::PipelineStageFlags srcStageMask=util::PIPELINE_STAGE_SHADER_INPUT_FLAGS | Anvil::PipelineStageFlagBits::TRANSFER_BIT,
+			Anvil::AccessFlags srcAccessMask=Anvil::AccessFlagBits::SHADER_READ_BIT | Anvil::AccessFlagBits::SHADER_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_READ_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT
 		);
 		template<typename T>
 			bool ScheduleRecordUpdateBuffer(
 				const std::shared_ptr<Buffer> &buffer,uint64_t offset,const T &data,
-				const BufferUpdateInfo &bufferUpdateInfo={}
+				Anvil::PipelineStageFlags srcStageMask=util::PIPELINE_STAGE_SHADER_INPUT_FLAGS | Anvil::PipelineStageFlagBits::TRANSFER_BIT,
+				Anvil::AccessFlags srcAccessMask=Anvil::AccessFlagBits::SHADER_READ_BIT | Anvil::AccessFlagBits::SHADER_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_READ_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT
 			);
 
 		void WaitIdle();
@@ -267,9 +259,9 @@ namespace prosper
 #pragma warning(pop)
 
 template<typename T>
-	bool prosper::Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,uint64_t offset,const T &data,const BufferUpdateInfo &bufferUpdateInfo)
+	bool prosper::Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,uint64_t offset,const T &data,Anvil::PipelineStageFlags srcStageMask,Anvil::AccessFlags srcAccessMask)
 {
-	return ScheduleRecordUpdateBuffer(buffer,offset,sizeof(data),&data,bufferUpdateInfo);
+	return ScheduleRecordUpdateBuffer(buffer,offset,sizeof(data),&data,srcStageMask,srcAccessMask);
 }
 
 template<class TContext>

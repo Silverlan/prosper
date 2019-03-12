@@ -29,7 +29,7 @@ prosper::util::BarrierImageLayout::BarrierImageLayout(Anvil::PipelineStageFlags 
 	: stageMask(pipelineStageFlags),layout(imageLayout),accessMask(accessFlags)
 {}
 
-Anvil::BufferBarrier prosper::util::create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo,Buffer &buffer)
+Anvil::BufferBarrier prosper::util::create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo,const Buffer &buffer)
 {
 	return Anvil::BufferBarrier(
 		barrierInfo.srcAccessMask,barrierInfo.dstAccessMask,
@@ -198,7 +198,7 @@ bool prosper::util::record_pipeline_barrier(Anvil::CommandBufferBase &cmdBuffer,
 }
 
 bool prosper::util::record_buffer_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,Buffer &buf,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
+	Anvil::CommandBufferBase &cmdBuffer,const Buffer &buf,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
 	Anvil::AccessFlags srcAccessMask,Anvil::AccessFlags dstAccessMask,vk::DeviceSize offset,vk::DeviceSize size
 )
 {

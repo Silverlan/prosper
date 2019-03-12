@@ -581,29 +581,30 @@ void Context::SubmitCommandBuffer(Anvil::CommandBufferBase &cmd,Anvil::QueueFami
 }
 
 bool Context::IsRecording() const {return m_bIsRecording;}
-bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,const BufferUpdateInfo &bufferUpdateInfo)
+bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,Anvil::PipelineStageFlags srcStageMask,Anvil::AccessFlags srcAccessMask)
 {
 	if(size == 0u)
 		return true;
 	if((buffer->GetBaseAnvilBuffer().get_create_info_ptr()->get_usage_flags() &Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT) == Anvil::BufferUsageFlagBits::NONE)
 		throw std::logic_error("Buffer has to have been created with VK_BUFFER_USAGE_TRANSFER_DST_BIT flag to allow buffer updates on command buffer!");
-	const auto fRecordSrcBarrier = [this,buffer,bufferUpdateInfo](prosper::CommandBuffer &cmdBuffer) {
-		if(bufferUpdateInfo.srcStageMask != Anvil::PipelineStageFlagBits::NONE)
+	const auto fRecordSrcBarrier = [this,buffer,srcStageMask,srcAccessMask,offset,size](prosper::CommandBuffer &cmdBuffer) {
+		if(srcStageMask != Anvil::PipelineStageFlagBits::NONE)
 		{
 			prosper::util::record_buffer_barrier(
 				*cmdBuffer,*buffer,
-				bufferUpdateInfo.srcStageMask,Anvil::PipelineStageFlagBits::TRANSFER_BIT,
-				bufferUpdateInfo.srcAccessMask,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT
+				srcStageMask,Anvil::PipelineStageFlagBits::TRANSFER_BIT,
+				srcAccessMask,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,
+				offset,size
 			);
 		}
 	};
-	const auto fUpdateBuffer = [](prosper::CommandBuffer &cmdBuffer,prosper::Buffer &buffer,const uint8_t *data,uint64_t offset,uint64_t size,Anvil::PipelineStageFlags dstStageMask,Anvil::AccessFlags dstAccessMask) {
+	const auto fUpdateBuffer = [](prosper::CommandBuffer &cmdBuffer,prosper::Buffer &buffer,const uint8_t *data,uint64_t offset,uint64_t size) {
 		auto dataOffset = 0ull;
 		const auto maxUpdateSize = 65'536u; // Maximum size allowed per vkCmdUpdateBuffer-call (see https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		do
 		{
 			auto updateSize = umath::min(static_cast<uint64_t>(maxUpdateSize),size);
-			if(prosper::util::record_update_buffer(cmdBuffer.GetAnvilCommandBuffer(),buffer,offset,updateSize,data +dataOffset,dstStageMask,dstAccessMask) == false)
+			if(prosper::util::record_update_buffer(cmdBuffer.GetAnvilCommandBuffer(),buffer,offset,updateSize,data +dataOffset) == false)
 				return false;
 			dataOffset += maxUpdateSize;
 			offset += maxUpdateSize;
@@ -652,7 +653,7 @@ bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,u
 		if(prosper::util::get_current_render_pass_target(**drawCmd) == nullptr) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);
-			if(fUpdateBuffer(*drawCmd,*buffer,static_cast<const uint8_t*>(data),offset,size,bufferUpdateInfo.dstStageMask,bufferUpdateInfo.dstAccessMask) == false)
+			if(fUpdateBuffer(*drawCmd,*buffer,static_cast<const uint8_t*>(data),offset,size) == false)
 				return false;
 			return true;
 		}
@@ -660,9 +661,9 @@ bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,u
 	// We'll have to make a copy of the data for later
 	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
 	memcpy(ptrData->data(),data,size);
-	m_scheduledBufferUpdates.push([buffer,fRecordSrcBarrier,fUpdateBuffer,offset,size,ptrData,bufferUpdateInfo](prosper::CommandBuffer &cmdBuffer) {
+	m_scheduledBufferUpdates.push([buffer,fRecordSrcBarrier,fUpdateBuffer,offset,size,ptrData](prosper::CommandBuffer &cmdBuffer) {
 		fRecordSrcBarrier(cmdBuffer);
-		fUpdateBuffer(cmdBuffer,*buffer,ptrData->data(),offset,size,bufferUpdateInfo.dstStageMask,bufferUpdateInfo.dstAccessMask);
+		fUpdateBuffer(cmdBuffer,*buffer,ptrData->data(),offset,size);
 	});
 	return true;
 }

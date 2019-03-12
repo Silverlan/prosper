@@ -282,9 +282,9 @@ namespace prosper
 		DLLPROSPER bool record_copy_buffer_to_image(Anvil::CommandBufferBase &cmdBuffer,const BufferImageCopyInfo &copyInfo,Buffer &bufferSrc,Anvil::Image &imgDst);
 		DLLPROSPER bool record_copy_image_to_buffer(Anvil::CommandBufferBase &cmdBuffer,const BufferImageCopyInfo &copyInfo,Anvil::Image &imgSrc,Anvil::ImageLayout srcImageLayout,Buffer &bufferDst);
 		DLLPROSPER bool record_copy_buffer(Anvil::CommandBufferBase &cmdBuffer,const Anvil::BufferCopy &copyInfo,Buffer &bufferSrc,Buffer &bufferDst);
-		DLLPROSPER bool record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data,Anvil::PipelineStageFlags dstStageMask=PIPELINE_STAGE_SHADER_INPUT_FLAGS,Anvil::AccessFlags dstAccessMask=Anvil::AccessFlagBits::SHADER_READ_BIT);
+		DLLPROSPER bool record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data);
 		template<typename T>
-			bool record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,const T &data,Anvil::PipelineStageFlags dstStageMask=PIPELINE_STAGE_SHADER_INPUT_FLAGS,Anvil::AccessFlags dstAccessMask=Anvil::AccessFlagBits::SHADER_READ_BIT);
+			bool record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,const T &data);
 		DLLPROSPER bool record_blit_image(Anvil::CommandBufferBase &cmdBuffer,const BlitInfo &blitInfo,Anvil::Image &imgSrc,Anvil::Image &imgDst);
 		DLLPROSPER bool record_resolve_image(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &imgSrc,Anvil::Image &imgDst);
 		// The source texture image will be copied to the destination image using a resolve (if it's a MSAA texture) or a blit
@@ -306,7 +306,7 @@ namespace prosper
 			Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout srcLayout,Anvil::ImageLayout dstLayout,const ImageSubresourceRange &subresourceRange={}
 		);
 		DLLPROSPER bool record_buffer_barrier(
-			Anvil::CommandBufferBase &cmdBuffer,Buffer &buf,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
+			Anvil::CommandBufferBase &cmdBuffer,const Buffer &buf,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
 			Anvil::AccessFlags srcAccessMask,Anvil::AccessFlags dstAccessMask,vk::DeviceSize offset=0ull,vk::DeviceSize size=std::numeric_limits<vk::DeviceSize>::max()
 		);
 		DLLPROSPER bool record_set_viewport(Anvil::CommandBufferBase &cmdBuffer,uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u);
@@ -360,7 +360,7 @@ namespace prosper
 			ImageSubresourceRange subresourceRange = {};
 		};
 
-		DLLPROSPER Anvil::BufferBarrier create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo,Buffer &buffer);
+		DLLPROSPER Anvil::BufferBarrier create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo,const Buffer &buffer);
 		DLLPROSPER Anvil::ImageBarrier create_image_barrier(Anvil::Image &img,const prosper::util::ImageBarrierInfo &barrierInfo);
 		DLLPROSPER Anvil::ImageBarrier create_image_barrier(Anvil::Image &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange={});
 
@@ -418,9 +418,9 @@ REGISTER_BASIC_BITWISE_OPERATORS(prosper::util::ImageCreateInfo::Flags);
 #pragma warning(pop)
 
 template<typename T>
-	bool prosper::util::record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,const T &data,Anvil::PipelineStageFlags dstStageMask,Anvil::AccessFlags dstAccessMask)
+	bool prosper::util::record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,const T &data)
 {
-	return record_update_buffer(cmdBuffer,buffer,offset,sizeof(data),&data,dstStageMask,dstAccessMask);
+	return record_update_buffer(cmdBuffer,buffer,offset,sizeof(data),&data);
 }
 
 template<class T>

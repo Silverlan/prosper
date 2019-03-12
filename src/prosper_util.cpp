@@ -1030,18 +1030,11 @@ bool prosper::util::record_copy_buffer(Anvil::CommandBufferBase &cmdBuffer,const
 	return cmdBuffer.record_copy_buffer(&bufferSrc.GetBaseAnvilBuffer(),&bufferDst.GetBaseAnvilBuffer(),1u,&ci);
 }
 
-bool prosper::util::record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data,Anvil::PipelineStageFlags dstStageMask,Anvil::AccessFlags dstAccessMask)
+bool prosper::util::record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data)
 {
 	if(buffer.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
 		throw std::logic_error("Attempted to update buffer while render pass is active!");
-	auto r = cmdBuffer.record_update_buffer(&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
-	if(r == false || dstStageMask == Anvil::PipelineStageFlagBits::NONE)
-		return r;
-	return prosper::util::record_buffer_barrier(
-		cmdBuffer,buffer,
-		Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstStageMask,
-		Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,dstAccessMask
-	);
+	return cmdBuffer.record_update_buffer(&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
 }
 
 uint32_t prosper::util::calculate_buffer_alignment(Anvil::BaseDevice &dev,Anvil::BufferUsageFlags usageFlags)
