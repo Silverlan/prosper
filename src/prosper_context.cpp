@@ -20,6 +20,7 @@
 #include <misc/semaphore_create_info.h>
 #include <misc/framebuffer_create_info.h>
 #include <misc/swapchain_create_info.h>
+#include <misc/rendering_surface_create_info.h>
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
@@ -881,7 +882,7 @@ void Context::InitSemaphores()
 
 void Context::InitSwapchain()
 {
-	m_renderingSurfacePtr = Anvil::RenderingSurface::create(m_instancePtr.get(),m_devicePtr.get(),m_windowPtr.get());
+	m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(m_instancePtr.get(),m_devicePtr.get(),m_windowPtr.get()));
 
 	m_renderingSurfacePtr->set_name("Main rendering surface");
 	SetPresentMode(GetPresentMode()); // Update present mode to make sure it's supported by out surface
@@ -1038,22 +1039,24 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 
     /* Create a Vulkan device */
     m_devicePtr = Anvil::SGPUDevice::create(
-		m_physicalDevicePtr,
-		true, /* in_enable_shader_module_cache */
-		Anvil::DeviceExtensionConfiguration(),
-		std::vector<std::string>(), /* in_layers */
-		false, /* in_transient_command_buffer_allocs_only */
-		true, /* in_support_resettable_command_buffers */
-		[](Anvil::BaseDevice &dev) -> Anvil::PipelineCacheUniquePtr {
-			prosper::PipelineCache::LoadError loadErr {};
-			auto pipelineCache = PipelineCache::Load(dev,PIPELINE_CACHE_PATH,loadErr);
-			if(pipelineCache == nullptr)
-				pipelineCache = PipelineCache::Create(dev);
-			if(pipelineCache == nullptr)
-				throw std::runtime_error("Unable to create pipeline cache!");
-			return pipelineCache;
-		}
+		Anvil::DeviceCreateInfo::create_sgpu(
+			m_physicalDevicePtr,
+			true, /* in_enable_shader_module_cache */
+			Anvil::DeviceExtensionConfiguration(),
+			std::vector<std::string>(),
+			Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT,
+			false /* in_mt_safe */
+		)
 	);
+	/*[](Anvil::BaseDevice &dev) -> Anvil::PipelineCacheUniquePtr {
+		prosper::PipelineCache::LoadError loadErr {};
+		auto pipelineCache = PipelineCache::Load(dev,PIPELINE_CACHE_PATH,loadErr);
+		if(pipelineCache == nullptr)
+			pipelineCache = PipelineCache::Create(dev);
+		if(pipelineCache == nullptr)
+			throw std::runtime_error("Unable to create pipeline cache!");
+		return pipelineCache;
+	}*/
 
 	m_pGpuDevice = static_cast<Anvil::SGPUDevice*>(m_devicePtr.get());
 	s_devToContext[m_devicePtr.get()] = this;
