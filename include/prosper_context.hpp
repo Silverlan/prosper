@@ -77,6 +77,14 @@ namespace prosper
 	{
 	public:
 		static Context &GetContext(Anvil::BaseDevice &dev);
+		enum class StateFlags : uint32_t
+		{
+			None = 0u,
+			IsRecording = 1u,
+			ValidationEnabled = IsRecording<<1u,
+			Initialized = ValidationEnabled<<1u,
+			Idle = Initialized<<1u
+		};
 
 		struct DLLPROSPER CreateInfo
 		{
@@ -142,6 +150,11 @@ namespace prosper
 		void FlushSetupCommandBuffer();
 
 		void KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource);
+		template<class T>
+			void ReleaseResource(T *resource)
+		{
+			KeepResourceAliveUntilPresentationComplete(std::shared_ptr<T>(resource,[](T *p) {delete p;}));
+		}
 		bool SavePipelineCache();
 
 		const std::shared_ptr<Texture> &GetDummyTexture() const;
@@ -174,6 +187,9 @@ namespace prosper
 		vk::Result WaitForFence(const Fence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const;
 		vk::Result WaitForFences(const std::vector<Fence> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const;
 		void DrawFrame(const std::function<void(const std::shared_ptr<prosper::PrimaryCommandBuffer>&,uint32_t)> &drawFrame);
+
+		void RegisterResource(const std::shared_ptr<void> &resource);
+		void ReleaseResource(void *resource);
 	protected:
 		Context(const std::string &appName,bool bEnableValidation=false);
 
@@ -211,10 +227,9 @@ namespace prosper
 		);
 
 		Anvil::PresentModeKHR m_presentMode = Anvil::PresentModeKHR::IMMEDIATE_KHR;
-		bool m_bIsRecording = false;
-		bool m_bValidationEnabled = false;
+		StateFlags m_stateFlags = StateFlags::Idle;
+
 		std::string m_appName;
-		bool m_bInitialized = false;
 		std::shared_ptr<prosper::PrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;

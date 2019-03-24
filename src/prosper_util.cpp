@@ -180,6 +180,8 @@ static void find_compatible_memory_feature_flags(Anvil::BaseDevice &dev,prosper:
 
 std::shared_ptr<Buffer> prosper::util::create_buffer(Anvil::BaseDevice &dev,const BufferCreateInfo &createInfo,const void *data)
 {
+	if(createInfo.size == 0ull)
+		return nullptr;
 	auto sharingMode = Anvil::SharingMode::EXCLUSIVE;
 	if((createInfo.flags &BufferCreateInfo::Flags::ConcurrentSharing) != BufferCreateInfo::Flags::None)
 		sharingMode = Anvil::SharingMode::CONCURRENT;

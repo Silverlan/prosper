@@ -17,11 +17,10 @@ std::shared_ptr<Image> Image::Create(Context &context,Anvil::ImageUniquePtr img,
 {
 	if(img == nullptr)
 		return nullptr;
-	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<Image>(new Image(context,std::move(img)));
 	return std::shared_ptr<Image>(new Image(context,std::move(img)),[onDestroyedCallback](Image *img) {
-		onDestroyedCallback(*img);
-		delete img;
+		if(onDestroyedCallback != nullptr)
+			onDestroyedCallback(*img);
+		img->GetContext().ReleaseResource<Image>(img);
 	});
 }
 

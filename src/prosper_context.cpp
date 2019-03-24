@@ -49,6 +49,9 @@
 
 using namespace prosper;
 
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::Context::StateFlags)
+
+#pragma optimize("",off)
 decltype(Context::s_devToContext) Context::s_devToContext = {};
 
 const std::string PIPELINE_CACHE_PATH = "cache/shader.cache";
@@ -65,16 +68,17 @@ static std::shared_ptr<prosper::Buffer> s_vertexBuffer = nullptr;
 static std::shared_ptr<prosper::Buffer> s_uvBuffer = nullptr;
 static std::shared_ptr<prosper::Buffer> s_vertexUvBuffer = nullptr;
 Context::Context(const std::string &appName,bool bEnableValidation)
-	: m_lastSemaporeUsed(0),m_appName(appName),m_bValidationEnabled(bEnableValidation),
+	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>())
 {
+	umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,bEnableValidation);
 	m_windowCreationInfo->title = appName;
 }
 
 Context::~Context() {Release();}
 
-void Context::SetValidationEnabled(bool b) {m_bValidationEnabled = b;}
-bool Context::IsValidationEnabled() const {return m_bValidationEnabled;}
+void Context::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
+bool Context::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
 
 Anvil::SGPUDevice &Context::GetDevice() {return *m_pGpuDevice;}
 const std::shared_ptr<Anvil::RenderPass> &Context::GetMainRenderPass() const {return m_renderPass;}
@@ -176,7 +180,8 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 	auto &cmd_buffer_ptr = m_commandBuffers.at(m_n_swapchain_image);
 	/* Start recording commands */
 	static_cast<Anvil::PrimaryCommandBuffer&>(cmd_buffer_ptr->GetAnvilCommandBuffer()).start_recording(false,true);
-	m_bIsRecording = true;
+	umath::set_flag(m_stateFlags,StateFlags::IsRecording);
+	umath::set_flag(m_stateFlags,StateFlags::Idle,false);
 	while(m_scheduledBufferUpdates.empty() == false)
 	{
 		auto &f = m_scheduledBufferUpdates.front();
@@ -185,7 +190,7 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 	}
 	drawFrame(GetDrawCommandBuffer(),m_n_swapchain_image);
 	/* Close the recording process */
-	m_bIsRecording = false;
+	umath::set_flag(m_stateFlags,StateFlags::IsRecording,false);
 	static_cast<Anvil::PrimaryCommandBuffer&>(cmd_buffer_ptr->GetAnvilCommandBuffer()).stop_recording();
 
 
@@ -313,7 +318,7 @@ void Context::ChangeResolution(uint32_t width,uint32_t height)
 		return;
 	m_windowCreationInfo->width = width;
 	m_windowCreationInfo->height = height;
-	if(m_bInitialized == false)
+	if(umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == false)
 		return;
 	WaitIdle();
 	m_glfwWindow->SetSize(Vector2i(width,height));
@@ -345,7 +350,7 @@ void Context::ChangePresentMode(Anvil::PresentModeKHR presentMode)
 {
 	auto oldPresentMode = GetPresentMode();
 	SetPresentMode(presentMode);
-	if(oldPresentMode == GetPresentMode() || m_bInitialized == false)
+	if(oldPresentMode == GetPresentMode() || umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == false)
 		return;
 	WaitIdle();
 	ReloadSwapchain();
@@ -471,13 +476,19 @@ void Context::ClearKeepAliveResources()
 	auto &resources = m_keepAliveResources.at(m_n_swapchain_image);
 	resources.clear();
 }
-void Context::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) {m_keepAliveResources.at(m_n_swapchain_image).push_back(resource);}
+void Context::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
+{
+	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle))
+		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
+	m_keepAliveResources.at(m_n_swapchain_image).push_back(resource);
+}
 
 void Context::WaitIdle()
 {
 	FlushSetupCommandBuffer();
 	auto &dev = GetDevice();
 	dev.wait_idle();
+	umath::set_flag(m_stateFlags,StateFlags::Idle);
 	ClearKeepAliveResources();
 }
 
@@ -493,7 +504,7 @@ void Context::Initialize(const CreateInfo &createInfo)
 	InitGfxPipelines();
 	InitDummyTextures();
 	InitDummyBuffer();
-	m_bInitialized = true;
+	umath::set_flag(m_stateFlags,StateFlags::Initialized);
 	auto &dev = GetDevice();
 	s_vertexBuffer = prosper::util::get_square_vertex_buffer(dev);
 	s_uvBuffer = prosper::util::get_square_uv_buffer(dev);
@@ -580,7 +591,7 @@ void Context::SubmitCommandBuffer(Anvil::CommandBufferBase &cmd,Anvil::QueueFami
 	}
 }
 
-bool Context::IsRecording() const {return m_bIsRecording;}
+bool Context::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
 bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,Anvil::PipelineStageFlags srcStageMask,Anvil::AccessFlags srcAccessMask)
 {
 	if(size == 0u)
@@ -978,7 +989,7 @@ void Context::InitWindow()
 	//	throw Vulkan::Exception{e.what(),vk::Result::eErrorInitializationFailed};
 	//}
 	OnWindowInitialized();
-	if(m_glfwWindow != nullptr && m_bInitialized == true)
+	if(m_glfwWindow != nullptr && umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == true)
 	{
 		auto newSize = m_glfwWindow->GetSize();
 		if(newSize != oldSize)
@@ -996,7 +1007,7 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 	m_instancePtr = Anvil::Instance::create(Anvil::InstanceCreateInfo::create(
 		appName, /* app_name */
 		appName, /* engine_name */
-		(m_bValidationEnabled == true) ? [this](
+		(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true) ? [this](
 			Anvil::DebugMessageSeverityFlags severityFlags,
 			const char *message
 		) -> VkBool32 {
@@ -1005,7 +1016,7 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 		false
 	)); /* in_mt_safe */
 
-	if(m_bValidationEnabled == true)
+	if(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true)
 		prosper::debug::set_debug_mode_enabled(true);
 
 	if(createInfo.device.has_value())
@@ -1081,3 +1092,4 @@ void Context::Run()
 		GLFW::poll_events();
 	}
 }
+#pragma optimize("",on)

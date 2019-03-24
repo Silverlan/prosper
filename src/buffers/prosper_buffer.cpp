@@ -20,15 +20,10 @@ std::shared_ptr<Buffer> Buffer::Create(Context &context,Anvil::BufferUniquePtr b
 {
 	if(buf == nullptr)
 		return nullptr;
-	if(onDestroyedCallback == nullptr)
-	{
-		auto r = std::shared_ptr<Buffer>(new Buffer(context,std::move(buf)));
-		r->Initialize();
-		return r;
-	}
 	auto r = std::shared_ptr<Buffer>(new Buffer(context,std::move(buf)),[onDestroyedCallback](Buffer *buf) {
-		onDestroyedCallback(*buf);
-		delete buf;
+		if(onDestroyedCallback != nullptr)
+			onDestroyedCallback(*buf);
+		buf->GetContext().ReleaseResource<Buffer>(buf);
 	});
 	r->Initialize();
 	return r;
