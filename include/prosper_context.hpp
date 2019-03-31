@@ -39,7 +39,7 @@
 #include "shader/prosper_shader_manager.hpp"
 
 #ifdef __linux__
-#include <glfw_window.h>
+#include <iglfw/glfw_window.h>
 #endif
 
 namespace Anvil
@@ -283,7 +283,11 @@ template<class TContext>
 	std::shared_ptr<prosper::Context> prosper::Context::Create(const std::string &appName,uint32_t width,uint32_t height,bool bEnableValidation)
 {
 	auto r = std::shared_ptr<Context>(new TContext(appName,bEnableValidation));
-	r->Initialize(width,height);
+
+	CreateInfo createInfo {};
+	createInfo.width = width;
+	createInfo.height = height;
+	r->Initialize(createInfo);
 	return r;
 }
 

@@ -47,7 +47,7 @@ namespace prosper
 template<class T>
 	const prosper::Shader *prosper::ShaderManager::FindShader() const
 {
-	return const_cast<Shader*>(this)->FindShader();
+	return const_cast<ShaderManager*>(this)->FindShader<T>();
 }
 template<class T>
 	prosper::Shader *prosper::ShaderManager::FindShader()

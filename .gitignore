@@ -24,3 +24,4 @@ x64/Release/symbols.txt
 x64/Release/shaders/vs_sample.gls
 build_winx64/
 prosper/x64/Release/prosper.tlog/unsuccessfulbuild
+build_lin64/

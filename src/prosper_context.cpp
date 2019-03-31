@@ -211,14 +211,14 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 
 	//ClearKeepAliveResources(numKeepAliveResources);
 
-	present_queue_ptr->present(
+	auto bPresentSuccess = present_queue_ptr->present(
 		m_swapchainPtr.get(),
 		m_n_swapchain_image,
 		1, /* n_wait_semaphores */
 		&signalSemaphore,
 		&errCode
 	);
-	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS)
+	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS || bPresentSuccess == false)
 	{
 		std::cout<<"ERROR!"<<std::endl;
 		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
