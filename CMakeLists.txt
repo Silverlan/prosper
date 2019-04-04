@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
+include(${CMAKE_CURRENT_LIST_DIR}/cotire.cmake)
+
 set(INCLUDE_DIRS)
 function(add_include_dir IDENTIFIER)
 	set(PRETTYNAME ${IDENTIFIER})
@@ -67,13 +69,13 @@ link_external_library(iglfw)
 
 add_include_dir(glm)
 
-# add_external_library(SPIRV)
+add_external_library(SPIRV)
 add_external_library(SPIRV_Tools)
-# add_external_library(GLSLang_OS_Dependent)
-# add_external_library(GLSLang_OGL_Compiler)
-# add_external_library(SPIRV_Tools_Opt)
-# add_external_library(SPV_Remapper)
-# add_external_library(GLSLang)
+add_external_library(GLSLang_OS_Dependent)
+add_external_library(GLSLang_OGL_Compiler)
+add_external_library(SPIRV_Tools_Opt)
+add_external_library(SPV_Remapper)
+add_external_library(glslang)
 # add_external_library(HLSL)
 
 set(DEFINITIONS
@@ -112,6 +114,10 @@ file(GLOB_RECURSE SRC_FILES
     "${CMAKE_CURRENT_LIST_DIR}/include/*.hpp"
 )
 add_library(${PROJ_NAME} ${LIB_TYPE} ${SRC_FILES})
+if(WIN32)
+	target_compile_options(${PROJ_NAME} PRIVATE /wd4251)
+	target_compile_options(${PROJ_NAME} PRIVATE /wd4996)
+endif()
 def_vs_filters("${SRC_FILES}")
 
 foreach(LIB IN LISTS LIBRARIES)
@@ -128,7 +134,7 @@ endforeach(INCLUDE_PATH)
 set(TARGET_PROPERTIES LINKER_LANGUAGE CXX)
 
 if(DEFINED PRECOMPILED_HEADER)
-	include(PrecompiledHeader.cmake)
-	add_precompiled_header(${PROJ_NAME} "src/${PRECOMPILED_HEADER}.h" c++17 FORCEINCLUDE)
+	set_target_properties(${PROJ_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "src/${PRECOMPILED_HEADER}.h")
 endif()
+cotire(${PROJ_NAME})
 set_target_properties(${PROJ_NAME} PROPERTIES ${TARGET_PROPERTIES})
