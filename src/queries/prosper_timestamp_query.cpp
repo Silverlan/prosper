@@ -11,48 +11,35 @@
 using namespace prosper;
 
 TimestampQuery::TimestampQuery(QueryPool &queryPool,uint32_t queryId,Anvil::PipelineStageFlagBits pipelineStage)
-	: Query(queryPool,queryId),m_pipelineStage(pipelineStage),m_wpQueryPool(queryPool.shared_from_this())
+	: Query(queryPool,queryId),m_pipelineStage(pipelineStage)
 {}
+
+bool TimestampQuery::Reset(Anvil::CommandBufferBase &cmdBuffer)
+{
+	auto r = Query::Reset(cmdBuffer);
+	if(r == true)
+		m_bReset = true;
+	return r;
+}
 
 bool TimestampQuery::Write(Anvil::CommandBufferBase &cmdBuffer)
 {
-	if(m_wpQueryPool.expired())
+	auto *pQueryPool = GetPool();
+	if(pQueryPool == nullptr)
 		return false;
-	auto queryPool = m_wpQueryPool.lock();
-	auto *anvPool = &queryPool->GetAnvilQueryPool();
-	return cmdBuffer.record_reset_query_pool(anvPool,m_queryId,1u /* queryCount */) &&
-		cmdBuffer.record_write_timestamp(m_pipelineStage,anvPool,m_queryId);
+	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
+	if(m_bReset == false && Reset(cmdBuffer) == false)
+		return false;
+	return cmdBuffer.record_write_timestamp(m_pipelineStage,anvPool,m_queryId);
 }
 
-template<class T>
-	bool TimestampQuery::QueryResult(long double &r) const
+bool TimestampQuery::QueryResult(std::chrono::nanoseconds &outTimestampValue) const
 {
-	T queryResult = 0;
-	if(TimestampQuery::QueryResult(queryResult) == false)
+	uint64_t result;
+	if(Query::QueryResult(result) == false)
 		return false;
-	r = static_cast<float>(queryResult) *GetContext().GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period;
-	return true;
-}
-
-template<class T>
-	bool TimestampQuery::QueryResult(T &r) const
-{
-	auto result = 0.L;
-	if(QueryResult(result) == false)
-		return false;
-	r = static_cast<T>(r);
-	return true;
-}
-
-bool TimestampQuery::QueryResult(uint32_t &r) const {return QueryResult<uint32_t>(r);}
-bool TimestampQuery::QueryResult(uint64_t &r) const {return QueryResult<uint64_t>(r);}
-
-bool TimestampQuery::QueryResult(long double &r) const
-{
-	auto result = 0.0L;
-	if(QueryResult<uint64_t>(result) == false)
-		return false;
-	r = result /1'000'000.0L;
+	auto ns = result *static_cast<double>(GetContext().GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period);
+	outTimestampValue = static_cast<std::chrono::nanoseconds>(static_cast<uint64_t>(ns));
 	return true;
 }
 

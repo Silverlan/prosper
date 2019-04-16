@@ -381,6 +381,7 @@ namespace prosper
 		DLLPROSPER std::string to_string(Anvil::ImageUsageFlagBits usage);
 		DLLPROSPER std::string to_string(Anvil::ImageCreateFlagBits createFlags);
 		DLLPROSPER std::string to_string(Anvil::ShaderStage stage);
+		DLLPROSPER std::string to_string(Anvil::PipelineStageFlagBits stage);
 		DLLPROSPER std::string to_string(vk::PhysicalDeviceType type);
 		DLLPROSPER bool has_alpha(Anvil::Format format);
 		DLLPROSPER bool is_depth_format(Anvil::Format format);

@@ -22,6 +22,7 @@ namespace prosper
 	namespace util
 	{
 		DLLPROSPER std::shared_ptr<QueryPool> create_query_pool(Context &context,vk::QueryType queryType,uint32_t maxConcurrentQueries);
+		DLLPROSPER std::shared_ptr<QueryPool> create_query_pool(Context &context,Anvil::QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries);
 	};
 	class DLLPROSPER QueryPool
 		: public ContextObject,
@@ -41,6 +42,7 @@ namespace prosper
 		std::queue<uint32_t> m_freeQueries;
 	private:
 		friend std::shared_ptr<QueryPool> util::create_query_pool(Context &context,vk::QueryType queryType,uint32_t maxConcurrentQueries);
+		friend std::shared_ptr<QueryPool> util::create_query_pool(Context &context,Anvil::QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries);
 	};
 };
 

@@ -9,29 +9,30 @@
 
 using namespace prosper;
 
-TimerQuery::TimerQuery(const std::shared_ptr<prosper::CommandBuffer> &cmdBuffer,const std::shared_ptr<TimestampQuery> &tsQuery0,const std::shared_ptr<TimestampQuery> &tsQuery1)
-	: ContextObject(tsQuery0->GetContext()),std::enable_shared_from_this<TimerQuery>(),m_tsQuery0(tsQuery0),m_tsQuery1(tsQuery1),m_cmdBuffer(cmdBuffer)
+TimerQuery::TimerQuery(const std::shared_ptr<TimestampQuery> &tsQuery0,const std::shared_ptr<TimestampQuery> &tsQuery1)
+	: ContextObject(tsQuery0->GetContext()),std::enable_shared_from_this<TimerQuery>(),m_tsQuery0(tsQuery0),m_tsQuery1(tsQuery1)
 {}
 
-bool TimerQuery::Begin() const {return m_tsQuery0->Write(**m_cmdBuffer);}
-bool TimerQuery::End() const {return m_tsQuery1->Write(**m_cmdBuffer);}
-
-bool TimerQuery::QueryResult(long double &r) const
+bool TimerQuery::Reset(Anvil::CommandBufferBase &cmdBuffer) const
 {
-	auto start = 0.L;
-	auto end = 0.L;
-	if(m_tsQuery0->QueryResult(start) == false)
+	return m_tsQuery0->Reset(cmdBuffer) && m_tsQuery1->Reset(cmdBuffer);
+}
+bool TimerQuery::Begin(Anvil::CommandBufferBase &cmdBuffer) const {return m_tsQuery0->Write(cmdBuffer);}
+bool TimerQuery::End(Anvil::CommandBufferBase &cmdBuffer) const {return m_tsQuery1->Write(cmdBuffer);}
+
+bool TimerQuery::QueryResult(std::chrono::nanoseconds &outDuration) const
+{
+	std::chrono::nanoseconds nsStart,nsEnd;
+	if(m_tsQuery0->QueryResult(nsStart) == false || m_tsQuery1->QueryResult(nsEnd) == false)
 		return false;
-	if(m_tsQuery1->QueryResult(end) == false)
-		return false;
-	r = end -start;
+	outDuration = nsEnd -nsStart;
 	return true;
 }
 
 bool TimerQuery::IsResultAvailable() const {return (m_tsQuery0->IsResultAvailable() && m_tsQuery1->IsResultAvailable()) ? true : false;}
 Anvil::PipelineStageFlagBits TimerQuery::GetPipelineStage() const {return m_tsQuery0->GetPipelineStage();}
 
-std::shared_ptr<TimerQuery> prosper::util::create_timer_query(QueryPool &queryPool,const std::shared_ptr<prosper::CommandBuffer> &cmdBuffer,Anvil::PipelineStageFlagBits pipelineStage)
+std::shared_ptr<TimerQuery> prosper::util::create_timer_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage)
 {
 	auto tsQuery0 = prosper::util::create_timestamp_query(queryPool,pipelineStage);
 	if(tsQuery0 == nullptr)
@@ -39,5 +40,5 @@ std::shared_ptr<TimerQuery> prosper::util::create_timer_query(QueryPool &queryPo
 	auto tsQuery1 = prosper::util::create_timestamp_query(queryPool,pipelineStage);
 	if(tsQuery1 == nullptr)
 		return nullptr;
-	return std::shared_ptr<TimerQuery>(new TimerQuery(cmdBuffer,tsQuery0,tsQuery1));
+	return std::shared_ptr<TimerQuery>(new TimerQuery(tsQuery0,tsQuery1));
 }

@@ -6,6 +6,7 @@
 #define __PROSPER_TIMESTAMP_QUERY_HPP__
 
 #include "queries/prosper_query.hpp"
+#include <chrono>
 
 namespace Anvil {class CommandBufferBase;};
 
@@ -22,19 +23,12 @@ namespace prosper
 	{
 	public:
 		Anvil::PipelineStageFlagBits GetPipelineStage() const;
+		virtual bool Reset(Anvil::CommandBufferBase &cmdBuffer) override;
 		bool Write(Anvil::CommandBufferBase &cmdBuffer);
-		// Returns the written timestamp in milliseconds
-		bool QueryResult(long double &r) const;
+		bool QueryResult(std::chrono::nanoseconds &outTimestampValue) const;
 	private:
 		TimestampQuery(QueryPool &queryPool,uint32_t queryId,Anvil::PipelineStageFlagBits pipelineStage);
-		std::weak_ptr<QueryPool> m_wpQueryPool = {};
-		template<class T>
-			bool QueryResult(long double &r) const;
-		template<class T>
-			bool QueryResult(T &r) const;
-		virtual bool QueryResult(uint32_t &r) const override;
-		virtual bool QueryResult(uint64_t &r) const override;
-
+		bool m_bReset = true;
 		Anvil::PipelineStageFlagBits m_pipelineStage;
 	private:
 		friend std::shared_ptr<TimestampQuery> util::create_timestamp_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage);

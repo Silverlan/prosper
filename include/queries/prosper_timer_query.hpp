@@ -17,24 +17,24 @@ namespace prosper
 	class CommandBuffer;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<TimerQuery> create_timer_query(QueryPool &queryPool,const std::shared_ptr<prosper::CommandBuffer> &cmdBuffer,Anvil::PipelineStageFlagBits pipelineStage);
+		DLLPROSPER std::shared_ptr<TimerQuery> create_timer_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage);
 	};
 	class DLLPROSPER TimerQuery
 		: public ContextObject,public std::enable_shared_from_this<TimerQuery>
 	{
 	public:
 		Anvil::PipelineStageFlagBits GetPipelineStage() const;
-		bool Begin() const;
-		bool End() const;
-		bool QueryResult(long double &r) const;
+		bool Reset(Anvil::CommandBufferBase &cmdBuffer) const;
+		bool Begin(Anvil::CommandBufferBase &cmdBuffer) const;
+		bool End(Anvil::CommandBufferBase &cmdBuffer) const;
+		bool QueryResult(std::chrono::nanoseconds &outDuration) const;
 		bool IsResultAvailable() const;
 	private:
-		TimerQuery(const std::shared_ptr<prosper::CommandBuffer> &cmdBuffer,const std::shared_ptr<TimestampQuery> &tsQuery0,const std::shared_ptr<TimestampQuery> &tsQuery1);
+		TimerQuery(const std::shared_ptr<TimestampQuery> &tsQuery0,const std::shared_ptr<TimestampQuery> &tsQuery1);
 		std::shared_ptr<TimestampQuery> m_tsQuery0 = nullptr;
 		std::shared_ptr<TimestampQuery> m_tsQuery1 = nullptr;
-		std::shared_ptr<prosper::CommandBuffer> m_cmdBuffer = nullptr;
 	private:
-		friend std::shared_ptr<TimerQuery> util::create_timer_query(QueryPool &queryPool,const std::shared_ptr<prosper::CommandBuffer> &cmdBuffer,Anvil::PipelineStageFlagBits pipelineStage);
+		friend std::shared_ptr<TimerQuery> util::create_timer_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage);
 	};
 };
 

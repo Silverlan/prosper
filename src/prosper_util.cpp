@@ -1138,6 +1138,7 @@ std::string prosper::util::to_string(Anvil::ShaderStage stage)
 	}
 	return ss.str();
 }
+std::string prosper::util::to_string(Anvil::PipelineStageFlagBits stage) {return vk::to_string(static_cast<vk::PipelineStageFlagBits>(stage));}
 std::string prosper::util::to_string(Anvil::ImageTiling tiling) {return vk::to_string(static_cast<vk::ImageTiling>(tiling));}
 std::string prosper::util::to_string(vk::PhysicalDeviceType type) {return vk::to_string(type);}
 
