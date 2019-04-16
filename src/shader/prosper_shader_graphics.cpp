@@ -284,6 +284,17 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 	auto nextLocation = 0u;
 	std::unordered_map<const VertexBinding*,uint32_t> nextStartOffsets;
 	std::unordered_map<const VertexBinding*,uint32_t> vertexBindingIndices;
+
+	struct AnvilVertexBinding
+	{
+		uint32_t binding;
+		Anvil::VertexInputRate stepRate;
+		uint32_t strideInBytes;
+		std::vector<Anvil::VertexInputAttribute> attributes;
+	};
+	std::vector<AnvilVertexBinding> anvVertexBindings {};
+	anvVertexBindings.reserve(m_vertexAttributes.size());
+
 	auto vertexBindingCount = 0u;
 	for(auto &refAttr : m_vertexAttributes)
 	{
@@ -310,13 +321,28 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 		{
 			it = vertexBindingIndices.insert(std::make_pair(&attr.binding,vertexBindingCount++)).first;
 			const_cast<prosper::ShaderGraphics::VertexBinding&>(attr.binding).bindingIndex = it->second;
+			anvVertexBindings.push_back({});
 		}
 		vertexBindingIdx = it->second;
-		if(pipelineInfo.add_vertex_attribute(
-			location,attr.format,attr.startOffset,
-			attr.binding.stride,attr.binding.inputRate,vertexBindingIdx
+
+		auto &anvBindingInfo = anvVertexBindings.at(vertexBindingIdx);
+		anvBindingInfo.binding = vertexBindingIdx;
+		anvBindingInfo.stepRate = attr.binding.inputRate;
+		anvBindingInfo.strideInBytes = attr.binding.stride;
+		anvBindingInfo.attributes.push_back(
+			{attr.location,attr.format,attr.startOffset}
+		);
+	}
+	for(auto &anvVertexBinding : anvVertexBindings)
+	{
+		if(pipelineInfo.add_vertex_binding(
+			anvVertexBinding.binding,
+			anvVertexBinding.stepRate,
+			anvVertexBinding.strideInBytes,
+			anvVertexBinding.attributes.size(),
+			anvVertexBinding.attributes.data()
 		) == false)
-			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for shader location " +std::to_string(location));
+			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " +std::to_string(anvVertexBinding.binding));
 	}
 	m_vertexAttributes = {};
 	//

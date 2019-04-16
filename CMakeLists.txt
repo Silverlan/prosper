@@ -66,8 +66,10 @@ link_external_library(anvil)
 link_external_library(util_image)
 link_external_library(glfw)
 link_external_library(iglfw)
+link_external_library(glslang)
 
 add_include_dir(glm)
+add_include_dir(anvil_build)
 
 add_external_library(SPIRV)
 add_external_library(SPIRV_Tools)
@@ -75,12 +77,12 @@ add_external_library(GLSLang_OS_Dependent)
 add_external_library(GLSLang_OGL_Compiler)
 add_external_library(SPIRV_Tools_Opt)
 add_external_library(SPV_Remapper)
-add_external_library(glslang)
 # add_external_library(HLSL)
 
 set(DEFINITIONS
 	SHPROSPER_DLL
 	GLM_FORCE_DEPTH_ZERO_TO_ONE
+	ANVIL_VULKAN_CPP
 )
 
 ##### CONFIGURATION #####

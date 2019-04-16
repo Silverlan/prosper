@@ -1038,15 +1038,17 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 	m_shaderManager = std::make_unique<ShaderManager>(*this);
 
     /* Create a Vulkan device */
+	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(
+		m_physicalDevicePtr,
+		true, /* in_enable_shader_module_cache */
+		Anvil::DeviceExtensionConfiguration(),
+		std::vector<std::string>(),
+		Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT,
+		false /* in_mt_safe */
+	);
+	// devCreateInfo->set_pipeline_cache_ptr() // TODO
     m_devicePtr = Anvil::SGPUDevice::create(
-		Anvil::DeviceCreateInfo::create_sgpu(
-			m_physicalDevicePtr,
-			true, /* in_enable_shader_module_cache */
-			Anvil::DeviceExtensionConfiguration(),
-			std::vector<std::string>(),
-			Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT,
-			false /* in_mt_safe */
-		)
+		std::move(devCreateInfo)
 	);
 	/*[](Anvil::BaseDevice &dev) -> Anvil::PipelineCacheUniquePtr {
 		prosper::PipelineCache::LoadError loadErr {};

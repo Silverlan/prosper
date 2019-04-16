@@ -382,7 +382,7 @@ std::shared_ptr<prosper::DescriptorSetGroup> prosper::util::create_descriptor_se
 {
 	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> descSetInfos = {};
 	descSetInfos.push_back(std::move(descSetInfo));
-	auto dsg = Anvil::DescriptorSetGroup::create(&dev,descSetInfos,true);//false);
+	auto dsg = Anvil::DescriptorSetGroup::create(&dev,descSetInfos,Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
 	init_default_dsg_bindings(dev,*dsg);
 	return prosper::DescriptorSetGroup::Create(prosper::Context::GetContext(dev),std::move(dsg));
 }
