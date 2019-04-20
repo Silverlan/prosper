@@ -76,7 +76,11 @@ Context::Context(const std::string &appName,bool bEnableValidation)
 	m_windowCreationInfo->title = appName;
 }
 
-Context::~Context() {Release();}
+Context::~Context()
+{
+	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed) == false)
+		throw std::logic_error{"Prosper context has to be closed before being destroyed!"};
+}
 
 void Context::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
 bool Context::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
@@ -94,12 +98,21 @@ std::array<uint32_t,2> Context::GetWindowSize() const {return {m_windowCreationI
 uint32_t Context::GetWindowWidth() const {return m_windowCreationInfo->width;}
 uint32_t Context::GetWindowHeight() const {return m_windowCreationInfo->height;}
 
+void Context::Close()
+{
+	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed))
+		return;
+	WaitIdle();
+	OnClose();
+}
+void Context::OnClose()
+{
+	Release();
+}
 void Context::Release()
 {
 	if(m_devicePtr == nullptr)
 		return;
-	WaitIdle();
-
 	ReleaseSwapchain();
 
 	auto &dev = GetDevice();
@@ -128,6 +141,7 @@ void Context::Release()
 	m_windowPtr.reset();
 
 	m_glfwWindow = nullptr;
+	m_stateFlags |= StateFlags::Closed;
 }
 
 uint64_t Context::GetLastFrameId() const {return m_frameId;}
@@ -498,6 +512,7 @@ void Context::Initialize(const CreateInfo &createInfo)
 	// TODO: Check if resolution is supported
 	m_windowCreationInfo->width = createInfo.width;
 	m_windowCreationInfo->height = createInfo.height;
+	ChangePresentMode(createInfo.presentMode);
 	InitVulkan(createInfo);
 	InitWindow();
 	ReloadSwapchain();

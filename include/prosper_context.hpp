@@ -83,7 +83,8 @@ namespace prosper
 			IsRecording = 1u,
 			ValidationEnabled = IsRecording<<1u,
 			Initialized = ValidationEnabled<<1u,
-			Idle = Initialized<<1u
+			Idle = Initialized<<1u,
+			Closed = Idle<<1u
 		};
 
 		struct DLLPROSPER CreateInfo
@@ -98,6 +99,7 @@ namespace prosper
 			};
 			uint32_t width = 0u;
 			uint32_t height = 0u;
+			Anvil::PresentModeKHR presentMode = Anvil::PresentModeKHR::IMMEDIATE_KHR;
 			std::optional<DeviceInfo> device = {};
 		};
 
@@ -107,6 +109,7 @@ namespace prosper
 
 		void Initialize(const CreateInfo &createInfo);
 		void Run();
+		void Close();
 
 		// Has to be called before the context has been initialized
 		void SetValidationEnabled(bool b);
@@ -193,6 +196,7 @@ namespace prosper
 	protected:
 		Context(const std::string &appName,bool bEnableValidation=false);
 
+		virtual void OnClose();
 		virtual void Release();
 		virtual void InitBuffers();
 		virtual void InitGfxPipelines();
