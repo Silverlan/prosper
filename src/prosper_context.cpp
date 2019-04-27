@@ -21,6 +21,7 @@
 #include <misc/framebuffer_create_info.h>
 #include <misc/swapchain_create_info.h>
 #include <misc/rendering_surface_create_info.h>
+#include <thread>
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
@@ -36,6 +37,12 @@
 #endif
 
 #include <GLFW/glfw3native.h>
+
+#define ENABLE_GLFW_ANVIL_COMPATIBILITY
+#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
+#include <xcb/xcb.h>
+#include <X11/Xlib-xcb.h>
+#endif
 
 /* Sanity checks */
 #if defined(_WIN32)
@@ -959,8 +966,24 @@ void Context::InitWindow()
 #ifdef _WIN32
 		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
 #else
+#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
+		// This is a workaround since GLFW does not expose any functions
+		// for retrieving XCB connection.
+		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
+		auto *pConnection =  XGetXCBConnection(glfwGetX11Display());
+#else
+		#error "Unable to retrieve xcb connection: GLFW does not expose required functions."
 		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
 #endif
+#endif
+		const char *errDesc;
+		auto err = glfwGetError(&errDesc);
+		if(err != GLFW_NO_ERROR)
+		{
+			std::cout<<"Error retrieving GLFW window handle: "<<errDesc<<std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+			exit(EXIT_FAILURE);
+		}
 
 		// GLFW does not guarantee to actually use the size which was specified,
 		// in some cases it may change, so we have to retrieve it again here
@@ -968,14 +991,31 @@ void Context::InitWindow()
 		m_windowCreationInfo->width = actualWindowSize.x;
 		m_windowCreationInfo->height = actualWindowSize.y;
 
-		m_windowPtr = Anvil::WindowFactory::create_window(platform,hWindow);
-		auto err = glfwCreateWindowSurface(
+		m_windowPtr = Anvil::WindowFactory::create_window(platform,hWindow
+#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
+			,pConnection
+#endif
+		);
+//    m_windowPtr = Anvil::WindowFactory::create_window(platform,
+//                                                       "Test",
+//                                                       1280,
+//                                                       720,
+//                                                       true, /* in_closable */
+//                                                       []() {}
+//    );
+		err = glfwCreateWindowSurface(
 			m_instancePtr->get_instance_vk(),
 			const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()),
 			nullptr,
 			reinterpret_cast<VkSurfaceKHR*>(&m_surface)
 		);
-		// TODO: Check error
+		if(err != GLFW_NO_ERROR)
+		{
+			glfwGetError(&errDesc);
+			std::cout<<"Error creating GLFW window surface: "<<errDesc<<std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+			exit(EXIT_FAILURE);
+		}
 		
 		m_glfwWindow->SetResizeCallback([](GLFW::Window &window,Vector2i size) {
 			std::cout<<"Resizing..."<<std::endl; // TODO

@@ -72,11 +72,11 @@ add_include_dir(glm)
 add_include_dir(anvil_build)
 
 add_external_library(SPIRV)
-add_external_library(SPIRV_Tools)
 add_external_library(GLSLang_OS_Dependent)
 add_external_library(GLSLang_OGL_Compiler)
 add_external_library(SPIRV_Tools_Opt)
 add_external_library(SPV_Remapper)
+add_external_library(SPIRV_Tools)
 # add_external_library(HLSL)
 
 set(DEFINITIONS
@@ -125,6 +125,10 @@ def_vs_filters("${SRC_FILES}")
 foreach(LIB IN LISTS LIBRARIES)
 	target_link_libraries(${PROJ_NAME} ${${LIB}})
 endforeach(LIB)
+
+if(UNIX) # Required to create XCB Anvil compatibility
+	target_link_libraries(${PROJ_NAME} xcb X11-xcb)
+endif()
 
 target_include_directories(${PROJ_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_include_directories(${PROJ_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)

@@ -22,23 +22,6 @@ namespace prosper
 		: public Query
 	{
 	public:
-#pragma pack(push,1)
-		struct Statistics
-		{
-			uint64_t inputAssemblyVertices;
-			uint64_t inputAssemblyPrimitives;
-			uint64_t vertexShaderInvocations;
-			uint64_t geometryShaderInvocations;
-			uint64_t geometryShaderPrimitives;
-			uint64_t clippingInvocations;
-			uint64_t clippingPrimitives;
-			uint64_t fragmentShaderInvocations;
-			uint64_t tessellationControlShaderPatches;
-			uint64_t tessellationEvaluationShaderInvocations;
-			uint64_t computeShaderInvocations;
-		};
-#pragma pack(pop)
-
 		bool RecordBegin(Anvil::CommandBufferBase &cmdBuffer) const;
 		bool RecordEnd(Anvil::CommandBufferBase &cmdBuffer) const;
 	private:

@@ -104,10 +104,10 @@ namespace prosper
 		};
 
 		template<class TContext>
-			static std::shared_ptr<Context> Create(const std::string &appName,uint32_t width,uint32_t height,bool bEnableValidation=false);
+			static std::shared_ptr<TContext> Create(const std::string &appName,uint32_t width,uint32_t height,bool bEnableValidation=false);
 		virtual ~Context();
 
-		void Initialize(const CreateInfo &createInfo);
+		virtual void Initialize(const CreateInfo &createInfo);
 		void Run();
 		void Close();
 
@@ -284,9 +284,9 @@ template<typename T>
 }
 
 template<class TContext>
-	std::shared_ptr<prosper::Context> prosper::Context::Create(const std::string &appName,uint32_t width,uint32_t height,bool bEnableValidation)
+	std::shared_ptr<TContext> prosper::Context::Create(const std::string &appName,uint32_t width,uint32_t height,bool bEnableValidation)
 {
-	auto r = std::shared_ptr<Context>(new TContext(appName,bEnableValidation));
+	auto r = std::shared_ptr<TContext>(new TContext(appName,bEnableValidation));
 
 	CreateInfo createInfo {};
 	createInfo.width = width;
