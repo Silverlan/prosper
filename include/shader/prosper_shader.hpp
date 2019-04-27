@@ -13,7 +13,6 @@
 #include <cinttypes>
 #include <vulkan/vulkan.hpp>
 #include <sharedutils/util_weak_handle.hpp>
-#include <sharedutils/util_null_ref.hpp>
 #include <unordered_map>
 #include <optional>
 
@@ -196,8 +195,7 @@ namespace prosper
 		{
 			VertexBinding()=default;
 			VertexBinding(Anvil::VertexInputRate inputRate,uint32_t stride=std::numeric_limits<uint32_t>::max());
-			// TODO: Use std::optional instead of null references
-			VertexBinding(const VertexBinding &vbOther,const Anvil::VertexInputRate &inputRate=::util::nullref<Anvil::VertexInputRate>(),const uint32_t &stride=::util::nullref<uint32_t>());
+			VertexBinding(const VertexBinding &vbOther,std::optional<Anvil::VertexInputRate> inputRate={},std::optional<uint32_t> stride={});
 			uint32_t stride = std::numeric_limits<uint32_t>::max();
 			Anvil::VertexInputRate inputRate = Anvil::VertexInputRate::VERTEX;
 
@@ -212,13 +210,14 @@ namespace prosper
 		{
 			VertexAttribute()=default;
 			VertexAttribute(const VertexBinding &binding,Anvil::Format format);
+			VertexAttribute(const VertexAttribute &vaOther);
 			VertexAttribute(
-				const VertexAttribute &vaOther,const VertexBinding &binding=::util::nullref<VertexBinding>(),
-				const Anvil::Format &format=::util::nullref<Anvil::Format>()
+				const VertexAttribute &vaOther,const VertexBinding &binding,
+				std::optional<Anvil::Format> format={}
 			);
 			Anvil::Format format = Anvil::Format::R8G8B8A8_UNORM;
 			uint32_t startOffset = std::numeric_limits<uint32_t>::max();
-			const VertexBinding &binding;
+			const VertexBinding *binding = nullptr;
 
 			uint32_t GetLocation() const;
 		private:

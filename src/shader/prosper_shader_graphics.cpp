@@ -24,10 +24,10 @@
 prosper::ShaderGraphics::VertexBinding::VertexBinding(Anvil::VertexInputRate inputRate,uint32_t stride)
 	: stride(stride),inputRate(inputRate)
 {}
-prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOther,const Anvil::VertexInputRate &inputRate,const uint32_t &stride)
+prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOther,std::optional<Anvil::VertexInputRate> inputRate,std::optional<uint32_t> stride)
 {
-	auto pinputRate = (&inputRate != nullptr) ? std::make_shared<Anvil::VertexInputRate>(inputRate) : nullptr;
-	auto pstride = (&stride != nullptr) ? std::make_shared<uint32_t>(stride) : nullptr;
+	auto pinputRate = inputRate ? std::make_shared<Anvil::VertexInputRate>(*inputRate) : nullptr;
+	auto pstride = stride ? std::make_shared<uint32_t>(*stride) : nullptr;
 	initializer = [this,&vbOther,pinputRate,pstride]() {
 		*this = vbOther;
 		if(pinputRate != nullptr)
@@ -39,14 +39,24 @@ prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOth
 }
 uint32_t prosper::ShaderGraphics::VertexBinding::GetBindingIndex() const {return bindingIndex;}
 prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding,Anvil::Format format)
-	: binding(binding),format(format)
+	: binding(&binding),format(format)
 {}
-prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute &vaOther,const VertexBinding &binding,const Anvil::Format &format)
-	: binding(::util::is_ref_set(binding) ? binding : vaOther.binding)
+prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute &vaOther)
 {
-	auto pformat = (&format != nullptr) ? std::make_shared<Anvil::Format>(format) : nullptr;
+	initializer = [this,&vaOther]() {
+		this->format = vaOther.format;
+		this->startOffset = vaOther.startOffset;
+		initializer = nullptr;
+	};
+}
+prosper::ShaderGraphics::VertexAttribute::VertexAttribute(
+	const VertexAttribute &vaOther,const VertexBinding &binding,
+	std::optional<Anvil::Format> format
+)
+	: binding(&binding)
+{
+	auto pformat = format ? std::make_shared<Anvil::Format>(*format) : nullptr;
 	initializer = [this,&vaOther,pformat]() {
-
 		this->format = vaOther.format;
 		this->startOffset = vaOther.startOffset;
 		if(pformat != nullptr)
@@ -260,10 +270,10 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 
 		if(attr.initializer != nullptr)
 			attr.initializer();
-		if(attr.binding.initializer != nullptr)
-			attr.binding.initializer();
+		if(attr.binding != nullptr && attr.binding->initializer != nullptr)
+			attr.binding->initializer();
 
-		if(attr.binding.stride != std::numeric_limits<uint32_t>::max())
+		if(attr.binding == nullptr || attr.binding->stride != std::numeric_limits<uint32_t>::max())
 			continue;
 		calcStrideQueue.push(i);
 	}
@@ -274,7 +284,7 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 
 		auto &refAttr = m_vertexAttributes.at(i);
 		auto &attr = refAttr.get();
-		auto &binding = const_cast<VertexBinding&>(attr.binding);
+		auto &binding = const_cast<VertexBinding&>(*attr.binding);
 		if(binding.stride == std::numeric_limits<uint32_t>::max())
 			binding.stride = 0u;
 		binding.stride += prosper::util::get_byte_size(attr.format);
@@ -310,25 +320,25 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 		auto &startOffset = attr.startOffset;
 		if(startOffset == std::numeric_limits<uint32_t>::max())
 		{
-			auto it = nextStartOffsets.find(&attr.binding);
+			auto it = nextStartOffsets.find(attr.binding);
 			startOffset = (it != nextStartOffsets.end()) ? it->second : 0u;
 		}
-		nextStartOffsets[&attr.binding] = startOffset +prosper::util::get_byte_size(attr.format);
+		nextStartOffsets[attr.binding] = startOffset +prosper::util::get_byte_size(attr.format);
 
 		auto vertexBindingIdx = 0u;
-		auto it = vertexBindingIndices.find(&attr.binding);
+		auto it = vertexBindingIndices.find(attr.binding);
 		if(it == vertexBindingIndices.end())
 		{
-			it = vertexBindingIndices.insert(std::make_pair(&attr.binding,vertexBindingCount++)).first;
-			const_cast<prosper::ShaderGraphics::VertexBinding&>(attr.binding).bindingIndex = it->second;
+			it = vertexBindingIndices.insert(std::make_pair(attr.binding,vertexBindingCount++)).first;
+			const_cast<prosper::ShaderGraphics::VertexBinding&>(*attr.binding).bindingIndex = it->second;
 			anvVertexBindings.push_back({});
 		}
 		vertexBindingIdx = it->second;
 
 		auto &anvBindingInfo = anvVertexBindings.at(vertexBindingIdx);
 		anvBindingInfo.binding = vertexBindingIdx;
-		anvBindingInfo.stepRate = attr.binding.inputRate;
-		anvBindingInfo.strideInBytes = attr.binding.stride;
+		anvBindingInfo.stepRate = attr.binding->inputRate;
+		anvBindingInfo.strideInBytes = attr.binding->stride;
 		anvBindingInfo.attributes.push_back(
 			{attr.location,attr.format,attr.startOffset}
 		);

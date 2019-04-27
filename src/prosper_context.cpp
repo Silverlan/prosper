@@ -38,7 +38,9 @@
 
 #include <GLFW/glfw3native.h>
 
+#ifdef __linux__
 #define ENABLE_GLFW_ANVIL_COMPATIBILITY
+#endif
 #ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
 #include <xcb/xcb.h>
 #include <X11/Xlib-xcb.h>
