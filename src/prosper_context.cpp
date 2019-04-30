@@ -497,12 +497,16 @@ void Context::ClearKeepAliveResources()
 {
 	if(m_n_swapchain_image >= m_keepAliveResources.size())
 		return;
+	if(umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
+		throw std::logic_error("ClearKeepAliveResources mustn't be called by a resource destructor!");
 	auto &resources = m_keepAliveResources.at(m_n_swapchain_image);
+	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources);
 	resources.clear();
+	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources,false);
 }
 void Context::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
-	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle))
+	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
 	m_keepAliveResources.at(m_n_swapchain_image).push_back(resource);
 }
@@ -998,13 +1002,7 @@ void Context::InitWindow()
 			,pConnection
 #endif
 		);
-//    m_windowPtr = Anvil::WindowFactory::create_window(platform,
-//                                                       "Test",
-//                                                       1280,
-//                                                       720,
-//                                                       true, /* in_closable */
-//                                                       []() {}
-//    );
+
 		err = glfwCreateWindowSurface(
 			m_instancePtr->get_instance_vk(),
 			const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()),

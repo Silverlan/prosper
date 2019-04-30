@@ -84,7 +84,8 @@ namespace prosper
 			ValidationEnabled = IsRecording<<1u,
 			Initialized = ValidationEnabled<<1u,
 			Idle = Initialized<<1u,
-			Closed = Idle<<1u
+			Closed = Idle<<1u,
+			ClearingKeepAliveResources = Closed<<1u
 		};
 
 		struct DLLPROSPER CreateInfo
