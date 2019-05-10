@@ -21,6 +21,10 @@ Anvil::BasePipelineManager *prosper::ShaderCompute::GetPipelineManager() const
 	auto &dev = context.GetDevice();
 	return dev.get_compute_pipeline_manager();
 }
+bool prosper::ShaderCompute::AddSpecializationConstant(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data)
+{
+	return pipelineInfo.add_specialization_constant(constantId,numBytes,data);
+}
 void prosper::ShaderCompute::InitializeComputePipeline(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) {}
 void prosper::ShaderCompute::InitializePipeline()
 {

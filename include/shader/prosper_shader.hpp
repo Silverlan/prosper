@@ -244,6 +244,7 @@ namespace prosper
 		bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1u,uint32_t firstVertex=0u,uint32_t firstInstance=0u);
 		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,int32_t vertexOffset=0,uint32_t firstInstance=0u);
 		void AddVertexAttribute(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);
+		bool AddSpecializationConstant(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data);
 		virtual bool BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		virtual bool Draw();
 		virtual void EndDraw();
@@ -278,6 +279,7 @@ namespace prosper
 		virtual bool BeginCompute(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u);
 		virtual void Compute();
 		virtual void EndCompute();
+		bool AddSpecializationConstant(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data);
 	protected:
 		virtual void InitializeComputePipeline(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
 	private:

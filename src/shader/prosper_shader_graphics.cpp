@@ -429,6 +429,10 @@ bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t ins
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	return cmdBuffer != nullptr && (*cmdBuffer)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
 }
+bool prosper::ShaderGraphics::AddSpecializationConstant(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
+{
+	return pipelineInfo.add_specialization_constant(stage,constantId,numBytes,data);
+}
 void prosper::ShaderGraphics::AddVertexAttribute(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr) {m_vertexAttributes.push_back(attr);}
 bool prosper::ShaderGraphics::RecordBindDescriptorSet(Anvil::DescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
 {
