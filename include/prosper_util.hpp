@@ -321,6 +321,7 @@ namespace prosper
 
 		DLLPROSPER prosper::RenderTarget *get_current_render_pass_target(Anvil::PrimaryCommandBuffer &cmdBuffer);
 
+		DLLPROSPER bool set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
 		DLLPROSPER bool set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
 		DLLPROSPER bool set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx);
 		DLLPROSPER bool set_descriptor_set_binding_array_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId);

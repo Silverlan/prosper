@@ -401,7 +401,8 @@ bool prosper::Shader::RecordBindDescriptorSet(Anvil::DescriptorSet &descSet,uint
 						descSet.get_sampled_image_binding_properties(i,j,nullptr,&imgView);
 						break;
 					case Anvil::DescriptorType::STORAGE_IMAGE:
-						descSet.get_storage_image_binding_properties(i,j,nullptr,&imgView);
+						// Does not work?
+						// descSet.get_storage_image_binding_properties(i,j,nullptr,&imgView);
 						break;
 				}
 				if(imgView == nullptr)

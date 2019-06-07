@@ -814,6 +814,16 @@ bool prosper::util::record_next_sub_pass(Anvil::PrimaryCommandBuffer &cmdBuffer)
 	return cmdBuffer.record_next_subpass(Anvil::SubpassContents::INLINE);
 }
 
+bool prosper::util::set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+{
+	auto &imgView = texture.GetImageView(layerId);
+	if(imgView == nullptr)
+		return false;
+	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
+		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+		&imgView->GetAnvilImageView()
+	});
+}
 bool prosper::util::set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,Anvil::BindingIndex bindingIdx,uint32_t layerId)
 {
 	auto &imgView = texture.GetImageView(layerId);
