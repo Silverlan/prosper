@@ -15,6 +15,9 @@
 #include <sharedutils/util_weak_handle.hpp>
 #include <unordered_map>
 #include <optional>
+#ifdef __linux__
+	#include <misc/descriptor_set_create_info.h>
+#endif
 
 #undef max
 
