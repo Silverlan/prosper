@@ -129,6 +129,7 @@ namespace prosper
 		void ChangePresentMode(Anvil::PresentModeKHR presentMode);
 		Anvil::PresentModeKHR GetPresentMode() const;
 
+		const GLFW::WindowCreationInfo &GetWindowCreationInfo() const;
 		GLFW::WindowCreationInfo &GetWindowCreationInfo();
 		void ReloadWindow();
 

@@ -38,8 +38,8 @@ prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOth
 	};
 }
 uint32_t prosper::ShaderGraphics::VertexBinding::GetBindingIndex() const {return bindingIndex;}
-prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding,Anvil::Format format)
-	: binding(&binding),format(format)
+prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding,Anvil::Format format,size_t startOffset)
+	: binding(&binding),format(format),startOffset{(startOffset == std::numeric_limits<size_t>::max()) ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(startOffset)}
 {}
 prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute &vaOther)
 {

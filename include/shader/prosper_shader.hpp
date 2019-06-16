@@ -212,7 +212,7 @@ namespace prosper
 		struct DLLPROSPER VertexAttribute
 		{
 			VertexAttribute()=default;
-			VertexAttribute(const VertexBinding &binding,Anvil::Format format);
+			VertexAttribute(const VertexBinding &binding,Anvil::Format format,size_t startOffset=std::numeric_limits<size_t>::max());
 			VertexAttribute(const VertexAttribute &vaOther);
 			VertexAttribute(
 				const VertexAttribute &vaOther,const VertexBinding &binding,

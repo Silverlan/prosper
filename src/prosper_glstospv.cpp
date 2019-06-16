@@ -60,7 +60,11 @@ static bool glsl_preprocessing(const std::string &path,std::string &shader,std::
 				std::string inc = l.substr(8,l.length());
 				ustring::remove_whitespace(inc);
 				ustring::remove_quotes(inc);
-				std::string includePath = sub.substr(sub.find_first_of("/\\") +1) +inc;
+				std::string includePath = "";
+				if(inc.empty() == false && inc.front() == '/')
+					includePath = inc;
+				else
+					includePath = sub.substr(sub.find_first_of("/\\") +1) +inc;
 				includePath = "shaders\\" +FileManager::GetCanonicalizedPath(includePath);
 				if(includePath.substr(includePath.length() -4) != ".gls")
 					includePath += ".gls";

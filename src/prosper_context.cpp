@@ -949,6 +949,7 @@ void Context::InitSwapchain()
 	m_presentQueuePtr = m_devicePtr->get_queue_for_queue_family_index(present_queue_fams_ptr->at(0),0);
 }
 
+const GLFW::WindowCreationInfo &Context::GetWindowCreationInfo() const {return const_cast<Context*>(this)->GetWindowCreationInfo();}
 GLFW::WindowCreationInfo &Context::GetWindowCreationInfo() {return *m_windowCreationInfo;}
 
 void Context::InitWindow()

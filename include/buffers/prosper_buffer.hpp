@@ -30,6 +30,14 @@ namespace prosper
 		public std::enable_shared_from_this<Buffer>
 	{
 	public:
+		using SubBufferIndex = uint32_t;
+		using Offset = vk::DeviceSize;
+		using SmallOffset = uint32_t;
+		using Size = vk::DeviceSize;
+		static const auto INVALID_INDEX = std::numeric_limits<SubBufferIndex>::max();
+		static const auto INVALID_OFFSET = std::numeric_limits<Offset>::max();
+		static const auto INVALID_SMALL_OFFSET = std::numeric_limits<SmallOffset>::max();
+
 		static std::shared_ptr<Buffer> Create(Context &context,std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf,const std::function<void(Buffer&)> &onDestroyedCallback=nullptr);
 		virtual ~Buffer() override;
 		Anvil::Buffer &GetAnvilBuffer() const;
@@ -39,30 +47,30 @@ namespace prosper
 		Anvil::Buffer *operator->();
 		const Anvil::Buffer *operator->() const;
 
-		vk::DeviceSize GetStartOffset() const;
-		vk::DeviceSize GetSize() const;
+		Offset GetStartOffset() const;
+		Size GetSize() const;
 		std::shared_ptr<Buffer> GetParent();
 		const std::shared_ptr<Buffer> GetParent() const;
 
-		bool Write(vk::DeviceSize offset,vk::DeviceSize size,const void *data) const;
-		bool Read(vk::DeviceSize offset,vk::DeviceSize size,void *data) const;
+		bool Write(Offset offset,Size size,const void *data) const;
+		bool Read(Offset offset,Size size,void *data) const;
 
 		template<typename T>
-			bool Write(vk::DeviceSize offset,const T &t) const;
+			bool Write(Offset offset,const T &t) const;
 		template<typename T>
-			bool Read(vk::DeviceSize offset,T &tOut) const;
+			bool Read(Offset offset,T &tOut) const;
 
 		void SetPermanentlyMapped(bool b);
-		bool Map(vk::DeviceSize offset,vk::DeviceSize size) const;
+		bool Map(Offset offset,Size size) const;
 		bool Unmap() const;
 
-		uint32_t GetBaseIndex() const;
+		SubBufferIndex GetBaseIndex() const;
 		Anvil::BufferUsageFlags GetUsageFlags() const;
 	protected:
 		friend UniformResizableBuffer;
 		friend DynamicResizableBuffer;
 		virtual void Initialize();
-		bool Map(vk::DeviceSize offset,vk::DeviceSize size,Anvil::BufferUsageFlags deviceUsageFlags,Anvil::BufferUsageFlags hostUsageFlags) const;
+		bool Map(Offset offset,Size size,Anvil::BufferUsageFlags deviceUsageFlags,Anvil::BufferUsageFlags hostUsageFlags) const;
 
 		Buffer(Context &context,std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
 		std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> m_buffer = nullptr;
@@ -70,27 +78,27 @@ namespace prosper
 		struct MappedBuffer
 		{
 			std::shared_ptr<Buffer> buffer = nullptr;
-			vk::DeviceSize offset = 0ull;
+			Offset offset = 0ull;
 		};
 		mutable std::unique_ptr<MappedBuffer> m_mappedTmpBuffer = nullptr;
 
 		std::weak_ptr<Buffer> m_parent = {};
 		bool m_bPermanentlyMapped = false;
 	private:
-		void SetParent(const std::shared_ptr<Buffer> &parent,uint32_t baseIndex=std::numeric_limits<uint32_t>::max());
+		void SetParent(const std::shared_ptr<Buffer> &parent,SubBufferIndex baseIndex=INVALID_INDEX);
 		void SetBuffer(std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
-		uint32_t m_baseIndex = std::numeric_limits<uint32_t>::max();
+		SubBufferIndex m_baseIndex = INVALID_INDEX;
 	};
 };
 #pragma warning(pop)
 
 template<typename T>
-	bool prosper::Buffer::Write(vk::DeviceSize offset,const T &t) const
+	bool prosper::Buffer::Write(Offset offset,const T &t) const
 {
 	return Write(offset,sizeof(t),&t);
 }
 template<typename T>
-	bool prosper::Buffer::Read(vk::DeviceSize offset,T &tOut) const
+	bool prosper::Buffer::Read(Offset offset,T &tOut) const
 {
 	return Read(offset,sizeof(tOut),&tOut);
 }

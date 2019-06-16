@@ -56,7 +56,7 @@ void Buffer::SetPermanentlyMapped(bool b)
 	else
 		Unmap();
 }
-void Buffer::SetParent(const std::shared_ptr<Buffer> &parent,uint32_t baseIndex)
+void Buffer::SetParent(const std::shared_ptr<Buffer> &parent,SubBufferIndex baseIndex)
 {
 	m_parent = parent;
 	m_baseIndex = baseIndex;
@@ -82,12 +82,12 @@ const Anvil::Buffer &Buffer::operator*() const {return const_cast<Buffer*>(this)
 Anvil::Buffer *Buffer::operator->() {return m_buffer.get();}
 const Anvil::Buffer *Buffer::operator->() const {return const_cast<Buffer*>(this)->operator->();}
 
-vk::DeviceSize Buffer::GetStartOffset() const {return (*this)->get_create_info_ptr()->get_start_offset();}
-vk::DeviceSize Buffer::GetSize() const {return m_buffer->get_create_info_ptr()->get_size();}
+Buffer::Offset Buffer::GetStartOffset() const {return (*this)->get_create_info_ptr()->get_start_offset();}
+Buffer::Size Buffer::GetSize() const {return m_buffer->get_create_info_ptr()->get_size();}
 std::shared_ptr<Buffer> Buffer::GetParent() {return m_parent.lock();}
 const std::shared_ptr<Buffer> Buffer::GetParent() const {return const_cast<Buffer*>(this)->GetParent();}
 
-bool Buffer::Write(vk::DeviceSize offset,vk::DeviceSize size,const void *data) const
+bool Buffer::Write(Offset offset,Size size,const void *data) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
@@ -116,7 +116,7 @@ bool Buffer::Write(vk::DeviceSize offset,vk::DeviceSize size,const void *data) c
 	}
 	return m_buffer->get_memory_block(0u)->write(offset,size,data);
 }
-bool Buffer::Read(vk::DeviceSize offset,vk::DeviceSize size,void *data) const
+bool Buffer::Read(Offset offset,Size size,void *data) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
@@ -146,7 +146,7 @@ bool Buffer::Read(vk::DeviceSize offset,vk::DeviceSize size,void *data) const
 	return m_buffer->get_memory_block(0u)->read(offset,size,data);
 }
 void Buffer::Initialize() {MemoryTracker::GetInstance().AddResource(*this);}
-bool Buffer::Map(vk::DeviceSize offset,vk::DeviceSize size,Anvil::BufferUsageFlags deviceUsageFlags,Anvil::BufferUsageFlags hostUsageFlags) const
+bool Buffer::Map(Offset offset,Size size,Anvil::BufferUsageFlags deviceUsageFlags,Anvil::BufferUsageFlags hostUsageFlags) const
 {
 	if((m_buffer->get_memory_block(0u)->get_create_info_ptr()->get_memory_features() &Anvil::MemoryFeatureFlagBits::MAPPABLE_BIT) == 0)
 	{
@@ -174,7 +174,7 @@ bool Buffer::Map(vk::DeviceSize offset,vk::DeviceSize size,Anvil::BufferUsageFla
 	}
 	return m_buffer->get_memory_block(0u)->map(offset,size);
 }
-bool Buffer::Map(vk::DeviceSize offset,vk::DeviceSize size) const
+bool Buffer::Map(Offset offset,Size size) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
@@ -194,5 +194,5 @@ bool Buffer::Unmap() const
 	}
 	return m_buffer->get_memory_block(0u)->unmap();
 }
-uint32_t Buffer::GetBaseIndex() const {return m_baseIndex;}
+Buffer::SubBufferIndex Buffer::GetBaseIndex() const {return m_baseIndex;}
 Anvil::BufferUsageFlags Buffer::GetUsageFlags() const {return m_buffer->get_create_info_ptr()->get_usage_flags();}
