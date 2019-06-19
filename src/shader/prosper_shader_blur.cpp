@@ -144,6 +144,12 @@ bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_p
 
 	auto &finalRt = *blurSet.GetFinalRenderTarget();
 	prosper::util::record_image_barrier(
+		primBuffer,*stagingImg,
+		Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,
+		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+		Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT,Anvil::AccessFlagBits::SHADER_READ_BIT
+	);
+	prosper::util::record_image_barrier(
 		primBuffer,finalRt.GetTexture()->GetImage()->GetAnvilImage(),
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL
 	);
