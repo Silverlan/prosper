@@ -23,6 +23,11 @@ namespace Anvil
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class Buffer;
+	namespace util
+	{
+		DLLPROSPER std::shared_ptr<Buffer> create_sub_buffer(Buffer &parentBuffer,vk::DeviceSize offset,vk::DeviceSize size,const std::function<void(Buffer&)> &onDestroyedCallback);
+	};
 	class UniformResizableBuffer;
 	class DynamicResizableBuffer;
 	class DLLPROSPER Buffer
@@ -85,6 +90,7 @@ namespace prosper
 		std::weak_ptr<Buffer> m_parent = {};
 		bool m_bPermanentlyMapped = false;
 	private:
+		friend std::shared_ptr<Buffer> prosper::util::create_sub_buffer(Buffer &parentBuffer,vk::DeviceSize offset,vk::DeviceSize size,const std::function<void(Buffer&)> &onDestroyedCallback);
 		void SetParent(const std::shared_ptr<Buffer> &parent,SubBufferIndex baseIndex=INVALID_INDEX);
 		void SetBuffer(std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
 		SubBufferIndex m_baseIndex = INVALID_INDEX;

@@ -178,6 +178,14 @@ static void find_compatible_memory_feature_flags(Anvil::BaseDevice &dev,prosper:
 	featureFlags = r.second;
 }
 
+std::shared_ptr<Buffer> prosper::util::create_sub_buffer(Buffer &parentBuffer,vk::DeviceSize offset,vk::DeviceSize size,const std::function<void(Buffer&)> &onDestroyedCallback)
+{
+	auto buf = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&parentBuffer.GetAnvilBuffer(),offset,size));
+	auto subBuffer = Buffer::Create(parentBuffer.GetContext(),std::move(buf),onDestroyedCallback);
+	subBuffer->SetParent(parentBuffer.shared_from_this());
+	return subBuffer;
+}
+
 std::shared_ptr<Buffer> prosper::util::create_buffer(Anvil::BaseDevice &dev,const BufferCreateInfo &createInfo,const void *data)
 {
 	if(createInfo.size == 0ull)

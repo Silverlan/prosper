@@ -81,8 +81,7 @@ std::shared_ptr<Buffer> UniformResizableBuffer::AllocateBuffer(const void *data)
 
 	auto idx = offset /baseAlignedInstanceSize;
 	auto pThis = std::static_pointer_cast<UniformResizableBuffer>(shared_from_this());
-	auto buf = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(m_buffer.get(),offset,m_bufferInstanceSize));
-	auto subBuffer = Buffer::Create(GetContext(),std::move(buf),[pThis,idx](Buffer &subBuffer) {
+	auto subBuffer = prosper::util::create_sub_buffer(*this,offset,m_bufferInstanceSize,[pThis,idx](Buffer &subBuffer) {
 		pThis->m_freeOffsets.push(subBuffer.GetStartOffset());
 		pThis->m_allocatedSubBuffers.at(idx) = nullptr;
 	});

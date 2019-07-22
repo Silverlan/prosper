@@ -300,11 +300,11 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 	}
 
 	auto pThis = std::static_pointer_cast<DynamicResizableBuffer>(shared_from_this());
-	auto buf = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(m_buffer.get(),offset,requestSize));
-	auto subBuffer = Buffer::Create(GetContext(),std::move(buf),[pThis,requestSize](Buffer &subBuffer) {
+
+	auto subBuffer = prosper::util::create_sub_buffer(*this,offset,requestSize,[pThis,requestSize](Buffer &subBuffer) {
 		auto it = std::find_if(pThis->m_allocatedSubBuffers.begin(),pThis->m_allocatedSubBuffers.end(),[&subBuffer](const Buffer *subBufferOther) {
 			return subBufferOther == &subBuffer;
-		});
+			});
 		pThis->m_allocatedSubBuffers.erase(it);
 		pThis->MarkMemoryRangeAsFree(subBuffer.GetStartOffset(),requestSize);
 	});
