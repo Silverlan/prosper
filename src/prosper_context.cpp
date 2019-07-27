@@ -15,6 +15,7 @@
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
 #include "prosper_pipeline_cache.hpp"
+#include <sharedutils/util_clock.hpp>
 #include <misc/buffer_create_info.h>
 #include <misc/fence_create_info.h>
 #include <misc/semaphore_create_info.h>
@@ -1138,10 +1139,10 @@ VkBool32 Context::ValidationCallback(
 
 void Context::Run()
 {
-	auto t = std::chrono::high_resolution_clock::now();
+	auto t = ::util::Clock::now();
 	while(true) // TODO
 	{
-		auto tNow = std::chrono::high_resolution_clock::now();
+		auto tNow = ::util::Clock::now();
 		auto tDelta = tNow -t;
 		auto bResChanged = false;
 		if(std::chrono::duration_cast<std::chrono::seconds>(tDelta).count() > 5 && bResChanged == false)
