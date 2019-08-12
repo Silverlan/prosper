@@ -143,11 +143,9 @@ bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_p
 	prosper::util::record_end_render_pass(primBuffer);
 
 	auto &finalRt = *blurSet.GetFinalRenderTarget();
-	prosper::util::record_image_barrier(
+	prosper::util::record_post_render_pass_image_barrier(
 		primBuffer,*stagingImg,
-		Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT,Anvil::AccessFlagBits::SHADER_READ_BIT
+		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL
 	);
 	prosper::util::record_image_barrier(
 		primBuffer,finalRt.GetTexture()->GetImage()->GetAnvilImage(),
@@ -160,7 +158,14 @@ bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_p
 		return false;
 	shaderV.Draw(blurSet.GetStagingDescriptorSet(),pushConstants);
 	shaderV.EndDraw();
-	return prosper::util::record_end_render_pass(primBuffer);
+	auto success = prosper::util::record_end_render_pass(primBuffer);
+	if(success == false)
+		return success;
+	prosper::util::record_post_render_pass_image_barrier(
+		primBuffer,finalRt.GetTexture()->GetImage()->GetAnvilImage(),
+		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+	);
+	return success;
 }
 
 /////////////////////////

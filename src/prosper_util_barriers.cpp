@@ -114,12 +114,12 @@ void prosper::debug::set_last_recorded_image_layout(
 		mipmapLevels = img.get_n_mipmaps() -baseMipmap;
 	auto totalLayerCount = layerCount +baseLayer;
 	if(totalLayerCount >= layoutInfo.layerLayouts.size())
-	{
 		layoutInfo.layerLayouts.resize(totalLayerCount);
-		auto totalMipmapLevels = baseMipmap +mipmapLevels;
-		for(auto &layouts : layoutInfo.layerLayouts)
-			layouts.mipmapLayouts.resize(totalMipmapLevels,Anvil::ImageLayout::UNDEFINED);
-	}
+
+	auto totalMipmapLevels = baseMipmap +mipmapLevels;
+	for(auto &layouts : layoutInfo.layerLayouts)
+		layouts.mipmapLayouts.resize(totalMipmapLevels,Anvil::ImageLayout::UNDEFINED);
+
 	for(auto i=baseLayer;i<(baseLayer +layerCount);++i)
 	{
 		for(auto j=baseMipmap;j<(baseMipmap +mipmapLevels);++j)
@@ -218,6 +218,63 @@ bool prosper::util::record_buffer_barrier(
 	return prosper::util::record_pipeline_barrier(cmdBuffer,barrier);
 }
 
+static bool record_image_barrier(
+	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,
+	Anvil::ImageLayout originalLayout,Anvil::ImageLayout currentLayout,
+	Anvil::ImageLayout dstLayout,const prosper::util::ImageSubresourceRange &subresourceRange={}
+)
+{
+	prosper::util::BarrierImageLayout srcInfo {};
+	switch(originalLayout)
+	{
+	case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
+		srcInfo = {Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,currentLayout,Anvil::AccessFlagBits::SHADER_READ_BIT};
+		break;
+	case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
+		srcInfo = {Anvil::PipelineStageFlagBits::COLOR_ATTACHMENT_OUTPUT_BIT,currentLayout,Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT};
+		break;
+	case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		srcInfo = {Anvil::PipelineStageFlagBits::LATE_FRAGMENT_TESTS_BIT,currentLayout,Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
+		break;
+	case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
+		srcInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,currentLayout,Anvil::AccessFlagBits::TRANSFER_READ_BIT};
+		break;
+	case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
+		srcInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,currentLayout,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT};
+		break;
+	}
+
+	prosper::util::BarrierImageLayout dstInfo {};
+	switch(dstLayout)
+	{
+	case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
+		dstInfo = {Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,dstLayout,Anvil::AccessFlagBits::SHADER_READ_BIT};
+		break;
+	case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
+		dstInfo = {Anvil::PipelineStageFlagBits::COLOR_ATTACHMENT_OUTPUT_BIT,dstLayout,Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT};
+		break;
+	case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		dstInfo = {Anvil::PipelineStageFlagBits::EARLY_FRAGMENT_TESTS_BIT,dstLayout,Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
+		break;
+	case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
+		dstInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstLayout,Anvil::AccessFlagBits::TRANSFER_READ_BIT};
+		break;
+	case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
+		dstInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstLayout,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT};
+		break;
+	}
+	return record_image_barrier(cmdBuffer,img,srcInfo,dstInfo,subresourceRange);
+}
+
+bool prosper::util::record_post_render_pass_image_barrier(
+	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,
+	Anvil::ImageLayout preRenderPassLayout,Anvil::ImageLayout postRenderPassLayout,
+	const ImageSubresourceRange &subresourceRange
+)
+{
+	return ::record_image_barrier(cmdBuffer,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange);
+}
+
 bool prosper::util::record_image_barrier(
 	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,
 	const ImageSubresourceRange &subresourceRange
@@ -235,46 +292,7 @@ bool prosper::util::record_image_barrier(
 	const ImageSubresourceRange &subresourceRange
 )
 {
-	BarrierImageLayout srcInfo {};
-	switch(srcLayout)
-	{
-		case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-			srcInfo = {Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,srcLayout,Anvil::AccessFlagBits::SHADER_READ_BIT};
-			break;
-		case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-			srcInfo = {Anvil::PipelineStageFlagBits::COLOR_ATTACHMENT_OUTPUT_BIT,srcLayout,Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT};
-			break;
-		case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			srcInfo = {Anvil::PipelineStageFlagBits::LATE_FRAGMENT_TESTS_BIT,srcLayout,Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
-			break;
-		case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
-			srcInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,srcLayout,Anvil::AccessFlagBits::TRANSFER_READ_BIT};
-			break;
-		case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
-			srcInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,srcLayout,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT};
-			break;
-	}
-
-	BarrierImageLayout dstInfo {};
-	switch(dstLayout)
-	{
-		case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-			dstInfo = {Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,dstLayout,Anvil::AccessFlagBits::SHADER_READ_BIT};
-			break;
-		case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-			dstInfo = {Anvil::PipelineStageFlagBits::COLOR_ATTACHMENT_OUTPUT_BIT,dstLayout,Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT};
-			break;
-		case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			dstInfo = {Anvil::PipelineStageFlagBits::EARLY_FRAGMENT_TESTS_BIT,dstLayout,Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
-			break;
-		case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
-			dstInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstLayout,Anvil::AccessFlagBits::TRANSFER_READ_BIT};
-			break;
-		case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
-			dstInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstLayout,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT};
-			break;
-	}
-	return record_image_barrier(cmdBuffer,img,srcInfo,dstInfo,subresourceRange);
+	return ::record_image_barrier(cmdBuffer,img,srcLayout,srcLayout,dstLayout,subresourceRange);
 }
 
 bool prosper::util::record_image_barrier(

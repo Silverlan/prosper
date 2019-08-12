@@ -306,6 +306,11 @@ namespace prosper
 		DLLPROSPER bool record_image_barrier(
 			Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout srcLayout,Anvil::ImageLayout dstLayout,const ImageSubresourceRange &subresourceRange={}
 		);
+		DLLPROSPER bool record_post_render_pass_image_barrier(
+			Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,
+			Anvil::ImageLayout preRenderPassLayout,Anvil::ImageLayout postRenderPassLayout,
+			const ImageSubresourceRange &subresourceRange={}
+		);
 		DLLPROSPER bool record_buffer_barrier(
 			Anvil::CommandBufferBase &cmdBuffer,const Buffer &buf,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
 			Anvil::AccessFlags srcAccessMask,Anvil::AccessFlags dstAccessMask,vk::DeviceSize offset=0ull,vk::DeviceSize size=std::numeric_limits<vk::DeviceSize>::max()
@@ -317,6 +322,7 @@ namespace prosper
 		DLLPROSPER bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderTarget &rt,uint32_t layerId,const std::vector<vk::ClearValue> &clearValues,prosper::RenderPass *rp=nullptr);
 		DLLPROSPER bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderTarget &rt,const vk::ClearValue *clearValue=nullptr,prosper::RenderPass *rp=nullptr);
 		DLLPROSPER bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderTarget &rt,const std::vector<vk::ClearValue> &clearValues,prosper::RenderPass *rp=nullptr);
+		DLLPROSPER bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::Image &img,prosper::RenderPass &rp,prosper::Framebuffer &fb,const std::vector<vk::ClearValue> &clearValues={});
 		DLLPROSPER bool record_end_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer);
 		DLLPROSPER bool record_next_sub_pass(Anvil::PrimaryCommandBuffer &cmdBuffer);
 

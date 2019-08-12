@@ -482,7 +482,7 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(Anvil::DescriptorSet &desc
 	}
 	return prosper::Shader::RecordBindDescriptorSet(descSet,firstSet,dynamicOffsets);
 }
-bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
 	auto *info = static_cast<const Anvil::GraphicsPipelineCreateInfo*>(GetPipelineInfo(pipelineIdx));
 	if(info == nullptr)
@@ -509,12 +509,12 @@ bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCo
 				{
 					switch(attType)
 					{
-						case Anvil::AttachmentType::COLOR:
-						{
-							bRpHasColorAttachment = true;
-							rpCreateInfo.get_color_attachment_properties(i,nullptr,&rpSampleCount);
-							break;
-						}
+					case Anvil::AttachmentType::COLOR:
+					{
+						bRpHasColorAttachment = true;
+						rpCreateInfo.get_color_attachment_properties(i,nullptr,&rpSampleCount);
+						break;
+					}
 					}
 				}
 
@@ -562,14 +562,10 @@ bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCo
 		auto bViewport = (nDynamicViewports > 0u && (recordFlags &RecordFlags::RenderPassTargetAsViewport) != RecordFlags::None) ? true : false;
 		if(bScissor || bViewport)
 		{
-			auto *rt = prosper::util::get_current_render_pass_target(cmdBuffer->GetAnvilCommandBuffer());
-			if(rt == nullptr)
-				return false;
-			auto &img = rt->GetTexture()->GetImage();
-			auto extents = img->GetExtents();
+			vk::Extent2D extents {width,height};
 			if(bScissor)
 			{
-				vk::Rect2D scissor(vk::Offset2D(0,0),reinterpret_cast<vk::Extent2D&>(extents));
+				vk::Rect2D scissor(vk::Offset2D(0,0),extents);
 				if((*cmdBuffer)->record_set_scissor(0u,1u,reinterpret_cast<VkRect2D*>(&scissor)) == false)
 					return false;
 			}
@@ -583,6 +579,14 @@ bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCo
 	}
 	SetCurrentDrawCommandBuffer(cmdBuffer,pipelineIdx);
 	return true;
+}
+bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
+{
+	auto *rt = prosper::util::get_current_render_pass_target(cmdBuffer->GetAnvilCommandBuffer());
+	if(rt == nullptr)
+		return false;
+	auto extents = rt->GetTexture()->GetImage()->GetExtents();
+	return BeginDrawViewport(cmdBuffer,extents.width,extents.height,pipelineIdx,recordFlags);
 }
 bool prosper::ShaderGraphics::Draw() {return true;}
 void prosper::ShaderGraphics::EndDraw() {UnbindPipeline(); SetCurrentDrawCommandBuffer(nullptr);}

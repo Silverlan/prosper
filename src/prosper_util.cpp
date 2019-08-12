@@ -439,7 +439,7 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 			Anvil::ImageCreateInfo::create_no_alloc(
 				&dev,createInfo.type,createInfo.format,
 				createInfo.tiling,createInfo.usage,
-				createInfo.width,createInfo.height,1u,createInfo.layers,
+				createInfo.width,createInfo.height,1u,layers,
 				createInfo.samples,queueFamilies,
 				sharingMode,bUseFullMipmapChain,imageCreateFlags
 			)
@@ -450,7 +450,7 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 		Anvil::ImageCreateInfo::create_alloc(
 			&dev,createInfo.type,createInfo.format,
 			createInfo.tiling,createInfo.usage,
-			createInfo.width,createInfo.height,1u,createInfo.layers,
+			createInfo.width,createInfo.height,1u,layers,
 			createInfo.samples,queueFamilies,
 			sharingMode,bUseFullMipmapChain,memoryFeatureFlags,imageCreateFlags,
 			postCreateLayout,data
@@ -607,12 +607,15 @@ bool prosper::util::record_generate_mipmaps(Anvil::CommandBufferBase &cmdBuffer,
 {
 	auto blitInfo = prosper::util::BlitInfo {};
 	auto numMipmaps = img.get_n_mipmaps();
+	auto numLayers = img.get_create_info_ptr()->get_n_layers();
 	prosper::util::PipelineBarrierInfo barrierInfo {};
 	barrierInfo.srcStageMask = srcStage;
 	barrierInfo.dstStageMask = Anvil::PipelineStageFlagBits::TRANSFER_BIT;
 
 	prosper::util::ImageBarrierInfo imgBarrierInfo {};
 	imgBarrierInfo.subresourceRange.levelCount = 1u;
+	imgBarrierInfo.subresourceRange.baseArrayLayer = 0u;
+	imgBarrierInfo.subresourceRange.layerCount = numLayers;
 	imgBarrierInfo.oldLayout = currentLayout;
 	imgBarrierInfo.newLayout = Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL;
 	imgBarrierInfo.srcAccessMask = srcAccessMask;
@@ -634,18 +637,28 @@ bool prosper::util::record_generate_mipmaps(Anvil::CommandBufferBase &cmdBuffer,
 	barrierInfo.srcStageMask = Anvil::PipelineStageFlagBits::TRANSFER_BIT;
 
 	imgBarrierInfo.subresourceRange.levelCount = 1u;
+	imgBarrierInfo.subresourceRange.layerCount = 1u;
+	imgBarrierInfo.oldLayout = Anvil::ImageLayout::TRANSFER_DST_OPTIMAL;
 	imgBarrierInfo.newLayout = Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL;
 	imgBarrierInfo.srcAccessMask = Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;
 	imgBarrierInfo.dstAccessMask = Anvil::AccessFlagBits::TRANSFER_READ_BIT;
-	for(auto i=decltype(numMipmaps){1};i<numMipmaps;++i)
-	{
-		blitInfo.srcSubresourceLayer.mip_level = i -1u;
-		blitInfo.dstSubresourceLayer.mip_level = i;
 
-		imgBarrierInfo.subresourceRange.baseMipLevel = i;
-		barrierInfo.imageBarriers = decltype(barrierInfo.imageBarriers){create_image_barrier(img,imgBarrierInfo)};
-		if(record_blit_image(cmdBuffer,blitInfo,img,img) == false || record_pipeline_barrier(cmdBuffer,barrierInfo) == false)
-			return false;
+	for(auto iLayer=decltype(numLayers){0u};iLayer<numLayers;++iLayer)
+	{
+		imgBarrierInfo.subresourceRange.baseArrayLayer = iLayer;
+		for(auto i=decltype(numMipmaps){1};i<numMipmaps;++i)
+		{
+			blitInfo.srcSubresourceLayer.mip_level = i -1u;
+			blitInfo.dstSubresourceLayer.mip_level = i;
+
+			blitInfo.srcSubresourceLayer.base_array_layer = iLayer;
+			blitInfo.dstSubresourceLayer.base_array_layer = iLayer;
+
+			imgBarrierInfo.subresourceRange.baseMipLevel = i;
+			barrierInfo.imageBarriers = decltype(barrierInfo.imageBarriers){create_image_barrier(img,imgBarrierInfo)};
+			if(record_blit_image(cmdBuffer,blitInfo,img,img) == false || record_pipeline_barrier(cmdBuffer,barrierInfo) == false)
+				return false;
+		}
 	}
 	return record_image_barrier(cmdBuffer,img,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL);
 }
@@ -744,6 +757,16 @@ static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,pros
 	return cmdBuffer.record_begin_render_pass(
 		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
 		&fb->GetAnvilFramebuffer(),renderArea,&rp->GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
+	);
+}
+
+bool prosper::util::record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::Image &img,prosper::RenderPass &rp,prosper::Framebuffer &fb,const std::vector<vk::ClearValue> &clearValues)
+{
+	auto extents = img->get_image_extent_2D(0u);
+	auto renderArea = vk::Rect2D(vk::Offset2D(),extents);
+	return cmdBuffer.record_begin_render_pass(
+		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
+		&fb.GetAnvilFramebuffer(),renderArea,&rp.GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
 	);
 }
 
@@ -921,6 +944,8 @@ bool prosper::util::record_clear_image(Anvil::CommandBufferBase &cmdBuffer,Anvil
 	// TODO
 	//if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
 	//	throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
+	// if(cmdBuffer.GetContext().IsValidationEnabled() && is_compressed_format(img.get_create_info_ptr()->get_format()))
+	// 	throw std::logic_error("Attempted to clear image with compressed image format! This is not allowed!");
 
 	Anvil::ImageSubresourceRange resourceRange {};
 	resourceRange.aspect_mask = get_aspect_mask(img);
@@ -937,6 +962,8 @@ bool prosper::util::record_clear_image(Anvil::CommandBufferBase &cmdBuffer,Anvil
 	// TODO
 	//if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
 	//	throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
+	// if(cmdBuffer.GetContext().IsValidationEnabled() && is_compressed_format(img.get_create_info_ptr()->get_format()))
+	// 	throw std::logic_error("Attempted to clear image with compressed image format! This is not allowed!");
 
 	Anvil::ImageSubresourceRange resourceRange {};
 	resourceRange.aspect_mask = get_aspect_mask(img);

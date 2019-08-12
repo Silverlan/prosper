@@ -256,6 +256,7 @@ namespace prosper
 		template<class TShader>
 			static const std::shared_ptr<RenderPass> &GetRenderPass(prosper::Context &context,uint32_t pipelineIdx=0u);
 	protected:
+		bool BeginDrawViewport(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		void SetGenericAlphaColorBlendAttachmentProperties(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
 		void ToggleDynamicViewportState(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
 		void ToggleDynamicScissorState(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
