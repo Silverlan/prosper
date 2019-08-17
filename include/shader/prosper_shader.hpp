@@ -13,6 +13,7 @@
 #include <cinttypes>
 #include <vulkan/vulkan.hpp>
 #include <sharedutils/util_weak_handle.hpp>
+#include <mathutil/umath.h>
 #include <unordered_map>
 #include <optional>
 #ifdef __linux__

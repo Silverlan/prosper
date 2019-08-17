@@ -7,6 +7,7 @@
 
 #include "prosper_definitions.hpp"
 #include <memory>
+#include <string>
 
 namespace Anvil
 {

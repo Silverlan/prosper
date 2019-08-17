@@ -9,10 +9,13 @@
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "debug/prosper_debug.hpp"
 #include "prosper_memory_tracker.hpp"
+#include "prosper_command_buffer.hpp"
 #include <misc/image_create_info.h>
+#include <wrappers/memory_block.h>
 
 using namespace prosper;
 
+#pragma optimize("",off)
 std::shared_ptr<Image> Image::Create(Context &context,Anvil::ImageUniquePtr img,const std::function<void(Image&)> &onDestroyedCallback)
 {
 	if(img == nullptr)
@@ -63,6 +66,10 @@ Anvil::Image *Image::operator->() {return m_image.get();}
 const Anvil::Image *Image::operator->() const {return const_cast<Image*>(this)->operator->();}
 
 Anvil::ImageType Image::GetType() const {return m_image->get_create_info_ptr()->get_type();}
+bool Image::IsCubemap() const
+{
+	return (GetCreateFlags() &Anvil::ImageCreateFlagBits::CUBE_COMPATIBLE_BIT) != Anvil::ImageCreateFlagBits::NONE;
+}
 Anvil::ImageUsageFlags Image::GetUsageFlags() const {return m_image->get_create_info_ptr()->get_usage_flags();}
 uint32_t Image::GetLayerCount() const {return m_image->get_create_info_ptr()->get_n_layers();}
 Anvil::ImageTiling Image::GetTiling() const {return m_image->get_create_info_ptr()->get_tiling();}
@@ -76,3 +83,74 @@ vk::Extent2D Image::GetExtents(uint32_t mipLevel) const
 Anvil::ImageCreateFlags Image::GetCreateFlags() const {return m_image->get_create_info_ptr()->get_create_flags();}
 uint32_t Image::GetMipmapCount() const {return m_image->get_n_mipmaps();}
 Anvil::SharingMode Image::GetSharingMode() const {return m_image->get_create_info_ptr()->get_sharing_mode();}
+Anvil::ImageAspectFlagBits Image::GetAspectFlags() const {return prosper::util::get_aspect_mask(GetFormat());}
+std::optional<Anvil::SubresourceLayout> Image::GetSubresourceLayout(uint32_t layerId,uint32_t mipMapIdx)
+{
+	Anvil::SubresourceLayout subresourceLayout;
+	if(GetAnvilImage().get_aspect_subresource_layout(Anvil::ImageAspectFlagBits::COLOR_BIT,layerId,mipMapIdx,&subresourceLayout) == false)
+		return std::optional<Anvil::SubresourceLayout>{};
+	return subresourceLayout;
+}
+
+void Image::GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const
+{
+	outCreateInfo.flags = util::ImageCreateInfo::Flags::None;
+	if(GetMipmapCount() > 0)
+		outCreateInfo.flags = util::ImageCreateInfo::Flags::FullMipmapChain;
+	if(IsCubemap())
+		outCreateInfo.flags = util::ImageCreateInfo::Flags::Cubemap;
+	outCreateInfo.format = GetFormat();
+	auto extents = GetExtents();
+	outCreateInfo.width = extents.width;
+	outCreateInfo.height = extents.height;
+	outCreateInfo.layers = GetLayerCount();
+
+	auto &memBlock = *GetAnvilImage().get_memory_block();
+	outCreateInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::None;
+	auto memFeatures = memBlock.get_create_info_ptr()->get_memory_features();
+	if((memFeatures &Anvil::MemoryFeatureFlagBits::DEVICE_LOCAL_BIT) != Anvil::MemoryFeatureFlagBits::NONE)
+		outCreateInfo.memoryFeatures |= prosper::util::MemoryFeatureFlags::DeviceLocal;
+	if((memFeatures &Anvil::MemoryFeatureFlagBits::HOST_CACHED_BIT) != Anvil::MemoryFeatureFlagBits::NONE)
+		outCreateInfo.memoryFeatures |= prosper::util::MemoryFeatureFlags::HostCached;
+	if((memFeatures &Anvil::MemoryFeatureFlagBits::HOST_COHERENT_BIT) != Anvil::MemoryFeatureFlagBits::NONE)
+		outCreateInfo.memoryFeatures |= prosper::util::MemoryFeatureFlags::HostCoherent;
+	if((memFeatures &Anvil::MemoryFeatureFlagBits::LAZILY_ALLOCATED_BIT) != Anvil::MemoryFeatureFlagBits::NONE)
+		outCreateInfo.memoryFeatures |= prosper::util::MemoryFeatureFlags::LazilyAllocated;
+	if((memFeatures &Anvil::MemoryFeatureFlagBits::MAPPABLE_BIT) != Anvil::MemoryFeatureFlagBits::NONE)
+		outCreateInfo.memoryFeatures |= prosper::util::MemoryFeatureFlags::HostAccessable;
+
+	outCreateInfo.samples = GetSampleCount();
+	outCreateInfo.tiling = GetTiling();
+	outCreateInfo.type = GetType();
+	outCreateInfo.usage = GetUsageFlags();
+}
+
+std::shared_ptr<Image> Image::Copy(prosper::CommandBuffer &cmd,const prosper::util::ImageCreateInfo &copyCreateInfo)
+{
+	auto &context = GetContext();
+	auto &dev = context.GetDevice();
+
+	auto createInfo = copyCreateInfo;
+	createInfo.usage |= Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT;
+	if(IsCubemap())
+		createInfo.flags |= util::ImageCreateInfo::Flags::Cubemap;
+	if(GetMipmapCount() > 0)
+		createInfo.flags |= util::ImageCreateInfo::Flags::FullMipmapChain;
+	auto finalLayout = createInfo.postCreateLayout;
+	createInfo.postCreateLayout = Anvil::ImageLayout::TRANSFER_DST_OPTIMAL;
+
+	auto imgCopy = prosper::util::create_image(dev,createInfo);
+	prosper::util::BlitInfo blitInfo {};
+	blitInfo.dstSubresourceLayer.layer_count = blitInfo.srcSubresourceLayer.layer_count = umath::min(imgCopy->GetLayerCount(),GetLayerCount());
+
+	auto numMipmaps = umath::min(imgCopy->GetMipmapCount(),GetMipmapCount());
+	for(auto i=decltype(numMipmaps){0u};i<numMipmaps;++i)
+	{
+		blitInfo.dstSubresourceLayer.mip_level = blitInfo.srcSubresourceLayer.mip_level = i;
+		if(prosper::util::record_blit_image(*cmd,blitInfo,**this,**imgCopy) == false)
+			return nullptr;
+	}
+	prosper::util::record_image_barrier(*cmd,**imgCopy,Anvil::ImageLayout::TRANSFER_DST_OPTIMAL,finalLayout);
+	return imgCopy;
+}
+#pragma optimize("",on)

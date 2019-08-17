@@ -11,6 +11,7 @@
 #include <wrappers/image.h>
 #include <wrappers/image_view.h>
 #include <wrappers/sampler.h>
+#include <optional>
 
 #undef max
 
@@ -18,6 +19,8 @@
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class CommandBuffer;
+	namespace util {struct ImageCreateInfo;};
 	class DLLPROSPER Image
 		: public ContextObject,
 		public std::enable_shared_from_this<Image>
@@ -32,6 +35,7 @@ namespace prosper
 		const Anvil::Image *operator->() const;
 
 		Anvil::ImageType GetType() const;
+		bool IsCubemap() const;
 		Anvil::ImageUsageFlags GetUsageFlags() const;
 		uint32_t GetLayerCount() const;
 		Anvil::ImageTiling GetTiling() const;
@@ -41,6 +45,11 @@ namespace prosper
 		Anvil::ImageCreateFlags GetCreateFlags() const;
 		uint32_t GetMipmapCount() const;
 		Anvil::SharingMode GetSharingMode() const;
+		Anvil::ImageAspectFlagBits GetAspectFlags() const;
+		std::optional<Anvil::SubresourceLayout> GetSubresourceLayout(uint32_t layerId=0,uint32_t mipMapIdx=0);
+		void GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const;
+
+		std::shared_ptr<Image> Copy(prosper::CommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 	protected:
 		Image(Context &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img);
 		std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> m_image = nullptr;
