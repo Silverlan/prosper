@@ -46,6 +46,17 @@ void RenderTarget::SetDebugName(const std::string &name)
 
 //////////////////////////
 
+std::shared_ptr<RenderTarget> prosper::util::create_render_target(Anvil::BaseDevice &dev,Texture &texture,ImageView &imgView,RenderPass &rp,const RenderTargetCreateInfo &rtCreateInfo)
+{
+	auto &img = imgView.GetImage();
+	auto &context = prosper::Context::GetContext(dev);
+	auto extents = img.GetExtents();
+	std::vector<prosper::ImageView*> attachments = {&imgView};
+	std::vector<std::shared_ptr<Framebuffer>> framebuffers;
+	framebuffers.push_back(prosper::util::create_framebuffer(dev,extents.width,extents.height,1u,attachments));
+	return std::make_shared<RenderTarget>(Context::GetContext(dev),std::vector<std::shared_ptr<Texture>>{texture.shared_from_this()},framebuffers,rp.shared_from_this());
+}
+
 std::shared_ptr<RenderTarget> prosper::util::create_render_target(Anvil::BaseDevice &dev,const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<RenderPass> &rp,const RenderTargetCreateInfo &rtCreateInfo)
 {
 	if(textures.empty())
@@ -60,17 +71,17 @@ std::shared_ptr<RenderTarget> prosper::util::create_render_target(Anvil::BaseDev
 	auto extents = img->GetExtents();
 	auto numLayers = img->GetLayerCount();
 	std::vector<std::shared_ptr<Framebuffer>> framebuffers;
-	std::vector<Anvil::ImageView*> attachments;
+	std::vector<prosper::ImageView*> attachments;
 	attachments.reserve(textures.size());
 	for(auto &tex : textures)
-		attachments.push_back(&tex->GetImageView()->GetAnvilImageView());
+		attachments.push_back(tex->GetImageView().get());
 	framebuffers.push_back(prosper::util::create_framebuffer(dev,extents.width,extents.height,1u,attachments));
 	if(rtCreateInfo.useLayerFramebuffers == true)
 	{
 		framebuffers.reserve(framebuffers.size() +numLayers);
 		for(auto i=decltype(numLayers){0};i<numLayers;++i)
 		{
-			attachments = {&tex->GetImageView(i)->GetAnvilImageView()};
+			attachments = {tex->GetImageView(i).get()};
 			framebuffers.push_back(prosper::util::create_framebuffer(dev,extents.width,extents.height,1u,attachments));
 		}
 	}

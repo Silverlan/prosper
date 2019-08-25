@@ -14,12 +14,13 @@
 
 namespace prosper
 {
+	class Image;
 	class DLLPROSPER ImageView
 		: public ContextObject,
 		public std::enable_shared_from_this<ImageView>
 	{
 	public:
-		static std::shared_ptr<ImageView> Create(Context &context,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView,const std::function<void(ImageView&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<ImageView> Create(Context &context,Image &img,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView,const std::function<void(ImageView&)> &onDestroyedCallback=nullptr);
 		virtual ~ImageView() override;
 		Anvil::ImageView &GetAnvilImageView() const;
 		Anvil::ImageView &operator*();
@@ -35,9 +36,13 @@ namespace prosper
 		uint32_t GetMipmapCount() const;
 		Anvil::Format GetFormat() const;
 		std::array<Anvil::ComponentSwizzle,4> GetSwizzleArray() const;
+
+		const Image &GetImage() const;
+		Image &GetImage();
 	protected:
-		ImageView(Context &context,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);
+		ImageView(Context &context,Image &img,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);
 		std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> m_imageView = nullptr;
+		std::shared_ptr<Image> m_image = nullptr;
 	};
 };
 

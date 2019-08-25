@@ -34,6 +34,7 @@
 
 using namespace prosper;
 
+#pragma optimize("",off)
 bool prosper::util::RenderPassCreateInfo::AttachmentInfo::operator==(const AttachmentInfo &other) const
 {
 	return format == other.format &&
@@ -395,14 +396,14 @@ std::shared_ptr<prosper::DescriptorSetGroup> prosper::util::create_descriptor_se
 	return prosper::DescriptorSetGroup::Create(prosper::Context::GetContext(dev),std::move(dsg));
 }
 
-std::shared_ptr<prosper::Framebuffer> prosper::util::create_framebuffer(Anvil::BaseDevice &dev,uint32_t width,uint32_t height,uint32_t layers,const std::vector<Anvil::ImageView*> &attachments)
+std::shared_ptr<prosper::Framebuffer> prosper::util::create_framebuffer(Anvil::BaseDevice &dev,uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::ImageView*> &attachments)
 {
 	auto createInfo = Anvil::FramebufferCreateInfo::create(
 		&dev,width,height,layers
 	);
 	for(auto *att : attachments)
-		createInfo->add_attachment(att,nullptr);
-	return prosper::Framebuffer::Create(prosper::Context::GetContext(dev),Anvil::Framebuffer::create(
+		createInfo->add_attachment(&att->GetAnvilImageView(),nullptr);
+	return prosper::Framebuffer::Create(prosper::Context::GetContext(dev),attachments,Anvil::Framebuffer::create(
 		std::move(createInfo)
 	));
 }
@@ -501,7 +502,7 @@ std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::Base
 	switch(type)
 	{
 		case Anvil::ImageViewType::_2D:
-			return ImageView::Create(prosper::Context::GetContext(dev),Anvil::ImageView::create(
+			return ImageView::Create(prosper::Context::GetContext(dev),*img,Anvil::ImageView::create(
 				Anvil::ImageViewCreateInfo::create_2D(
 					&dev,&img->GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
 					aspectMask,format,
@@ -510,7 +511,7 @@ std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::Base
 				)
 			));
 		case Anvil::ImageViewType::_CUBE:
-			return ImageView::Create(prosper::Context::GetContext(dev),Anvil::ImageView::create(
+			return ImageView::Create(prosper::Context::GetContext(dev),*img,Anvil::ImageView::create(
 				Anvil::ImageViewCreateInfo::create_cube_map(
 					&dev,&img->GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
 					aspectMask,format,
@@ -519,7 +520,7 @@ std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::Base
 				)
 			));
 		case Anvil::ImageViewType::_2D_ARRAY:
-			return ImageView::Create(prosper::Context::GetContext(dev),Anvil::ImageView::create(
+			return ImageView::Create(prosper::Context::GetContext(dev),*img,Anvil::ImageView::create(
 				Anvil::ImageViewCreateInfo::create_2D_array(
 					&dev,&img->GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,numLayers,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,(*img)->get_n_mipmaps()) -createInfo.baseMipmap,
 					aspectMask,format,
@@ -676,14 +677,31 @@ bool prosper::util::record_set_scissor(Anvil::CommandBufferBase &cmdBuffer,uint3
 
 struct DebugRenderTargetInfo
 {
-	std::weak_ptr<prosper::RenderTarget> renderTarget;
+	std::weak_ptr<prosper::RenderPass> renderPass;
 	uint32_t baseLayer;
+	std::weak_ptr<prosper::Image> image;
+	std::weak_ptr<prosper::Framebuffer> framebuffer;
+	std::weak_ptr<prosper::RenderTarget> renderTarget;
 };
 static std::unordered_map<Anvil::PrimaryCommandBuffer*,DebugRenderTargetInfo> s_wpCurrentRenderTargets = {};
-prosper::RenderTarget *prosper::util::get_current_render_pass_target(Anvil::PrimaryCommandBuffer &cmdBuffer)
+bool prosper::util::get_current_render_pass_target(
+	Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderPass **outRp,
+	prosper::Image **outImg,prosper::Framebuffer **outFb,prosper::RenderTarget **outRt
+)
 {
 	auto it = s_wpCurrentRenderTargets.find(&cmdBuffer);
-	return (it != s_wpCurrentRenderTargets.end()) ? it->second.renderTarget.lock().get() : nullptr;
+	if(it == s_wpCurrentRenderTargets.end())
+		return false;
+	auto &dbgInfo = it->second;
+	if(outRp)
+		*outRp = dbgInfo.renderPass.lock().get();
+	if(outImg)
+		*outImg = dbgInfo.image.lock().get();
+	if(outFb)
+		*outFb = dbgInfo.framebuffer.lock().get();
+	if(outRt)
+		*outRt = dbgInfo.renderTarget.lock().get();
+	return true;
 }
 
 static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<vk::ClearValue> &clearValues,prosper::RenderPass *rp)
@@ -698,16 +716,18 @@ static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,pros
 		std::cout<<"\t"<<((img != nullptr) ? img->GetAnvilImage().get_image() : nullptr)<<std::endl;
 	}
 #endif
+	auto &fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : rt.GetFramebuffer();
 	auto &context = rt.GetContext();
 	if(context.IsValidationEnabled())
 	{
 		auto &rpCreateInfo = *rt.GetRenderPass()->GetAnvilRenderPass().get_render_pass_create_info();
-		auto numAttachments = rpCreateInfo.get_n_attachments();
+		auto numAttachments = fb->GetAttachmentCount();
 		for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
 		{
-			auto &tex = rt.GetTexture(i);
-			if(tex == nullptr)
+			auto *imgView = fb->GetAttachment(i);
+			if(imgView == nullptr)
 				continue;
+			auto &img = imgView->GetImage();
 			Anvil::AttachmentType attType;
 			if(rpCreateInfo.get_attachment_type(i,&attType) == false)
 				continue;
@@ -725,12 +745,12 @@ static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,pros
 			if(bValid == false)
 				continue;
 			Anvil::ImageLayout imgLayout;
-			if(prosper::debug::get_last_recorded_image_layout(cmdBuffer,**tex->GetImage(),imgLayout,(layerId != nullptr) ? *layerId : 0u) == false)
+			if(prosper::debug::get_last_recorded_image_layout(cmdBuffer,*img,imgLayout,(layerId != nullptr) ? *layerId : 0u) == false)
 				continue;
 			if(imgLayout != initialLayout)
 			{
 				debug::exec_debug_validation_callback(
-					vk::DebugReportObjectTypeEXT::eImage,"Begin render pass: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(tex->GetImage()->GetAnvilImage().get_image())) +
+					vk::DebugReportObjectTypeEXT::eImage,"Begin render pass: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(img.GetAnvilImage().get_image())) +
 					" has to be in layout " +vk::to_string(static_cast<vk::ImageLayout>(initialLayout)) +", but is in layout " +
 					vk::to_string(static_cast<vk::ImageLayout>(imgLayout)) +"!"
 				);
@@ -740,7 +760,6 @@ static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,pros
 	auto it = s_wpCurrentRenderTargets.find(&cmdBuffer);
 	if(it != s_wpCurrentRenderTargets.end())
 		s_wpCurrentRenderTargets.erase(it);
-	auto &fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : rt.GetFramebuffer();
 	if(rp == nullptr)
 		rp = rt.GetRenderPass().get();
 	auto &tex = rt.GetTexture();
@@ -753,7 +772,7 @@ static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,pros
 	auto &img = *tex->GetImage();
 	auto extents = img->get_image_extent_2D(0u);
 	auto renderArea = vk::Rect2D(vk::Offset2D(),extents);
-	s_wpCurrentRenderTargets[&cmdBuffer] = {rt.shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max()};
+	s_wpCurrentRenderTargets[&cmdBuffer] = {rp->shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),img.shared_from_this(),fb,rt.shared_from_this()};
 	return cmdBuffer.record_begin_render_pass(
 		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
 		&fb->GetAnvilFramebuffer(),renderArea,&rp->GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
@@ -762,6 +781,8 @@ static bool record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,pros
 
 bool prosper::util::record_begin_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::Image &img,prosper::RenderPass &rp,prosper::Framebuffer &fb,const std::vector<vk::ClearValue> &clearValues)
 {
+	s_wpCurrentRenderTargets[&cmdBuffer] = {rp.shared_from_this(),0u,img.shared_from_this(),fb.shared_from_this(),std::weak_ptr<prosper::RenderTarget>{}};
+
 	auto extents = img->get_image_extent_2D(0u);
 	auto renderArea = vk::Rect2D(vk::Offset2D(),extents);
 	return cmdBuffer.record_begin_render_pass(
@@ -796,19 +817,22 @@ bool prosper::util::record_end_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffe
 	auto it = s_wpCurrentRenderTargets.find(&cmdBuffer);
 	if(it != s_wpCurrentRenderTargets.end())
 	{
-		auto rt = it->second.renderTarget.lock();
-		if(rt != nullptr)
+		auto rp = it->second.renderPass.lock();
+		auto fb = it->second.framebuffer.lock();
+		if(rp && fb)
 		{
-			auto &context = rt->GetContext();
+			auto &context = rp->GetContext();
+			auto rt = it->second.renderTarget.lock();
 			if(context.IsValidationEnabled())
 			{
-				auto &rpCreateInfo = *rt->GetRenderPass()->GetAnvilRenderPass().get_render_pass_create_info();
-				auto numAttachments = rpCreateInfo.get_n_attachments();
+				auto &rpCreateInfo = *rp->GetAnvilRenderPass().get_render_pass_create_info();
+				auto numAttachments = fb->GetAttachmentCount();
 				for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
 				{
-					auto &tex = rt->GetTexture(i);
-					if(tex == nullptr)
+					auto *imgView = fb->GetAttachment(i);
+					if(!imgView)
 						continue;
+					auto &img = imgView->GetImage();
 					Anvil::AttachmentType attType;
 					if(rpCreateInfo.get_attachment_type(i,&attType) == false)
 						continue;
@@ -825,14 +849,9 @@ bool prosper::util::record_end_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffe
 					}
 					if(bValid == false)
 						continue;
-					auto layerCount = 1u;
-					auto baseLayer = it->second.baseLayer;
-					if(baseLayer == std::numeric_limits<uint32_t>::max())
-					{
-						layerCount = std::numeric_limits<uint32_t>::max();
-						baseLayer = 0u;
-					}
-					prosper::debug::set_last_recorded_image_layout(cmdBuffer,**tex->GetImage(),finalLayout,baseLayer,layerCount);
+					auto layerCount = umath::min(imgView->GetLayerCount(),fb->GetLayerCount());
+					auto baseLayer = imgView->GetBaseLayer();
+					prosper::debug::set_last_recorded_image_layout(cmdBuffer,*img,finalLayout,baseLayer,layerCount);
 				}
 			}
 		}
@@ -867,7 +886,9 @@ bool prosper::util::set_descriptor_set_binding_storage_image(Anvil::DescriptorSe
 }
 bool prosper::util::set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,Anvil::BindingIndex bindingIdx,uint32_t layerId)
 {
-	auto &imgView = texture.GetImageView(layerId);
+	auto imgView = texture.GetImageView(layerId);
+	if(imgView == nullptr && texture.GetImage()->GetLayerCount() == 1)
+		imgView = texture.GetImageView();
 	auto &sampler = texture.GetSampler();
 	if(imgView == nullptr || sampler == nullptr)
 		return false;
@@ -1047,7 +1068,7 @@ bool prosper::util::record_copy_image(Anvil::CommandBufferBase &cmdBuffer,const 
 
 bool prosper::util::record_copy_buffer_to_image(Anvil::CommandBufferBase &cmdBuffer,const BufferImageCopyInfo &copyInfo,Buffer &bufferSrc,Anvil::Image &imgDst)
 {
-	if(bufferSrc.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
+	if(bufferSrc.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	Anvil::BufferImageCopy bufferImageCopy {};
@@ -1063,7 +1084,7 @@ bool prosper::util::record_copy_buffer_to_image(Anvil::CommandBufferBase &cmdBuf
 
 bool prosper::util::record_copy_image_to_buffer(Anvil::CommandBufferBase &cmdBuffer,const BufferImageCopyInfo &copyInfo,Anvil::Image &imgSrc,Anvil::ImageLayout srcImageLayout,Buffer &bufferDst)
 {
-	if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
+	if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	Anvil::BufferImageCopy bufferImageCopy {};
@@ -1078,7 +1099,7 @@ bool prosper::util::record_copy_image_to_buffer(Anvil::CommandBufferBase &cmdBuf
 
 bool prosper::util::record_copy_buffer(Anvil::CommandBufferBase &cmdBuffer,const Anvil::BufferCopy &copyInfo,Buffer &bufferSrc,Buffer &bufferDst)
 {
-	if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
+	if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	auto ci = copyInfo;
@@ -1089,7 +1110,7 @@ bool prosper::util::record_copy_buffer(Anvil::CommandBufferBase &cmdBuffer,const
 
 bool prosper::util::record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data)
 {
-	if(buffer.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
+	if(buffer.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to update buffer while render pass is active!");
 	return cmdBuffer.record_update_buffer(&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
 }
@@ -1668,3 +1689,4 @@ void prosper::util::get_image_layout_transition_access_masks(Anvil::ImageLayout 
 			break;
 	};
 }
+#pragma optimize("",on)

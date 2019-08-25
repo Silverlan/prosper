@@ -15,6 +15,8 @@ namespace prosper
 {
 	class RenderPass;
 	class Framebuffer;
+	class ImageView;
+	class Texture;
 	class DLLPROSPER RenderTarget
 		: public ContextObject,
 		public std::enable_shared_from_this<RenderTarget>
@@ -41,6 +43,7 @@ namespace prosper
 			bool useLayerFramebuffers = false;
 		};
 		DLLPROSPER std::shared_ptr<RenderTarget> create_render_target(Anvil::BaseDevice &dev,const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<RenderPass> &rp=nullptr,const RenderTargetCreateInfo &rtCreateInfo={});
+		DLLPROSPER std::shared_ptr<RenderTarget> create_render_target(Anvil::BaseDevice &dev,Texture &texture,ImageView &imgView,RenderPass &rp,const RenderTargetCreateInfo &rtCreateInfo={});
 	};
 };
 #pragma warning(pop)

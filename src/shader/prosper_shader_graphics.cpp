@@ -8,6 +8,8 @@
 #include "prosper_context.hpp"
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"
+#include "image/prosper_image_view.hpp"
+#include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
@@ -492,16 +494,22 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 		return false;
 	if(GetContext().IsValidationEnabled())
 	{
-		auto *rt = prosper::util::get_current_render_pass_target(**cmdBuffer);
-		if(rt != nullptr)
+		prosper::RenderPass *rp;
+		prosper::Image *img;
+		prosper::RenderTarget *rt;
+		prosper::Framebuffer *fb;
+		if(prosper::util::get_current_render_pass_target(**cmdBuffer,&rp,&img,&fb,&rt) && fb && rp)
 		{
-			auto &rp = rt->GetRenderPass();
 			auto &rpCreateInfo = *rp->GetAnvilRenderPass().get_render_pass_create_info();
 			Anvil::SampleCountFlagBits sampleCount;
 			info->get_multisampling_properties(&sampleCount,nullptr);
-			auto numAttachments = rt->GetAttachmentCount();
+			auto numAttachments = umath::min(fb->GetAttachmentCount(),rpCreateInfo.get_n_attachments());
 			for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
 			{
+				auto *imgView = fb->GetAttachment(i);
+				if(imgView == nullptr)
+					continue;
+				auto &img = imgView->GetImage();
 				Anvil::AttachmentType attType;
 				Anvil::SampleCountFlagBits rpSampleCount;
 				auto bRpHasColorAttachment = false;
@@ -518,14 +526,11 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 					}
 				}
 
-				auto &tex = rt->GetTexture(i);
-				if(tex == nullptr)
-					continue;
-				if((sampleCount &tex->GetImage()->GetSampleCount()) == Anvil::SampleCountFlagBits::NONE)
+				if((sampleCount &img.GetSampleCount()) == Anvil::SampleCountFlagBits::NONE)
 				{
 					debug::exec_debug_validation_callback(
-						vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render target '" +rt->GetDebugName() +
-						"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rt->GetTexture()->GetImage()->GetSampleCount())) +") and shader pipeline '" +
+						vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
+						"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(img.GetSampleCount())) +") and shader pipeline '" +
 						*GetDebugName(pipelineIdx) +"' (with sample count "+vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
 					);
 					return false;
@@ -541,12 +546,12 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 						);
 						return false;
 					}
-					if(rpSampleCount != tex->GetImage()->GetSampleCount())
+					if(rpSampleCount != img.GetSampleCount())
 					{
 						debug::exec_debug_validation_callback(
 							vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
-							"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rpSampleCount)) +") and render target attachment " +std::to_string(i) +" ('" +tex->GetImage()->GetDebugName() +"')" +
-							" for render target '" +rt->GetDebugName() +"', which has sample count of " +vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
+							"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rpSampleCount)) +") and render target attachment " +std::to_string(i) +" ('" +img.GetDebugName() +"')" +
+							" for image '" +img.GetDebugName() +"', which has sample count of " +vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
 						);
 						return false;
 					}
@@ -582,10 +587,10 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 }
 bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
-	auto *rt = prosper::util::get_current_render_pass_target(cmdBuffer->GetAnvilCommandBuffer());
-	if(rt == nullptr)
+	prosper::Image *img;
+	if(prosper::util::get_current_render_pass_target(cmdBuffer->GetAnvilCommandBuffer(),nullptr,&img) == false || img == nullptr)
 		return false;
-	auto extents = rt->GetTexture()->GetImage()->GetExtents();
+	auto extents = img->GetExtents();
 	return BeginDrawViewport(cmdBuffer,extents.width,extents.height,pipelineIdx,recordFlags);
 }
 bool prosper::ShaderGraphics::Draw() {return true;}

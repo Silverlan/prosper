@@ -11,20 +11,21 @@
 
 using namespace prosper;
 
-std::shared_ptr<ImageView> ImageView::Create(Context &context,Anvil::ImageViewUniquePtr imgView,const std::function<void(ImageView&)> &onDestroyedCallback)
+std::shared_ptr<ImageView> ImageView::Create(Context &context,Image &img,Anvil::ImageViewUniquePtr imgView,const std::function<void(ImageView&)> &onDestroyedCallback)
 {
 	if(imgView == nullptr)
 		return nullptr;
 	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<ImageView>(new ImageView(context,std::move(imgView)));
-	return std::shared_ptr<ImageView>(new ImageView(context,std::move(imgView)),[onDestroyedCallback](ImageView *buf) {
+		return std::shared_ptr<ImageView>(new ImageView(context,img,std::move(imgView)));
+	return std::shared_ptr<ImageView>(new ImageView(context,img,std::move(imgView)),[onDestroyedCallback](ImageView *buf) {
 		onDestroyedCallback(*buf);
 		delete buf;
 	});
 }
 
-ImageView::ImageView(Context &context,Anvil::ImageViewUniquePtr imgView)
-	: ContextObject(context),std::enable_shared_from_this<ImageView>(),m_imageView(std::move(imgView))
+ImageView::ImageView(Context &context,Image &img,Anvil::ImageViewUniquePtr imgView)
+	: ContextObject(context),std::enable_shared_from_this<ImageView>(),m_imageView(std::move(imgView)),
+	m_image{img.shared_from_this()}
 {
 	prosper::debug::register_debug_object(m_imageView->get_image_view(),this,prosper::debug::ObjectType::ImageView);
 }
@@ -33,6 +34,9 @@ ImageView::~ImageView()
 {
 	prosper::debug::deregister_debug_object(m_imageView->get_image_view());
 }
+
+const Image &ImageView::GetImage() const {return const_cast<ImageView*>(this)->GetImage();}
+Image &ImageView::GetImage() {return *m_image;}
 
 Anvil::ImageView &ImageView::GetAnvilImageView() const {return *m_imageView;}
 Anvil::ImageView &ImageView::operator*() {return *m_imageView;}

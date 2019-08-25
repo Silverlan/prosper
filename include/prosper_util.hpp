@@ -194,7 +194,7 @@ namespace prosper
 		DLLPROSPER std::shared_ptr<RenderPass> create_render_pass(Anvil::BaseDevice &dev,std::unique_ptr<Anvil::RenderPassCreateInfo> renderPassInfo);
 		DLLPROSPER std::shared_ptr<RenderPass> create_render_pass(Anvil::BaseDevice &dev,const RenderPassCreateInfo &renderPassInfo);
 		DLLPROSPER std::shared_ptr<DescriptorSetGroup> create_descriptor_set_group(Anvil::BaseDevice &dev,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
-		DLLPROSPER std::shared_ptr<Framebuffer> create_framebuffer(Anvil::BaseDevice &dev,uint32_t width,uint32_t height,uint32_t layers,const std::vector<Anvil::ImageView*> &attachments);
+		DLLPROSPER std::shared_ptr<Framebuffer> create_framebuffer(Anvil::BaseDevice &dev,uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::ImageView*> &attachments);
 
 		DLLPROSPER void initialize_image(Anvil::BaseDevice &dev,const uimg::Image &imgSrc,Anvil::Image &img);
 		DLLPROSPER Anvil::Format get_vk_format(uimg::ImageType imgType);
@@ -326,7 +326,7 @@ namespace prosper
 		DLLPROSPER bool record_end_render_pass(Anvil::PrimaryCommandBuffer &cmdBuffer);
 		DLLPROSPER bool record_next_sub_pass(Anvil::PrimaryCommandBuffer &cmdBuffer);
 
-		DLLPROSPER prosper::RenderTarget *get_current_render_pass_target(Anvil::PrimaryCommandBuffer &cmdBuffer);
+		DLLPROSPER bool get_current_render_pass_target(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderPass **outRp=nullptr,prosper::Image **outImg=nullptr,prosper::Framebuffer **outFb=nullptr,prosper::RenderTarget **outRt=nullptr);
 
 		DLLPROSPER bool set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
 		DLLPROSPER bool set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx);

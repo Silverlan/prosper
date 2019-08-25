@@ -95,10 +95,10 @@ std::optional<Anvil::SubresourceLayout> Image::GetSubresourceLayout(uint32_t lay
 void Image::GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const
 {
 	outCreateInfo.flags = util::ImageCreateInfo::Flags::None;
-	if(GetMipmapCount() > 0)
-		outCreateInfo.flags = util::ImageCreateInfo::Flags::FullMipmapChain;
+	if(GetMipmapCount() > 1)
+		outCreateInfo.flags |= util::ImageCreateInfo::Flags::FullMipmapChain;
 	if(IsCubemap())
-		outCreateInfo.flags = util::ImageCreateInfo::Flags::Cubemap;
+		outCreateInfo.flags |= util::ImageCreateInfo::Flags::Cubemap;
 	outCreateInfo.format = GetFormat();
 	auto extents = GetExtents();
 	outCreateInfo.width = extents.width;
@@ -132,10 +132,6 @@ std::shared_ptr<Image> Image::Copy(prosper::CommandBuffer &cmd,const prosper::ut
 
 	auto createInfo = copyCreateInfo;
 	createInfo.usage |= Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT;
-	if(IsCubemap())
-		createInfo.flags |= util::ImageCreateInfo::Flags::Cubemap;
-	if(GetMipmapCount() > 0)
-		createInfo.flags |= util::ImageCreateInfo::Flags::FullMipmapChain;
 	auto finalLayout = createInfo.postCreateLayout;
 	createInfo.postCreateLayout = Anvil::ImageLayout::TRANSFER_DST_OPTIMAL;
 

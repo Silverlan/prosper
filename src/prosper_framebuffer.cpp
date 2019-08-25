@@ -6,25 +6,31 @@
 #include "prosper_framebuffer.hpp"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
+#include "image/prosper_image_view.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include <misc/framebuffer_create_info.h>
 
 using namespace prosper;
 
-std::shared_ptr<Framebuffer> Framebuffer::Create(Context &context,Anvil::FramebufferUniquePtr fb,const std::function<void(Framebuffer&)> &onDestroyedCallback)
+std::shared_ptr<Framebuffer> Framebuffer::Create(Context &context,const std::vector<ImageView*> &attachments,Anvil::FramebufferUniquePtr fb,const std::function<void(Framebuffer&)> &onDestroyedCallback)
 {
 	if(fb == nullptr)
 		return nullptr;
+	std::vector<std::shared_ptr<ImageView>> ptrAttachments {};
+	ptrAttachments.reserve(attachments.size());
+	for(auto *att : attachments)
+		ptrAttachments.push_back(att->shared_from_this());
 	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<Framebuffer>(new Framebuffer(context,std::move(fb)));
-	return std::shared_ptr<Framebuffer>(new Framebuffer(context,std::move(fb)),[onDestroyedCallback](Framebuffer *fb) {
+		return std::shared_ptr<Framebuffer>(new Framebuffer(context,ptrAttachments,std::move(fb)));
+	return std::shared_ptr<Framebuffer>(new Framebuffer(context,ptrAttachments,std::move(fb)),[onDestroyedCallback](Framebuffer *fb) {
 		onDestroyedCallback(*fb);
 		delete fb;
 	});
 }
 
-Framebuffer::Framebuffer(Context &context,Anvil::FramebufferUniquePtr fb)
-	: ContextObject(context),std::enable_shared_from_this<Framebuffer>(),m_framebuffer(std::move(fb))
+Framebuffer::Framebuffer(Context &context,const std::vector<std::shared_ptr<ImageView>> &attachments,Anvil::FramebufferUniquePtr fb)
+	: ContextObject(context),std::enable_shared_from_this<Framebuffer>(),m_framebuffer(std::move(fb)),
+	m_attachments{attachments}
 {
 	//prosper::debug::register_debug_object(m_framebuffer->get_framebuffer(),this,prosper::debug::ObjectType::Framebuffer);
 }
@@ -39,6 +45,9 @@ Anvil::Framebuffer &Framebuffer::operator*() {return *m_framebuffer;}
 const Anvil::Framebuffer &Framebuffer::operator*() const {return const_cast<Framebuffer*>(this)->operator*();}
 Anvil::Framebuffer *Framebuffer::operator->() {return m_framebuffer.get();}
 const Anvil::Framebuffer *Framebuffer::operator->() const {return const_cast<Framebuffer*>(this)->operator->();}
+
+prosper::ImageView *Framebuffer::GetAttachment(uint32_t i) {return (i < m_attachments.size()) ? m_attachments.at(i).get() : nullptr;}
+const prosper::ImageView *Framebuffer::GetAttachment(uint32_t i) const {return const_cast<Framebuffer*>(this)->GetAttachment(i);}
 
 uint32_t Framebuffer::GetAttachmentCount() const {return m_framebuffer->get_create_info_ptr()->get_n_attachments();}
 void Framebuffer::GetSize(uint32_t &width,uint32_t &height,uint32_t &depth) const {return m_framebuffer->get_create_info_ptr()->get_size(&width,&height,&depth);}

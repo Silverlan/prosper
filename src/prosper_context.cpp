@@ -622,19 +622,21 @@ void Context::SubmitCommandBuffer(Anvil::CommandBufferBase &cmd,Anvil::QueueFami
 }
 
 bool Context::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
-bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,Anvil::PipelineStageFlags srcStageMask,Anvil::AccessFlags srcAccessMask)
+bool Context::ScheduleRecordUpdateBuffer(
+	const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,const BufferUpdateInfo &updateInfo
+)
 {
 	if(size == 0u)
 		return true;
 	if((buffer->GetBaseAnvilBuffer().get_create_info_ptr()->get_usage_flags() &Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT) == Anvil::BufferUsageFlagBits::NONE)
 		throw std::logic_error("Buffer has to have been created with VK_BUFFER_USAGE_TRANSFER_DST_BIT flag to allow buffer updates on command buffer!");
-	const auto fRecordSrcBarrier = [this,buffer,srcStageMask,srcAccessMask,offset,size](prosper::CommandBuffer &cmdBuffer) {
-		if(srcStageMask != Anvil::PipelineStageFlagBits::NONE)
+	const auto fRecordSrcBarrier = [this,buffer,updateInfo,offset,size](prosper::CommandBuffer &cmdBuffer) {
+		if(updateInfo.srcAccessMask.has_value())
 		{
 			prosper::util::record_buffer_barrier(
 				*cmdBuffer,*buffer,
-				srcStageMask,Anvil::PipelineStageFlagBits::TRANSFER_BIT,
-				srcAccessMask,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,
+				*updateInfo.srcStageMask,Anvil::PipelineStageFlagBits::TRANSFER_BIT,
+				*updateInfo.srcAccessMask,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,
 				offset,size
 			);
 		}
@@ -691,20 +693,39 @@ bool Context::ScheduleRecordUpdateBuffer(const std::shared_ptr<Buffer> &buffer,u
 	if(IsRecording())
 	{
 		auto &drawCmd = GetDrawCommandBuffer();
-		if(prosper::util::get_current_render_pass_target(**drawCmd) == nullptr) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
+		if(prosper::util::get_current_render_pass_target(**drawCmd) == false) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);
 			if(fUpdateBuffer(*drawCmd,*buffer,static_cast<const uint8_t*>(data),offset,size) == false)
 				return false;
+			if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value())
+			{
+				prosper::util::record_buffer_barrier(
+					**drawCmd,*buffer,
+					Anvil::PipelineStageFlagBits::TRANSFER_BIT,*updateInfo.postUpdateBarrierStageMask,
+					Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,*updateInfo.postUpdateBarrierAccessMask,
+					offset,size
+				);
+			}
 			return true;
 		}
 	}
 	// We'll have to make a copy of the data for later
 	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
 	memcpy(ptrData->data(),data,size);
-	m_scheduledBufferUpdates.push([buffer,fRecordSrcBarrier,fUpdateBuffer,offset,size,ptrData](prosper::CommandBuffer &cmdBuffer) {
+	m_scheduledBufferUpdates.push([buffer,fRecordSrcBarrier,fUpdateBuffer,offset,size,ptrData,updateInfo](prosper::CommandBuffer &cmdBuffer) {
 		fRecordSrcBarrier(cmdBuffer);
 		fUpdateBuffer(cmdBuffer,*buffer,ptrData->data(),offset,size);
+
+		if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value())
+		{
+			prosper::util::record_buffer_barrier(
+				*cmdBuffer,*buffer,
+				Anvil::PipelineStageFlagBits::TRANSFER_BIT,*updateInfo.postUpdateBarrierStageMask,
+				Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,*updateInfo.postUpdateBarrierAccessMask,
+				offset,size
+			);
+		}
 	});
 	return true;
 }

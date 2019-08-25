@@ -12,7 +12,7 @@
 #ifdef DEBUG_VERBOSE
 #include <iostream>
 #endif
-
+#pragma optimize("",off)
 void prosper::util::ImageSubresourceRange::ApplyRange(Anvil::ImageSubresourceRange &vkRange,Anvil::Image &img) const
 {
 	vkRange.base_mip_level = baseMipLevel;
@@ -118,7 +118,10 @@ void prosper::debug::set_last_recorded_image_layout(
 
 	auto totalMipmapLevels = baseMipmap +mipmapLevels;
 	for(auto &layouts : layoutInfo.layerLayouts)
-		layouts.mipmapLayouts.resize(totalMipmapLevels,Anvil::ImageLayout::UNDEFINED);
+	{
+		if(layouts.mipmapLayouts.size() < totalMipmapLevels)
+			layouts.mipmapLayouts.resize(totalMipmapLevels,Anvil::ImageLayout::UNDEFINED);
+	}
 
 	for(auto i=baseLayer;i<(baseLayer +layerCount);++i)
 	{
@@ -164,7 +167,7 @@ bool prosper::util::record_pipeline_barrier(Anvil::CommandBufferBase &cmdBuffer,
 					if(i >= layoutInfo.layerLayouts.size())
 						break;
 					auto &layerLayout = layoutInfo.layerLayouts.at(i);
-					for(auto j=range.base_mip_level;j<(range.base_mip_level +range.layer_count);++j)
+					for(auto j=range.base_mip_level;j<(range.base_mip_level +range.level_count);++j)
 					{
 						if(j >= layerLayout.mipmapLayouts.size())
 							break;
@@ -319,3 +322,4 @@ bool prosper::util::record_image_barrier(
 	
 	return prosper::util::record_pipeline_barrier(cmdBuffer,barrier);
 }
+#pragma optimize("",on)
