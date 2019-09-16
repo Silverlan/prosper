@@ -1072,10 +1072,9 @@ bool prosper::util::record_copy_buffer_to_image(Anvil::CommandBufferBase &cmdBuf
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	Anvil::BufferImageCopy bufferImageCopy {};
-	bufferImageCopy.buffer_offset = copyInfo.bufferOffset;
-	bufferImageCopy.image_extent = vk::Extent3D(copyInfo.width,copyInfo.height);
+	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset() +copyInfo.bufferOffset;
+	bufferImageCopy.image_extent = vk::Extent3D(copyInfo.width,copyInfo.height,1);
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{copyInfo.aspectMask,copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount};
-	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset();
 	return cmdBuffer.record_copy_buffer_to_image(
 		&bufferSrc.GetBaseAnvilBuffer(),&imgDst,
 		copyInfo.dstImageLayout,1u,&bufferImageCopy
@@ -1088,10 +1087,9 @@ bool prosper::util::record_copy_image_to_buffer(Anvil::CommandBufferBase &cmdBuf
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	Anvil::BufferImageCopy bufferImageCopy {};
-	bufferImageCopy.buffer_offset = copyInfo.bufferOffset;
-	bufferImageCopy.image_extent = vk::Extent3D(copyInfo.width,copyInfo.height);
+	bufferImageCopy.buffer_offset = bufferDst.GetStartOffset() +copyInfo.bufferOffset;
+	bufferImageCopy.image_extent = vk::Extent3D(copyInfo.width,copyInfo.height,1);
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{copyInfo.aspectMask,copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount};
-	bufferImageCopy.buffer_offset = bufferDst.GetStartOffset();
 	return cmdBuffer.record_copy_image_to_buffer(
 		&imgSrc,srcImageLayout,&bufferDst.GetAnvilBuffer(),1u,&bufferImageCopy
 	);
@@ -1113,6 +1111,25 @@ bool prosper::util::record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buf
 	if(buffer.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to update buffer while render pass is active!");
 	return cmdBuffer.record_update_buffer(&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
+}
+
+bool prosper::util::record_update_generic_shader_read_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data)
+{
+	return record_buffer_barrier(
+		cmdBuffer,buffer,
+		Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT | Anvil::PipelineStageFlagBits::VERTEX_SHADER_BIT | Anvil::PipelineStageFlagBits::COMPUTE_SHADER_BIT | Anvil::PipelineStageFlagBits::GEOMETRY_SHADER_BIT,
+		Anvil::PipelineStageFlagBits::TRANSFER_BIT,
+		Anvil::AccessFlagBits::SHADER_READ_BIT,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,
+		offset,size
+	) &&
+		prosper::util::record_update_buffer(cmdBuffer,buffer,offset,size,data) &&
+		record_buffer_barrier(
+			cmdBuffer,buffer,
+			Anvil::PipelineStageFlagBits::TRANSFER_BIT,
+			Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT | Anvil::PipelineStageFlagBits::VERTEX_SHADER_BIT | Anvil::PipelineStageFlagBits::COMPUTE_SHADER_BIT | Anvil::PipelineStageFlagBits::GEOMETRY_SHADER_BIT,
+			Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,Anvil::AccessFlagBits::SHADER_READ_BIT,
+			offset,size
+		);
 }
 
 uint32_t prosper::util::calculate_buffer_alignment(Anvil::BaseDevice &dev,Anvil::BufferUsageFlags usageFlags)
@@ -1569,6 +1586,161 @@ uint32_t prosper::util::get_bit_size(Anvil::Format format)
 			return 32;
 	};
 	return 0;
+}
+
+bool prosper::util::is_8bit_format(Anvil::Format format)
+{
+	switch(static_cast<vk::Format>(format))
+	{
+	case vk::Format::eR8Unorm:
+	case vk::Format::eR8Snorm:
+	case vk::Format::eR8Uscaled:
+	case vk::Format::eR8Sscaled:
+	case vk::Format::eR8Uint:
+	case vk::Format::eR8Sint:
+	case vk::Format::eR8Srgb:
+	case vk::Format::eR8G8Unorm:
+	case vk::Format::eR8G8Snorm:
+	case vk::Format::eR8G8Uscaled:
+	case vk::Format::eR8G8Sscaled:
+	case vk::Format::eR8G8Uint:
+	case vk::Format::eR8G8Sint:
+	case vk::Format::eR8G8Srgb:
+	case vk::Format::eR8G8B8Unorm:
+	case vk::Format::eR8G8B8Snorm:
+	case vk::Format::eR8G8B8Uscaled:
+	case vk::Format::eR8G8B8Sscaled:
+	case vk::Format::eR8G8B8Uint:
+	case vk::Format::eR8G8B8Sint:
+	case vk::Format::eR8G8B8Srgb:
+	case vk::Format::eB8G8R8Unorm:
+	case vk::Format::eB8G8R8Snorm:
+	case vk::Format::eB8G8R8Uscaled:
+	case vk::Format::eB8G8R8Sscaled:
+	case vk::Format::eB8G8R8Uint:
+	case vk::Format::eB8G8R8Sint:
+	case vk::Format::eB8G8R8Srgb:
+	case vk::Format::eR8G8B8A8Unorm:
+	case vk::Format::eR8G8B8A8Snorm:
+	case vk::Format::eR8G8B8A8Uscaled:
+	case vk::Format::eR8G8B8A8Sscaled:
+	case vk::Format::eR8G8B8A8Uint:
+	case vk::Format::eR8G8B8A8Sint:
+	case vk::Format::eR8G8B8A8Srgb:
+	case vk::Format::eB8G8R8A8Unorm:
+	case vk::Format::eB8G8R8A8Snorm:
+	case vk::Format::eB8G8R8A8Uscaled:
+	case vk::Format::eB8G8R8A8Sscaled:
+	case vk::Format::eB8G8R8A8Uint:
+	case vk::Format::eB8G8R8A8Sint:
+	case vk::Format::eB8G8R8A8Srgb:
+	case vk::Format::eA8B8G8R8UnormPack32:
+	case vk::Format::eA8B8G8R8SnormPack32:
+	case vk::Format::eA8B8G8R8UscaledPack32:
+	case vk::Format::eA8B8G8R8SscaledPack32:
+	case vk::Format::eA8B8G8R8UintPack32:
+	case vk::Format::eA8B8G8R8SintPack32:
+	case vk::Format::eA8B8G8R8SrgbPack32:
+	case vk::Format::eS8Uint:
+		return true;
+	};
+	return false;
+}
+bool prosper::util::is_16bit_format(Anvil::Format format)
+{
+	switch(static_cast<vk::Format>(format))
+	{
+	case vk::Format::eR16Unorm:
+	case vk::Format::eR16Snorm:
+	case vk::Format::eR16Uscaled:
+	case vk::Format::eR16Sscaled:
+	case vk::Format::eR16Uint:
+	case vk::Format::eR16Sint:
+	case vk::Format::eR16Sfloat:
+	case vk::Format::eR16G16Unorm:
+	case vk::Format::eR16G16Snorm:
+	case vk::Format::eR16G16Uscaled:
+	case vk::Format::eR16G16Sscaled:
+	case vk::Format::eR16G16Uint:
+	case vk::Format::eR16G16Sint:
+	case vk::Format::eR16G16Sfloat:
+	case vk::Format::eR16G16B16Unorm:
+	case vk::Format::eR16G16B16Snorm:
+	case vk::Format::eR16G16B16Uscaled:
+	case vk::Format::eR16G16B16Sscaled:
+	case vk::Format::eR16G16B16Uint:
+	case vk::Format::eR16G16B16Sint:
+	case vk::Format::eR16G16B16Sfloat:
+	case vk::Format::eR16G16B16A16Unorm:
+	case vk::Format::eR16G16B16A16Snorm:
+	case vk::Format::eR16G16B16A16Uscaled:
+	case vk::Format::eR16G16B16A16Sscaled:
+	case vk::Format::eR16G16B16A16Uint:
+	case vk::Format::eR16G16B16A16Sint:
+	case vk::Format::eR16G16B16A16Sfloat:
+	case vk::Format::eD16Unorm:
+	case vk::Format::eD16UnormS8Uint:
+		return true;
+	};
+	return false;
+}
+bool prosper::util::is_32bit_format(Anvil::Format format)
+{
+	switch(static_cast<vk::Format>(format))
+	{
+	case vk::Format::eR16Unorm:
+	case vk::Format::eR16Snorm:
+	case vk::Format::eR16Uscaled:
+	case vk::Format::eR16Sscaled:
+	case vk::Format::eR16Uint:
+	case vk::Format::eR16Sint:
+	case vk::Format::eR16Sfloat:
+	case vk::Format::eR16G16Unorm:
+	case vk::Format::eR16G16Snorm:
+	case vk::Format::eR16G16Uscaled:
+	case vk::Format::eR16G16Sscaled:
+	case vk::Format::eR16G16Uint:
+	case vk::Format::eR16G16Sint:
+	case vk::Format::eR16G16Sfloat:
+	case vk::Format::eR16G16B16Unorm:
+	case vk::Format::eR16G16B16Snorm:
+	case vk::Format::eR16G16B16Uscaled:
+	case vk::Format::eR16G16B16Sscaled:
+	case vk::Format::eR16G16B16Uint:
+	case vk::Format::eR16G16B16Sint:
+	case vk::Format::eR16G16B16Sfloat:
+	case vk::Format::eR16G16B16A16Unorm:
+	case vk::Format::eR16G16B16A16Snorm:
+	case vk::Format::eR16G16B16A16Uscaled:
+	case vk::Format::eR16G16B16A16Sscaled:
+	case vk::Format::eR16G16B16A16Uint:
+	case vk::Format::eR16G16B16A16Sint:
+	case vk::Format::eR16G16B16A16Sfloat:
+	case vk::Format::eD16Unorm:
+	case vk::Format::eD16UnormS8Uint:
+		return true;
+	};
+	return false;
+}
+bool prosper::util::is_64bit_format(Anvil::Format format)
+{
+	switch(static_cast<vk::Format>(format))
+	{
+	case vk::Format::eR64Uint:
+	case vk::Format::eR64Sint:
+	case vk::Format::eR64Sfloat:
+	case vk::Format::eR64G64Uint:
+	case vk::Format::eR64G64Sint:
+	case vk::Format::eR64G64Sfloat:
+	case vk::Format::eR64G64B64Uint:
+	case vk::Format::eR64G64B64Sint:
+	case vk::Format::eR64G64B64Sfloat:
+	case vk::Format::eR64G64B64A64Uint:
+	case vk::Format::eR64G64B64A64Sint:
+	case vk::Format::eR64G64B64A64Sfloat:
+		return true;
+	};
+	return false;
 }
 
 uint32_t prosper::util::get_byte_size(Anvil::Format format)

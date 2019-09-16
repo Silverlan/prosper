@@ -286,6 +286,9 @@ namespace prosper
 		DLLPROSPER bool record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data);
 		template<typename T>
 			bool record_update_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,const T &data);
+
+		// Records the buffer update, as well as a pre- and post-update barrier to ensure shaders cannot read from the buffer while it is being updated.
+		DLLPROSPER bool record_update_generic_shader_read_buffer(Anvil::CommandBufferBase &cmdBuffer,Buffer &buffer,uint64_t offset,uint64_t size,const void *data);
 		DLLPROSPER bool record_blit_image(Anvil::CommandBufferBase &cmdBuffer,const BlitInfo &blitInfo,Anvil::Image &imgSrc,Anvil::Image &imgDst);
 		DLLPROSPER bool record_resolve_image(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &imgSrc,Anvil::Image &imgDst);
 		// The source texture image will be copied to the destination image using a resolve (if it's a MSAA texture) or a blit
@@ -396,6 +399,10 @@ namespace prosper
 		DLLPROSPER bool is_depth_format(Anvil::Format format);
 		DLLPROSPER bool is_compressed_format(Anvil::Format format);
 		DLLPROSPER bool is_uncompressed_format(Anvil::Format format);
+		DLLPROSPER bool is_8bit_format(Anvil::Format format);
+		DLLPROSPER bool is_16bit_format(Anvil::Format format);
+		DLLPROSPER bool is_32bit_format(Anvil::Format format);
+		DLLPROSPER bool is_64bit_format(Anvil::Format format);
 		DLLPROSPER uint32_t get_bit_size(Anvil::Format format);
 		DLLPROSPER uint32_t get_byte_size(Anvil::Format format);
 		DLLPROSPER Anvil::AccessFlags get_read_access_mask();
