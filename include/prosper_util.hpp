@@ -226,8 +226,8 @@ namespace prosper
 		struct DLLPROSPER BufferImageCopyInfo
 		{
 			vk::DeviceSize bufferOffset = 0ull;
-			uint32_t width = 0u;
-			uint32_t height = 0u;
+			std::optional<uint32_t> width = {};
+			std::optional<uint32_t> height = {};
 			uint32_t mipLevel = 0u;
 			uint32_t baseArrayLayer = 0u;
 			uint32_t layerCount = 1u;

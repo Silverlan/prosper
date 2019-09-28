@@ -1071,9 +1071,15 @@ bool prosper::util::record_copy_buffer_to_image(Anvil::CommandBufferBase &cmdBuf
 	if(bufferSrc.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
+	uint32_t w,h;
+	imgDst.get_image_mipmap_size(0,&w,&h,nullptr);
+	if(copyInfo.width.has_value())
+		w = *copyInfo.width;
+	if(copyInfo.height.has_value())
+		h = *copyInfo.height;
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset() +copyInfo.bufferOffset;
-	bufferImageCopy.image_extent = vk::Extent3D(copyInfo.width,copyInfo.height,1);
+	bufferImageCopy.image_extent = vk::Extent3D(w,h,1);
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{copyInfo.aspectMask,copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount};
 	return cmdBuffer.record_copy_buffer_to_image(
 		&bufferSrc.GetBaseAnvilBuffer(),&imgDst,
@@ -1086,9 +1092,15 @@ bool prosper::util::record_copy_image_to_buffer(Anvil::CommandBufferBase &cmdBuf
 	if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)))
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
+	uint32_t w,h;
+	imgSrc.get_image_mipmap_size(0,&w,&h,nullptr);
+	if(copyInfo.width.has_value())
+		w = *copyInfo.width;
+	if(copyInfo.height.has_value())
+		h = *copyInfo.height;
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferDst.GetStartOffset() +copyInfo.bufferOffset;
-	bufferImageCopy.image_extent = vk::Extent3D(copyInfo.width,copyInfo.height,1);
+	bufferImageCopy.image_extent = vk::Extent3D(w,h,1);
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{copyInfo.aspectMask,copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount};
 	return cmdBuffer.record_copy_image_to_buffer(
 		&imgSrc,srcImageLayout,&bufferDst.GetAnvilBuffer(),1u,&bufferImageCopy
