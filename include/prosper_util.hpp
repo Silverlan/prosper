@@ -29,7 +29,7 @@ namespace Anvil
 	struct MipmapRawData;
 	class Framebuffer;
 };
-
+namespace util {class ImageBuffer;};
 namespace uimg
 {
 	class Image;
@@ -188,6 +188,7 @@ namespace prosper
 
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data);
+		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,::util::ImageBuffer &imgBuffer);
 		DLLPROSPER std::shared_ptr<ImageView> create_image_view(Anvil::BaseDevice &dev,const ImageViewCreateInfo &createInfo,std::shared_ptr<Image> img);
 		DLLPROSPER std::shared_ptr<Buffer> create_buffer(Anvil::BaseDevice &dev,const BufferCreateInfo &createInfo,const void *data=nullptr);
 		DLLPROSPER std::shared_ptr<Buffer> create_sub_buffer(Buffer &parentBuffer,vk::DeviceSize offset,vk::DeviceSize size,const std::function<void(Buffer&)> &onDestroyedCallback=nullptr);

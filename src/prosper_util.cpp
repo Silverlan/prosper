@@ -27,6 +27,7 @@
 #include <misc/buffer_create_info.h>
 #include <misc/framebuffer_create_info.h>
 #include <util_image.h>
+#include <sharedutils/util_image_buffer.hpp>
 
 #ifdef DEBUG_VERBOSE
 #include <iostream>
@@ -471,6 +472,49 @@ std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &d
 	});
 }
 std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data) {return ::create_image(dev,createInfo,&data);}
+
+std::shared_ptr<Image> prosper::util::create_image(Anvil::BaseDevice &dev,::util::ImageBuffer &imgBuffer)
+{
+	auto format = imgBuffer.GetFormat();
+	std::optional<::util::ImageBuffer::Format> conversionFormatRequired = {};
+	Anvil::Format anvFormat;
+	switch(format)
+	{
+	case ::util::ImageBuffer::Format::RGB8:
+		conversionFormatRequired = ::util::ImageBuffer::Format::RGBA8;
+		break;
+	case ::util::ImageBuffer::Format::RGB16:
+		conversionFormatRequired = ::util::ImageBuffer::Format::RGBA16;
+		break;
+	case ::util::ImageBuffer::Format::RGB32:
+		conversionFormatRequired = ::util::ImageBuffer::Format::RGBA32;
+		break;
+	case ::util::ImageBuffer::Format::RGBA8:
+		anvFormat = Anvil::Format::R8G8B8A8_UNORM;
+		break;
+	case ::util::ImageBuffer::Format::RGBA16:
+		anvFormat = Anvil::Format::R16G16B16A16_UNORM;
+		break;
+	case ::util::ImageBuffer::Format::RGBA32:
+		anvFormat = Anvil::Format::R32G32B32A32_SFLOAT;
+		break;
+	}
+	static_assert(umath::to_integral(::util::ImageBuffer::Format::Count) == 7);
+	if(conversionFormatRequired.has_value())
+	{
+		auto copy = imgBuffer.Copy(*conversionFormatRequired);
+		return create_image(dev,*copy);
+	}
+	ImageCreateInfo imgCreateInfo {};
+	imgCreateInfo.format = anvFormat;
+	imgCreateInfo.width = imgBuffer.GetWidth();
+	imgCreateInfo.height = imgBuffer.GetHeight();
+	imgCreateInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::GPUBulk;
+	imgCreateInfo.postCreateLayout = Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+	imgCreateInfo.tiling = Anvil::ImageTiling::OPTIMAL;
+	imgCreateInfo.usage = Anvil::ImageUsageFlagBits::SAMPLED_BIT;
+	return create_image(dev,imgCreateInfo,static_cast<uint8_t*>(imgBuffer.GetData()));
+}
 
 std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::BaseDevice &dev,const ImageViewCreateInfo &createInfo,std::shared_ptr<Image> img)
 {
