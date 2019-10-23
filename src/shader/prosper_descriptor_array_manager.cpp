@@ -30,12 +30,12 @@ std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::PopFre
 	return m_nextIndex++;
 }
 
-std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::AddItem(const std::function<bool(Anvil::DescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding)
+std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::AddItem(const std::function<bool(prosper::DescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding)
 {
 	auto index = PopFreeIndex();
 	if(index.has_value() == false)
 		return {};
-	if(fAddBinding(*m_dsgArray->GetAnvilDescriptorSetGroup().get_descriptor_set(0),*index,m_bindingIndex) == false)
+	if(fAddBinding(*m_dsgArray->GetDescriptorSet(),*index,m_bindingIndex) == false)
 	{
 		PushFreeIndex(*index);
 		return {};

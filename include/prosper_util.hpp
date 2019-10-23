@@ -49,6 +49,7 @@ namespace prosper
 	class Framebuffer;
 	class DescriptorSetGroup;
 	class Buffer;
+	class DescriptorSet;
 	namespace debug
 	{
 		DLLPROSPER void enable_debug_recorded_image_layout(bool b);
@@ -62,6 +63,7 @@ namespace prosper
 	{
 		enum class MemoryFeatureFlags : uint32_t
 		{
+			// Note: These flags are merely hints and may be ignored or changed by the API if they're not supported by the GPU!
 			None = 0u,
 			DeviceLocal = 1u,
 			HostCached = DeviceLocal<<1u,
@@ -332,17 +334,15 @@ namespace prosper
 
 		DLLPROSPER bool get_current_render_pass_target(Anvil::PrimaryCommandBuffer &cmdBuffer,prosper::RenderPass **outRp=nullptr,prosper::Image **outImg=nullptr,prosper::Framebuffer **outFb=nullptr,prosper::RenderTarget **outRt=nullptr);
 
-		DLLPROSPER bool set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
-		DLLPROSPER bool set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx);
-		DLLPROSPER bool set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
-		DLLPROSPER bool set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx);
-		DLLPROSPER bool set_descriptor_set_binding_array_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId);
-		DLLPROSPER bool set_descriptor_set_binding_array_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex);
-		DLLPROSPER bool set_descriptor_set_binding_uniform_buffer(Anvil::DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
-		DLLPROSPER bool set_descriptor_set_binding_dynamic_uniform_buffer(Anvil::DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
-		DLLPROSPER bool set_descriptor_set_binding_storage_buffer(Anvil::DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
-
-		DLLPROSPER Anvil::Image *get_descriptor_set_image(Anvil::DescriptorSet &descSet,uint32_t bindingIdx=0u,uint32_t arrayIndex=0u);
+		DLLPROSPER bool set_descriptor_set_binding_storage_image(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
+		DLLPROSPER bool set_descriptor_set_binding_storage_image(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx);
+		DLLPROSPER bool set_descriptor_set_binding_texture(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
+		DLLPROSPER bool set_descriptor_set_binding_texture(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx);
+		DLLPROSPER bool set_descriptor_set_binding_array_texture(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId);
+		DLLPROSPER bool set_descriptor_set_binding_array_texture(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex);
+		DLLPROSPER bool set_descriptor_set_binding_uniform_buffer(DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		DLLPROSPER bool set_descriptor_set_binding_dynamic_uniform_buffer(DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		DLLPROSPER bool set_descriptor_set_binding_storage_buffer(DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
 
 		struct DLLPROSPER BarrierImageLayout
 		{

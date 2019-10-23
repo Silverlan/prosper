@@ -19,6 +19,7 @@
 namespace Anvil {class DescriptorSet;};
 namespace prosper
 {
+	class DescriptorSet;
 	class DescriptorSetGroup;
 	class Context;
 	class DLLPROSPER DescriptorArrayManager
@@ -38,7 +39,7 @@ namespace prosper
 		DescriptorArrayManager(
 			const std::shared_ptr<prosper::DescriptorSetGroup> &matArrayDsg,ArrayIndex maxArrayLayers,uint32_t bindingIndex=0
 		);
-		std::optional<ArrayIndex> AddItem(const std::function<bool(Anvil::DescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding);
+		std::optional<ArrayIndex> AddItem(const std::function<bool(prosper::DescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding);
 		virtual void Initialize(prosper::Context &context) {}
 	private:
 		std::optional<ArrayIndex> PopFreeIndex();

@@ -908,27 +908,29 @@ bool prosper::util::record_next_sub_pass(Anvil::PrimaryCommandBuffer &cmdBuffer)
 	return cmdBuffer.record_next_subpass(Anvil::SubpassContents::INLINE);
 }
 
-bool prosper::util::set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+bool prosper::util::set_descriptor_set_binding_storage_image(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
 {
 	auto &imgView = texture.GetImageView(layerId);
 	if(imgView == nullptr)
 		return false;
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(descSet,bindingIdx,texture,layerId));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&imgView->GetAnvilImageView()
 	});
 }
-bool prosper::util::set_descriptor_set_binding_storage_image(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx)
+bool prosper::util::set_descriptor_set_binding_storage_image(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx)
 {
 	auto &imgView = texture.GetImageView();
 	if(imgView == nullptr)
 		return false;
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(descSet,bindingIdx,texture));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&imgView->GetAnvilImageView()
 	});
 }
-bool prosper::util::set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,Anvil::BindingIndex bindingIdx,uint32_t layerId)
+bool prosper::util::set_descriptor_set_binding_texture(DescriptorSet &descSet,prosper::Texture &texture,Anvil::BindingIndex bindingIdx,uint32_t layerId)
 {
 	auto imgView = texture.GetImageView(layerId);
 	if(imgView == nullptr && texture.GetImage()->GetLayerCount() == 1)
@@ -936,72 +938,79 @@ bool prosper::util::set_descriptor_set_binding_texture(Anvil::DescriptorSet &des
 	auto &sampler = texture.GetSampler();
 	if(imgView == nullptr || sampler == nullptr)
 		return false;
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(descSet,bindingIdx,texture,layerId));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&imgView->GetAnvilImageView(),&sampler->GetAnvilSampler()
 	});
 }
 
-bool prosper::util::set_descriptor_set_binding_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,Anvil::BindingIndex bindingIdx)
+bool prosper::util::set_descriptor_set_binding_texture(DescriptorSet &descSet,prosper::Texture &texture,Anvil::BindingIndex bindingIdx)
 {
 	auto &imgView = texture.GetImageView();
 	auto &sampler = texture.GetSampler();
 	if(imgView == nullptr || sampler == nullptr)
 		return false;
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(descSet,bindingIdx,texture));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&imgView->GetAnvilImageView(),&sampler->GetAnvilSampler()
 	});
 }
 
-bool prosper::util::set_descriptor_set_binding_array_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)
+bool prosper::util::set_descriptor_set_binding_array_texture(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)
 {
 	std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(1u,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&texture.GetImageView(layerId)->GetAnvilImageView(),&texture.GetSampler()->GetAnvilSampler()
 	});
-	return descSet.set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
+	auto *binding = descSet.GetBinding(bindingIdx);
+	if(binding == nullptr)
+		binding = &descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(descSet,bindingIdx));
+	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
+		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(descSet,bindingIdx,texture,layerId));
+	return descSet->set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
 }
 
-bool prosper::util::set_descriptor_set_binding_array_texture(Anvil::DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)
+bool prosper::util::set_descriptor_set_binding_array_texture(DescriptorSet &descSet,prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)
 {
 	std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(1u,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&texture.GetImageView()->GetAnvilImageView(),&texture.GetSampler()->GetAnvilSampler()
 	});
-	return descSet.set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
+	auto *binding = descSet.GetBinding(bindingIdx);
+	if(binding == nullptr)
+		binding = &descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(descSet,bindingIdx));
+	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
+		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(descSet,bindingIdx,texture));
+	return descSet->set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
 }
 
-bool prosper::util::set_descriptor_set_binding_uniform_buffer(Anvil::DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+bool prosper::util::set_descriptor_set_binding_uniform_buffer(DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
 	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::UniformBufferBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingUniformBuffer>(descSet,bindingIdx,buffer,startOffset,size));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::UniformBufferBindingElement{
 		&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
 }
 
-bool prosper::util::set_descriptor_set_binding_dynamic_uniform_buffer(Anvil::DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+bool prosper::util::set_descriptor_set_binding_dynamic_uniform_buffer(DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
 	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingDynamicUniformBuffer>(descSet,bindingIdx,buffer,startOffset,size));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
 		&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
 }
 
-bool prosper::util::set_descriptor_set_binding_storage_buffer(Anvil::DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+bool prosper::util::set_descriptor_set_binding_storage_buffer(DescriptorSet &descSet,prosper::Buffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
 	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	return descSet.set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageBufferBindingElement{
+	descSet.SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageBuffer>(descSet,bindingIdx,buffer,startOffset,size));
+	return descSet->set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageBufferBindingElement{
 		&buffer.GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
-}
-
-Anvil::Image *prosper::util::get_descriptor_set_image(Anvil::DescriptorSet &descSet,uint32_t bindingIdx,uint32_t arrayIndex)
-{
-	Anvil::ImageView *imgView = nullptr;
-	if(descSet.get_combined_image_sampler_binding_properties(bindingIdx,arrayIndex,nullptr,&imgView,nullptr) == false)
-		return nullptr;
-	return imgView->get_create_info_ptr()->get_parent_image();
 }
 
 bool prosper::util::record_clear_image(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout layout,const std::array<float,4> &clearColor,const ClearImageInfo clearImageInfo)
@@ -1137,7 +1146,7 @@ bool prosper::util::record_copy_image_to_buffer(Anvil::CommandBufferBase &cmdBuf
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	uint32_t w,h;
-	imgSrc.get_image_mipmap_size(0,&w,&h,nullptr);
+	imgSrc.get_image_mipmap_size(copyInfo.mipLevel,&w,&h,nullptr);
 	if(copyInfo.width.has_value())
 		w = *copyInfo.width;
 	if(copyInfo.height.has_value())

@@ -146,17 +146,20 @@ void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode,const prosp
 	if(itRp == rps.end() || bInvalidated == true)
 	{
 		auto rp = prosper::util::create_render_pass(context.GetDevice(),renderPassInfo);
-		if(debugName.empty() == false)
-			rp->SetDebugName(debugName);
-		else
-			rp->SetDebugName("shader_" +std::to_string(hashCode) +"_rp");
-		if(itRp == rps.end())
+		if(rp)
 		{
-			rps.push_back({pipelineIdx,rp,renderPassInfo});
-			itRp = rps.end() -1u;
+			if(debugName.empty() == false)
+				rp->SetDebugName(debugName);
+			else
+				rp->SetDebugName("shader_" +std::to_string(hashCode) +"_rp");
+			if(itRp == rps.end())
+			{
+				rps.push_back({pipelineIdx,rp,renderPassInfo});
+				itRp = rps.end() -1u;
+			}
+			else
+				*itRp = {pipelineIdx,rp,renderPassInfo};
 		}
-		else
-			*itRp = {pipelineIdx,rp,renderPassInfo};
 	}
 	outRenderPass = itRp->renderPass;
 }

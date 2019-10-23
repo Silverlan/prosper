@@ -136,6 +136,8 @@ std::shared_ptr<Image> Image::Copy(prosper::CommandBuffer &cmd,const prosper::ut
 	createInfo.postCreateLayout = Anvil::ImageLayout::TRANSFER_DST_OPTIMAL;
 
 	auto imgCopy = prosper::util::create_image(dev,createInfo);
+	if(imgCopy == nullptr)
+		return nullptr;
 	prosper::util::BlitInfo blitInfo {};
 	blitInfo.dstSubresourceLayer.layer_count = blitInfo.srcSubresourceLayer.layer_count = umath::min(imgCopy->GetLayerCount(),GetLayerCount());
 

@@ -59,6 +59,7 @@ std::shared_ptr<Buffer> UniformResizableBuffer::AllocateBuffer(const void *data)
 			auto createInfo = m_createInfo;
 			createInfo.size = m_baseSize;
 			auto newBuffer = prosper::util::create_buffer(GetDevice(),createInfo);
+			assert(newBuffer);
 			std::vector<uint8_t> data(oldSize);
 			m_buffer->read(0ull,data.size(),data.data());
 			for(auto *subBuffer : m_allocatedSubBuffers)
@@ -85,6 +86,7 @@ std::shared_ptr<Buffer> UniformResizableBuffer::AllocateBuffer(const void *data)
 		pThis->m_freeOffsets.push(subBuffer.GetStartOffset());
 		pThis->m_allocatedSubBuffers.at(idx) = nullptr;
 	});
+	assert(subBuffer);
 	subBuffer->SetParent(shared_from_this(),idx);
 	if(data != nullptr)
 		subBuffer->Write(0ull,m_bufferInstanceSize,data);

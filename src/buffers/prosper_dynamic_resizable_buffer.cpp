@@ -270,6 +270,7 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 		auto createInfo = m_createInfo;
 		createInfo.size = m_baseSize;
 		auto newBuffer = util::create_buffer(GetDevice(),createInfo);
+		assert(newBuffer);
 		std::vector<uint8_t> oldData(oldSize);
 		m_buffer->read(0ull,oldData.size(),oldData.data());
 		
@@ -308,6 +309,7 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 		pThis->m_allocatedSubBuffers.erase(it);
 		pThis->MarkMemoryRangeAsFree(subBuffer.GetStartOffset(),requestSize);
 	});
+	assert(subBuffer);
 	subBuffer->SetParent(shared_from_this());
 	if(data != nullptr)
 		subBuffer->Write(0ull,requestSize,data);

@@ -28,6 +28,9 @@ namespace prosper
 			R8G8B8A8Unorm,
 			R8Unorm,
 			R16G16B16A16Sfloat,
+			BC1,
+			BC2,
+			BC3,
 
 			Count
 		};

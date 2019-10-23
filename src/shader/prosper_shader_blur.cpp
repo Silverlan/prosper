@@ -30,6 +30,17 @@ decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_
 		}
 	}
 };
+#pragma optimize("",off)
+
+static constexpr std::array<vk::Format,umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
+	vk::Format::eR8G8B8A8Unorm,
+	vk::Format::eR8Unorm,
+	vk::Format::eR16G16B16A16Sfloat,
+	vk::Format::eBc1RgbaUnormBlock,
+	vk::Format::eBc2UnormBlock,
+	vk::Format::eBc3UnormBlock
+};
+
 ShaderBlurBase::ShaderBlurBase(prosper::Context &context,const std::string &identifier,const std::string &fsShader)
 	: ShaderGraphics(context,identifier,"screen/vs_screen_uv",fsShader)
 {
@@ -38,18 +49,7 @@ ShaderBlurBase::ShaderBlurBase(prosper::Context &context,const std::string &iden
 
 void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<RenderPass> &outRenderPass,uint32_t pipelineIdx)
 {
-	switch(static_cast<Pipeline>(pipelineIdx))
-	{
-		case Pipeline::R8G8B8A8Unorm:
-			CreateCachedRenderPass<ShaderBlurBase>({{{Anvil::Format::R8G8B8A8_UNORM}}},outRenderPass,pipelineIdx);
-			break;
-		case Pipeline::R8Unorm:
-			CreateCachedRenderPass<ShaderBlurBase>({{{Anvil::Format::R8_UNORM}}},outRenderPass,pipelineIdx);
-			break;
-		case Pipeline::R16G16B16A16Sfloat:
-			CreateCachedRenderPass<ShaderBlurBase>({{{Anvil::Format::R16G16B16A16_SFLOAT}}},outRenderPass,pipelineIdx);
-			break;
-	}
+	CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<Anvil::Format>(g_pipelineFormats.at(pipelineIdx))}}},outRenderPass,pipelineIdx);
 }
 
 void ShaderBlurBase::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
@@ -130,6 +130,15 @@ bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_p
 		case vk::Format::eR16G16B16A16Sfloat:
 			pipelineId = ShaderBlurBase::Pipeline::R16G16B16A16Sfloat;
 			break;
+		case vk::Format::eBc1RgbaUnormBlock:
+			pipelineId = ShaderBlurBase::Pipeline::BC1;
+			break;
+		case vk::Format::eBc2UnormBlock:
+			pipelineId = ShaderBlurBase::Pipeline::BC2;
+			break;
+		case vk::Format::eBc3UnormBlock:
+			pipelineId = ShaderBlurBase::Pipeline::BC3;
+			break;
 		default:
 			throw std::logic_error("Unsupported image format for blur input image!");
 	}
@@ -190,7 +199,7 @@ std::shared_ptr<BlurSet> BlurSet::Create(Anvil::BaseDevice &dev,const std::share
 	auto finalDescSetGroup = prosper::util::create_descriptor_set_group(dev,prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
 	auto &finalTex = (srcTexture != nullptr) ? *srcTexture : *finalRt->GetTexture();
 	auto &finalImg = *finalTex.GetImage();
-	prosper::util::set_descriptor_set_binding_texture(*(*finalDescSetGroup)->get_descriptor_set(0u),finalTex,0u);
+	prosper::util::set_descriptor_set_binding_texture(*finalDescSetGroup->GetDescriptorSet(),finalTex,0u);
 
 	auto extents = finalImg.GetExtents();
 	prosper::util::ImageCreateInfo createInfo {};
@@ -210,7 +219,7 @@ std::shared_ptr<BlurSet> BlurSet::Create(Anvil::BaseDevice &dev,const std::share
 
 	auto stagingDescSetGroup = prosper::util::create_descriptor_set_group(dev,prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
 	auto &stagingTex = *stagingRt->GetTexture();
-	prosper::util::set_descriptor_set_binding_texture(*(*stagingDescSetGroup)->get_descriptor_set(0u),stagingTex,0u);
+	prosper::util::set_descriptor_set_binding_texture(*stagingDescSetGroup->GetDescriptorSet(),stagingTex,0u);
 	return std::shared_ptr<BlurSet>(new BlurSet(
 		finalRt,finalDescSetGroup,
 		stagingRt,stagingDescSetGroup,
@@ -222,3 +231,4 @@ const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetFinalRenderTarget() co
 Anvil::DescriptorSet &BlurSet::GetFinalDescriptorSet() const {return *(*m_outDescSetGroup)->get_descriptor_set(0u);}
 const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetStagingRenderTarget() const {return m_stagingRenderTarget;}
 Anvil::DescriptorSet &BlurSet::GetStagingDescriptorSet() const {return *(*m_stagingDescSetGroup)->get_descriptor_set(0u);}
+#pragma optimize("",on)

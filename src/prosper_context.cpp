@@ -11,6 +11,7 @@
 #include "prosper_util_square_shape.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
+#include "buffers/prosper_dynamic_resizable_buffer.hpp"
 #include "image/prosper_sampler.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
@@ -137,6 +138,7 @@ void Context::Release()
 	m_dummyTexture = nullptr;
 	m_dummyCubemapTexture = nullptr;
 	m_dummyBuffer = nullptr;
+	m_tmpBuffer = nullptr;
 	m_setupCmdBuffer = nullptr;
 	m_keepAliveResources.clear();
 	while(m_scheduledBufferUpdates.empty() == false)
@@ -190,12 +192,23 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
     /* Determine the semaphore which the swapchain image */
     auto errCode = m_swapchainPtr->acquire_image(curr_frame_wait_semaphore_ptr,&m_n_swapchain_image);
 
-	if(
-		errCode != Anvil::SwapchainOperationErrorCode::SUCCESS ||
-		static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max())) != vk::Result::eSuccess ||
-		m_cmdFences[m_n_swapchain_image]->reset() == false
-	)
-		throw std::runtime_error("Unable to reset fence.");
+	auto success = (errCode == Anvil::SwapchainOperationErrorCode::SUCCESS);
+	std::string errMsg;
+	if(success)
+	{
+		auto waitResult = static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
+		if(waitResult == vk::Result::eSuccess)
+		{
+			if(m_cmdFences[m_n_swapchain_image]->reset() == false)
+				errMsg = "Unable to reset swapchain fence!";
+		}
+		else
+			errMsg = "An error has occurred when waiting for swapchain fence: " +prosper::util::to_string(waitResult);
+	}
+	else
+		errMsg = "Unable to acquire next swapchain image: " +std::to_string(umath::to_integral(errCode));
+	if(errMsg.empty() == false)
+		throw std::runtime_error(errMsg);
 	
 	ClearKeepAliveResources();
 
@@ -297,6 +310,13 @@ void Context::ReloadWindow()
 	ReloadSwapchain();
 }
 
+std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,const void *data)
+{
+	if(m_tmpBuffer == nullptr)
+		return nullptr;
+	return m_tmpBuffer->AllocateBuffer(size,data);
+}
+
 void Context::ReloadSwapchain()
 {
 	// Reload swapchain related objects
@@ -307,6 +327,7 @@ void Context::ReloadSwapchain()
 	InitCommandBuffers();
 	InitSemaphores();
 	InitMainRenderPass();
+	InitTemporaryBuffer();
 	OnSwapchainInitialized();
 
 	if(m_shaderManager != nullptr)
@@ -568,6 +589,7 @@ ShaderManager &Context::GetShaderManager() const {return *m_shaderManager;}
 const std::shared_ptr<Texture> &Context::GetDummyTexture() const {return m_dummyTexture;}
 const std::shared_ptr<Texture> &Context::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
 const std::shared_ptr<Buffer> &Context::GetDummyBuffer() const {return m_dummyBuffer;}
+const std::shared_ptr<DynamicResizableBuffer> &Context::GetTemporaryBuffer() const {return m_tmpBuffer;}
 void Context::InitDummyBuffer()
 {
 	auto &dev = GetDevice();
@@ -576,6 +598,7 @@ void Context::InitDummyBuffer()
 	createInfo.size = 1ull;
 	createInfo.usageFlags = Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
 	m_dummyBuffer = prosper::util::create_buffer(dev,createInfo);
+	assert(m_dummyBuffer);
 	m_dummyBuffer->SetDebugName("context_dummy_buf");
 }
 void Context::InitDummyTextures()
@@ -589,15 +612,18 @@ void Context::InitDummyTextures()
 	createInfo.postCreateLayout = Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
 	createInfo.usage = Anvil::ImageUsageFlagBits::SAMPLED_BIT;
 	auto img = prosper::util::create_image(dev,createInfo);
+	assert(img);
 	prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
 	prosper::util::SamplerCreateInfo samplerCreateInfo {};
 	m_dummyTexture = prosper::util::create_texture(dev,{},std::move(img),&imgViewCreateInfo,&samplerCreateInfo);
+	assert(m_dummyTexture);
 	m_dummyTexture->SetDebugName("context_dummy_tex");
 
 	createInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
 	createInfo.layers = 6u;
 	auto imgCubemap = prosper::util::create_image(dev,createInfo);
 	m_dummyCubemapTexture = prosper::util::create_texture(dev,{},std::move(imgCubemap),&imgViewCreateInfo,&samplerCreateInfo);
+	assert(m_dummyCubemapTexture);
 	m_dummyCubemapTexture->SetDebugName("context_dummy_cubemap_tex");
 }
 
@@ -794,6 +820,18 @@ void Context::InitMainRenderPass()
 	m_renderPass = Anvil::RenderPass::create(std::move(render_pass_info_ptr),m_swapchainPtr.get()); // TODO: Deprecated? Remove main render pass entirely
 
 	m_renderPass->set_name("Main renderpass");
+}
+
+void Context::InitTemporaryBuffer()
+{
+	util::BufferCreateInfo createInfo {};
+	createInfo.memoryFeatures = util::MemoryFeatureFlags::CPUToGPU;
+	createInfo.size = 67'108'864; // 64 MiB
+	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
+		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
+		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
+	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,134'217'728 /* 128 MiB */);
+	assert(m_tmpBuffer);
 }
 
 void Context::Draw(uint32_t n_swapchain_image)
