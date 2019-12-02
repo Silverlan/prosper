@@ -1154,10 +1154,18 @@ void Context::InitVulkan(const CreateInfo &createInfo)
 	m_shaderManager = std::make_unique<ShaderManager>(*this);
 
     /* Create a Vulkan device */
+	Anvil::DeviceExtensionConfiguration devExtConfig {};
+
+	// Note: These are required for VR on Nvidia GPUs!
+	devExtConfig.extension_status["VK_NV_dedicated_allocation"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["VK_NV_external_memory"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["VK_NV_external_memory_win32"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["VK_NV_win32_keyed_mutex"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(
 		m_physicalDevicePtr,
 		true, /* in_enable_shader_module_cache */
-		Anvil::DeviceExtensionConfiguration(),
+		devExtConfig,
 		std::vector<std::string>(),
 		Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT,
 		false /* in_mt_safe */
