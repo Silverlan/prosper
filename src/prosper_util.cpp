@@ -35,7 +35,6 @@
 
 using namespace prosper;
 
-#pragma optimize("",off)
 bool prosper::util::RenderPassCreateInfo::AttachmentInfo::operator==(const AttachmentInfo &other) const
 {
 	return format == other.format &&
@@ -1926,4 +1925,3 @@ void prosper::util::get_image_layout_transition_access_masks(Anvil::ImageLayout 
 			break;
 	};
 }
-#pragma optimize("",on)

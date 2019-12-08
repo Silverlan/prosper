@@ -30,7 +30,6 @@ decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_
 		}
 	}
 };
-#pragma optimize("",off)
 
 static constexpr std::array<vk::Format,umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
 	vk::Format::eR8G8B8A8Unorm,
@@ -231,4 +230,3 @@ const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetFinalRenderTarget() co
 Anvil::DescriptorSet &BlurSet::GetFinalDescriptorSet() const {return *(*m_outDescSetGroup)->get_descriptor_set(0u);}
 const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetStagingRenderTarget() const {return m_stagingRenderTarget;}
 Anvil::DescriptorSet &BlurSet::GetStagingDescriptorSet() const {return *(*m_stagingDescSetGroup)->get_descriptor_set(0u);}
-#pragma optimize("",on)

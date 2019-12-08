@@ -63,7 +63,6 @@ using namespace prosper;
 
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::Context::StateFlags)
 
-#pragma optimize("",off)
 decltype(Context::s_devToContext) Context::s_devToContext = {};
 
 const std::string PIPELINE_CACHE_PATH = "cache/shader.cache";
@@ -1221,4 +1220,3 @@ void Context::Run()
 		GLFW::poll_events();
 	}
 }
-#pragma optimize("",on)

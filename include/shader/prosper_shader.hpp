@@ -356,12 +356,5 @@ template<class T>
 	return RecordPushConstants(sizeof(data),&data,offset);
 }
 #pragma warning(pop)
-/*#ifndef PP_CAT
-#define PP_CAT(a,b) PP_CAT_I(a,b)
-#define PP_CAT_I(a,b) PP_CAT_II(~,a ## b)
-#define PP_CAT_II(p,res) res
-#endif
-#define REGISTER_SHADER(ppIdentifier,ppShader) \
-	auto PP_CAT(__shader,__LINE__) = Shader::Register(ppIdentifier,[](Context &context,const std::string &identifier) -> Shader* {return new ppShader(context,identifier);});
-	*/
+
 #endif

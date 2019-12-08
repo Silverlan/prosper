@@ -16,7 +16,6 @@
 
 using namespace prosper;
 
-#pragma optimize("",off)
 std::shared_ptr<Buffer> Buffer::Create(Context &context,Anvil::BufferUniquePtr buf,const std::function<void(Buffer&)> &onDestroyedCallback)
 {
 	if(buf == nullptr)
@@ -197,4 +196,3 @@ bool Buffer::Unmap() const
 }
 Buffer::SubBufferIndex Buffer::GetBaseIndex() const {return m_baseIndex;}
 Anvil::BufferUsageFlags Buffer::GetUsageFlags() const {return m_buffer->get_create_info_ptr()->get_usage_flags();}
-#pragma optimize("",on)

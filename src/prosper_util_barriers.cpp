@@ -12,7 +12,7 @@
 #ifdef DEBUG_VERBOSE
 #include <iostream>
 #endif
-#pragma optimize("",off)
+
 void prosper::util::ImageSubresourceRange::ApplyRange(Anvil::ImageSubresourceRange &vkRange,Anvil::Image &img) const
 {
 	vkRange.base_mip_level = baseMipLevel;
@@ -322,4 +322,3 @@ bool prosper::util::record_image_barrier(
 	
 	return prosper::util::record_pipeline_barrier(cmdBuffer,barrier);
 }
-#pragma optimize("",on)

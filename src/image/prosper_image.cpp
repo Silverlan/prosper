@@ -15,7 +15,6 @@
 
 using namespace prosper;
 
-#pragma optimize("",off)
 std::shared_ptr<Image> Image::Create(Context &context,Anvil::ImageUniquePtr img,const std::function<void(Image&)> &onDestroyedCallback)
 {
 	if(img == nullptr)
@@ -151,4 +150,3 @@ std::shared_ptr<Image> Image::Copy(prosper::CommandBuffer &cmd,const prosper::ut
 	prosper::util::record_image_barrier(*cmd,**imgCopy,Anvil::ImageLayout::TRANSFER_DST_OPTIMAL,finalLayout);
 	return imgCopy;
 }
-#pragma optimize("",on)

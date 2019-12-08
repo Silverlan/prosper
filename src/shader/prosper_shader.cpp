@@ -22,26 +22,6 @@
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
 
-/*decltype(Shader::s_shaderFactories) Shader::s_shaderFactories {};
-int32_t Shader::Register(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory)
-{
-	s_shaderFactories[identifier] = fFactory;
-	return -1;
-}
-
-
-class ShaderTest
-	: public Shader
-{
-public:
-	ShaderTest(Context &context,const std::string &identifier) : Shader(context,identifier,"") {}
-};
-
-REGISTER_SHADER("",ShaderTest);
-REGISTER_SHADER("2",ShaderTest);*/
-
-///////////////////////////
-
 prosper::Shader::DescriptorSetInfo::DescriptorSetInfo(const std::vector<Binding> &bindings)
 	: bindings(bindings)
 {}

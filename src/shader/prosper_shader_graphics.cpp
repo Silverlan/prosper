@@ -22,7 +22,6 @@
 #include <queue>
 #include <unordered_map>
 
-#pragma optimize("",off)
 prosper::ShaderGraphics::VertexBinding::VertexBinding(Anvil::VertexInputRate inputRate,uint32_t stride)
 	: stride(stride),inputRate(inputRate)
 {}
@@ -598,4 +597,3 @@ bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCo
 }
 bool prosper::ShaderGraphics::Draw() {return true;}
 void prosper::ShaderGraphics::EndDraw() {UnbindPipeline(); SetCurrentDrawCommandBuffer(nullptr);}
-#pragma optimize("",on)

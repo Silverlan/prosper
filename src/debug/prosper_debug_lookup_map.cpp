@@ -18,7 +18,6 @@
 #include <sharedutils/util_string.h>
 
 #undef GetObject
-#pragma optimize("",off)
 class DLLPROSPER ObjectLookupHandler
 {
 public:
@@ -278,4 +277,3 @@ void prosper::debug::add_debug_object_information(std::string &msgValidation)
 		fPrintBoundPipeline(*boundPipeline.first);
 	}
 }
-#pragma optimize("",on)
