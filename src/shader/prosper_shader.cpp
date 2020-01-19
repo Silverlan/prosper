@@ -109,6 +109,12 @@ prosper::ShaderStage *prosper::Shader::GetStage(Anvil::ShaderStage stage)
 
 const prosper::ShaderStage *prosper::Shader::GetStage(Anvil::ShaderStage stage) const {return const_cast<prosper::Shader*>(this)->GetStage(stage);}
 
+static std::string g_shaderLocation = "shaders";
+void prosper::Shader::SetRootShaderLocation(const std::string &location)
+{
+	g_shaderLocation = location;
+}
+
 bool prosper::Shader::InitializeSources(bool bReload)
 {
 	auto &context = GetContext();
@@ -120,7 +126,11 @@ bool prosper::Shader::InitializeSources(bool bReload)
 		std::string infoLog;
 		std::string debugInfoLog;
 		stage->spirvBlob.clear();
-		auto bSuccess = prosper::glsl_to_spv(context,i,"shaders\\" +stage->path,stage->spirvBlob,&infoLog,&debugInfoLog,bReload);
+
+		auto shaderLocation = g_shaderLocation;
+		if(shaderLocation.empty() == false)
+			shaderLocation += '\\';
+		auto bSuccess = prosper::glsl_to_spv(context,i,shaderLocation +stage->path,stage->spirvBlob,&infoLog,&debugInfoLog,bReload);
 		if(bSuccess == false)
 		{
 			if(s_logCallback != nullptr)
