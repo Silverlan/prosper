@@ -313,7 +313,17 @@ std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,con
 {
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
-	return m_tmpBuffer->AllocateBuffer(size,data);
+	auto allocatedBuffer = m_tmpBuffer->AllocateBuffer(size,data);
+	if(allocatedBuffer)
+		return allocatedBuffer;
+	// Couldn't allocate from temp buffer, request size was most likely too large. Fall back to creating a completely new buffer.
+	util::BufferCreateInfo createInfo {};
+	createInfo.memoryFeatures = util::MemoryFeatureFlags::CPUToGPU;
+	createInfo.size = size;
+	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
+		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
+		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
+	return prosper::util::create_buffer(GetDevice(),createInfo,data);
 }
 
 void Context::ReloadSwapchain()
@@ -829,7 +839,7 @@ void Context::InitTemporaryBuffer()
 	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
 		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
 		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
-	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,134'217'728 /* 128 MiB */);
+	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,1'048'576 *512 /* 512 MiB */);
 	assert(m_tmpBuffer);
 }
 

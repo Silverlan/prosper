@@ -55,6 +55,7 @@ namespace prosper
 		static Shader *GetBoundPipeline(prosper::CommandBuffer &cmdBuffer,uint32_t &outPipelineIdx);
 		static const std::unordered_map<prosper::CommandBuffer*,std::pair<prosper::Shader*,uint32_t>> &GetBoundPipelines();
 		static void SetRootShaderLocation(const std::string &location);
+		static const std::string &GetRootShaderLocation();
 
 		struct DLLPROSPER DescriptorSetInfo
 		{

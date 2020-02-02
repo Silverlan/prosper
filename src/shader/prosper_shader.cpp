@@ -114,6 +114,7 @@ void prosper::Shader::SetRootShaderLocation(const std::string &location)
 {
 	g_shaderLocation = location;
 }
+const std::string &prosper::Shader::GetRootShaderLocation() {return g_shaderLocation;}
 
 bool prosper::Shader::InitializeSources(bool bReload)
 {

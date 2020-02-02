@@ -9,6 +9,7 @@
 #include "prosper_includes.hpp"
 #include "prosper_glstospv.hpp"
 #include "prosper_context.hpp"
+#include "shader/prosper_shader.hpp"
 #include <fsys/filesystem.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
@@ -65,7 +66,7 @@ static bool glsl_preprocessing(const std::string &path,std::string &shader,std::
 					includePath = inc;
 				else
 					includePath = sub.substr(sub.find_first_of("/\\") +1) +inc;
-				includePath = "shaders\\" +FileManager::GetCanonicalizedPath(includePath);
+				includePath = prosper::Shader::GetRootShaderLocation() +"\\" +FileManager::GetCanonicalizedPath(includePath);
 				if(includePath.substr(includePath.length() -4) != ".gls")
 					includePath += ".gls";
 				auto f = FileManager::OpenFile(includePath.c_str(),"rb");
