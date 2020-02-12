@@ -69,6 +69,7 @@ link_external_library(iglfw)
 link_external_library(glslang)
 
 add_include_dir(glm)
+add_include_dir(gli)
 add_include_dir(anvil_build)
 
 add_external_library(SPIRV)
@@ -83,6 +84,7 @@ set(DEFINITIONS
 	SHPROSPER_DLL
 	GLM_FORCE_DEPTH_ZERO_TO_ONE
 	ANVIL_VULKAN_CPP
+	UIMG_ENABLE_NVTT
 )
 
 ##### CONFIGURATION #####

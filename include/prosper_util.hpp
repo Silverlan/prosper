@@ -29,11 +29,11 @@ namespace Anvil
 	struct MipmapRawData;
 	class Framebuffer;
 };
-namespace util {class ImageBuffer;};
+
 namespace uimg
 {
-	class Image;
-	enum class ImageType : uint32_t;
+	class ImageBuffer;
+	struct TextureInfo;
 };
 
 #pragma warning(push)
@@ -190,7 +190,7 @@ namespace prosper
 
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data);
-		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,::util::ImageBuffer &imgBuffer);
+		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,uimg::ImageBuffer &imgBuffer);
 		DLLPROSPER std::shared_ptr<ImageView> create_image_view(Anvil::BaseDevice &dev,const ImageViewCreateInfo &createInfo,std::shared_ptr<Image> img);
 		DLLPROSPER std::shared_ptr<Buffer> create_buffer(Anvil::BaseDevice &dev,const BufferCreateInfo &createInfo,const void *data=nullptr);
 		DLLPROSPER std::shared_ptr<Buffer> create_sub_buffer(Buffer &parentBuffer,vk::DeviceSize offset,vk::DeviceSize size,const std::function<void(Buffer&)> &onDestroyedCallback=nullptr);
@@ -198,9 +198,6 @@ namespace prosper
 		DLLPROSPER std::shared_ptr<RenderPass> create_render_pass(Anvil::BaseDevice &dev,const RenderPassCreateInfo &renderPassInfo);
 		DLLPROSPER std::shared_ptr<DescriptorSetGroup> create_descriptor_set_group(Anvil::BaseDevice &dev,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 		DLLPROSPER std::shared_ptr<Framebuffer> create_framebuffer(Anvil::BaseDevice &dev,uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::ImageView*> &attachments);
-
-		DLLPROSPER void initialize_image(Anvil::BaseDevice &dev,const uimg::Image &imgSrc,Anvil::Image &img);
-		DLLPROSPER Anvil::Format get_vk_format(uimg::ImageType imgType);
 
 		struct DLLPROSPER BlitInfo
 		{
@@ -276,6 +273,7 @@ namespace prosper
 			ImageSubresourceRange subresourceRange = {};
 		};
 
+		DLLPROSPER bool record_set_depth_bias(Anvil::CommandBufferBase &cmdBuffer,float depthBiasConstantFactor=0.f,float depthBiasClamp=0.f,float depthBiasSlopeFactor=0.f);
 		DLLPROSPER bool record_clear_image(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout layout,const std::array<float,4> &clearColor,const ClearImageInfo clearImageInfo={});
 		DLLPROSPER bool record_clear_image(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout layout,float clearDepth,const ClearImageInfo clearImageInfo={});
 		DLLPROSPER bool record_clear_attachment(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,const std::array<float,4> &clearColor,uint32_t attId=0u);
@@ -414,6 +412,7 @@ namespace prosper
 		DLLPROSPER Anvil::ImageAspectFlagBits get_aspect_mask(Anvil::Image &img);
 		DLLPROSPER Anvil::ImageAspectFlagBits get_aspect_mask(Anvil::Format format);
 		DLLPROSPER std::pair<const Anvil::MemoryType*,MemoryFeatureFlags> find_compatible_memory_type(Anvil::BaseDevice &dev,MemoryFeatureFlags featureFlags);
+		DLLPROSPER bool save_texture(const std::string &fileName,prosper::Image &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler=nullptr);
 
 		// Clamps the specified size in bytes to a percentage of the total available GPU memory
 		uint64_t clamp_gpu_memory_size(Anvil::BaseDevice &dev,uint64_t size,float percentageOfGPUMemory,MemoryFeatureFlags featureFlags);
