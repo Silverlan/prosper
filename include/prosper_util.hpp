@@ -188,9 +188,11 @@ namespace prosper
 			std::vector<SubPass> subPasses;
 		};
 
+		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::shared_ptr<Buffer> &buffer);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,uimg::ImageBuffer &imgBuffer);
+		DLLPROSPER std::shared_ptr<Image> create_cubemap(Anvil::BaseDevice &dev,std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers);
 		DLLPROSPER std::shared_ptr<ImageView> create_image_view(Anvil::BaseDevice &dev,const ImageViewCreateInfo &createInfo,std::shared_ptr<Image> img);
 		DLLPROSPER std::shared_ptr<Buffer> create_buffer(Anvil::BaseDevice &dev,const BufferCreateInfo &createInfo,const void *data=nullptr);
 		DLLPROSPER std::shared_ptr<Buffer> create_sub_buffer(Buffer &parentBuffer,vk::DeviceSize offset,vk::DeviceSize size,const std::function<void(Buffer&)> &onDestroyedCallback=nullptr);

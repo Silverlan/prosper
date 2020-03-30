@@ -39,6 +39,7 @@
 
 using namespace prosper;
 
+#pragma optimize("",off)
 bool prosper::util::RenderPassCreateInfo::AttachmentInfo::operator==(const AttachmentInfo &other) const
 {
 	return format == other.format &&
@@ -462,6 +463,14 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 		)
 	));
 }
+std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::shared_ptr<Buffer> &buffer)
+{
+	const_cast<ImageCreateInfo&>(createInfo).flags |= ImageCreateInfo::Flags::Sparse;
+	auto img = create_image(dev,createInfo,nullptr);
+	if(img == nullptr || img->SetMemory(buffer) == false)
+		return nullptr;
+	return img;
+}
 std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const uint8_t *data)
 {
 	if(data == nullptr)
@@ -476,9 +485,20 @@ std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &d
 }
 std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data) {return ::create_image(dev,createInfo,&data);}
 
-std::shared_ptr<Image> prosper::util::create_image(Anvil::BaseDevice &dev,uimg::ImageBuffer &imgBuffer)
+static std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap)
 {
-	auto format = imgBuffer.GetFormat();
+	if(imgBuffers.empty() || imgBuffers.size() != (cubemap ? 6 : 1))
+		return nullptr;
+	auto &img0 = imgBuffers.at(0);
+	auto format = img0->GetFormat();
+	auto w = img0->GetWidth();
+	auto h = img0->GetHeight();
+	for(auto &img : imgBuffers)
+	{
+		if(img->GetFormat() != format || img->GetWidth() != w || img->GetHeight() != h)
+			return nullptr;
+	}
+
 	std::optional<uimg::ImageBuffer::Format> conversionFormatRequired = {};
 	Anvil::Format anvFormat;
 	switch(format)
@@ -505,18 +525,63 @@ std::shared_ptr<Image> prosper::util::create_image(Anvil::BaseDevice &dev,uimg::
 	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 7);
 	if(conversionFormatRequired.has_value())
 	{
-		auto copy = imgBuffer.Copy(*conversionFormatRequired);
-		return create_image(dev,*copy);
+		std::vector<std::shared_ptr<uimg::ImageBuffer>> converted {};
+		converted.reserve(imgBuffers.size());
+		for(auto &img : imgBuffers)
+		{
+			auto copy = img->Copy(*conversionFormatRequired);
+			converted.push_back(copy);
+		}
+		return create_image(dev,converted,cubemap);
 	}
-	ImageCreateInfo imgCreateInfo {};
+	prosper::util::ImageCreateInfo imgCreateInfo {};
 	imgCreateInfo.format = anvFormat;
-	imgCreateInfo.width = imgBuffer.GetWidth();
-	imgCreateInfo.height = imgBuffer.GetHeight();
+	imgCreateInfo.width = w;
+	imgCreateInfo.height = h;
 	imgCreateInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::GPUBulk;
 	imgCreateInfo.postCreateLayout = Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
 	imgCreateInfo.tiling = Anvil::ImageTiling::OPTIMAL;
 	imgCreateInfo.usage = Anvil::ImageUsageFlagBits::SAMPLED_BIT;
-	return create_image(dev,imgCreateInfo,static_cast<uint8_t*>(imgBuffer.GetData()));
+	imgCreateInfo.layers = imgBuffers.size();
+	if(cubemap)
+		imgCreateInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
+
+	auto byteSize = prosper::util::get_byte_size(imgCreateInfo.format);
+	std::vector<Anvil::MipmapRawData> layers {};
+	layers.reserve(imgBuffers.size());
+	for(auto iLayer=decltype(imgBuffers.size()){0u};iLayer<imgBuffers.size();++iLayer)
+	{
+		auto &imgBuf = imgBuffers.at(iLayer);
+		if(cubemap)
+		{
+			layers.push_back(Anvil::MipmapRawData::create_cube_map_from_uchar_ptr(
+				Anvil::ImageAspectFlagBits::COLOR_BIT,iLayer,0,
+				static_cast<uint8_t*>(imgBuf->GetData()),imgCreateInfo.width *imgCreateInfo.height *byteSize,imgCreateInfo.width *byteSize
+			));
+		}
+		else
+		{
+			layers.push_back(Anvil::MipmapRawData::create_2D_from_uchar_ptr(
+				Anvil::ImageAspectFlagBits::COLOR_BIT,0u,
+				static_cast<uint8_t*>(imgBuf->GetData()),imgCreateInfo.width *imgCreateInfo.height *byteSize,imgCreateInfo.width *byteSize
+			));
+		}
+	}
+	return create_image(dev,imgCreateInfo,layers);
+}
+
+std::shared_ptr<Image> prosper::util::create_cubemap(Anvil::BaseDevice &dev,std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers)
+{
+	std::vector<std::shared_ptr<uimg::ImageBuffer>> vImgBuffers {};
+	vImgBuffers.reserve(imgBuffers.size());
+	for(auto &imgBuf : imgBuffers)
+		vImgBuffers.push_back(imgBuf);
+	return ::create_image(dev,vImgBuffers,true);
+}
+
+std::shared_ptr<Image> prosper::util::create_image(Anvil::BaseDevice &dev,uimg::ImageBuffer &imgBuffer)
+{
+	return ::create_image(dev,std::vector<std::shared_ptr<uimg::ImageBuffer>>{imgBuffer.shared_from_this()},false);
 }
 
 std::shared_ptr<prosper::ImageView> prosper::util::create_image_view(Anvil::BaseDevice &dev,const ImageViewCreateInfo &createInfo,std::shared_ptr<Image> img)
@@ -1942,7 +2007,7 @@ void prosper::util::get_image_layout_transition_access_masks(Anvil::ImageLayout 
 
 static Anvil::Format get_anvil_format(uimg::TextureInfo::InputFormat format)
 {
-	Anvil::Format anvFormat;
+	Anvil::Format anvFormat = Anvil::Format::R8G8B8A8_UNORM;
 	switch(format)
 	{
 	case uimg::TextureInfo::InputFormat::R8G8B8A8_UInt:
@@ -1962,6 +2027,139 @@ static Anvil::Format get_anvil_format(uimg::TextureInfo::InputFormat format)
 	}
 	return anvFormat;
 }
+static Anvil::Format get_anvil_format(uimg::TextureInfo::OutputFormat format)
+{
+	Anvil::Format anvFormat = Anvil::Format::R8G8B8A8_UNORM;
+	switch(format)
+	{
+	case uimg::TextureInfo::OutputFormat::RGB:
+	case uimg::TextureInfo::OutputFormat::RGBA:
+		return Anvil::Format::R8G8B8A8_UNORM;
+	case uimg::TextureInfo::OutputFormat::DXT1:
+	case uimg::TextureInfo::OutputFormat::BC1:
+	case uimg::TextureInfo::OutputFormat::DXT1n:
+	case uimg::TextureInfo::OutputFormat::CTX1:
+	case uimg::TextureInfo::OutputFormat::DXT1a:
+	case uimg::TextureInfo::OutputFormat::BC1a:
+		return Anvil::Format::BC1_RGBA_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::DXT3:
+	case uimg::TextureInfo::OutputFormat::BC2:
+		return Anvil::Format::BC2_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::DXT5:
+	case uimg::TextureInfo::OutputFormat::DXT5n:
+	case uimg::TextureInfo::OutputFormat::BC3:
+	case uimg::TextureInfo::OutputFormat::BC3n:
+	case uimg::TextureInfo::OutputFormat::BC3_RGBM:
+		return Anvil::Format::BC3_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC4:
+		return Anvil::Format::BC4_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC5:
+		return Anvil::Format::BC5_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC6:
+		return Anvil::Format::BC6H_SFLOAT_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC7:
+		return Anvil::Format::BC7_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC1:
+	case uimg::TextureInfo::OutputFormat::ETC2_R:
+	case uimg::TextureInfo::OutputFormat::ETC2_RG:
+	case uimg::TextureInfo::OutputFormat::ETC2_RGB:
+	case uimg::TextureInfo::OutputFormat::ETC2_RGBA:
+	case uimg::TextureInfo::OutputFormat::ETC2_RGB_A1:
+	case uimg::TextureInfo::OutputFormat::ETC2_RGBM:
+		return Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK;
+	}
+	return anvFormat;
+}
+static bool is_compatible(Anvil::Format imgFormat,uimg::TextureInfo::OutputFormat outputFormat)
+{
+	if(outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat)
+		return true;
+	switch(outputFormat)
+	{
+	case uimg::TextureInfo::OutputFormat::DXT1:
+	case uimg::TextureInfo::OutputFormat::DXT1a:
+	case uimg::TextureInfo::OutputFormat::DXT1n:
+	case uimg::TextureInfo::OutputFormat::BC1:
+	case uimg::TextureInfo::OutputFormat::BC1a:
+		return imgFormat == Anvil::Format::BC1_RGBA_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::BC1_RGBA_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::BC1_RGB_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::BC1_RGB_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::DXT3:
+	case uimg::TextureInfo::OutputFormat::BC2:
+		return imgFormat == Anvil::Format::BC2_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::BC2_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::DXT5:
+	case uimg::TextureInfo::OutputFormat::DXT5n:
+	case uimg::TextureInfo::OutputFormat::BC3:
+	case uimg::TextureInfo::OutputFormat::BC3n:
+	case uimg::TextureInfo::OutputFormat::BC3_RGBM:
+		return imgFormat == Anvil::Format::BC3_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::BC3_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC4:
+		return imgFormat == Anvil::Format::BC4_SNORM_BLOCK ||
+			imgFormat == Anvil::Format::BC4_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC5:
+		return imgFormat == Anvil::Format::BC5_SNORM_BLOCK ||
+			imgFormat == Anvil::Format::BC5_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC6:
+		return imgFormat == Anvil::Format::BC6H_SFLOAT_BLOCK ||
+			imgFormat == Anvil::Format::BC6H_UFLOAT_BLOCK;
+	case uimg::TextureInfo::OutputFormat::BC7:
+		return imgFormat == Anvil::Format::BC7_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::BC7_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC2_R:
+		return imgFormat == Anvil::Format::ETC2_R8G8B8A1_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A1_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC2_RG:
+		return imgFormat == Anvil::Format::ETC2_R8G8B8A1_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A1_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC2_RGB:
+		return imgFormat == Anvil::Format::ETC2_R8G8B8A1_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A1_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC2_RGBA:
+		return imgFormat == Anvil::Format::ETC2_R8G8B8A1_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A1_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC2_RGB_A1:
+		return imgFormat == Anvil::Format::ETC2_R8G8B8A1_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A1_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::ETC2_RGBM:
+		return imgFormat == Anvil::Format::ETC2_R8G8B8A1_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A1_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8A8_UNORM_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_SRGB_BLOCK ||
+			imgFormat == Anvil::Format::ETC2_R8G8B8_UNORM_BLOCK;
+	case uimg::TextureInfo::OutputFormat::RGB:
+	case uimg::TextureInfo::OutputFormat::RGBA:
+		return prosper::util::is_uncompressed_format(imgFormat);
+	case uimg::TextureInfo::OutputFormat::CTX1:
+	case uimg::TextureInfo::OutputFormat::ETC1:
+	default:
+		return false;
+	}
+	return false;
+}
 bool prosper::util::save_texture(const std::string &fileName,prosper::Image &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler)
 {
 	std::shared_ptr<prosper::Image> imgRead = image.shared_from_this();
@@ -1969,14 +2167,43 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 	auto dstFormat = srcFormat;
 	if(texInfo.inputFormat != uimg::TextureInfo::InputFormat::KeepInputImageFormat)
 		dstFormat = get_anvil_format(texInfo.inputFormat);
-	if(texInfo.outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat || prosper::util::is_compressed_format(imgRead->GetFormat()))
+	if(texInfo.outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat || is_compressed_format(imgRead->GetFormat()))
 	{
-		// No compression needed, just copy the image data to a buffer and save it directly
+		std::optional<uimg::TextureInfo> convTexInfo = {};
+		if(is_compatible(imgRead->GetFormat(),texInfo.outputFormat) == false)
+		{
+			// Convert the image into the target format
+			auto &context = image.GetContext();
+			auto &setupCmd = context.GetSetupCommandBuffer();
 
+			// Note: We should just be able to convert the image to
+			// the destination format directly, but for some reason this code
+			// causes issues when dealing with compressed formats. So instead,
+			// we convert it to a generic color format, and then redirect the image compression
+			// to the util_image library instead of gli.
+			// TODO: It would be much more efficient to use gli for this, too, find out why this isn't working?
+			prosper::util::ImageCreateInfo copyCreateInfo {};
+			image.GetCreateInfo(copyCreateInfo);
+			//copyCreateInfo.format = Anvil::Format::BC1_RGBA_UNORM_BLOCK;//get_anvil_format(texInfo.outputFormat);
+			copyCreateInfo.format = Anvil::Format::R32G32B32A32_SFLOAT;
+			copyCreateInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::DeviceLocal;
+			copyCreateInfo.postCreateLayout = Anvil::ImageLayout::TRANSFER_DST_OPTIMAL;
+			copyCreateInfo.tiling = Anvil::ImageTiling::OPTIMAL; // Needs to be in optimal tiling because some GPUs do not support linear tiling with mipmaps
+			prosper::util::record_image_barrier(**setupCmd,*image,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL);
+			imgRead = image.Copy(*setupCmd,copyCreateInfo);
+			prosper::util::record_image_barrier(**setupCmd,*image,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL);
+			prosper::util::record_image_barrier(**setupCmd,**imgRead,Anvil::ImageLayout::TRANSFER_DST_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL);
+			context.FlushSetupCommandBuffer();
+
+			convTexInfo = texInfo;
+			convTexInfo->inputFormat = uimg::TextureInfo::InputFormat::R32G32B32A32_Float;
+		}
+
+		// No conversion needed, just copy the image data to a buffer and save it directly
 		auto extents = imgRead->GetExtents();
 		auto numLayers = imgRead->GetLayerCount();
 		auto numLevels = imgRead->GetMipmapCount();
-		auto &context = image.GetContext();
+		auto &context = imgRead->GetContext();
 		auto &setupCmd = context.GetSetupCommandBuffer();
 
 		gli::extent2d gliExtents {extents.width,extents.height};
@@ -1989,7 +2216,7 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 		auto buf = prosper::util::create_buffer(context.GetDevice(),bufCreateInfo);
 		buf->SetPermanentlyMapped(true);
 
-		prosper::util::record_image_barrier(**setupCmd,*image,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL);
+		prosper::util::record_image_barrier(**setupCmd,**imgRead,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL);
 		// Initialize buffer with image data
 		size_t bufferOffset = 0;
 		for(auto iLayer=decltype(numLayers){0u};iLayer<numLayers;++iLayer)
@@ -2006,12 +2233,12 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 				copyInfo.height = extents.height;
 				copyInfo.layerCount = 1;
 				copyInfo.mipLevel = iMipmap;
-				prosper::util::record_copy_image_to_buffer(**setupCmd,copyInfo,*image,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,*buf);
+				prosper::util::record_copy_image_to_buffer(**setupCmd,copyInfo,**imgRead,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,*buf);
 
 				bufferOffset += mipmapSize;
 			}
 		}
-		prosper::util::record_image_barrier(**setupCmd,*image,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL);
+		prosper::util::record_image_barrier(**setupCmd,**imgRead,Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL);
 		context.FlushSetupCommandBuffer();
 
 		// Copy the data to a gli texture object
@@ -2023,9 +2250,27 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 				auto extents = imgRead->GetExtents(iMipmap);
 				auto mipmapSize = gliTex.size(iMipmap);
 				auto *dstData = gliTex.data(iLayer,0u /* face */,iMipmap);
+				memset(dstData,1,mipmapSize);
 				buf->Read(bufferOffset,mipmapSize,dstData);
 				bufferOffset += mipmapSize;
 			}
+		}
+		if(convTexInfo.has_value())
+		{
+			std::vector<std::vector<const void*>> layerMipmapData {};
+			layerMipmapData.reserve(numLayers);
+			for(auto iLayer=decltype(numLayers){0u};iLayer<numLayers;++iLayer)
+			{
+				layerMipmapData.push_back({});
+				auto &mipmapData = layerMipmapData.back();
+				mipmapData.reserve(numLevels);
+				for(auto iMipmap=decltype(numLevels){0u};iMipmap<numLevels;++iMipmap)
+				{
+					auto *dstData = gliTex.data(iLayer,0u /* face */,iMipmap);
+					mipmapData.push_back(dstData);
+				}
+			}
+			return uimg::save_texture(fileName,layerMipmapData,extents.width,extents.height,sizeof(float) *4,*convTexInfo,false);
 		}
 		auto fullFileName = uimg::get_absolute_path(fileName,texInfo.containerFormat);
 		switch(texInfo.containerFormat)
@@ -2039,7 +2284,7 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 	}
 
 	std::shared_ptr<prosper::Buffer> buf = nullptr;
-	uint32_t sizePerLayer = 0u;
+	std::vector<std::vector<size_t>> layerMipmapOffsets {};
 	uint32_t sizePerPixel = 0u;
 	if(
 		image.GetTiling() != Anvil::ImageTiling::LINEAR ||
@@ -2063,13 +2308,19 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 
 		// Copy the image data to a buffer
 		uint64_t size = 0;
+		uint64_t offset = 0;
 		auto numLayers = image.GetLayerCount();
 		auto numMipmaps = image.GetMipmapCount();
-		sizePerPixel = prosper::util::get_byte_size(dstFormat);
+		sizePerPixel = prosper::util::is_compressed_format(dstFormat) ? gli::block_size(static_cast<gli::texture::format_type>(dstFormat)) : prosper::util::get_byte_size(dstFormat);
+		layerMipmapOffsets.resize(numLayers);
 		for(auto iLayer=decltype(numLayers){0u};iLayer<numLayers;++iLayer)
 		{
+			auto &mipmapOffsets = layerMipmapOffsets.at(iLayer);
+			mipmapOffsets.resize(numMipmaps);
 			for(auto iMipmap=decltype(numMipmaps){0u};iMipmap<numMipmaps;++iMipmap)
 			{
+				mipmapOffsets.at(iMipmap) = size;
+
 				auto extents = image.GetExtents(iMipmap);
 				size += extents.width *extents.height *sizePerPixel;
 			}
@@ -2098,7 +2349,6 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 			uint32_t layerIndex = 0u;
 		};
 		std::vector<ImageLayerData> layers = {};
-		uint64_t bufferOffset = 0ull;
 		for(auto iLayer=decltype(numLayers){0u};iLayer<numLayers;++iLayer)
 		{
 			layers.push_back({});
@@ -2109,15 +2359,11 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 				layerData.mipmaps.push_back({});
 				auto &mipmapData = layerData.mipmaps.back();
 				mipmapData.mipmapIndex = iMipmap;
-				mipmapData.bufferOffset = bufferOffset;
+				mipmapData.bufferOffset = layerMipmapOffsets.at(iLayer).at(iMipmap);
 
 				auto extents = image.GetExtents(iMipmap);
 				mipmapData.extents = extents;
 				mipmapData.bufferSize = extents.width *extents.height *sizePerPixel;
-				bufferOffset += mipmapData.bufferSize;
-
-				if(iLayer == 0)
-					sizePerLayer += extents.width *extents.height *sizePerPixel;
 			}
 		}
 		for(auto &layerData : layers)
@@ -2166,10 +2412,10 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 	auto extents = imgRead->GetExtents();
 	if(buf != nullptr)
 	{
-		return uimg::save_texture(fileName,[imgRead,buf,sizePerLayer,sizePerPixel](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
+		return uimg::save_texture(fileName,[imgRead,buf,&layerMipmapOffsets,sizePerPixel](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
 			void *data;
 			auto *memBlock = (*buf)->get_memory_block(0u);
-			auto offset = iLayer *sizePerLayer;
+			auto offset = layerMipmapOffsets.at(iLayer).at(iMipmap);
 			auto extents = imgRead->GetExtents(iMipmap);
 			auto size = extents.width *extents.height *sizePerPixel;
 			if(memBlock->map(offset,sizePerPixel,&data) == false)
@@ -2194,3 +2440,4 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::Image &ima
 		return static_cast<uint8_t*>(data);
 		},extents.width,extents.height,get_byte_size(dstFormat),numLayers,numMipmaps,cubemap,texInfo,errorHandler);
 }
+#pragma optimize("",on)

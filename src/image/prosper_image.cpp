@@ -91,6 +91,14 @@ std::optional<Anvil::SubresourceLayout> Image::GetSubresourceLayout(uint32_t lay
 	return subresourceLayout;
 }
 
+prosper::Buffer *Image::GetBuffer() {return m_buffer.get();}
+
+bool Image::SetMemory(const std::shared_ptr<prosper::Buffer> &buffer)
+{
+	m_buffer = buffer;
+	return m_image->set_memory(buffer->GetAnvilBuffer().get_memory_block(0));
+}
+
 void Image::GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const
 {
 	outCreateInfo.flags = util::ImageCreateInfo::Flags::None;

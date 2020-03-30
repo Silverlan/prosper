@@ -20,6 +20,7 @@
 namespace prosper
 {
 	class CommandBuffer;
+	class Buffer;
 	namespace util {struct ImageCreateInfo;};
 	class DLLPROSPER Image
 		: public ContextObject,
@@ -48,11 +49,14 @@ namespace prosper
 		Anvil::ImageAspectFlagBits GetAspectFlags() const;
 		std::optional<Anvil::SubresourceLayout> GetSubresourceLayout(uint32_t layerId=0,uint32_t mipMapIdx=0);
 		void GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const;
+		prosper::Buffer *GetBuffer();
+		bool SetMemory(const std::shared_ptr<prosper::Buffer> &buffer);
 
 		std::shared_ptr<Image> Copy(prosper::CommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 	protected:
 		Image(Context &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img);
 		std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> m_image = nullptr;
+		std::shared_ptr<prosper::Buffer> m_buffer = nullptr; // Optional buffer
 	};
 };
 #pragma warning(pop)
