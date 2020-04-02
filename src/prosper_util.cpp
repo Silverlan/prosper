@@ -172,7 +172,7 @@ uint64_t prosper::util::clamp_gpu_memory_size(Anvil::BaseDevice &dev,uint64_t si
 	auto r = find_compatible_memory_type(dev,featureFlags);
 	if(r.first == nullptr || r.first->heap_ptr == nullptr)
 		throw std::runtime_error("Incompatible memory feature flags");
-	auto maxMem = umath::floor(r.first->heap_ptr->size *percentageOfGPUMemory);
+	auto maxMem = std::floorl(r.first->heap_ptr->size *static_cast<long double>(percentageOfGPUMemory));
 	return umath::min(size,static_cast<uint64_t>(maxMem));
 }
 
@@ -435,21 +435,36 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 	if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::ConcurrentSharing) != prosper::util::ImageCreateInfo::Flags::None)
 		sharingMode = Anvil::SharingMode::CONCURRENT;
 
+	auto useDiscreteMemory = umath::is_flag_set(createInfo.flags,prosper::util::ImageCreateInfo::Flags::AllocateDiscreteMemory);
+	if(
+		useDiscreteMemory == false &&
+		((createInfo.memoryFeatures &prosper::util::MemoryFeatureFlags::HostAccessable) != prosper::util::MemoryFeatureFlags::None ||
+		(createInfo.memoryFeatures &prosper::util::MemoryFeatureFlags::DeviceLocal) == prosper::util::MemoryFeatureFlags::None)
+	)
+		useDiscreteMemory = true; // Pre-allocated memory currently only supported for device local memory
+
+	auto sparse = (createInfo.flags &prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None;
+
 	auto bUseFullMipmapChain = (createInfo.flags &prosper::util::ImageCreateInfo::Flags::FullMipmapChain) != prosper::util::ImageCreateInfo::Flags::None;
-	if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None)
+	if(useDiscreteMemory == false || sparse)
 	{
 		if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::SparseAliasedResidency) != prosper::util::ImageCreateInfo::Flags::None)
 			imageCreateFlags |= Anvil::ImageCreateFlagBits::SPARSE_ALIASED_BIT | Anvil::ImageCreateFlagBits::SPARSE_RESIDENCY_BIT;
 		;
-		return prosper::Image::Create(prosper::Context::GetContext(dev),Anvil::Image::create(
+		auto &context = prosper::Context::GetContext(dev);
+		auto img = prosper::Image::Create(context,Anvil::Image::create(
 			Anvil::ImageCreateInfo::create_no_alloc(
 				&dev,createInfo.type,createInfo.format,
 				createInfo.tiling,createInfo.usage,
 				createInfo.width,createInfo.height,1u,layers,
 				createInfo.samples,queueFamilies,
-				sharingMode,bUseFullMipmapChain,imageCreateFlags
+				sharingMode,bUseFullMipmapChain,imageCreateFlags,
+				postCreateLayout,data
 			)
 		));
+		if(sparse == false)
+			context.AllocateDeviceImageBuffer(*img);
+		return img;
 	}
 
 	return prosper::Image::Create(prosper::Context::GetContext(dev),Anvil::Image::create(
@@ -462,14 +477,6 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 			postCreateLayout,data
 		)
 	));
-}
-std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::shared_ptr<Buffer> &buffer)
-{
-	const_cast<ImageCreateInfo&>(createInfo).flags |= ImageCreateInfo::Flags::Sparse;
-	auto img = create_image(dev,createInfo,nullptr);
-	if(img == nullptr || img->SetMemory(buffer) == false)
-		return nullptr;
-	return img;
 }
 std::shared_ptr<prosper::Image> prosper::util::create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const uint8_t *data)
 {

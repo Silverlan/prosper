@@ -49,8 +49,9 @@ namespace prosper
 		Anvil::ImageAspectFlagBits GetAspectFlags() const;
 		std::optional<Anvil::SubresourceLayout> GetSubresourceLayout(uint32_t layerId=0,uint32_t mipMapIdx=0);
 		void GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const;
-		prosper::Buffer *GetBuffer();
-		bool SetMemory(const std::shared_ptr<prosper::Buffer> &buffer);
+		const prosper::Buffer *GetMemoryBuffer() const;
+		prosper::Buffer *GetMemoryBuffer();
+		bool SetMemoryBuffer(const std::shared_ptr<prosper::Buffer> &buffer);
 
 		std::shared_ptr<Image> Copy(prosper::CommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 	protected:

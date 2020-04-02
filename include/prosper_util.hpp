@@ -119,7 +119,9 @@ namespace prosper
 				FullMipmapChain = ConcurrentSharing<<1u,
 
 				Sparse = FullMipmapChain<<1u,
-				SparseAliasedResidency = Sparse<<1u // Only has an effect if Sparse-flag is set
+				SparseAliasedResidency = Sparse<<1u, // Only has an effect if Sparse-flag is set
+
+				AllocateDiscreteMemory = SparseAliasedResidency<<1u
 			};
 			Flags flags = Flags::None;
 			QueueFamilyFlags queueFamilyMask = QueueFamilyFlags::Graphics;
@@ -188,7 +190,6 @@ namespace prosper
 			std::vector<SubPass> subPasses;
 		};
 
-		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::shared_ptr<Buffer> &buffer);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,const ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data);
 		DLLPROSPER std::shared_ptr<Image> create_image(Anvil::BaseDevice &dev,uimg::ImageBuffer &imgBuffer);

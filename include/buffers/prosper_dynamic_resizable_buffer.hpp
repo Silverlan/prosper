@@ -37,6 +37,7 @@ namespace prosper
 	{
 	public:
 		std::shared_ptr<Buffer> AllocateBuffer(vk::DeviceSize size,const void *data=nullptr);
+		std::shared_ptr<Buffer> AllocateBuffer(vk::DeviceSize size,uint32_t alignment,const void *data);
 
 		friend std::shared_ptr<DynamicResizableBuffer> util::create_dynamic_resizable_buffer(
 			Context &context,util::BufferCreateInfo createInfo,
@@ -56,7 +57,6 @@ namespace prosper
 		DynamicResizableBuffer(
 			Context &context,Buffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 		);
-		std::shared_ptr<Buffer> AllocateBuffer(vk::DeviceSize size,uint32_t alignment,const void *data);
 		void InsertFreeMemoryRange(std::list<Range>::iterator itWhere,vk::DeviceSize startOffset,vk::DeviceSize size);
 		void MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size);
 		std::list<Range>::iterator FindFreeRange(vk::DeviceSize size,uint32_t alignment);

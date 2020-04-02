@@ -68,6 +68,7 @@ namespace prosper
 
 	class Texture;
 	class Buffer;
+	class Image;
 	class CommandBuffer;
 	class PrimaryCommandBuffer;
 	class SecondaryCommandBuffer;
@@ -175,7 +176,11 @@ namespace prosper
 		const std::shared_ptr<Texture> &GetDummyCubemapTexture() const;
 		const std::shared_ptr<Buffer> &GetDummyBuffer() const;
 		const std::shared_ptr<DynamicResizableBuffer> &GetTemporaryBuffer() const;
+		const std::vector<std::shared_ptr<DynamicResizableBuffer>> &GetDeviceImageBuffers() const;
+
 		std::shared_ptr<Buffer> AllocateTemporaryBuffer(vk::DeviceSize size,const void *data=nullptr);
+		std::shared_ptr<Buffer> AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
+		void AllocateDeviceImageBuffer(prosper::Image &img,const void *data=nullptr);
 
 		const Anvil::Instance &GetAnvilInstance() const;
 		Anvil::Instance &GetAnvilInstance();
@@ -257,6 +262,7 @@ namespace prosper
 		const Anvil::PhysicalDevice *m_physicalDevicePtr = nullptr;
 		Anvil::Queue *m_presentQueuePtr = nullptr;
 		std::shared_ptr<DynamicResizableBuffer> m_tmpBuffer = nullptr;
+		std::vector<std::shared_ptr<DynamicResizableBuffer>> m_deviceImgBuffers = {};
 		std::shared_ptr<Anvil::RenderingSurface> m_renderingSurfacePtr;
 		std::shared_ptr<Anvil::Swapchain> m_swapchainPtr;
 		Anvil::WindowUniquePtr m_windowPtr = nullptr;

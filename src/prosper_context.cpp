@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <sharedutils/util.h>
 #include "stdafx_prosper.h"
 #include "prosper_context.hpp"
 #include "image/prosper_texture.hpp"
@@ -61,6 +62,7 @@
 
 using namespace prosper;
 
+#pragma optimize("",off)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::Context::StateFlags)
 
 decltype(Context::s_devToContext) Context::s_devToContext = {};
@@ -137,7 +139,10 @@ void Context::Release()
 	m_dummyTexture = nullptr;
 	m_dummyCubemapTexture = nullptr;
 	m_dummyBuffer = nullptr;
+
 	m_tmpBuffer = nullptr;
+	m_deviceImgBuffers.clear();
+
 	m_setupCmdBuffer = nullptr;
 	m_keepAliveResources.clear();
 	while(m_scheduledBufferUpdates.empty() == false)
@@ -307,6 +312,56 @@ void Context::ReloadWindow()
 	ReleaseSwapchain();
 	InitWindow();
 	ReloadSwapchain();
+}
+
+void Context::AllocateDeviceImageBuffer(prosper::Image &img,const void *data)
+{
+	VkMemoryRequirements req {};
+	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),img.GetAnvilImage().get_image(),&req);
+	auto buf = AllocateDeviceImageBuffer(req.size,req.alignment,data);
+	img.SetMemoryBuffer(buf);
+}
+std::shared_ptr<Buffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+{
+	auto fAllocateImgBuf = [this,size,alignment,data](prosper::DynamicResizableBuffer &deviceImgBuf) -> std::shared_ptr<Buffer> {
+		return deviceImgBuf.AllocateBuffer(size,alignment,data);
+	};
+	for(auto &deviceImgBuf : m_deviceImgBuffers)
+	{
+		auto buf = fAllocateImgBuf(*deviceImgBuf);
+		if(buf)
+			return buf;
+	}
+	
+	// Allocate new image buffer with device memory
+	auto bufferSize = 1ull *(1ull<<30); // 1 GiB
+	auto maxTotalPercent = 0.5f;
+
+	if(m_deviceImgBuffers.empty() == false)
+	{
+		auto &imgBuf = m_deviceImgBuffers.back();
+		std::cout<<"Fragmentation of previous image buffer: "<<imgBuf->GetFragmentationPercent()<<std::endl;
+		auto numAllocated = 0;
+		for(auto &subBuf : imgBuf->GetAllocatedSubBuffers())
+		{
+			numAllocated += subBuf->GetSize();
+		}
+		std::cout<<"Allocated: "<<numAllocated<<" / "<<imgBuf->GetSize()<<std::endl;
+	}
+
+	std::cout<<"Image of buffer size "<<::util::get_pretty_bytes(size)<<" (alignment "<<alignment<<") was requested, but does not fit into previous buffer(s) ("<<m_deviceImgBuffers.size()<<")! Allocating new buffer of size "<<::util::get_pretty_bytes(size)<<"..."<<std::endl;
+	util::BufferCreateInfo createInfo {};
+	createInfo.memoryFeatures = util::MemoryFeatureFlags::GPUBulk;
+	createInfo.size = bufferSize;
+	createInfo.usageFlags = Anvil::BufferUsageFlagBits::NONE;
+	auto deviceImgBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,bufferSize,maxTotalPercent);
+	assert(m_deviceImgBuffer);
+	std::cout<<"Device image buffer size: "<<bufferSize<<std::endl;
+	if(deviceImgBuffer == nullptr)
+		return nullptr;
+	m_deviceImgBuffers.push_back(deviceImgBuffer);
+	auto buf = fAllocateImgBuf(*deviceImgBuffer);
+	return buf;
 }
 
 std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,const void *data)
@@ -539,6 +594,8 @@ void Context::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<v
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
+	if(m_cmdFences[m_n_swapchain_image]->is_set())
+		return;
 	m_keepAliveResources.at(m_n_swapchain_image).push_back(resource);
 }
 
@@ -599,6 +656,7 @@ const std::shared_ptr<Texture> &Context::GetDummyTexture() const {return m_dummy
 const std::shared_ptr<Texture> &Context::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
 const std::shared_ptr<Buffer> &Context::GetDummyBuffer() const {return m_dummyBuffer;}
 const std::shared_ptr<DynamicResizableBuffer> &Context::GetTemporaryBuffer() const {return m_tmpBuffer;}
+const std::vector<std::shared_ptr<DynamicResizableBuffer>> &Context::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
 void Context::InitDummyBuffer()
 {
 	auto &dev = GetDevice();
@@ -841,6 +899,7 @@ void Context::InitTemporaryBuffer()
 		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
 	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,1'048'576 *512 /* 512 MiB */);
 	assert(m_tmpBuffer);
+	m_tmpBuffer->SetPermanentlyMapped(true);
 }
 
 void Context::Draw(uint32_t n_swapchain_image)
@@ -1230,3 +1289,4 @@ void Context::Run()
 		GLFW::poll_events();
 	}
 }
+#pragma optimize("",on)
