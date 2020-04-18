@@ -317,7 +317,7 @@ void Context::ReloadWindow()
 void Context::AllocateDeviceImageBuffer(prosper::Image &img,const void *data)
 {
 	VkMemoryRequirements req {};
-	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),img.GetAnvilImage().get_image(),&req);
+	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<Image&>(img).GetAnvilImage().get_image(),&req);
 	auto buf = AllocateDeviceImageBuffer(req.size,req.alignment,data);
 	img.SetMemoryBuffer(buf);
 }
@@ -364,11 +364,11 @@ std::shared_ptr<Buffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,u
 	return buf;
 }
 
-std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,const void *data)
+std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
 {
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
-	auto allocatedBuffer = m_tmpBuffer->AllocateBuffer(size,data);
+	auto allocatedBuffer = m_tmpBuffer->AllocateBuffer(size,alignment,data);
 	if(allocatedBuffer)
 		return allocatedBuffer;
 	// Couldn't allocate from temp buffer, request size was most likely too large. Fall back to creating a completely new buffer.
@@ -379,6 +379,13 @@ std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,con
 		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
 		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
 	return prosper::util::create_buffer(GetDevice(),createInfo,data);
+}
+void Context::AllocateTemporaryBuffer(prosper::Image &img,const void *data)
+{
+	VkMemoryRequirements req {};
+	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<Image&>(img).GetAnvilImage().get_image(),&req);
+	auto buf = AllocateTemporaryBuffer(req.size,req.alignment,data);
+	img.SetMemoryBuffer(buf);
 }
 
 void Context::ReloadSwapchain()
@@ -893,7 +900,7 @@ void Context::InitTemporaryBuffer()
 {
 	util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = util::MemoryFeatureFlags::CPUToGPU;
-	createInfo.size = 67'108'864; // 64 MiB
+	createInfo.size = 67'108'864 *2; // 128 MiB
 	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
 		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
 		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;

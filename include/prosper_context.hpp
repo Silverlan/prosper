@@ -178,7 +178,9 @@ namespace prosper
 		const std::shared_ptr<DynamicResizableBuffer> &GetTemporaryBuffer() const;
 		const std::vector<std::shared_ptr<DynamicResizableBuffer>> &GetDeviceImageBuffers() const;
 
-		std::shared_ptr<Buffer> AllocateTemporaryBuffer(vk::DeviceSize size,const void *data=nullptr);
+		std::shared_ptr<Buffer> AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
+		void AllocateTemporaryBuffer(prosper::Image &img,const void *data=nullptr);
+
 		std::shared_ptr<Buffer> AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
 		void AllocateDeviceImageBuffer(prosper::Image &img,const void *data=nullptr);
 

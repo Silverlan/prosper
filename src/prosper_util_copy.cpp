@@ -77,22 +77,27 @@ bool prosper::util::record_blit_image(Anvil::CommandBufferBase &cmdBuffer,const 
 	auto srcMipLevel = blitInfo.srcSubresourceLayer.mip_level;
 	auto srcExtents = imgSrc.get_image_extent_2D(srcMipLevel);
 	std::array<vk::Offset3D,2> srcOffsets = {
-		vk::Offset3D{0,0,0},
+		vk::Offset3D{blitInfo.offsetSrc.at(0),blitInfo.offsetSrc.at(1),0},
 		vk::Offset3D{
-			static_cast<int32_t>(srcExtents.width),
-			static_cast<int32_t>(srcExtents.height),
-			1
-		}
+		static_cast<int32_t>(srcExtents.width),
+		static_cast<int32_t>(srcExtents.height),
+		1
+	}
 	};
+	if(blitInfo.extentsSrc.has_value())
+	{
+		srcOffsets.at(1).x = blitInfo.extentsSrc->width;
+		srcOffsets.at(1).y = blitInfo.extentsSrc->height;
+	}
 	auto dstMipLevel = blitInfo.dstSubresourceLayer.mip_level;
 	auto dstExtents = imgDst.get_image_extent_2D(dstMipLevel);
 	std::array<vk::Offset3D,2> dstOffsets = {
-		vk::Offset3D{0,0,0},
+		vk::Offset3D{blitInfo.offsetDst.at(0),blitInfo.offsetDst.at(1),0},
 		vk::Offset3D{
-			static_cast<int32_t>(dstExtents.width),
-			static_cast<int32_t>(dstExtents.height),
-			1
-		}
+		static_cast<int32_t>(dstExtents.width),
+		static_cast<int32_t>(dstExtents.height),
+		1
+	}
 	};
 	Anvil::ImageBlit blit {};
 	blit.src_subresource = blitInfo.srcSubresourceLayer;

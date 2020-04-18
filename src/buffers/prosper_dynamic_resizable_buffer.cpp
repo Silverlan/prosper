@@ -15,6 +15,7 @@
 
 using namespace prosper;
 
+#pragma optimize("",off)
 /*
 static void test_dynamic_resizable_buffer()
 {
@@ -330,3 +331,4 @@ std::shared_ptr<DynamicResizableBuffer> prosper::util::create_dynamic_resizable_
 	r->Initialize();
 	return r;
 }
+#pragma optimize("",on)

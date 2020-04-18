@@ -121,7 +121,8 @@ namespace prosper
 				Sparse = FullMipmapChain<<1u,
 				SparseAliasedResidency = Sparse<<1u, // Only has an effect if Sparse-flag is set
 
-				AllocateDiscreteMemory = SparseAliasedResidency<<1u
+				AllocateDiscreteMemory = SparseAliasedResidency<<1u,
+				DontAllocateMemory = AllocateDiscreteMemory<<1u
 			};
 			Flags flags = Flags::None;
 			QueueFamilyFlags queueFamilyMask = QueueFamilyFlags::Graphics;
@@ -210,6 +211,12 @@ namespace prosper
 			Anvil::ImageSubresourceLayers dstSubresourceLayer = {
 				Anvil::ImageAspectFlagBits::COLOR_BIT,0u,0u,1u
 			};
+
+			std::array<int32_t,2> offsetSrc = {0,0};
+			std::optional<vk::Extent2D> extentsSrc = {};
+
+			std::array<int32_t,2> offsetDst = {0,0};
+			std::optional<vk::Extent2D> extentsDst = {};
 		};
 
 		struct DLLPROSPER CopyInfo

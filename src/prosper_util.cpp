@@ -444,9 +444,10 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 		useDiscreteMemory = true; // Pre-allocated memory currently only supported for device local memory
 
 	auto sparse = (createInfo.flags &prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None;
+	auto dontAllocateMemory = umath::is_flag_set(createInfo.flags,prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
 
 	auto bUseFullMipmapChain = (createInfo.flags &prosper::util::ImageCreateInfo::Flags::FullMipmapChain) != prosper::util::ImageCreateInfo::Flags::None;
-	if(useDiscreteMemory == false || sparse)
+	if(useDiscreteMemory == false || sparse || dontAllocateMemory)
 	{
 		if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::SparseAliasedResidency) != prosper::util::ImageCreateInfo::Flags::None)
 			imageCreateFlags |= Anvil::ImageCreateFlagBits::SPARSE_ALIASED_BIT | Anvil::ImageCreateFlagBits::SPARSE_RESIDENCY_BIT;
@@ -462,7 +463,7 @@ static std::shared_ptr<prosper::Image> create_image(Anvil::BaseDevice &dev,const
 				postCreateLayout,data
 			)
 		));
-		if(sparse == false)
+		if(sparse == false && dontAllocateMemory == false)
 			context.AllocateDeviceImageBuffer(*img);
 		return img;
 	}
