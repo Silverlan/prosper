@@ -261,7 +261,7 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 	);
 	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS || bPresentSuccess == false)
 	{
-		std::cout<<"ERROR!"<<std::endl;
+		std::cout<<"Swapchain present error: "<<umath::to_integral(errCode)<<"!"<<std::endl;
 		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
 		{
 			ChangeResolution(m_windowCreationInfo->width,m_windowCreationInfo->height); // prosper TODO: Force reload
@@ -900,7 +900,7 @@ void Context::InitTemporaryBuffer()
 {
 	util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = util::MemoryFeatureFlags::CPUToGPU;
-	createInfo.size = 67'108'864 *2; // 128 MiB
+	createInfo.size = 67'108'864 *2; // 256 MiB
 	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
 		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
 		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;

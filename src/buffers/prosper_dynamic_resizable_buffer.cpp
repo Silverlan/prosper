@@ -238,6 +238,7 @@ void DynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::st
 }
 
 std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize size,const void *data) {return AllocateBuffer(size,m_alignment,data);}
+
 std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize requestSize,uint32_t alignment,const void *data)
 {
 	if(requestSize == 0ull)
@@ -288,7 +289,7 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 			auto &rangeLast = m_freeRanges.back();
 			if(rangeLast.startOffset +rangeLast.size == oldSize)
 			{
-				rangeLast.size += m_baseSize -rangeLast.startOffset;
+				rangeLast.size = m_baseSize -rangeLast.startOffset;
 				bNewRange = false;
 			}
 		}

@@ -51,6 +51,7 @@ namespace prosper
 		const std::shared_ptr<ImageView> &GetImageView() const;
 		const std::shared_ptr<Sampler> &GetSampler() const;
 		void SetSampler(Sampler &sampler);
+		void SetImageView(ImageView &imgView);
 
 		virtual bool IsMSAATexture() const;
 		virtual void SetDebugName(const std::string &name) override;

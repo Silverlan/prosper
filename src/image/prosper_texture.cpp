@@ -28,6 +28,7 @@ const std::shared_ptr<ImageView> &Texture::GetImageView(uint32_t layerId) const
 const std::shared_ptr<ImageView> &Texture::GetImageView() const {return m_imageViews.at(0u);}
 const std::shared_ptr<Sampler> &Texture::GetSampler() const {return m_sampler;}
 void Texture::SetSampler(Sampler &sampler) {m_sampler = sampler.shared_from_this();}
+void Texture::SetImageView(ImageView &imgView) {m_imageViews.at(0) = imgView.shared_from_this();}
 bool Texture::IsMSAATexture() const {return false;}
 void Texture::SetDebugName(const std::string &name)
 {
