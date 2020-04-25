@@ -4,6 +4,8 @@
 
 #include "stdafx_prosper.h"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
+#include "vk_dynamic_resizable_buffer.hpp"
+#include "vk_buffer.hpp"
 #include "prosper_util.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "prosper_context.hpp"
@@ -15,7 +17,6 @@
 
 using namespace prosper;
 
-#pragma optimize("",off)
 /*
 static void test_dynamic_resizable_buffer()
 {
@@ -92,17 +93,17 @@ static void test_dynamic_resizable_buffer()
 }
 */
 
-DynamicResizableBuffer::DynamicResizableBuffer(
-	Context &context,Buffer &buffer,
+IDynamicResizableBuffer::IDynamicResizableBuffer(
+	Context &context,IBuffer &buffer,
 	const prosper::util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 )
-	: ResizableBuffer(context,std::move(buffer.shared_from_this()->m_buffer),createInfo,maxTotalSize)
+	: IResizableBuffer{buffer,maxTotalSize}
 {
 	m_freeRanges.push_back({0ull,createInfo.size});
 	m_alignment = prosper::util::calculate_buffer_alignment(context.GetDevice(),createInfo.usageFlags);
 }
 
-void DynamicResizableBuffer::InsertFreeMemoryRange(std::list<Range>::iterator itWhere,vk::DeviceSize startOffset,vk::DeviceSize size)
+void IDynamicResizableBuffer::InsertFreeMemoryRange(std::list<Range>::iterator itWhere,DeviceSize startOffset,DeviceSize size)
 {
 	if(itWhere == m_freeRanges.end())
 	{
@@ -143,7 +144,7 @@ void DynamicResizableBuffer::InsertFreeMemoryRange(std::list<Range>::iterator it
 	}
 	m_freeRanges.push_front({startOffset,size});
 }
-void DynamicResizableBuffer::MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size)
+void IDynamicResizableBuffer::MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size)
 {
 	if(size == 0ull)
 		return;
@@ -152,7 +153,7 @@ void DynamicResizableBuffer::MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk
 	});
 	InsertFreeMemoryRange(it,startOffset,size);
 }
-std::list<DynamicResizableBuffer::Range>::iterator DynamicResizableBuffer::FindFreeRange(vk::DeviceSize size,uint32_t alignment)
+std::list<IDynamicResizableBuffer::Range>::iterator IDynamicResizableBuffer::FindFreeRange(vk::DeviceSize size,uint32_t alignment)
 {
 	// Find the smallest available space that can fit the requested size (including alignment padding)
 	auto itMin = m_freeRanges.end();
@@ -169,15 +170,15 @@ std::list<DynamicResizableBuffer::Range>::iterator DynamicResizableBuffer::FindF
 	return itMin;
 }
 
-const std::vector<Buffer*> &DynamicResizableBuffer::GetAllocatedSubBuffers() const {return m_allocatedSubBuffers;}
-uint64_t DynamicResizableBuffer::GetFreeSize() const
+const std::vector<IBuffer*> &IDynamicResizableBuffer::GetAllocatedSubBuffers() const {return m_allocatedSubBuffers;}
+uint64_t IDynamicResizableBuffer::GetFreeSize() const
 {
 	auto size = 0ull;
 	for(auto &range : m_freeRanges)
 		size += range.size;
 	return size;
 }
-float DynamicResizableBuffer::GetFragmentationPercent() const
+float IDynamicResizableBuffer::GetFragmentationPercent() const
 {
 	auto size = GetSize();
 	auto fragmentSize = 0ull;
@@ -189,7 +190,7 @@ float DynamicResizableBuffer::GetFragmentationPercent() const
 	return fragmentSize /static_cast<double>(size);
 }
 
-void DynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::stringstream &strFreeData,std::stringstream *bufferData) const
+void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::stringstream &strFreeData,std::stringstream *bufferData) const
 {
 	std::vector<Range> allocatedRanges(m_allocatedSubBuffers.size());
 	for(auto i=decltype(m_allocatedSubBuffers.size()){0};i<m_allocatedSubBuffers.size();++i)
@@ -237,9 +238,8 @@ void DynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::st
 		(*bufferData)<<+v;
 }
 
-std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize size,const void *data) {return AllocateBuffer(size,m_alignment,data);}
-
-std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize requestSize,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(vk::DeviceSize size,const void *data) {return AllocateBuffer(size,m_alignment,data);}
+std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(vk::DeviceSize requestSize,uint32_t alignment,const void *data)
 {
 	if(requestSize == 0ull)
 		return nullptr;
@@ -271,15 +271,15 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 		m_baseSize += umath::max(m_createInfo.size,requestSize +padding);
 		auto createInfo = m_createInfo;
 		createInfo.size = m_baseSize;
-		auto newBuffer = util::create_buffer(GetDevice(),createInfo);
+		auto newBuffer = GetContext().CreateBuffer(createInfo);
 		assert(newBuffer);
 		std::vector<uint8_t> oldData(oldSize);
-		m_buffer->read(0ull,oldData.size(),oldData.data());
+		Read(0ull,oldData.size(),oldData.data());
 		
 		for(auto *subBuffer : m_allocatedSubBuffers)
-			subBuffer->m_buffer = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&newBuffer->GetAnvilBuffer(),subBuffer->GetStartOffset(),subBuffer->GetSize()));
+			dynamic_cast<VlkBuffer*>(subBuffer)->m_buffer = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&dynamic_cast<VlkBuffer&>(*newBuffer).GetAnvilBuffer(),subBuffer->GetStartOffset(),subBuffer->GetSize()));
 		newBuffer->Write(0ull,oldData.size(),oldData.data());
-		SetBuffer(std::move(newBuffer->m_buffer));
+		dynamic_cast<VlkBuffer*>(this)->SetBuffer(std::move(dynamic_cast<VlkBuffer*>(newBuffer.get())->m_buffer));
 		newBuffer = nullptr;
 
 		// Update free range
@@ -289,7 +289,7 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 			auto &rangeLast = m_freeRanges.back();
 			if(rangeLast.startOffset +rangeLast.size == oldSize)
 			{
-				rangeLast.size = m_baseSize -rangeLast.startOffset;
+				rangeLast.size += m_baseSize -rangeLast.startOffset;
 				bNewRange = false;
 			}
 		}
@@ -302,17 +302,17 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 		return AllocateBuffer(requestSize,alignment,data);
 	}
 
-	auto pThis = std::static_pointer_cast<DynamicResizableBuffer>(shared_from_this());
+	auto pThis = std::dynamic_pointer_cast<IDynamicResizableBuffer>(shared_from_this());
 
-	auto subBuffer = prosper::util::create_sub_buffer(*this,offset,requestSize,[pThis,requestSize](Buffer &subBuffer) {
-		auto it = std::find_if(pThis->m_allocatedSubBuffers.begin(),pThis->m_allocatedSubBuffers.end(),[&subBuffer](const Buffer *subBufferOther) {
+	auto subBuffer = CreateSubBuffer(offset,requestSize,[pThis,requestSize](IBuffer &subBuffer) {
+		auto it = std::find_if(pThis->m_allocatedSubBuffers.begin(),pThis->m_allocatedSubBuffers.end(),[&subBuffer](const IBuffer *subBufferOther) {
 			return subBufferOther == &subBuffer;
-			});
+		});
 		pThis->m_allocatedSubBuffers.erase(it);
 		pThis->MarkMemoryRangeAsFree(subBuffer.GetStartOffset(),requestSize);
 	});
 	assert(subBuffer);
-	subBuffer->SetParent(shared_from_this());
+	subBuffer->SetParent(*this);
 	if(data != nullptr)
 		subBuffer->Write(0ull,requestSize,data);
 	if(m_allocatedSubBuffers.size() == m_allocatedSubBuffers.capacity())
@@ -321,15 +321,14 @@ std::shared_ptr<Buffer> DynamicResizableBuffer::AllocateBuffer(vk::DeviceSize re
 	return subBuffer;
 }
 
-std::shared_ptr<DynamicResizableBuffer> prosper::util::create_dynamic_resizable_buffer(Context &context,BufferCreateInfo createInfo,uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data)
+std::shared_ptr<VkDynamicResizableBuffer> prosper::util::create_dynamic_resizable_buffer(Context &context,BufferCreateInfo createInfo,uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data)
 {
 	createInfo.size = prosper::util::clamp_gpu_memory_size(context.GetDevice(),createInfo.size,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
 	maxTotalSize = prosper::util::clamp_gpu_memory_size(context.GetDevice(),maxTotalSize,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
-	auto buf = util::create_buffer(context.GetDevice(),createInfo,data);
+	auto buf = context.CreateBuffer(createInfo,data);
 	if(buf == nullptr)
 		return nullptr;
-	auto r = std::shared_ptr<DynamicResizableBuffer>(new DynamicResizableBuffer(context,*buf,createInfo,maxTotalSize));
+	auto r = std::shared_ptr<VkDynamicResizableBuffer>(new VkDynamicResizableBuffer{context,*buf,createInfo,maxTotalSize});
 	r->Initialize();
 	return r;
 }
-#pragma optimize("",on)

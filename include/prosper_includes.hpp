@@ -14,12 +14,13 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <misc/types_enums.h>
+#include "prosper_enums.hpp"
 
 namespace prosper
 {
 	namespace util
 	{
-		const auto PIPELINE_STAGE_SHADER_INPUT_FLAGS = Anvil::PipelineStageFlagBits::COMPUTE_SHADER_BIT | Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT | Anvil::PipelineStageFlagBits::VERTEX_SHADER_BIT | Anvil::PipelineStageFlagBits::GEOMETRY_SHADER_BIT;
+		const auto PIPELINE_STAGE_SHADER_INPUT_FLAGS = PipelineStageFlags::ComputeShaderBit | PipelineStageFlags::FragmentShaderBit | PipelineStageFlags::VertexShaderBit | PipelineStageFlags::GeometryShaderBit;
 	};
 };
 

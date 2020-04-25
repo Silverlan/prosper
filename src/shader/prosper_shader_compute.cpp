@@ -6,6 +6,7 @@
 #include "shader/prosper_shader.hpp"
 #include "prosper_context.hpp"
 #include "prosper_command_buffer.hpp"
+#include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 #include <misc/descriptor_set_create_info.h>
 #include <misc/compute_pipeline_create_info.h>
@@ -34,7 +35,7 @@ void prosper::ShaderCompute::InitializePipeline()
 	auto *computePipelineManager = dev.get_compute_pipeline_manager();
 
 	/* Configure the graphics pipeline */
-	auto *modCmp = GetStage(Anvil::ShaderStage::COMPUTE);
+	auto *modCmp = GetStage(ShaderStage::Compute);
 	auto firstPipelineId = std::numeric_limits<Anvil::PipelineID>::max();
 	for(auto pipelineIdx=decltype(m_pipelineInfos.size()){0};pipelineIdx<m_pipelineInfos.size();++pipelineIdx)
 	{
@@ -73,9 +74,9 @@ void prosper::ShaderCompute::InitializePipeline()
 	}
 }
 
-bool prosper::ShaderCompute::BeginCompute(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
+bool prosper::ShaderCompute::BeginCompute(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
 {
-	auto b = BindPipeline(cmdBuffer->GetAnvilCommandBuffer(),pipelineIdx);
+	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
 	if(b == true)
 		SetCurrentDrawCommandBuffer(cmdBuffer,pipelineIdx);
 	return b;
@@ -85,5 +86,5 @@ void prosper::ShaderCompute::EndCompute() {UnbindPipeline(); SetCurrentDrawComma
 bool prosper::ShaderCompute::RecordDispatch(uint32_t x,uint32_t y,uint32_t z)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_dispatch(x,y,z);
+	return cmdBuffer != nullptr && (dynamic_cast<VlkPrimaryCommandBuffer&>(*cmdBuffer))->record_dispatch(x,y,z);
 }

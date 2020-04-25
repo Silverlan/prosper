@@ -18,7 +18,7 @@ void ShaderRect::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipeli
 {
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo,pipelineIdx);
 	AddDefaultVertexAttributes(pipelineInfo);
-	AttachPushConstantRange(pipelineInfo,0u,sizeof(Mat4),Anvil::ShaderStageFlagBits::VERTEX_BIT);
+	AttachPushConstantRange(pipelineInfo,0u,sizeof(Mat4),prosper::ShaderStageFlags::VertexBit);
 }
 bool ShaderRect::Draw(const Mat4 &modelMatrix)
 {

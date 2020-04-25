@@ -9,8 +9,8 @@
 
 using namespace prosper;
 
-ResizableBuffer::ResizableBuffer(Context &context,std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf,const prosper::util::BufferCreateInfo &createInfo,uint64_t maxTotalSize)
-	: Buffer(context,std::move(buf)),m_createInfo(createInfo),m_maxTotalSize(maxTotalSize),m_baseSize(createInfo.size)
+IResizableBuffer::IResizableBuffer(IBuffer &parent,uint64_t maxTotalSize)
+	: IBuffer{parent.GetContext(),parent.GetCreateInfo(),parent.GetStartOffset(),parent.GetSize()},m_maxTotalSize{maxTotalSize},m_baseSize{parent.GetCreateInfo().size}
 {}
 
-void ResizableBuffer::AddReallocationCallback(const std::function<void()> &fCallback) {m_reallocationCallbacks.push_back(fCallback);}
+void IResizableBuffer::AddReallocationCallback(const std::function<void()> &fCallback) {m_reallocationCallbacks.push_back(fCallback);}

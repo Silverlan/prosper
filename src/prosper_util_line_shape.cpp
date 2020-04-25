@@ -12,18 +12,18 @@ using namespace prosper;
 
 Anvil::Format prosper::util::get_line_vertex_format() {return Anvil::Format::R32G32_SFLOAT;}
 
-std::shared_ptr<Buffer> prosper::util::get_line_vertex_buffer(Anvil::BaseDevice &dev)
+std::shared_ptr<IBuffer> prosper::util::get_line_vertex_buffer(prosper::Context &context)
 {
-	static std::weak_ptr<Buffer> wpBuffer = {};
-	std::shared_ptr<Buffer> buf = nullptr;
+	static std::weak_ptr<IBuffer> wpBuffer = {};
+	std::shared_ptr<IBuffer> buf = nullptr;
 	if(wpBuffer.expired())
 	{
 		auto &vertices = get_line_vertices();
 		prosper::util::BufferCreateInfo createInfo {};
-		createInfo.usageFlags = Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
+		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertices.size() *sizeof(Vector2);
-		createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::GPUBulk;
-		buf = prosper::util::create_buffer(dev,createInfo,vertices.data());
+		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		buf = context.CreateBuffer(createInfo,vertices.data());
 		buf->SetDebugName("line_vertex_buf");
 		wpBuffer = buf;
 	}

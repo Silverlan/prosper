@@ -8,6 +8,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
+#include "prosper_enums.hpp"
 #include <functional>
 
 namespace Anvil
@@ -21,76 +22,68 @@ namespace Anvil
 #pragma warning(disable : 4251)
 namespace prosper
 {
-	class Sampler;
-	namespace util
-	{
-		struct DLLPROSPER SamplerCreateInfo
-		{
-			Anvil::Filter minFilter = Anvil::Filter::LINEAR;
-			Anvil::Filter magFilter = Anvil::Filter::LINEAR;
-			Anvil::SamplerMipmapMode mipmapMode = Anvil::SamplerMipmapMode::LINEAR;
-			Anvil::SamplerAddressMode addressModeU = Anvil::SamplerAddressMode::REPEAT;
-			Anvil::SamplerAddressMode addressModeV = Anvil::SamplerAddressMode::REPEAT;
-			Anvil::SamplerAddressMode addressModeW = Anvil::SamplerAddressMode::REPEAT;
-			float mipLodBias = 0.f;
-			float maxAnisotropy = std::numeric_limits<float>::max();
-			bool compareEnable = false;
-			Anvil::CompareOp compareOp = Anvil::CompareOp::LESS;
-			float minLod = 0.f;
-			float maxLod = std::numeric_limits<float>::max();
-			Anvil::BorderColor borderColor = Anvil::BorderColor::FLOAT_TRANSPARENT_BLACK;
-			bool useUnnormalizedCoordinates = false;
-		};
-		DLLPROSPER std::shared_ptr<Sampler> create_sampler(Anvil::BaseDevice &dev,const SamplerCreateInfo &createInfo);
-	};
-	class DLLPROSPER Sampler
+	class DLLPROSPER ISampler
 		: public ContextObject,
-		public std::enable_shared_from_this<Sampler>
+		public std::enable_shared_from_this<ISampler>
+	{
+	public:
+		ISampler(const ISampler&)=delete;
+		ISampler &operator=(const ISampler&)=delete;
+		virtual ~ISampler() override;
+
+		void SetMinFilter(Filter filter);
+		void SetMagFilter(Filter filter);
+		void SetMipmapMode(SamplerMipmapMode mipmapMode);
+		void SetAddressModeU(SamplerAddressMode addressMode);
+		void SetAddressModeV(SamplerAddressMode addressMode);
+		void SetAddressModeW(SamplerAddressMode addressMode);
+		void SetLodBias(float bias);
+		void SetMaxAnisotropy(float anisotropy);
+		void SetCompareEnable(bool bEnable);
+		void SetCompareOp(CompareOp compareOp);
+		void SetMinLod(float minLod);
+		void SetMaxLod(float maxLod);
+		void SetBorderColor(BorderColor borderColor);
+		void SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates);
+
+		Filter GetMinFilter() const;
+		Filter GetMagFilter() const;
+		SamplerMipmapMode GetMipmapMode() const;
+		SamplerAddressMode GetAddressModeU() const;
+		SamplerAddressMode GetAddressModeV() const;
+		SamplerAddressMode GetAddressModeW() const;
+		float GetLodBias() const;
+		float GetMaxAnisotropy() const;
+		bool GetCompareEnabled() const;
+		CompareOp GetCompareOp() const;
+		float GetMinLod() const;
+		float GetMaxLod() const;
+		BorderColor GetBorderColor() const;
+		bool GetUseUnnormalizedCoordinates() const;
+
+		bool Update();
+	protected:
+		ISampler(Context &context,const util::SamplerCreateInfo &samplerCreateInfo);
+		virtual bool DoUpdate()=0;
+		util::SamplerCreateInfo m_createInfo = {};
+	};
+
+	class DLLPROSPER Sampler
+		: public ISampler
 	{
 	public:
 		static std::shared_ptr<Sampler> Create(Context &context,const util::SamplerCreateInfo &createInfo);
 		virtual ~Sampler() override;
+
 		Anvil::Sampler &GetAnvilSampler() const;
 		Anvil::Sampler &operator*();
 		const Anvil::Sampler &operator*() const;
 		Anvil::Sampler *operator->();
 		const Anvil::Sampler *operator->() const;
-
-		void SetMinFilter(Anvil::Filter filter);
-		void SetMagFilter(Anvil::Filter filter);
-		void SetMipmapMode(Anvil::SamplerMipmapMode mipmapMode);
-		void SetAddressModeU(Anvil::SamplerAddressMode addressMode);
-		void SetAddressModeV(Anvil::SamplerAddressMode addressMode);
-		void SetAddressModeW(Anvil::SamplerAddressMode addressMode);
-		void SetLodBias(float bias);
-		void SetMaxAnisotropy(float anisotropy);
-		void SetCompareEnable(bool bEnable);
-		void SetCompareOp(Anvil::CompareOp compareOp);
-		void SetMinLod(float minLod);
-		void SetMaxLod(float maxLod);
-		void SetBorderColor(Anvil::BorderColor borderColor);
-		void SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates);
-
-		Anvil::Filter GetMinFilter() const;
-		Anvil::Filter GetMagFilter() const;
-		Anvil::SamplerMipmapMode GetMipmapMode() const;
-		Anvil::SamplerAddressMode GetAddressModeU() const;
-		Anvil::SamplerAddressMode GetAddressModeV() const;
-		Anvil::SamplerAddressMode GetAddressModeW() const;
-		float GetLodBias() const;
-		float GetMaxAnisotropy() const;
-		bool GetCompareEnabled() const;
-		Anvil::CompareOp GetCompareOp() const;
-		float GetMinLod() const;
-		float GetMaxLod() const;
-		Anvil::BorderColor GetBorderColor() const;
-		bool GetUseUnnormalizedCoordinates() const;
-
-		bool Update();
 	protected:
 		Sampler(Context &context,const util::SamplerCreateInfo &samplerCreateInfo);
+		virtual bool DoUpdate() override;
 		std::unique_ptr<Anvil::Sampler,std::function<void(Anvil::Sampler*)>> m_sampler = nullptr;
-		util::SamplerCreateInfo m_createInfo = {};
 	};
 };
 #pragma warning(pop)

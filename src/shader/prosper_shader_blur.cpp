@@ -10,7 +10,9 @@
 #include "image/prosper_render_target.hpp"
 #include "prosper_descriptor_set_group.hpp"
 #include "buffers/prosper_buffer.hpp"
+#include "buffers/vk_buffer.hpp"
 #include "image/prosper_sampler.hpp"
+#include "prosper_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
 #include <vulkan/vulkan.hpp>
 #include <wrappers/descriptor_set_group.h>
@@ -18,15 +20,15 @@
 
 using namespace prosper;
 
-decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_VERTEX = {Anvil::VertexInputRate::VERTEX};
+decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION) ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,prosper::util::get_square_vertex_format()};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_VERTEX,prosper::util::get_square_uv_format()};
 
 decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {
 	{
-		prosper::Shader::DescriptorSetInfo::Binding {
-			Anvil::DescriptorType::COMBINED_IMAGE_SAMPLER,
-			Anvil::ShaderStageFlagBits::FRAGMENT_BIT
+		prosper::DescriptorSetInfo::Binding {
+			DescriptorType::CombinedImageSampler,
+			ShaderStageFlags::FragmentBit
 		}
 	}
 };
@@ -46,9 +48,9 @@ ShaderBlurBase::ShaderBlurBase(prosper::Context &context,const std::string &iden
 	SetPipelineCount(umath::to_integral(Pipeline::Count));
 }
 
-void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<RenderPass> &outRenderPass,uint32_t pipelineIdx)
+void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx)
 {
-	CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<Anvil::Format>(g_pipelineFormats.at(pipelineIdx))}}},outRenderPass,pipelineIdx);
+	CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<prosper::Format>(g_pipelineFormats.at(pipelineIdx))}}},outRenderPass,pipelineIdx);
 }
 
 void ShaderBlurBase::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
@@ -59,19 +61,18 @@ void ShaderBlurBase::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pi
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_POSITION);
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_UV);
 	AddDescriptorSetGroup(pipelineInfo,DESCRIPTOR_SET_TEXTURE);
-	AttachPushConstantRange(pipelineInfo,0u,sizeof(PushConstants),Anvil::ShaderStageFlagBits::FRAGMENT_BIT);
+	AttachPushConstantRange(pipelineInfo,0u,sizeof(PushConstants),prosper::ShaderStageFlags::FragmentBit);
 }
 
-bool ShaderBlurBase::BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx)
+bool ShaderBlurBase::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx)
 {
 	return ShaderGraphics::BeginDraw(cmdBuffer,umath::to_integral(pipelineIdx));
 }
-bool ShaderBlurBase::Draw(Anvil::DescriptorSet &descSetTexture,const PushConstants &pushConstants)
+bool ShaderBlurBase::Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants)
 {
-	auto &dev = GetContext().GetDevice();
 	if(
-		RecordBindVertexBuffer(prosper::util::get_square_vertex_uv_buffer(dev)->GetAnvilBuffer()) == false ||
-		RecordBindDescriptorSet(descSetTexture) == false ||
+		RecordBindVertexBuffer(dynamic_cast<VlkBuffer&>(*prosper::util::get_square_vertex_uv_buffer(GetContext()))) == false ||
+		RecordBindDescriptorSet(static_cast<DescriptorSet&>(descSetTexture)) == false ||
 		RecordPushConstants(pushConstants) == false ||
 		RecordDraw(prosper::util::get_square_vertex_count()) == false
 	)
@@ -102,19 +103,18 @@ ShaderBlurV::~ShaderBlurV() {s_blurShaderV = nullptr;}
 
 /////////////////////////
 
-bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants)
+bool prosper::util::record_blur_image(prosper::Context &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants)
 {
 	if(s_blurShaderH == nullptr || s_blurShaderV == nullptr)
 		return false;
 	auto &shaderH = *s_blurShaderH;
 	auto &shaderV = *s_blurShaderV;
 
-	auto &primBuffer = cmdBuffer->GetAnvilCommandBuffer();
 	auto &stagingRt = *blurSet.GetStagingRenderTarget();
-	auto &stagingImg = *stagingRt.GetTexture()->GetImage();
-	prosper::util::record_image_barrier(primBuffer,*stagingImg,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL);
+	auto &stagingImg = stagingRt.GetTexture().GetImage();
+	cmdBuffer->RecordImageBarrier(stagingImg,ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal);
 
-	if(prosper::util::record_begin_render_pass(primBuffer,stagingRt) == false)
+	if(cmdBuffer->RecordBeginRenderPass(stagingRt) == false)
 		return false;
 	auto imgFormat = static_cast<vk::Format>(stagingImg.GetFormat());
 	auto pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
@@ -143,35 +143,35 @@ bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_p
 	}
 	if(shaderH.BeginDraw(cmdBuffer,pipelineId) == false)
 	{
-		prosper::util::record_end_render_pass(primBuffer);
+		cmdBuffer->RecordEndRenderPass();
 		return false;
 	}
 	shaderH.Draw(blurSet.GetFinalDescriptorSet(),pushConstants);
 	shaderH.EndDraw();
-	prosper::util::record_end_render_pass(primBuffer);
+	cmdBuffer->RecordEndRenderPass();
 
 	auto &finalRt = *blurSet.GetFinalRenderTarget();
-	prosper::util::record_post_render_pass_image_barrier(
-		primBuffer,*stagingImg,
-		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+	cmdBuffer->RecordPostRenderPassImageBarrier(
+		stagingImg,
+		ImageLayout::ColorAttachmentOptimal,ImageLayout::ShaderReadOnlyOptimal
 	);
-	prosper::util::record_image_barrier(
-		primBuffer,finalRt.GetTexture()->GetImage()->GetAnvilImage(),
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL
+	cmdBuffer->RecordImageBarrier(
+		finalRt.GetTexture().GetImage(),
+		ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal
 	);
 
-	if(prosper::util::record_begin_render_pass(primBuffer,finalRt) == false)
+	if(cmdBuffer->RecordBeginRenderPass(finalRt) == false)
 		return false;
 	if(shaderV.BeginDraw(cmdBuffer,pipelineId) == false)
 		return false;
 	shaderV.Draw(blurSet.GetStagingDescriptorSet(),pushConstants);
 	shaderV.EndDraw();
-	auto success = prosper::util::record_end_render_pass(primBuffer);
+	auto success = cmdBuffer->RecordEndRenderPass();
 	if(success == false)
 		return success;
-	prosper::util::record_post_render_pass_image_barrier(
-		primBuffer,finalRt.GetTexture()->GetImage()->GetAnvilImage(),
-		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+	cmdBuffer->RecordPostRenderPassImageBarrier(
+		finalRt.GetTexture().GetImage(),
+		ImageLayout::ColorAttachmentOptimal,ImageLayout::ShaderReadOnlyOptimal
 	);
 	return success;
 }
@@ -179,8 +179,8 @@ bool prosper::util::record_blur_image(Anvil::BaseDevice &dev,const std::shared_p
 /////////////////////////
 
 BlurSet::BlurSet(
-	const std::shared_ptr<prosper::RenderTarget> &rtFinal,const std::shared_ptr<prosper::DescriptorSetGroup> &descSetFinalGroup,
-	const std::shared_ptr<prosper::RenderTarget> &rtStaging,const std::shared_ptr<prosper::DescriptorSetGroup> &descSetStagingGroup,
+	const std::shared_ptr<prosper::RenderTarget> &rtFinal,const std::shared_ptr<prosper::IDescriptorSetGroup> &descSetFinalGroup,
+	const std::shared_ptr<prosper::RenderTarget> &rtStaging,const std::shared_ptr<prosper::IDescriptorSetGroup> &descSetStagingGroup,
 	const std::shared_ptr<prosper::Texture> &srcTexture
 )
 	: m_outRenderTarget(rtFinal),m_outDescSetGroup(descSetFinalGroup),
@@ -188,37 +188,35 @@ BlurSet::BlurSet(
 		m_srcTexture(srcTexture)
 {}
 
-std::shared_ptr<BlurSet> BlurSet::Create(Anvil::BaseDevice &dev,const std::shared_ptr<prosper::RenderTarget> &finalRt,const std::shared_ptr<prosper::Texture> &srcTexture)
+std::shared_ptr<BlurSet> BlurSet::Create(prosper::Context &context,const std::shared_ptr<prosper::RenderTarget> &finalRt,const std::shared_ptr<prosper::Texture> &srcTexture)
 {
 	if(s_blurShaderH == nullptr)
 		return nullptr;
-	auto rp = finalRt->GetRenderPass();
-	if(rp == nullptr)
-		return nullptr;
-	auto finalDescSetGroup = prosper::util::create_descriptor_set_group(dev,prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
-	auto &finalTex = (srcTexture != nullptr) ? *srcTexture : *finalRt->GetTexture();
-	auto &finalImg = *finalTex.GetImage();
-	prosper::util::set_descriptor_set_binding_texture(*finalDescSetGroup->GetDescriptorSet(),finalTex,0u);
+	auto &rp = finalRt->GetRenderPass();
+	auto finalDescSetGroup = context.CreateDescriptorSetGroup(prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
+	auto &finalTex = (srcTexture != nullptr) ? *srcTexture : finalRt->GetTexture();
+	auto &finalImg = finalTex.GetImage();
+	finalDescSetGroup->GetDescriptorSet()->SetBindingTexture(finalTex,0u);
 
 	auto extents = finalImg.GetExtents();
 	prosper::util::ImageCreateInfo createInfo {};
 	createInfo.width = extents.width;
 	createInfo.height = extents.height;
 	createInfo.format = finalImg.GetFormat();
-	createInfo.usage = Anvil::ImageUsageFlagBits::SAMPLED_BIT | Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT;
-	createInfo.postCreateLayout = Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+	createInfo.usage = ImageUsageFlags::SampledBit | ImageUsageFlags::ColorAttachmentBit;
+	createInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
 	auto imgViewCreateInfo = prosper::util::ImageViewCreateInfo {};
 	auto samplerCreateInfo = prosper::util::SamplerCreateInfo {};
-	samplerCreateInfo.addressModeU = Anvil::SamplerAddressMode::CLAMP_TO_EDGE;
-	samplerCreateInfo.addressModeV = Anvil::SamplerAddressMode::CLAMP_TO_EDGE;
-	auto img = prosper::util::create_image(dev,createInfo);
-	auto tex = prosper::util::create_texture(dev,{},std::move(img),&imgViewCreateInfo,&samplerCreateInfo);
-	auto stagingRt = prosper::util::create_render_target(dev,{tex},rp);
+	samplerCreateInfo.addressModeU = SamplerAddressMode::ClampToEdge;
+	samplerCreateInfo.addressModeV = SamplerAddressMode::ClampToEdge;
+	auto img = context.CreateImage(createInfo);
+	auto tex = context.CreateTexture({},*img,imgViewCreateInfo,samplerCreateInfo);
+	auto stagingRt = context.CreateRenderTarget({tex},rp.shared_from_this());
 	stagingRt->SetDebugName("blur_staging_rt");
 
-	auto stagingDescSetGroup = prosper::util::create_descriptor_set_group(dev,prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
-	auto &stagingTex = *stagingRt->GetTexture();
-	prosper::util::set_descriptor_set_binding_texture(*stagingDescSetGroup->GetDescriptorSet(),stagingTex,0u);
+	auto stagingDescSetGroup = context.CreateDescriptorSetGroup(prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
+	auto &stagingTex = stagingRt->GetTexture();
+	stagingDescSetGroup->GetDescriptorSet()->SetBindingTexture(stagingTex,0u);
 	return std::shared_ptr<BlurSet>(new BlurSet(
 		finalRt,finalDescSetGroup,
 		stagingRt,stagingDescSetGroup,
@@ -227,6 +225,6 @@ std::shared_ptr<BlurSet> BlurSet::Create(Anvil::BaseDevice &dev,const std::share
 }
 
 const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetFinalRenderTarget() const {return m_outRenderTarget;}
-Anvil::DescriptorSet &BlurSet::GetFinalDescriptorSet() const {return *(*m_outDescSetGroup)->get_descriptor_set(0u);}
+prosper::IDescriptorSet &BlurSet::GetFinalDescriptorSet() const {return *m_outDescSetGroup->GetDescriptorSet();}
 const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetStagingRenderTarget() const {return m_stagingRenderTarget;}
-Anvil::DescriptorSet &BlurSet::GetStagingDescriptorSet() const {return *(*m_stagingDescSetGroup)->get_descriptor_set(0u);}
+prosper::IDescriptorSet &BlurSet::GetStagingDescriptorSet() const {return *m_stagingDescSetGroup->GetDescriptorSet();}

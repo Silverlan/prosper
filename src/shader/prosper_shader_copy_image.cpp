@@ -16,8 +16,8 @@ ShaderCopyImage::ShaderCopyImage(prosper::Context &context,const std::string &id
 {
 	SetPipelineCount(umath::to_integral(Pipeline::Count));
 }
-bool ShaderCopyImage::BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx) {return ShaderGraphics::BeginDraw(cmdBuffer,umath::to_integral(pipelineIdx));}
-void ShaderCopyImage::InitializeRenderPass(std::shared_ptr<RenderPass> &outRenderPass,uint32_t pipelineIdx)
+bool ShaderCopyImage::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx) {return ShaderGraphics::BeginDraw(cmdBuffer,umath::to_integral(pipelineIdx));}
+void ShaderCopyImage::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx)
 {
 	if(pipelineIdx == 0u)
 	{

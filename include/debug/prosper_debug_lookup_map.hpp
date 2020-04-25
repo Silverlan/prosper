@@ -12,11 +12,11 @@
 
 namespace prosper
 {
-	class Image;
-	class ImageView;
+	class VlkImage;
+	class VlkImageView;
 	class Sampler;
-	class Buffer;
-	class CommandBuffer;
+	class VkBuffer;
+	class VlkCommandBuffer;
 	class RenderPass;
 	class Framebuffer;
 	class DescriptorSetGroup;
@@ -47,11 +47,11 @@ namespace prosper
 		DLLPROSPER void deregister_debug_object(void *vkPtr);
 
 		DLLPROSPER void *get_object(void *vkObj,ObjectType &type);
-		DLLPROSPER Image *get_image(vk::Image vkImage);
-		DLLPROSPER ImageView *get_image_view(vk::ImageView vkImageView);
+		DLLPROSPER VlkImage *get_image(vk::Image vkImage);
+		DLLPROSPER VlkImageView *get_image_view(vk::ImageView vkImageView);
 		DLLPROSPER Sampler *get_sampler(vk::Sampler vkSampler);
-		DLLPROSPER Buffer *get_buffer(vk::Buffer vkBuffer);
-		DLLPROSPER CommandBuffer *get_command_buffer(vk::CommandBuffer vkBuffer);
+		DLLPROSPER VkBuffer *get_buffer(vk::Buffer vkBuffer);
+		DLLPROSPER VlkCommandBuffer *get_command_buffer(vk::CommandBuffer vkBuffer);
 		DLLPROSPER RenderPass *get_render_pass(vk::RenderPass vkBuffer);
 		DLLPROSPER Framebuffer *get_framebuffer(vk::Framebuffer vkBuffer);
 		DLLPROSPER DescriptorSetGroup *get_descriptor_set_group(vk::DescriptorSet vkBuffer);

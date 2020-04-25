@@ -11,17 +11,17 @@
 
 using namespace prosper;
 
-decltype(ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX) ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX = {Anvil::VertexInputRate::VERTEX};
+decltype(ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX) ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
 decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,prosper::util::get_square_vertex_format()};
 
-decltype(ShaderBaseImageProcessing::VERTEX_BINDING_UV) ShaderBaseImageProcessing::VERTEX_BINDING_UV = {Anvil::VertexInputRate::VERTEX};
+decltype(ShaderBaseImageProcessing::VERTEX_BINDING_UV) ShaderBaseImageProcessing::VERTEX_BINDING_UV = {prosper::VertexInputRate::Vertex};
 decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_UV,prosper::util::get_square_uv_format()};
 
 decltype(ShaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE) ShaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE = {
 	{
-		prosper::Shader::DescriptorSetInfo::Binding {
-			Anvil::DescriptorType::COMBINED_IMAGE_SAMPLER,
-			Anvil::ShaderStageFlagBits::FRAGMENT_BIT
+		prosper::DescriptorSetInfo::Binding {
+			DescriptorType::CombinedImageSampler,
+			ShaderStageFlags::FragmentBit
 		}
 	}
 };
@@ -51,15 +51,14 @@ uint32_t ShaderBaseImageProcessing::GetTextureDescriptorSetIndex() const {return
 
 bool ShaderBaseImageProcessing::Draw()
 {
-	auto &dev = GetContext().GetDevice();
-	auto vertBuffer = prosper::util::get_square_vertex_buffer(dev);
-	auto uvBuffer = prosper::util::get_square_uv_buffer(dev);
+	auto vertBuffer = prosper::util::get_square_vertex_buffer(GetContext());
+	auto uvBuffer = prosper::util::get_square_uv_buffer(GetContext());
 	if(
-		RecordBindVertexBuffers({&vertBuffer->GetAnvilBuffer(),&uvBuffer->GetAnvilBuffer()}) == false ||
+		RecordBindVertexBuffers({vertBuffer.get(),uvBuffer.get()}) == false ||
 		RecordDraw(prosper::util::get_square_vertex_count()) == false
 	)
 		return false;
 	return true;
 }
 
-bool ShaderBaseImageProcessing::Draw(Anvil::DescriptorSet &descSetTexture) {return RecordBindDescriptorSet(descSetTexture) && Draw();}
+bool ShaderBaseImageProcessing::Draw(prosper::IDescriptorSet &descSetTexture) {return RecordBindDescriptorSet(descSetTexture) && Draw();}

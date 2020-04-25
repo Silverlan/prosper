@@ -22,40 +22,40 @@
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
 
-prosper::Shader::DescriptorSetInfo::DescriptorSetInfo(const std::vector<Binding> &bindings)
+prosper::DescriptorSetInfo::DescriptorSetInfo(const std::vector<Binding> &bindings)
 	: bindings(bindings)
 {}
-prosper::Shader::DescriptorSetInfo::DescriptorSetInfo(DescriptorSetInfo *parent,const std::vector<Binding> &bindings)
+prosper::DescriptorSetInfo::DescriptorSetInfo(DescriptorSetInfo *parent,const std::vector<Binding> &bindings)
 	: parent(parent),bindings(bindings)
 {}
-bool prosper::Shader::DescriptorSetInfo::WasBaked() const {return m_bWasBaked;}
-bool prosper::Shader::DescriptorSetInfo::IsValid() const {return WasBaked();}
-prosper::Shader::DescriptorSetInfo::Binding::Binding(Anvil::DescriptorType type,Anvil::ShaderStageFlags shaderStages,uint32_t descriptorArraySize,uint32_t bindingIndex)
+bool prosper::DescriptorSetInfo::WasBaked() const {return m_bWasBaked;}
+bool prosper::DescriptorSetInfo::IsValid() const {return WasBaked();}
+prosper::DescriptorSetInfo::Binding::Binding(DescriptorType type,ShaderStageFlags shaderStages,uint32_t descriptorArraySize,uint32_t bindingIndex)
 	: bindingIndex(bindingIndex),type(type),shaderStages(shaderStages),descriptorArraySize(descriptorArraySize)
 {}
 
 ///////////////////////////
 
 decltype(prosper::Shader::s_logCallback) prosper::Shader::s_logCallback = nullptr;
-void prosper::Shader::SetLogCallback(const std::function<void(Shader&,Anvil::ShaderStage,const std::string&,const std::string&)> &fLogCallback) {s_logCallback = fLogCallback;}
+void prosper::Shader::SetLogCallback(const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &fLogCallback) {s_logCallback = fLogCallback;}
 
 prosper::Shader::Shader(Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader)
 	: std::enable_shared_from_this<Shader>(),
-	ContextObject(context),m_pipelineBindPoint(Anvil::PipelineBindPoint::GRAPHICS),m_identifier(identifier)
+	ContextObject(context),m_pipelineBindPoint(PipelineBindPoint::Graphics),m_identifier(identifier)
 {
 	if(vsShader.empty() == false)
-		(m_stages.at(umath::to_integral(Anvil::ShaderStage::VERTEX)) = std::make_shared<ShaderStage>())->path = vsShader;
+		(m_stages.at(umath::to_integral(ShaderStage::Vertex)) = std::make_shared<ShaderStageData>())->path = vsShader;
 	if(fsShader.empty() == false)
-		(m_stages.at(umath::to_integral(Anvil::ShaderStage::FRAGMENT)) = std::make_shared<ShaderStage>())->path = fsShader;
+		(m_stages.at(umath::to_integral(ShaderStage::Fragment)) = std::make_shared<ShaderStageData>())->path = fsShader;
 	if(gsShader.empty() == false)
-		(m_stages.at(umath::to_integral(Anvil::ShaderStage::GEOMETRY)) = std::make_shared<ShaderStage>())->path = gsShader;
+		(m_stages.at(umath::to_integral(ShaderStage::Geometry)) = std::make_shared<ShaderStageData>())->path = gsShader;
 	SetPipelineCount(1u);
 }
 prosper::Shader::Shader(Context &context,const std::string &identifier,const std::string &csShader)
-	: ContextObject(context),m_pipelineBindPoint(Anvil::PipelineBindPoint::COMPUTE),m_identifier(identifier)
+	: ContextObject(context),m_pipelineBindPoint(PipelineBindPoint::Compute),m_identifier(identifier)
 {
 	if(csShader.empty() == false)
-		(m_stages.at(umath::to_integral(Anvil::ShaderStage::COMPUTE)) = std::make_shared<ShaderStage>())->path = csShader;
+		(m_stages.at(umath::to_integral(ShaderStage::Compute)) = std::make_shared<ShaderStageData>())->path = csShader;
 	SetPipelineCount(1u);
 }
 void prosper::Shader::Release(bool bDelete)
@@ -66,21 +66,21 @@ void prosper::Shader::Release(bool bDelete)
 	if(bDelete == true)
 		delete this;
 }
-void prosper::Shader::SetStageSourceFilePath(Anvil::ShaderStage stage,const std::string &filePath)
+void prosper::Shader::SetStageSourceFilePath(ShaderStage stage,const std::string &filePath)
 {
 	if(filePath.empty())
 	{
 		m_stages.at(umath::to_integral(stage)) = nullptr;
 		return;
 	}
-	(m_stages.at(umath::to_integral(stage)) = std::make_shared<ShaderStage>())->path = filePath;
+	(m_stages.at(umath::to_integral(stage)) = std::make_shared<ShaderStageData>())->path = filePath;
 	switch(stage)
 	{
-		case Anvil::ShaderStage::COMPUTE:
-			m_pipelineBindPoint = Anvil::PipelineBindPoint::COMPUTE;
+		case ShaderStage::Compute:
+			m_pipelineBindPoint = PipelineBindPoint::Compute;
 			break;
 		default:
-			m_pipelineBindPoint = Anvil::PipelineBindPoint::GRAPHICS;
+			m_pipelineBindPoint = PipelineBindPoint::Graphics;
 			break;
 	}
 }
@@ -89,11 +89,11 @@ const std::string &prosper::Shader::GetIdentifier() const {return m_identifier;}
 
 void prosper::Shader::SetPipelineCount(uint32_t count) {m_pipelineInfos.resize(count,{std::numeric_limits<Anvil::PipelineID>::max(),nullptr});}
 
-bool prosper::Shader::IsGraphicsShader() const {return m_pipelineBindPoint == Anvil::PipelineBindPoint::GRAPHICS;}
-bool prosper::Shader::IsComputeShader() const {return m_pipelineBindPoint == Anvil::PipelineBindPoint::COMPUTE;}
-Anvil::PipelineBindPoint prosper::Shader::GetPipelineBindPoint() const {return m_pipelineBindPoint;}
+bool prosper::Shader::IsGraphicsShader() const {return m_pipelineBindPoint == PipelineBindPoint::Graphics;}
+bool prosper::Shader::IsComputeShader() const {return m_pipelineBindPoint == PipelineBindPoint::Compute;}
+prosper::PipelineBindPoint prosper::Shader::GetPipelineBindPoint() const {return m_pipelineBindPoint;}
 
-Anvil::ShaderModule *prosper::Shader::GetModule(Anvil::ShaderStage stage)
+Anvil::ShaderModule *prosper::Shader::GetModule(ShaderStage stage)
 {
 	auto *stageModule = GetStage(stage);
 	if(stageModule == nullptr)
@@ -101,13 +101,13 @@ Anvil::ShaderModule *prosper::Shader::GetModule(Anvil::ShaderStage stage)
 	return stageModule->module.get();
 }
 
-prosper::ShaderStage *prosper::Shader::GetStage(Anvil::ShaderStage stage)
+prosper::ShaderStageData *prosper::Shader::GetStage(ShaderStage stage)
 {
 	auto &stageModule = m_stages.at(umath::to_integral(stage));
 	return stageModule.get();
 }
 
-const prosper::ShaderStage *prosper::Shader::GetStage(Anvil::ShaderStage stage) const {return const_cast<prosper::Shader*>(this)->GetStage(stage);}
+const prosper::ShaderStageData *prosper::Shader::GetStage(ShaderStage stage) const {return const_cast<prosper::Shader*>(this)->GetStage(stage);}
 
 static std::string g_shaderLocation = "shaders";
 void prosper::Shader::SetRootShaderLocation(const std::string &location)
@@ -135,7 +135,7 @@ bool prosper::Shader::InitializeSources(bool bReload)
 		if(bSuccess == false)
 		{
 			if(s_logCallback != nullptr)
-				s_logCallback(*this,static_cast<Anvil::ShaderStage>(i),infoLog,debugInfoLog);
+				s_logCallback(*this,static_cast<ShaderStage>(i),infoLog,debugInfoLog);
 			return false;
 		}
 	}
@@ -146,7 +146,7 @@ bool prosper::Shader::IsValid() const {return m_bValid;}
 
 void prosper::Shader::SetIdentifier(const std::string &identifier) {m_identifier = identifier;}
 uint32_t prosper::Shader::GetCurrentPipelineIndex() const {return m_currentPipelineIdx;}
-std::shared_ptr<prosper::PrimaryCommandBuffer> prosper::Shader::GetCurrentCommandBuffer() const {return m_currentCmd.lock();}
+std::shared_ptr<prosper::IPrimaryCommandBuffer> prosper::Shader::GetCurrentCommandBuffer() const {return m_currentCmd.lock();}
 
 uint32_t prosper::Shader::GetPipelineCount() const {return m_pipelineInfos.size();}
 void prosper::Shader::ReloadPipelines(bool bReloadSourceCode) {Initialize(bReloadSourceCode);}
@@ -194,7 +194,7 @@ void prosper::Shader::InitializeStages()
 		auto &stage = m_stages.at(i);
 		if(stage == nullptr)
 			continue;
-		stage->stage = static_cast<Anvil::ShaderStage>(i);
+		stage->stage = static_cast<prosper::ShaderStage>(i);
 		/*auto shaderPtr = Anvil::GLSLShaderToSPIRVGenerator::create(
 			dev,
 			Anvil::GLSLShaderToSPIRVGenerator::MODE_USE_SPECIFIED_SOURCE,
@@ -207,24 +207,24 @@ void prosper::Shader::InitializeStages()
 		stage->module = Anvil::ShaderModule::create_from_spirv_blob(
 			&dev,
 			spirvBlob.data(),spirvBlob.size(),
-			(stage->stage == Anvil::ShaderStage::COMPUTE) ? entryPointName : "",
-			(stage->stage == Anvil::ShaderStage::FRAGMENT) ? entryPointName : "",
-			(stage->stage == Anvil::ShaderStage::GEOMETRY) ? entryPointName : "",
-			(stage->stage == Anvil::ShaderStage::TESSELLATION_CONTROL) ? entryPointName : "",
-			(stage->stage == Anvil::ShaderStage::TESSELLATION_EVALUATION) ? entryPointName : "",
-			(stage->stage == Anvil::ShaderStage::VERTEX) ? entryPointName : ""
+			(stage->stage == prosper::ShaderStage::Compute) ? entryPointName : "",
+			(stage->stage == prosper::ShaderStage::Fragment) ? entryPointName : "",
+			(stage->stage == prosper::ShaderStage::Geometry) ? entryPointName : "",
+			(stage->stage == prosper::ShaderStage::TessellationControl) ? entryPointName : "",
+			(stage->stage == prosper::ShaderStage::TessellationEvaluation) ? entryPointName : "",
+			(stage->stage == prosper::ShaderStage::Vertex) ? entryPointName : ""
 		);
 		stage->entryPoint.reset(
 			new Anvil::ShaderModuleStageEntryPoint(
 				entryPointName,
 				stage->module.get(),
-				stage->stage
+				static_cast<Anvil::ShaderStage>(stage->stage)
 			)
 		);
 	}
 }
 
-std::shared_ptr<prosper::DescriptorSetGroup> prosper::Shader::CreateDescriptorSetGroup(uint32_t setIdx,uint32_t pipelineIdx) const
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorSetGroup(uint32_t setIdx,uint32_t pipelineIdx) const
 {
 	auto *pipeline = GetPipelineInfo(pipelineIdx);
 	if(pipeline == nullptr)
@@ -232,7 +232,7 @@ std::shared_ptr<prosper::DescriptorSetGroup> prosper::Shader::CreateDescriptorSe
 	auto *dsInfoItems = pipeline->get_ds_create_info_items();
 	if(dsInfoItems == nullptr || setIdx >= dsInfoItems->size())
 		return nullptr;
-	return prosper::util::create_descriptor_set_group(GetContext().GetDevice(),Anvil::DescriptorSetCreateInfoUniquePtr(new Anvil::DescriptorSetCreateInfo(*dsInfoItems->at(setIdx))));
+	return GetContext().CreateDescriptorSetGroup(Anvil::DescriptorSetCreateInfoUniquePtr(new Anvil::DescriptorSetCreateInfo(*dsInfoItems->at(setIdx))));
 }
 
 void prosper::Shader::InitializeDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo)
@@ -280,7 +280,7 @@ void prosper::Shader::ClearPipelines()
 		pipelineInfo.id = std::numeric_limits<Anvil::PipelineID>::max();
 	}
 }
-bool prosper::Shader::GetSourceFilePath(Anvil::ShaderStage stage,std::string &sourceFilePath) const
+bool prosper::Shader::GetSourceFilePath(ShaderStage stage,std::string &sourceFilePath) const
 {
 	auto *ptrStage = GetStage(stage);
 	if(ptrStage == nullptr)
@@ -316,22 +316,22 @@ const Anvil::BasePipelineCreateInfo *prosper::Shader::GetPipelineInfo(uint32_t p
 		return nullptr;
 	return pipelineManager->get_pipeline_create_info(m_pipelineInfos.at(pipelineIdx).id);
 }
-bool prosper::Shader::GetShaderStatistics(vk::ShaderStatisticsInfoAMD &stats,Anvil::ShaderStage stage,uint32_t pipelineIdx) const
+bool prosper::Shader::GetShaderStatistics(vk::ShaderStatisticsInfoAMD &stats,prosper::ShaderStage stage,uint32_t pipelineIdx) const
 {
 	auto *pipelineManager = GetPipelineManager();
 	if(pipelineManager == nullptr || pipelineIdx >= m_pipelineInfos.size())
 		return false;
-	return pipelineManager->get_shader_statistics(m_pipelineInfos.at(pipelineIdx).id,stage,&reinterpret_cast<VkShaderStatisticsInfoAMD&>(stats));
+	return pipelineManager->get_shader_statistics(m_pipelineInfos.at(pipelineIdx).id,static_cast<Anvil::ShaderStage>(stage),&reinterpret_cast<VkShaderStatisticsInfoAMD&>(stats));
 }
 void prosper::Shader::SetBaseShader(Shader &shader) {m_basePipeline = shader.shared_from_this();}
 void prosper::Shader::ClearBaseShader() {m_basePipeline = {};}
-const Anvil::ShaderModuleStageEntryPoint *prosper::Shader::GetModuleStageEntryPoint(Anvil::ShaderStage stage,uint32_t pipelineIdx) const
+const Anvil::ShaderModuleStageEntryPoint *prosper::Shader::GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx) const
 {
 	auto *info = GetPipelineInfo(pipelineIdx);
 	if(info == nullptr)
 		return nullptr;
 	const Anvil::ShaderModuleStageEntryPoint *r;
-	if(info->get_shader_stage_properties(stage,&r) == false)
+	if(info->get_shader_stage_properties(static_cast<Anvil::ShaderStage>(stage),&r) == false)
 		return nullptr;
 	return r;
 }
@@ -355,19 +355,20 @@ bool prosper::Shader::RecordPushConstants(uint32_t size,const void *data,uint32_
 	for(auto &range : info->get_push_constant_ranges())
 	{
 		if(offset >= range.offset && (offset +size) <= (range.offset +range.size))
-			return (*cmdBuffer)->record_push_constants(GetPipelineLayout(m_currentPipelineIdx),range.stages,offset,size,data);
+			return cmdBuffer->RecordPushConstants(*GetPipelineLayout(m_currentPipelineIdx),static_cast<ShaderStageFlags>(range.stages.get_vk()),offset,size,data);
 	}
 	return false;
 }
 
-bool prosper::Shader::RecordBindDescriptorSets(const std::vector<Anvil::DescriptorSet*> &descSets,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
+bool prosper::Shader::RecordBindDescriptorSets(const std::vector<prosper::IDescriptorSet*> &descSets,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_bind_descriptor_sets(GetPipelineBindPoint(),GetPipelineLayout(m_currentPipelineIdx),firstSet,descSets.size(),descSets.data(),dynamicOffsets.size(),dynamicOffsets.data());
+	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*GetPipelineLayout(m_currentPipelineIdx),firstSet,descSets,dynamicOffsets);
 }
 
-bool prosper::Shader::RecordBindDescriptorSet(Anvil::DescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
+bool prosper::Shader::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
 {
+#if 0
 	if(GetContext().IsValidationEnabled())
 	{
 		// Make sure all input images have the VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL layout
@@ -401,8 +402,8 @@ bool prosper::Shader::RecordBindDescriptorSet(Anvil::DescriptorSet &descSet,uint
 				auto *img = imgView->get_create_info_ptr()->get_parent_image();
 				if(img == nullptr)
 					continue;
-				Anvil::ImageLayout imgLayout;
-				if(prosper::debug::get_last_recorded_image_layout(**GetCurrentCommandBuffer(),*img,imgLayout) == false || imgLayout == Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+				ImageLayout imgLayout;
+				if(prosper::debug::get_last_recorded_image_layout(*GetCurrentCommandBuffer(),img,imgLayout) == false || imgLayout == ImageLayout::ShaderReadOnlyOptimal)
 					continue;
 				debug::exec_debug_validation_callback(
 					vk::DebugReportObjectTypeEXT::eImage,"Bind descriptor set: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(img->get_image())) +
@@ -412,15 +413,15 @@ bool prosper::Shader::RecordBindDescriptorSet(Anvil::DescriptorSet &descSet,uint
 			}
 		}
 	}
-
+#endif
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	auto *ptrDescSet = &descSet;
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_bind_descriptor_sets(GetPipelineBindPoint(),GetPipelineLayout(m_currentPipelineIdx),firstSet,1u,&ptrDescSet,dynamicOffsets.size(),dynamicOffsets.data());
+	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*GetPipelineLayout(m_currentPipelineIdx),firstSet,{ptrDescSet},dynamicOffsets);
 }
 
-static std::unordered_map<prosper::CommandBuffer*,std::pair<prosper::Shader*,uint32_t>> s_boundShaderPipeline = {};
-const std::unordered_map<prosper::CommandBuffer*,std::pair<prosper::Shader*,uint32_t>> &prosper::Shader::GetBoundPipelines() {return s_boundShaderPipeline;}
-prosper::Shader *prosper::Shader::GetBoundPipeline(prosper::CommandBuffer &cmdBuffer,uint32_t &outPipelineIdx)
+static std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> s_boundShaderPipeline = {};
+const std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> &prosper::Shader::GetBoundPipelines() {return s_boundShaderPipeline;}
+prosper::Shader *prosper::Shader::GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer,uint32_t &outPipelineIdx)
 {
 	auto it = s_boundShaderPipeline.find(&cmdBuffer);
 	if(it == s_boundShaderPipeline.end())
@@ -428,7 +429,7 @@ prosper::Shader *prosper::Shader::GetBoundPipeline(prosper::CommandBuffer &cmdBu
 	outPipelineIdx = it->second.second;
 	return it->second.first;
 }
-void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
+void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
 {
 	if(cmdBuffer == nullptr)
 	{
@@ -447,31 +448,31 @@ void prosper::Shader::UnbindPipeline()
 	m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
 	OnPipelineUnbound();
 }
-bool prosper::Shader::BindPipeline(Anvil::CommandBufferBase &cmdBuffer,uint32_t pipelineIdx)
+bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pipelineIdx)
 {
 	if(pipelineIdx >= m_pipelineInfos.size())
 		return false;
 	m_currentPipelineIdx = pipelineIdx;
 	auto pipelineId = m_pipelineInfos.at(m_currentPipelineIdx).id;
-	auto r = pipelineId != std::numeric_limits<Anvil::PipelineID>::max() && cmdBuffer.record_bind_pipeline(m_pipelineBindPoint,pipelineId);
+	auto r = pipelineId != std::numeric_limits<Anvil::PipelineID>::max() && cmdBuffer.RecordBindPipeline(m_pipelineBindPoint,static_cast<Anvil::PipelineID>(pipelineId));
 	if(r == true)
 		OnPipelineBound();
 	return r;
 }
 
-Anvil::DescriptorSetCreateInfoUniquePtr prosper::Shader::DescriptorSetInfo::ToAnvilDescriptorSetInfo() const
+Anvil::DescriptorSetCreateInfoUniquePtr prosper::DescriptorSetInfo::ToAnvilDescriptorSetInfo() const
 {
 	auto dsInfo = Anvil::DescriptorSetCreateInfo::create();
 	for(auto &binding : bindings)
 	{
 		dsInfo->add_binding(
-			binding.bindingIndex,binding.type,binding.descriptorArraySize,
-			binding.shaderStages
+			binding.bindingIndex,static_cast<Anvil::DescriptorType>(binding.type),binding.descriptorArraySize,
+			static_cast<Anvil::ShaderStageFlagBits>(binding.shaderStages)
 		);
 	}
 	return dsInfo;
 }
-std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::Shader::DescriptorSetInfo::Bake()
+std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Bake()
 {
 	if(m_bWasBaked == false)
 	{
@@ -511,14 +512,10 @@ void prosper::Shader::AddDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipel
 ::util::WeakHandle<const prosper::Shader> prosper::Shader::GetHandle() const {return ::util::WeakHandle<const Shader>(shared_from_this());}
 ::util::WeakHandle<prosper::Shader> prosper::Shader::GetHandle() {return ::util::WeakHandle<Shader>(shared_from_this());}
 
-bool prosper::Shader::AttachPushConstantRange(Anvil::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,Anvil::ShaderStageFlags stages) {return pipelineInfo.attach_push_constant_range(offset,size,stages);}
+bool prosper::Shader::AttachPushConstantRange(Anvil::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages) {return pipelineInfo.attach_push_constant_range(offset,size,static_cast<Anvil::ShaderStageFlagBits>(stages));}
 
 ///////////////////////////
 
-std::shared_ptr<prosper::DescriptorSetGroup> prosper::util::create_descriptor_set_group(Anvil::BaseDevice &dev,const Shader::DescriptorSetInfo &descSetInfo)
-{
-	return create_descriptor_set_group(dev,std::move(descSetInfo.ToAnvilDescriptorSetInfo()));
-}
 void prosper::util::set_graphics_pipeline_polygon_mode(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::PolygonMode polygonMode)
 {
 	Anvil::CullModeFlags cullModeFlags;
@@ -582,6 +579,7 @@ static Anvil::DynamicState get_anvil_dynamic_state(prosper::util::DynamicStateFl
 			return Anvil::DynamicState::STENCIL_WRITE_MASK;
 		case prosper::util::DynamicStateFlags::StencilReference:
 			return Anvil::DynamicState::STENCIL_REFERENCE;
+#if 0
 		case prosper::util::DynamicStateFlags::ViewportWScalingNV:
 			return static_cast<Anvil::DynamicState>(vk::DynamicState::eViewportWScalingNV);
 		case prosper::util::DynamicStateFlags::DiscardRectangleEXT:
@@ -594,6 +592,7 @@ static Anvil::DynamicState get_anvil_dynamic_state(prosper::util::DynamicStateFl
 			return static_cast<Anvil::DynamicState>(vk::DynamicState::eViewportCoarseSampleOrderNV);
 		case prosper::util::DynamicStateFlags::ExclusiveScissorNV:
 			return static_cast<Anvil::DynamicState>(vk::DynamicState::eExclusiveScissorNV);
+#endif
 	}
 	return Anvil::DynamicState{};
 }
@@ -619,6 +618,7 @@ static prosper::util::DynamicStateFlags get_prosper_dynamic_state(Anvil::Dynamic
 			return prosper::util::DynamicStateFlags::StencilWriteMask;
 		case Anvil::DynamicState::STENCIL_REFERENCE:
 			return prosper::util::DynamicStateFlags::StencilReference;
+#if 0
 		case static_cast<Anvil::DynamicState>(vk::DynamicState::eViewportWScalingNV):
 			return prosper::util::DynamicStateFlags::ViewportWScalingNV;
 		case static_cast<Anvil::DynamicState>(vk::DynamicState::eDiscardRectangleEXT):
@@ -631,6 +631,7 @@ static prosper::util::DynamicStateFlags get_prosper_dynamic_state(Anvil::Dynamic
 			return prosper::util::DynamicStateFlags::ViewportCoarseSampleOrderNV;
 		case static_cast<Anvil::DynamicState>(vk::DynamicState::eExclusiveScissorNV):
 			return prosper::util::DynamicStateFlags::ExclusiveScissorNV;
+#endif
 	}
 	return prosper::util::DynamicStateFlags::None;
 }

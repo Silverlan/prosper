@@ -13,24 +13,32 @@
 
 using namespace prosper;
 
-RenderTarget::RenderTarget(Context &context,const std::vector<std::shared_ptr<Texture>> &textures,const std::vector<std::shared_ptr<Framebuffer>> &framebuffers,const std::shared_ptr<RenderPass> &renderPass)
-	: ContextObject(context),std::enable_shared_from_this<RenderTarget>(),m_textures(textures),m_framebuffers(framebuffers),m_renderPass(renderPass)
+RenderTarget::RenderTarget(
+	Context &context,const std::vector<std::shared_ptr<Texture>> &textures,
+	const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers,
+	IRenderPass &renderPass
+)
+	: ContextObject{context},std::enable_shared_from_this<RenderTarget>(),m_textures{textures},m_framebuffers{framebuffers},m_renderPass{renderPass.shared_from_this()}
 {}
 
 uint32_t RenderTarget::GetAttachmentCount() const {return m_textures.size();}
-const std::shared_ptr<Texture> &RenderTarget::GetTexture(uint32_t attachmentId) const
+const Texture *RenderTarget::GetTexture(uint32_t attachmentId) const {return const_cast<RenderTarget*>(this)->GetTexture(attachmentId);}
+Texture *RenderTarget::GetTexture(uint32_t attachmentId)
 {
-	static std::shared_ptr<Texture> nptr = nullptr;
-	return (attachmentId < m_textures.size()) ? m_textures.at(attachmentId) : nptr;
+	return (attachmentId < m_textures.size()) ? m_textures.at(attachmentId).get() : nullptr;
 }
-const std::shared_ptr<Framebuffer> &RenderTarget::GetFramebuffer(uint32_t layerId) const
+const IFramebuffer *RenderTarget::GetFramebuffer(uint32_t layerId) const {return const_cast<RenderTarget*>(this)->GetFramebuffer(layerId);}
+IFramebuffer *RenderTarget::GetFramebuffer(uint32_t layerId)
 {
-	static std::shared_ptr<Framebuffer> nptr = nullptr;
 	++layerId;
-	return (layerId < m_framebuffers.size()) ? m_framebuffers.at(layerId) : nptr;
+	return (layerId < m_framebuffers.size()) ? m_framebuffers.at(layerId).get() : nullptr;
 }
-const std::shared_ptr<Framebuffer> &RenderTarget::GetFramebuffer() const {return m_framebuffers.at(0);}
-const std::shared_ptr<RenderPass> &RenderTarget::GetRenderPass() const {return m_renderPass;}
+const Texture &RenderTarget::GetTexture() const {return const_cast<RenderTarget*>(this)->GetTexture();}
+Texture &RenderTarget::GetTexture() {return *m_textures.front();}
+const IFramebuffer &RenderTarget::GetFramebuffer() const {return const_cast<RenderTarget*>(this)->GetFramebuffer();}
+IFramebuffer &RenderTarget::GetFramebuffer() {return *m_framebuffers.at(0);}
+const IRenderPass &RenderTarget::GetRenderPass() const {return const_cast<RenderTarget*>(this)->GetRenderPass();}
+IRenderPass &RenderTarget::GetRenderPass() {return *m_renderPass;}
 void RenderTarget::SetDebugName(const std::string &name)
 {
 	ContextObject::SetDebugName(name);
@@ -42,48 +50,4 @@ void RenderTarget::SetDebugName(const std::string &name)
 		fb->SetDebugName(name +"_fb" +std::to_string(idx++));
 	if(m_renderPass != nullptr)
 		m_renderPass->SetDebugName(name +"_rp");
-}
-
-//////////////////////////
-
-std::shared_ptr<RenderTarget> prosper::util::create_render_target(Anvil::BaseDevice &dev,Texture &texture,ImageView &imgView,RenderPass &rp,const RenderTargetCreateInfo &rtCreateInfo)
-{
-	auto &img = imgView.GetImage();
-	auto &context = prosper::Context::GetContext(dev);
-	auto extents = img.GetExtents();
-	std::vector<prosper::ImageView*> attachments = {&imgView};
-	std::vector<std::shared_ptr<Framebuffer>> framebuffers;
-	framebuffers.push_back(prosper::util::create_framebuffer(dev,extents.width,extents.height,1u,attachments));
-	return std::make_shared<RenderTarget>(Context::GetContext(dev),std::vector<std::shared_ptr<Texture>>{texture.shared_from_this()},framebuffers,rp.shared_from_this());
-}
-
-std::shared_ptr<RenderTarget> prosper::util::create_render_target(Anvil::BaseDevice &dev,const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<RenderPass> &rp,const RenderTargetCreateInfo &rtCreateInfo)
-{
-	if(textures.empty())
-		return nullptr;
-	auto &tex = textures.front();
-	if(tex == nullptr)
-		return nullptr;
-	auto &img = tex->GetImage();
-	if(img == nullptr)
-		return nullptr;
-	auto &context = prosper::Context::GetContext(dev);
-	auto extents = img->GetExtents();
-	auto numLayers = img->GetLayerCount();
-	std::vector<std::shared_ptr<Framebuffer>> framebuffers;
-	std::vector<prosper::ImageView*> attachments;
-	attachments.reserve(textures.size());
-	for(auto &tex : textures)
-		attachments.push_back(tex->GetImageView().get());
-	framebuffers.push_back(prosper::util::create_framebuffer(dev,extents.width,extents.height,1u,attachments));
-	if(rtCreateInfo.useLayerFramebuffers == true)
-	{
-		framebuffers.reserve(framebuffers.size() +numLayers);
-		for(auto i=decltype(numLayers){0};i<numLayers;++i)
-		{
-			attachments = {tex->GetImageView(i).get()};
-			framebuffers.push_back(prosper::util::create_framebuffer(dev,extents.width,extents.height,1u,attachments));
-		}
-	}
-	return std::make_shared<RenderTarget>(Context::GetContext(dev),textures,framebuffers,rp);
 }

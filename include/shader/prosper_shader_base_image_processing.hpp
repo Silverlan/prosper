@@ -21,11 +21,11 @@ namespace prosper
 		static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_UV;
 		static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_UV;
 
-		static prosper::Shader::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
+		static prosper::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
 
 		ShaderBaseImageProcessing(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
 		ShaderBaseImageProcessing(prosper::Context &context,const std::string &identifier,const std::string &fsShader);
-		bool Draw(Anvil::DescriptorSet &descSetTexture);
+		bool Draw(prosper::IDescriptorSet &descSetTexture);
 		virtual bool Draw() override;
 	protected:
 		void AddDefaultVertexAttributes(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);

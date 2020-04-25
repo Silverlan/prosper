@@ -11,17 +11,12 @@
 #include <vector>
 #include <mathutil/uvec.h>
 
-namespace Anvil
-{
-	class BaseDevice;
-};
-
 namespace prosper
 {
-	class Buffer;
+	class Context;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<Buffer> get_line_vertex_buffer(Anvil::BaseDevice &dev);
+		DLLPROSPER std::shared_ptr<IBuffer> get_line_vertex_buffer(prosper::Context &context);
 		DLLPROSPER const std::vector<Vector2> &get_line_vertices();
 		DLLPROSPER uint32_t get_line_vertex_count();
 

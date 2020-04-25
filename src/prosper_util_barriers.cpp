@@ -4,7 +4,15 @@
 
 #include "stdafx_prosper.h"
 #include "prosper_util.hpp"
+#include "prosper_command_buffer.hpp"
 #include "debug/prosper_debug.hpp"
+#include "image/prosper_render_target.hpp"
+#include "image/prosper_image_view.hpp"
+#include "image/vk_image.hpp"
+#include "vk_command_buffer.hpp"
+#include "buffers/vk_buffer.hpp"
+#include "prosper_framebuffer.hpp"
+#include "prosper_render_pass.hpp"
 #include <config.h>
 #include <misc/image_create_info.h>
 #include <sharedutils/util.h>
@@ -13,64 +21,63 @@
 #include <iostream>
 #endif
 
-void prosper::util::ImageSubresourceRange::ApplyRange(Anvil::ImageSubresourceRange &vkRange,Anvil::Image &img) const
+static void apply_range(const prosper::util::ImageSubresourceRange &srcRange,prosper::util::ImageSubresourceRange &vkRange,prosper::IImage &img)
 {
-	vkRange.base_mip_level = baseMipLevel;
-	vkRange.level_count = levelCount;
-	vkRange.base_array_layer = baseArrayLayer;
-	vkRange.layer_count = layerCount;
+	vkRange.baseMipLevel = srcRange.baseMipLevel;
+	vkRange.levelCount = srcRange.levelCount;
+	vkRange.baseArrayLayer = srcRange.baseArrayLayer;
+	vkRange.layerCount = srcRange.layerCount;
 
-	if(vkRange.level_count == std::numeric_limits<uint32_t>::max())
-		vkRange.level_count = img.get_n_mipmaps() -baseMipLevel;
-	if(vkRange.layer_count == std::numeric_limits<uint32_t>::max())
-		vkRange.layer_count = img.get_create_info_ptr()->get_n_layers() -baseArrayLayer;
+	if(vkRange.levelCount == std::numeric_limits<uint32_t>::max())
+		vkRange.levelCount = img.GetMipmapCount() -srcRange.baseMipLevel;
+	if(vkRange.layerCount == std::numeric_limits<uint32_t>::max())
+		vkRange.layerCount = img.GetLayerCount() -srcRange.baseArrayLayer;
 }
-prosper::util::BarrierImageLayout::BarrierImageLayout(Anvil::PipelineStageFlags pipelineStageFlags,Anvil::ImageLayout imageLayout,Anvil::AccessFlags accessFlags)
+prosper::util::BarrierImageLayout::BarrierImageLayout(PipelineStageFlags pipelineStageFlags,ImageLayout imageLayout,AccessFlags accessFlags)
 	: stageMask(pipelineStageFlags),layout(imageLayout),accessMask(accessFlags)
 {}
 
-Anvil::BufferBarrier prosper::util::create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo,const Buffer &buffer)
+prosper::util::BufferBarrier prosper::util::create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo,IBuffer &buffer)
 {
-	return Anvil::BufferBarrier(
+	return util::BufferBarrier(
 		barrierInfo.srcAccessMask,barrierInfo.dstAccessMask,
-		VK_QUEUE_FAMILY_IGNORED,VK_QUEUE_FAMILY_IGNORED,&buffer.GetBaseAnvilBuffer(),barrierInfo.offset,
+		VK_QUEUE_FAMILY_IGNORED,VK_QUEUE_FAMILY_IGNORED,&buffer,barrierInfo.offset,
 		umath::min(barrierInfo.offset +barrierInfo.size,buffer.GetSize()) -barrierInfo.offset
 	);
 }
 
-Anvil::ImageBarrier prosper::util::create_image_barrier(Anvil::Image &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange)
+prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange)
 {
-	Anvil::ImageSubresourceRange resourceRange {};
-	resourceRange.aspect_mask = get_aspect_mask(img.get_create_info_ptr()->get_format());
-	subresourceRange.ApplyRange(resourceRange,img);
-	return Anvil::ImageBarrier(
+	util::ImageSubresourceRange resourceRange {};
+	apply_range(subresourceRange,resourceRange,img);
+	return prosper::util::ImageBarrier(
 		srcBarrierInfo.accessMask,dstBarrierInfo.accessMask,
 		srcBarrierInfo.layout,dstBarrierInfo.layout,
 		VK_QUEUE_FAMILY_IGNORED,VK_QUEUE_FAMILY_IGNORED,&img,resourceRange
 	);
 }
 
-Anvil::ImageBarrier prosper::util::create_image_barrier(Anvil::Image &img,const prosper::util::ImageBarrierInfo &barrierInfo)
+prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img,const prosper::util::ImageBarrierInfo &barrierInfo)
 {
-	Anvil::ImageSubresourceRange resourceRange {};
-	resourceRange.aspect_mask = get_aspect_mask(img);
-	barrierInfo.subresourceRange.ApplyRange(resourceRange,img);
-	return Anvil::ImageBarrier(
+	util::ImageSubresourceRange resourceRange {};
+	apply_range(barrierInfo.subresourceRange,resourceRange,img);
+	return ImageBarrier{
 		barrierInfo.srcAccessMask,barrierInfo.dstAccessMask,
 		barrierInfo.oldLayout,barrierInfo.newLayout,
-		barrierInfo.srcQueueFamilyIndex,barrierInfo.dstQueueFamilyIndex,&img,resourceRange
-	);
+		barrierInfo.srcQueueFamilyIndex,barrierInfo.dstQueueFamilyIndex,
+		&img,resourceRange
+	};
 }
 
 struct DebugImageLayouts
 {
-	std::vector<Anvil::ImageLayout> mipmapLayouts;
+	std::vector<prosper::ImageLayout> mipmapLayouts;
 };
 struct DebugImageLayoutInfo
 {
 	std::vector<DebugImageLayouts> layerLayouts;
 };
-static std::unique_ptr<std::unordered_map<Anvil::CommandBufferBase*,std::unordered_map<Anvil::Image*,DebugImageLayoutInfo>>> s_lastRecordedImageLayouts = nullptr;
+std::unique_ptr<std::unordered_map<prosper::ICommandBuffer*,std::unordered_map<prosper::IImage*,DebugImageLayoutInfo>>> s_lastRecordedImageLayouts = nullptr;
 static std::function<void(vk::DebugReportObjectTypeEXT,const std::string&)> s_debugCallback = nullptr;
 void prosper::debug::set_debug_validation_callback(const std::function<void(vk::DebugReportObjectTypeEXT,const std::string&)> &callback) {s_debugCallback = callback;}
 void prosper::debug::exec_debug_validation_callback(vk::DebugReportObjectTypeEXT objType,const std::string &msg)
@@ -89,10 +96,11 @@ void prosper::debug::enable_debug_recorded_image_layout(bool b)
 		s_lastRecordedImageLayouts = nullptr;
 		return;
 	}
-	s_lastRecordedImageLayouts = std::make_unique<std::unordered_map<Anvil::CommandBufferBase*,std::unordered_map<Anvil::Image*,DebugImageLayoutInfo>>>();
+	s_lastRecordedImageLayouts = std::make_unique<std::unordered_map<prosper::ICommandBuffer*,std::unordered_map<prosper::IImage*,DebugImageLayoutInfo>>>();
 }
 void prosper::debug::set_last_recorded_image_layout(
-	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout layout,uint32_t baseLayer,uint32_t layerCount,uint32_t baseMipmap,uint32_t mipmapLevels
+	prosper::ICommandBuffer &cmdBuffer,IImage &img,ImageLayout layout,
+	uint32_t baseLayer,uint32_t layerCount,uint32_t baseMipmap,uint32_t mipmapLevels
 )
 {
 #ifdef DEBUG_VERBOSE
@@ -102,16 +110,16 @@ void prosper::debug::set_last_recorded_image_layout(
 	//	std::cout<<"prepass_depth_normal_rt_tex0_resolved_img changed to "<<vk::to_string(layout)<<"!"<<std::endl;
 	auto it = s_lastRecordedImageLayouts->find(&cmdBuffer);
 	if(it == s_lastRecordedImageLayouts->end())
-		it = s_lastRecordedImageLayouts->insert(std::make_pair(&cmdBuffer,std::unordered_map<Anvil::Image*,DebugImageLayoutInfo>{})).first;
+		it = s_lastRecordedImageLayouts->insert(std::make_pair(&cmdBuffer,std::unordered_map<prosper::IImage*,DebugImageLayoutInfo>{})).first;
 
 	auto itLayoutInfo = it->second.find(&img);
 	if(itLayoutInfo == it->second.end())
 		itLayoutInfo = it->second.insert(std::make_pair(&img,DebugImageLayoutInfo{})).first;
 	auto &layoutInfo = itLayoutInfo->second;
 	if(layerCount == std::numeric_limits<uint32_t>::max())
-		layerCount = img.get_create_info_ptr()->get_n_layers() -baseLayer;
+		layerCount = img.GetLayerCount() -baseLayer;
 	if(mipmapLevels == std::numeric_limits<uint32_t>::max())
-		mipmapLevels = img.get_n_mipmaps() -baseMipmap;
+		mipmapLevels = img.GetMipmapCount() -baseMipmap;
 	auto totalLayerCount = layerCount +baseLayer;
 	if(totalLayerCount >= layoutInfo.layerLayouts.size())
 		layoutInfo.layerLayouts.resize(totalLayerCount);
@@ -120,7 +128,7 @@ void prosper::debug::set_last_recorded_image_layout(
 	for(auto &layouts : layoutInfo.layerLayouts)
 	{
 		if(layouts.mipmapLayouts.size() < totalMipmapLevels)
-			layouts.mipmapLayouts.resize(totalMipmapLevels,Anvil::ImageLayout::UNDEFINED);
+			layouts.mipmapLayouts.resize(totalMipmapLevels,ImageLayout::Undefined);
 	}
 
 	for(auto i=baseLayer;i<(baseLayer +layerCount);++i)
@@ -129,7 +137,7 @@ void prosper::debug::set_last_recorded_image_layout(
 			itLayoutInfo->second.layerLayouts.at(i).mipmapLayouts.at(j) = layout;
 	}
 }
-bool prosper::debug::get_last_recorded_image_layout(Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout &layout,uint32_t baseLayer,uint32_t baseMipmap)
+bool prosper::debug::get_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer,IImage &img,ImageLayout &layout,uint32_t baseLayer,uint32_t baseMipmap)
 {
 	if(s_lastRecordedImageLayouts == nullptr)
 		return false;
@@ -146,38 +154,98 @@ bool prosper::debug::get_last_recorded_image_layout(Anvil::CommandBufferBase &cm
 	layout = mipmapLayouts.at(baseMipmap);
 	return true;
 }
-bool prosper::util::record_pipeline_barrier(Anvil::CommandBufferBase &cmdBuffer,const PipelineBarrierInfo &barrierInfo)
+
+static bool record_image_barrier(
+	prosper::ICommandBuffer &cmdBuffer,prosper::IImage &img,
+	prosper::ImageLayout originalLayout,prosper::ImageLayout currentLayout,
+	prosper::ImageLayout dstLayout,const prosper::util::ImageSubresourceRange &subresourceRange={}
+)
+{
+	prosper::util::BarrierImageLayout srcInfo {};
+	switch(originalLayout)
+	{
+	case prosper::ImageLayout::ShaderReadOnlyOptimal:
+		srcInfo = {prosper::PipelineStageFlags::FragmentShaderBit,currentLayout,prosper::AccessFlags::ShaderReadBit};
+		break;
+	case prosper::ImageLayout::ColorAttachmentOptimal:
+		srcInfo = {prosper::PipelineStageFlags::ColorAttachmentOutputBit,currentLayout,prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::ColorAttachmentWriteBit};
+		break;
+	case prosper::ImageLayout::DepthStencilAttachmentOptimal:
+		srcInfo = {prosper::PipelineStageFlags::LateFragmentTestsBit,currentLayout,prosper::AccessFlags::DepthStencilAttachmentReadBit | prosper::AccessFlags::DepthStencilAttachmentWriteBit};
+		break;
+	case prosper::ImageLayout::TransferSrcOptimal:
+		srcInfo = {prosper::PipelineStageFlags::TransferBit,currentLayout,prosper::AccessFlags::TransferReadBit};
+		break;
+	case prosper::ImageLayout::TransferDstOptimal:
+		srcInfo = {prosper::PipelineStageFlags::TransferBit,currentLayout,prosper::AccessFlags::TransferWriteBit};
+		break;
+	}
+
+	prosper::util::BarrierImageLayout dstInfo {};
+	switch(dstLayout)
+	{
+	case prosper::ImageLayout::ShaderReadOnlyOptimal:
+		dstInfo = {prosper::PipelineStageFlags::FragmentShaderBit,dstLayout,prosper::AccessFlags::ShaderReadBit};
+		break;
+	case prosper::ImageLayout::ColorAttachmentOptimal:
+		dstInfo = {prosper::PipelineStageFlags::ColorAttachmentOutputBit,dstLayout,prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::ColorAttachmentWriteBit};
+		break;
+	case prosper::ImageLayout::DepthStencilAttachmentOptimal:
+		dstInfo = {prosper::PipelineStageFlags::EarlyFragmentTestsBit,dstLayout,prosper::AccessFlags::DepthStencilAttachmentReadBit | prosper::AccessFlags::DepthStencilAttachmentWriteBit};
+		break;
+	case prosper::ImageLayout::TransferSrcOptimal:
+		dstInfo = {prosper::PipelineStageFlags::TransferBit,dstLayout,prosper::AccessFlags::TransferReadBit};
+		break;
+	case prosper::ImageLayout::TransferDstOptimal:
+		dstInfo = {prosper::PipelineStageFlags::TransferBit,dstLayout,prosper::AccessFlags::TransferWriteBit};
+		break;
+	}
+	return cmdBuffer.RecordImageBarrier(img,srcInfo,dstInfo,subresourceRange);
+}
+
+static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range,prosper::IImage &img)
+{
+	Anvil::ImageSubresourceRange anvRange {};
+	anvRange.base_array_layer = range.baseArrayLayer;
+	anvRange.base_mip_level = range.baseMipLevel;
+	anvRange.layer_count = range.layerCount;
+	anvRange.level_count = range.levelCount;
+	anvRange.aspect_mask = static_cast<Anvil::ImageAspectFlagBits>(prosper::util::get_aspect_mask(img));
+	return anvRange;
+}
+
+bool prosper::ICommandBuffer::RecordPipelineBarrier(const prosper::util::PipelineBarrierInfo &barrierInfo)
 {
 	if(s_lastRecordedImageLayouts != nullptr)
 	{
-		auto it = s_lastRecordedImageLayouts->find(&cmdBuffer);
+		auto it = s_lastRecordedImageLayouts->find(this);
 		if(it == s_lastRecordedImageLayouts->end())
-			it = s_lastRecordedImageLayouts->insert(std::make_pair(&cmdBuffer,std::unordered_map<Anvil::Image*,DebugImageLayoutInfo>{})).first;
+			it = s_lastRecordedImageLayouts->insert(std::make_pair(this,std::unordered_map<prosper::IImage*,DebugImageLayoutInfo>{})).first;
 		else
 		{
 			for(auto &imgBarrier : barrierInfo.imageBarriers)
 			{
-				auto itImg = it->second.find(imgBarrier.image_ptr);
+				auto itImg = it->second.find(imgBarrier.image);
 				if(itImg == it->second.end())
 					continue;
 				auto &layoutInfo = itImg->second;
-				auto &range = imgBarrier.subresource_range;
-				for(auto i=range.base_array_layer;i<(range.base_array_layer +range.layer_count);++i)
+				auto &range = imgBarrier.subresourceRange;
+				for(auto i=range.baseArrayLayer;i<(range.baseArrayLayer +range.layerCount);++i)
 				{
 					if(i >= layoutInfo.layerLayouts.size())
 						break;
 					auto &layerLayout = layoutInfo.layerLayouts.at(i);
-					for(auto j=range.base_mip_level;j<(range.base_mip_level +range.level_count);++j)
+					for(auto j=range.baseMipLevel;j<(range.baseMipLevel +range.levelCount);++j)
 					{
 						if(j >= layerLayout.mipmapLayouts.size())
 							break;
 						auto layout = layerLayout.mipmapLayouts.at(j);
-						if(layout != imgBarrier.old_layout && imgBarrier.old_layout != Anvil::ImageLayout::UNDEFINED)
+						if(layout != imgBarrier.oldLayout && imgBarrier.oldLayout != ImageLayout::Undefined)
 						{
 							debug::exec_debug_validation_callback(
-								vk::DebugReportObjectTypeEXT::eImage,"Record pipeline barrier: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(imgBarrier.image_ptr->get_image())) +
+								vk::DebugReportObjectTypeEXT::eImage,"Record pipeline barrier: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(imgBarrier.image)) +
 								" at array layer " +std::to_string(i) +", mipmap " +std::to_string(j) +" has current layout " +vk::to_string(static_cast<vk::ImageLayout>(layout)) +
-								", but should have " +vk::to_string(static_cast<vk::ImageLayout>(imgBarrier.old_layout)) +" according to barrier info!"
+								", but should have " +vk::to_string(static_cast<vk::ImageLayout>(imgBarrier.oldLayout)) +" according to barrier info!"
 							);
 						}
 					}
@@ -187,120 +255,44 @@ bool prosper::util::record_pipeline_barrier(Anvil::CommandBufferBase &cmdBuffer,
 		for(auto &imgBarrier : barrierInfo.imageBarriers)
 		{
 			debug::set_last_recorded_image_layout(
-				cmdBuffer,*imgBarrier.image_ptr,static_cast<Anvil::ImageLayout>(imgBarrier.new_layout),
-				imgBarrier.subresource_range.base_array_layer,imgBarrier.subresource_range.layer_count,
-				imgBarrier.subresource_range.base_mip_level,imgBarrier.subresource_range.level_count
+				*this,*imgBarrier.image,imgBarrier.newLayout,
+				imgBarrier.subresourceRange.baseArrayLayer,imgBarrier.subresourceRange.layerCount,
+				imgBarrier.subresourceRange.baseMipLevel,imgBarrier.subresourceRange.levelCount
 			);
 		}
 	}
+	std::vector<Anvil::BufferBarrier> anvBufBarriers {};
+	anvBufBarriers.reserve(barrierInfo.bufferBarriers.size());
+	for(auto &barrier : barrierInfo.bufferBarriers)
+	{
+		anvBufBarriers.push_back(Anvil::BufferBarrier{
+			static_cast<Anvil::AccessFlagBits>(barrier.srcAccessMask),static_cast<Anvil::AccessFlagBits>(barrier.dstAccessMask),
+			barrier.srcQueueFamilyIndex,barrier.dstQueueFamilyIndex,
+			&dynamic_cast<VlkBuffer*>(barrier.buffer)->GetAnvilBuffer(),barrier.offset,barrier.size
+		});
+	}
+	std::vector<Anvil::ImageBarrier> anvImgBarriers {};
+	anvImgBarriers.reserve(barrierInfo.imageBarriers.size());
+	for(auto &barrier : barrierInfo.imageBarriers)
+	{
+		anvImgBarriers.push_back(Anvil::ImageBarrier{
+			static_cast<Anvil::AccessFlagBits>(barrier.srcAccessMask),static_cast<Anvil::AccessFlagBits>(barrier.dstAccessMask),
+			static_cast<Anvil::ImageLayout>(barrier.oldLayout),static_cast<Anvil::ImageLayout>(barrier.newLayout),
+			barrier.srcQueueFamilyIndex,barrier.dstQueueFamilyIndex,
+			&static_cast<VlkImage*>(barrier.image)->GetAnvilImage(),to_anvil_subresource_range(barrier.subresourceRange,*barrier.image)
+		});
+	}
 
-	return cmdBuffer.record_pipeline_barrier(
-		barrierInfo.srcStageMask,barrierInfo.dstStageMask,
-		Anvil::DependencyFlagBits::NONE,0u,nullptr,barrierInfo.bufferBarriers.size(),barrierInfo.bufferBarriers.data(),barrierInfo.imageBarriers.size(),barrierInfo.imageBarriers.data()
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_pipeline_barrier(
+		static_cast<Anvil::PipelineStageFlagBits>(barrierInfo.srcStageMask),static_cast<Anvil::PipelineStageFlagBits>(barrierInfo.dstStageMask),
+		Anvil::DependencyFlagBits::NONE,0u,nullptr,
+		anvBufBarriers.size(),anvBufBarriers.data(),
+		anvImgBarriers.size(),anvImgBarriers.data()
 	);
 }
-
-bool prosper::util::record_buffer_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,const Buffer &buf,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
-	Anvil::AccessFlags srcAccessMask,Anvil::AccessFlags dstAccessMask,vk::DeviceSize offset,vk::DeviceSize size
-)
-{
-	prosper::util::PipelineBarrierInfo barrier {};
-	barrier.srcStageMask = srcStageMask;
-	barrier.dstStageMask = dstStageMask;
-
-	if(size == std::numeric_limits<vk::DeviceSize>::max())
-		size = buf.GetSize();
-
-	prosper::util::BufferBarrierInfo bufBarrier {};
-	bufBarrier.srcAccessMask = srcAccessMask;
-	bufBarrier.dstAccessMask = dstAccessMask;
-	bufBarrier.size = size;
-	bufBarrier.offset = buf.GetStartOffset() +offset;
-	barrier.bufferBarriers.push_back(prosper::util::create_buffer_barrier(bufBarrier,buf));
-	return prosper::util::record_pipeline_barrier(cmdBuffer,barrier);
-}
-
-static bool record_image_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,
-	Anvil::ImageLayout originalLayout,Anvil::ImageLayout currentLayout,
-	Anvil::ImageLayout dstLayout,const prosper::util::ImageSubresourceRange &subresourceRange={}
-)
-{
-	prosper::util::BarrierImageLayout srcInfo {};
-	switch(originalLayout)
-	{
-	case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-		srcInfo = {Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,currentLayout,Anvil::AccessFlagBits::SHADER_READ_BIT};
-		break;
-	case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-		srcInfo = {Anvil::PipelineStageFlagBits::COLOR_ATTACHMENT_OUTPUT_BIT,currentLayout,Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT};
-		break;
-	case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		srcInfo = {Anvil::PipelineStageFlagBits::LATE_FRAGMENT_TESTS_BIT,currentLayout,Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
-		break;
-	case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
-		srcInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,currentLayout,Anvil::AccessFlagBits::TRANSFER_READ_BIT};
-		break;
-	case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
-		srcInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,currentLayout,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT};
-		break;
-	}
-
-	prosper::util::BarrierImageLayout dstInfo {};
-	switch(dstLayout)
-	{
-	case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-		dstInfo = {Anvil::PipelineStageFlagBits::FRAGMENT_SHADER_BIT,dstLayout,Anvil::AccessFlagBits::SHADER_READ_BIT};
-		break;
-	case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-		dstInfo = {Anvil::PipelineStageFlagBits::COLOR_ATTACHMENT_OUTPUT_BIT,dstLayout,Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT};
-		break;
-	case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		dstInfo = {Anvil::PipelineStageFlagBits::EARLY_FRAGMENT_TESTS_BIT,dstLayout,Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
-		break;
-	case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
-		dstInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstLayout,Anvil::AccessFlagBits::TRANSFER_READ_BIT};
-		break;
-	case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
-		dstInfo = {Anvil::PipelineStageFlagBits::TRANSFER_BIT,dstLayout,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT};
-		break;
-	}
-	return record_image_barrier(cmdBuffer,img,srcInfo,dstInfo,subresourceRange);
-}
-
-bool prosper::util::record_post_render_pass_image_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,
-	Anvil::ImageLayout preRenderPassLayout,Anvil::ImageLayout postRenderPassLayout,
-	const ImageSubresourceRange &subresourceRange
-)
-{
-	return ::record_image_barrier(cmdBuffer,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange);
-}
-
-bool prosper::util::record_image_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,
-	const ImageSubresourceRange &subresourceRange
-)
-{
-	prosper::util::PipelineBarrierInfo barrier {};
-	barrier.srcStageMask = srcBarrierInfo.stageMask;
-	barrier.dstStageMask = dstBarrierInfo.stageMask;
-	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,srcBarrierInfo,dstBarrierInfo,subresourceRange));
-	return prosper::util::record_pipeline_barrier(cmdBuffer,barrier);
-}
-
-bool prosper::util::record_image_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::ImageLayout srcLayout,Anvil::ImageLayout dstLayout,
-	const ImageSubresourceRange &subresourceRange
-)
-{
-	return ::record_image_barrier(cmdBuffer,img,srcLayout,srcLayout,dstLayout,subresourceRange);
-}
-
-bool prosper::util::record_image_barrier(
-	Anvil::CommandBufferBase &cmdBuffer,Anvil::Image &img,Anvil::PipelineStageFlags srcStageMask,Anvil::PipelineStageFlags dstStageMask,
-	Anvil::ImageLayout oldLayout,Anvil::ImageLayout newLayout,Anvil::AccessFlags srcAccessMask,Anvil::AccessFlags dstAccessMask,
+bool prosper::ICommandBuffer::RecordImageBarrier(
+	IImage &img,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
+	ImageLayout oldLayout,ImageLayout newLayout,AccessFlags srcAccessMask,AccessFlags dstAccessMask,
 	uint32_t baseLayer
 )
 {
@@ -319,6 +311,269 @@ bool prosper::util::record_image_barrier(
 		imgBarrier.subresourceRange.layerCount = 1u;
 	}
 	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,imgBarrier));
-	
-	return prosper::util::record_pipeline_barrier(cmdBuffer,barrier);
+
+	return RecordPipelineBarrier(barrier);
+}
+bool prosper::ICommandBuffer::RecordImageBarrier(
+	IImage &img,const util::BarrierImageLayout &srcBarrierInfo,const util::BarrierImageLayout &dstBarrierInfo,
+	const util::ImageSubresourceRange &subresourceRange
+)
+{
+	prosper::util::PipelineBarrierInfo barrier {};
+	barrier.srcStageMask = srcBarrierInfo.stageMask;
+	barrier.dstStageMask = dstBarrierInfo.stageMask;
+	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,srcBarrierInfo,dstBarrierInfo,subresourceRange));
+	return RecordPipelineBarrier(barrier);
+}
+bool prosper::ICommandBuffer::RecordImageBarrier(
+	IImage &img,ImageLayout srcLayout,ImageLayout dstLayout,const util::ImageSubresourceRange &subresourceRange
+)
+{
+	return ::record_image_barrier(*this,img,srcLayout,srcLayout,dstLayout,subresourceRange);
+}
+bool prosper::ICommandBuffer::RecordPostRenderPassImageBarrier(
+	IImage &img,
+	ImageLayout preRenderPassLayout,ImageLayout postRenderPassLayout,
+	const util::ImageSubresourceRange &subresourceRange
+)
+{
+	return ::record_image_barrier(*this,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange);
+}
+bool prosper::ICommandBuffer::RecordBufferBarrier(
+	IBuffer &buf,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
+	AccessFlags srcAccessMask,AccessFlags dstAccessMask,DeviceSize offset,DeviceSize size
+)
+{
+	prosper::util::PipelineBarrierInfo barrier {};
+	barrier.srcStageMask = srcStageMask;
+	barrier.dstStageMask = dstStageMask;
+
+	if(size == std::numeric_limits<vk::DeviceSize>::max())
+		size = buf.GetSize();
+
+	prosper::util::BufferBarrierInfo bufBarrier {};
+	bufBarrier.srcAccessMask = srcAccessMask;
+	bufBarrier.dstAccessMask = dstAccessMask;
+	bufBarrier.size = size;
+	bufBarrier.offset = buf.GetStartOffset() +offset;
+	barrier.bufferBarriers.push_back(prosper::util::create_buffer_barrier(bufBarrier,buf));
+	return RecordPipelineBarrier(barrier);
+}
+
+/////////////////
+
+struct DebugRenderTargetInfo
+{
+	std::weak_ptr<prosper::IRenderPass> renderPass;
+	uint32_t baseLayer;
+	std::weak_ptr<prosper::IImage> image;
+	std::weak_ptr<prosper::IFramebuffer> framebuffer;
+	std::weak_ptr<prosper::RenderTarget> renderTarget;
+};
+static std::unordered_map<prosper::IPrimaryCommandBuffer*,DebugRenderTargetInfo> s_wpCurrentRenderTargets = {};
+bool prosper::util::get_current_render_pass_target(prosper::IPrimaryCommandBuffer &cmdBuffer,prosper::IRenderPass **outRp,prosper::IImage **outImg,prosper::IFramebuffer **outFb,prosper::RenderTarget **outRt)
+{
+	auto it = s_wpCurrentRenderTargets.find(&cmdBuffer);
+	if(it == s_wpCurrentRenderTargets.end())
+		return false;
+	auto &dbgInfo = it->second;
+	if(outRp)
+		*outRp = dbgInfo.renderPass.lock().get();
+	if(outImg)
+		*outImg = dbgInfo.image.lock().get();
+	if(outFb)
+		*outFb = dbgInfo.framebuffer.lock().get();
+	if(outRt)
+		*outRt = dbgInfo.renderTarget.lock().get();
+	return true;
+}
+
+static bool record_begin_render_pass(prosper::IPrimaryCommandBuffer &cmdBuffer,prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<vk::ClearValue> &clearValues,prosper::IRenderPass *rp)
+{
+#ifdef DEBUG_VERBOSE
+	auto numAttachments = rt.GetAttachmentCount();
+	std::cout<<"[VK] Beginning render pass with "<<numAttachments<<" attachments:"<<std::endl;
+	for(auto i=decltype(numAttachments){0u};i<numAttachments;++i)
+	{
+		auto &tex = rt.GetTexture(i);
+		auto img = (tex != nullptr) ? tex->GetImage() : nullptr;
+		std::cout<<"\t"<<((img != nullptr) ? img->GetAnvilImage().get_image() : nullptr)<<std::endl;
+	}
+#endif
+	auto *fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : &rt.GetFramebuffer();
+	auto &context = rt.GetContext();
+	if(context.IsValidationEnabled())
+	{
+		auto &rpCreateInfo = *static_cast<prosper::RenderPass&>(rt.GetRenderPass()).GetAnvilRenderPass().get_render_pass_create_info();
+		auto numAttachments = fb->GetAttachmentCount();
+		for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
+		{
+			auto *imgView = fb->GetAttachment(i);
+			if(imgView == nullptr)
+				continue;
+			auto &img = imgView->GetImage();
+			Anvil::AttachmentType attType;
+			if(rpCreateInfo.get_attachment_type(i,&attType) == false)
+				continue;
+			Anvil::ImageLayout initialLayout;
+			auto bValid = false;
+			switch(attType)
+			{
+			case Anvil::AttachmentType::COLOR:
+				bValid = rpCreateInfo.get_color_attachment_properties(i,nullptr,nullptr,nullptr,nullptr,&initialLayout,nullptr);
+				break;
+			case Anvil::AttachmentType::DEPTH_STENCIL:
+				bValid = rpCreateInfo.get_depth_stencil_attachment_properties(i,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,&initialLayout,nullptr);
+				break;
+			}
+			if(bValid == false)
+				continue;
+			prosper::ImageLayout imgLayout;
+			if(prosper::debug::get_last_recorded_image_layout(cmdBuffer,img,imgLayout,(layerId != nullptr) ? *layerId : 0u) == false)
+				continue;
+			if(imgLayout != static_cast<prosper::ImageLayout>(initialLayout))
+			{
+				prosper::debug::exec_debug_validation_callback(
+					vk::DebugReportObjectTypeEXT::eImage,"Begin render pass: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(static_cast<prosper::VlkImage&>(img).GetAnvilImage().get_image())) +
+					" has to be in layout " +vk::to_string(static_cast<vk::ImageLayout>(initialLayout)) +", but is in layout " +
+					vk::to_string(static_cast<vk::ImageLayout>(imgLayout)) +"!"
+				);
+			}
+		}
+	}
+	auto it = s_wpCurrentRenderTargets.find(&cmdBuffer);
+	if(it != s_wpCurrentRenderTargets.end())
+		s_wpCurrentRenderTargets.erase(it);
+	if(rp == nullptr)
+		rp = &rt.GetRenderPass();
+	auto &tex = rt.GetTexture();
+	if(fb == nullptr)
+		throw std::runtime_error("Attempted to begin render pass with NULL framebuffer object!");
+	if(rp == nullptr)
+		throw std::runtime_error("Attempted to begin render pass with NULL render pass object!");
+	auto &img = tex.GetImage();
+	auto extents = img.GetExtents();
+	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
+	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
+	s_wpCurrentRenderTargets[&cmdBuffer] = {rp->shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),img.shared_from_this(),fb ? fb->shared_from_this() : nullptr,rt.shared_from_this()};
+	return static_cast<prosper::VlkPrimaryCommandBuffer&>(cmdBuffer)->record_begin_render_pass(
+		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
+		&static_cast<prosper::Framebuffer&>(*fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::RenderPass&>(*rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
+	);
+}
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const vk::ClearValue *clearValue,prosper::IRenderPass *rp)
+{
+	return ::record_begin_render_pass(*this,rt,&layerId,(clearValue != nullptr) ? std::vector<vk::ClearValue>{*clearValue} : std::vector<vk::ClearValue>{},rp);
+}
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<vk::ClearValue> &clearValues,prosper::IRenderPass *rp)
+{
+	return ::record_begin_render_pass(*this,rt,&layerId,clearValues,rp);
+}
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const vk::ClearValue *clearValue,prosper::IRenderPass *rp)
+{
+	return ::record_begin_render_pass(*this,rt,nullptr,(clearValue != nullptr) ? std::vector<vk::ClearValue>{*clearValue} : std::vector<vk::ClearValue>{},rp);
+}
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<vk::ClearValue> &clearValues,prosper::IRenderPass *rp)
+{
+	return ::record_begin_render_pass(*this,rt,nullptr,clearValues,rp);
+}
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<vk::ClearValue> &clearValues)
+{
+	s_wpCurrentRenderTargets[this] = {rp.shared_from_this(),0u,img.shared_from_this(),fb.shared_from_this(),std::weak_ptr<prosper::RenderTarget>{}};
+
+	auto extents = img.GetExtents();
+	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
+	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
+	return static_cast<VlkPrimaryCommandBuffer&>(*this).GetAnvilCommandBuffer().record_begin_render_pass(
+		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
+		&static_cast<Framebuffer&>(fb).GetAnvilFramebuffer(),renderArea,&static_cast<RenderPass&>(rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
+	);
+}
+
+bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,const std::array<float,4> &clearColor,const util::ClearImageInfo &clearImageInfo)
+{
+	// TODO
+	//if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
+	//	throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
+	// if(cmdBuffer.GetContext().IsValidationEnabled() && is_compressed_format(img.get_create_info_ptr()->get_format()))
+	// 	throw std::logic_error("Attempted to clear image with compressed image format! This is not allowed!");
+
+	prosper::util::ImageSubresourceRange resourceRange {};
+	apply_range(clearImageInfo.subresourceRange,resourceRange,img);
+
+	auto anvResourceRange = to_anvil_subresource_range(resourceRange,img);
+	vk::ClearColorValue clearColorVal {clearColor};
+	return m_cmdBuffer->record_clear_color_image(
+		&*static_cast<VlkImage&>(img),static_cast<Anvil::ImageLayout>(layout),reinterpret_cast<VkClearColorValue*>(&clearColorVal),
+		1u,&anvResourceRange
+	);
+}
+bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,float clearDepth,const util::ClearImageInfo &clearImageInfo)
+{
+	// TODO
+	//if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
+	//	throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
+	// if(cmdBuffer.GetContext().IsValidationEnabled() && is_compressed_format(img.get_create_info_ptr()->get_format()))
+	// 	throw std::logic_error("Attempted to clear image with compressed image format! This is not allowed!");
+
+	prosper::util::ImageSubresourceRange resourceRange {};
+	apply_range(clearImageInfo.subresourceRange,resourceRange,img);
+
+	auto anvResourceRange = to_anvil_subresource_range(resourceRange,img);
+	vk::ClearDepthStencilValue clearDepthValue {clearDepth};
+	return m_cmdBuffer->record_clear_depth_stencil_image(
+		&*static_cast<VlkImage&>(img),static_cast<Anvil::ImageLayout>(layout),reinterpret_cast<VkClearDepthStencilValue*>(&clearDepthValue),
+		1u,&anvResourceRange
+	);
+}
+
+bool prosper::VlkPrimaryCommandBuffer::RecordEndRenderPass()
+{
+#ifdef DEBUG_VERBOSE
+	std::cout<<"[VK] Ending render pass..."<<std::endl;
+#endif
+	auto it = s_wpCurrentRenderTargets.find(this);
+	if(it != s_wpCurrentRenderTargets.end())
+	{
+		auto rp = it->second.renderPass.lock();
+		auto fb = it->second.framebuffer.lock();
+		if(rp && fb)
+		{
+			auto &context = rp->GetContext();
+			auto rt = it->second.renderTarget.lock();
+			if(context.IsValidationEnabled())
+			{
+				auto &rpCreateInfo = *static_cast<RenderPass*>(rp.get())->GetAnvilRenderPass().get_render_pass_create_info();
+				auto numAttachments = fb->GetAttachmentCount();
+				for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
+				{
+					auto *imgView = fb->GetAttachment(i);
+					if(!imgView)
+						continue;
+					auto &img = imgView->GetImage();
+					Anvil::AttachmentType attType;
+					if(rpCreateInfo.get_attachment_type(i,&attType) == false)
+						continue;
+					Anvil::ImageLayout finalLayout;
+					auto bValid = false;
+					switch(attType)
+					{
+					case Anvil::AttachmentType::COLOR:
+						bValid = rpCreateInfo.get_color_attachment_properties(i,nullptr,nullptr,nullptr,nullptr,nullptr,&finalLayout);
+						break;
+					case Anvil::AttachmentType::DEPTH_STENCIL:
+						bValid = rpCreateInfo.get_depth_stencil_attachment_properties(i,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,&finalLayout);
+						break;
+					}
+					if(bValid == false)
+						continue;
+					auto layerCount = umath::min(imgView->GetLayerCount(),fb->GetLayerCount());
+					auto baseLayer = imgView->GetBaseLayer();
+					prosper::debug::set_last_recorded_image_layout(*this,img,static_cast<prosper::ImageLayout>(finalLayout),baseLayer,layerCount);
+				}
+			}
+		}
+		s_wpCurrentRenderTargets.erase(it);
+	}
+	return (*this)->record_end_render_pass();
 }

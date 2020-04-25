@@ -13,37 +13,44 @@
 #pragma warning(disable : 4251)
 namespace prosper
 {
-	class RenderPass;
-	class Framebuffer;
-	class ImageView;
+	class IRenderPass;
+	class IFramebuffer;
+	class IImageView;
 	class Texture;
 	class DLLPROSPER RenderTarget
 		: public ContextObject,
 		public std::enable_shared_from_this<RenderTarget>
 	{
 	public:
-		RenderTarget(Context &context,const std::vector<std::shared_ptr<Texture>> &textures,const std::vector<std::shared_ptr<Framebuffer>> &framebuffers,const std::shared_ptr<RenderPass> &renderPass);
+		RenderTarget(const RenderTarget&)=delete;
+		RenderTarget &operator=(const RenderTarget&)=delete;
+		RenderTarget(
+			Context &context,const std::vector<std::shared_ptr<Texture>> &textures,
+			const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers,
+			IRenderPass &renderPass
+		);
 
 		uint32_t GetAttachmentCount() const;
-		const std::shared_ptr<Texture> &GetTexture(uint32_t attachmentId=0u) const;
-		const std::shared_ptr<Framebuffer> &GetFramebuffer(uint32_t layerId) const;
-		const std::shared_ptr<Framebuffer> &GetFramebuffer() const;
-		const std::shared_ptr<RenderPass> &GetRenderPass() const;
+		const Texture *GetTexture(uint32_t attachmentId) const;
+		Texture *GetTexture(uint32_t attachmentId);
+
+		const Texture &GetTexture() const;
+		Texture &GetTexture();
+
+		const IFramebuffer *GetFramebuffer(uint32_t layerId) const;
+		IFramebuffer *GetFramebuffer(uint32_t layerId);
+
+		const IFramebuffer &GetFramebuffer() const;
+		IFramebuffer &GetFramebuffer();
+
+		const IRenderPass &GetRenderPass() const;
+		IRenderPass &GetRenderPass();
+
 		virtual void SetDebugName(const std::string &name) override;
 	private:
 		std::vector<std::shared_ptr<Texture>> m_textures = {};
-		std::vector<std::shared_ptr<Framebuffer>> m_framebuffers = {};
-		std::shared_ptr<RenderPass> m_renderPass = nullptr;
-	};
-
-	namespace util
-	{
-		struct DLLPROSPER RenderTargetCreateInfo
-		{
-			bool useLayerFramebuffers = false;
-		};
-		DLLPROSPER std::shared_ptr<RenderTarget> create_render_target(Anvil::BaseDevice &dev,const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<RenderPass> &rp=nullptr,const RenderTargetCreateInfo &rtCreateInfo={});
-		DLLPROSPER std::shared_ptr<RenderTarget> create_render_target(Anvil::BaseDevice &dev,Texture &texture,ImageView &imgView,RenderPass &rp,const RenderTargetCreateInfo &rtCreateInfo={});
+		std::vector<std::shared_ptr<IFramebuffer>> m_framebuffers = {};
+		std::shared_ptr<IRenderPass> m_renderPass = nullptr;
 	};
 };
 #pragma warning(pop)

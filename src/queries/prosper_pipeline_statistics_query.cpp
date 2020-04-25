@@ -6,6 +6,8 @@
 #include "queries/prosper_pipeline_statistics_query.hpp"
 #include "queries/prosper_query_pool.hpp"
 #include "prosper_context.hpp"
+#include "prosper_command_buffer.hpp"
+#include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 
 using namespace prosper;
@@ -14,14 +16,14 @@ PipelineStatisticsQuery::PipelineStatisticsQuery(QueryPool &queryPool,uint32_t q
 	: Query(queryPool,queryId)
 {}
 
-bool PipelineStatisticsQuery::Reset(Anvil::CommandBufferBase &cmdBuffer)
+bool PipelineStatisticsQuery::Reset(prosper::ICommandBuffer &cmdBuffer)
 {
 	auto r = Query::Reset(cmdBuffer);
 	if(r == true)
 		m_bReset = true;
 	return r;
 }
-bool PipelineStatisticsQuery::RecordBegin(Anvil::CommandBufferBase &cmdBuffer)
+bool PipelineStatisticsQuery::RecordBegin(prosper::ICommandBuffer &cmdBuffer)
 {
 	auto *pQueryPool = GetPool();
 	if(pQueryPool == nullptr)
@@ -29,20 +31,20 @@ bool PipelineStatisticsQuery::RecordBegin(Anvil::CommandBufferBase &cmdBuffer)
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
 	if(m_bReset == false && Reset(cmdBuffer) == false)
 		return false;
-	return cmdBuffer.record_begin_query(anvPool,m_queryId,{});
+	return dynamic_cast<prosper::VlkCommandBuffer&>(cmdBuffer)->record_begin_query(anvPool,m_queryId,{});
 }
-bool PipelineStatisticsQuery::RecordEnd(Anvil::CommandBufferBase &cmdBuffer) const
+bool PipelineStatisticsQuery::RecordEnd(prosper::ICommandBuffer &cmdBuffer) const
 {
 	auto *pQueryPool = GetPool();
 	if(pQueryPool == nullptr)
 		return false;
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
-	return cmdBuffer.record_end_query(anvPool,m_queryId);
+	return dynamic_cast<prosper::VlkCommandBuffer&>(cmdBuffer)->record_end_query(anvPool,m_queryId);
 }
 
 bool PipelineStatisticsQuery::QueryResult(Statistics &outStatistics) const
 {
-	return Query::QueryResult<Statistics,uint64_t>(outStatistics,Anvil::QueryResultFlagBits::_64_BIT);
+	return Query::QueryResult<Statistics,uint64_t>(outStatistics,prosper::QueryResultFlags::e64Bit);
 }
 
 std::shared_ptr<PipelineStatisticsQuery> prosper::util::create_pipeline_statistics_query(QueryPool &queryPool)

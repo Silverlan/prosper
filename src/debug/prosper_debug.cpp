@@ -271,27 +271,27 @@ void prosper::debug::dump_features(Context &context,std::stringstream &ss)
 	ss<<"Inherited Queries: "<<devFeatures.inherited_queries;
 }
 
-void prosper::debug::dump_image_format_properties(Context &context,std::stringstream &ss,Anvil::ImageCreateFlags createFlags)
+void prosper::debug::dump_image_format_properties(Context &context,std::stringstream &ss,prosper::ImageCreateFlags createFlags)
 {
 	struct FormatPropertyInfo {
 		Anvil::ImageFormatProperties formatProperties;
 		Anvil::ImageUsageFlags usageFlags = {};
 	};
 	ss<<"Create Flags: ";
-	if(createFlags == Anvil::ImageCreateFlagBits::NONE)
+	if(createFlags == prosper::ImageCreateFlags::None)
 		ss<<"-";
 	else
 		ss<<prosper::util::to_string(createFlags);
 	for(auto format=Anvil::Format::UNKNOWN;format!=static_cast<decltype(format)>(umath::to_integral(Anvil::Format::ASTC_12x12_SRGB_BLOCK) +1);format=static_cast<decltype(format)>(umath::to_integral(format) +1))
 	{
-		ss<<"\n"<<prosper::util::to_string(format);
+		ss<<"\n"<<prosper::util::to_string(static_cast<prosper::Format>(format));
 		for(auto type=Anvil::ImageType::_1D;type!=static_cast<decltype(type)>(umath::to_integral(Anvil::ImageType::_3D) +1);type=static_cast<decltype(type)>(umath::to_integral(type) +1))
 		{
-			ss<<"\n\t"<<prosper::util::to_string(type);
+			ss<<"\n\t"<<prosper::util::to_string(static_cast<prosper::ImageType>(type));
 			for(auto tiling=Anvil::ImageTiling::OPTIMAL;tiling!=static_cast<decltype(tiling)>(umath::to_integral(Anvil::ImageTiling::LINEAR) +1);tiling=static_cast<decltype(tiling)>(umath::to_integral(tiling) +1))
 			{
 				std::vector<FormatPropertyInfo> propertyList {};
-				ss<<"\n\t\t"<<prosper::util::to_string(tiling);
+				ss<<"\n\t\t"<<prosper::util::to_string(static_cast<prosper::ImageTiling>(tiling));
 				for(auto usage=Anvil::ImageUsageFlagBits::TRANSFER_SRC_BIT;usage!=static_cast<decltype(usage)>(umath::to_integral(Anvil::ImageUsageFlagBits::INPUT_ATTACHMENT_BIT)>>1);usage=static_cast<decltype(usage)>(umath::to_integral(usage)<<1))
 				{
 					try
@@ -299,7 +299,7 @@ void prosper::debug::dump_image_format_properties(Context &context,std::stringst
 						Anvil::ImageFormatProperties properties;
 						Anvil::ImageFormatPropertiesQuery query {
 							format,type,tiling,
-							usage,createFlags
+							usage,static_cast<Anvil::ImageCreateFlagBits>(createFlags)
 						};
 						context.GetDevice().get_physical_device_image_format_properties(
 							query,
@@ -334,7 +334,7 @@ void prosper::debug::dump_image_format_properties(Context &context,std::stringst
 					}
 					catch(const std::system_error &err)
 					{
-						ss<<"\n\t\t\t"<<prosper::util::to_string(usage);
+						ss<<"\n\t\t\t"<<prosper::util::to_string(static_cast<prosper::ImageUsageFlags>(usage));
 						if(static_cast<vk::Result>(err.code().value()) == vk::Result::eErrorFormatNotSupported)
 						{
 							ss<<"\n\t\t\t\tUNSUPPORTED";
@@ -347,7 +347,7 @@ void prosper::debug::dump_image_format_properties(Context &context,std::stringst
 				}
 				for(auto &info : propertyList)
 				{
-					ss<<"\n\t\t\t"<<prosper::util::to_string(info.usageFlags);
+					ss<<"\n\t\t\t"<<prosper::util::to_string(static_cast<prosper::ImageUsageFlags>(info.usageFlags.get_vk()));
 					auto &properties = info.formatProperties;
 
 					const auto t = "\t\t\t\t";
@@ -382,7 +382,7 @@ void prosper::debug::dump_format_properties(Context &context,std::stringstream &
 	for(auto i=Anvil::Format::UNKNOWN;i<Anvil::Format::ASTC_12x12_SRGB_BLOCK;i=static_cast<Anvil::Format>(static_cast<uint32_t>(i) +1))
 	{
 		auto props = context.GetDevice().get_physical_device_format_properties(i);
-		ss<<prosper::util::to_string(i)<<":\n";
+		ss<<prosper::util::to_string(static_cast<prosper::Format>(i))<<":\n";
 		std::map<std::string,const Anvil::FormatFeatureFlags&> formatFeatures = {
 			{"Buffer",props.buffer_capabilities},
 			{"Linear Tiling",props.linear_tiling_capabilities},
@@ -452,7 +452,7 @@ void prosper::debug::dump_features(Context &context,const std::string &fileName)
 	f = nullptr;
 }
 
-void prosper::debug::dump_image_format_properties(Context &context,const std::string &fileName,Anvil::ImageCreateFlags createFlags)
+void prosper::debug::dump_image_format_properties(Context &context,const std::string &fileName,prosper::ImageCreateFlags createFlags)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)

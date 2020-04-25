@@ -13,7 +13,11 @@
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
+#include "buffers/vk_buffer.hpp"
+#include "buffers/vk_dynamic_resizable_buffer.hpp"
+#include "vk_command_buffer.hpp"
 #include "image/prosper_sampler.hpp"
+#include "image/vk_image.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
 #include "prosper_pipeline_cache.hpp"
@@ -24,6 +28,7 @@
 #include <misc/framebuffer_create_info.h>
 #include <misc/swapchain_create_info.h>
 #include <misc/rendering_surface_create_info.h>
+#include <misc/image_create_info.h>
 #include <thread>
 
 /* Uncomment the #define below to enable off-screen rendering */
@@ -77,9 +82,9 @@ Context &Context::GetContext(Anvil::BaseDevice &dev)
 	return *it->second;
 }
 
-static std::shared_ptr<prosper::Buffer> s_vertexBuffer = nullptr;
-static std::shared_ptr<prosper::Buffer> s_uvBuffer = nullptr;
-static std::shared_ptr<prosper::Buffer> s_vertexUvBuffer = nullptr;
+static std::shared_ptr<prosper::IBuffer> s_vertexBuffer = nullptr;
+static std::shared_ptr<prosper::IBuffer> s_uvBuffer = nullptr;
+static std::shared_ptr<prosper::IBuffer> s_vertexUvBuffer = nullptr;
 Context::Context(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>())
@@ -104,6 +109,11 @@ std::shared_ptr<Anvil::Swapchain> Context::GetSwapchain() {return m_swapchainPtr
 
 const std::string &Context::GetAppName() const {return m_appName;}
 uint32_t Context::GetSwapchainImageCount() const {return m_numSwapchainImages;}
+
+prosper::IImage *Context::GetSwapchainImage(uint32_t idx)
+{
+	return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr;
+}
 
 GLFW::Window &Context::GetWindow() {return *m_glfwWindow;}
 std::array<uint32_t,2> Context::GetWindowSize() const {return {m_windowCreationInfo->width,m_windowCreationInfo->height};}
@@ -139,6 +149,7 @@ void Context::Release()
 	m_dummyTexture = nullptr;
 	m_dummyCubemapTexture = nullptr;
 	m_dummyBuffer = nullptr;
+	m_swapchainImages.clear();
 
 	m_tmpBuffer = nullptr;
 	m_deviceImgBuffers.clear();
@@ -164,22 +175,31 @@ uint64_t Context::GetLastFrameId() const {return m_frameId;}
 
 void Context::EndFrame() {++m_frameId;}
 
-vk::Result Context::WaitForFence(const Fence &fence,uint64_t timeout) const
+vk::Result Context::WaitForFence(const IFence &fence,uint64_t timeout) const
 {
-	auto vkFence = fence.GetAnvilFence().get_fence();
+	auto vkFence = static_cast<const Fence&>(fence).GetAnvilFence().get_fence();
 	return static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,&vkFence,true,timeout));
 }
 
-vk::Result Context::WaitForFences(const std::vector<Fence> &fences,bool waitAll,uint64_t timeout) const
+vk::Result Context::WaitForFences(const std::vector<IFence*> &fences,bool waitAll,uint64_t timeout) const
 {
 	std::vector<VkFence> vkFences {};
 	vkFences.reserve(fences.size());
 	for(auto &fence : fences)
-		vkFences.push_back(fence->get_fence());
+		vkFences.push_back(static_cast<Fence&>(*fence).GetAnvilFence().get_fence());
 	return static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),vkFences.size(),vkFences.data(),waitAll,timeout));
 }
 
-void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::PrimaryCommandBuffer>&,uint32_t)> &drawFrame)
+bool Context::Submit(ICommandBuffer &cmdBuf,bool shouldBlock,IFence *optFence)
+{
+	auto &dev = GetDevice();
+	return dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
+		&dynamic_cast<VlkCommandBuffer&>(cmdBuf).GetAnvilCommandBuffer(),0u,nullptr,
+		0u,nullptr,nullptr,shouldBlock,optFence ? &dynamic_cast<Fence*>(optFence)->GetAnvilFence() : nullptr
+	));
+}
+
+void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
 {
 	Anvil::Semaphore *curr_frame_signal_semaphore_ptr;
 	Anvil::Semaphore *curr_frame_wait_semaphore_ptr;
@@ -195,6 +215,11 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 
     /* Determine the semaphore which the swapchain image */
     auto errCode = m_swapchainPtr->acquire_image(curr_frame_wait_semaphore_ptr,&m_n_swapchain_image);
+	if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
+	{
+		InitSwapchain();
+		return;
+	}
 
 	auto success = (errCode == Anvil::SwapchainOperationErrorCode::SUCCESS);
 	std::string errMsg;
@@ -221,7 +246,7 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 	
 	auto &cmd_buffer_ptr = m_commandBuffers.at(m_n_swapchain_image);
 	/* Start recording commands */
-	static_cast<Anvil::PrimaryCommandBuffer&>(cmd_buffer_ptr->GetAnvilCommandBuffer()).start_recording(false,true);
+	static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr).GetAnvilCommandBuffer()).start_recording(false,true);
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording);
 	umath::set_flag(m_stateFlags,StateFlags::Idle,false);
 	while(m_scheduledBufferUpdates.empty() == false)
@@ -233,14 +258,14 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 	drawFrame(GetDrawCommandBuffer(),m_n_swapchain_image);
 	/* Close the recording process */
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording,false);
-	static_cast<Anvil::PrimaryCommandBuffer&>(cmd_buffer_ptr->GetAnvilCommandBuffer()).stop_recording();
+	static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr).GetAnvilCommandBuffer()).stop_recording();
 
 
     /* Submit work chunk and present */
 	auto *signalSemaphore = curr_frame_signal_semaphore_ptr;
 	auto *waitSemaphore = curr_frame_wait_semaphore_ptr;
     m_devicePtr->get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&m_commandBuffers[m_n_swapchain_image]->GetAnvilCommandBuffer(),
+		&static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_commandBuffers[m_n_swapchain_image]).GetAnvilCommandBuffer(),
 		1, /* n_semaphores_to_signal */
 		&signalSemaphore,
 		1, /* n_semaphores_to_wait_on */
@@ -285,7 +310,7 @@ void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::
 
 void Context::DrawFrame()
 {
-	DrawFrame([this](const std::shared_ptr<prosper::PrimaryCommandBuffer>&,uint32_t m_n_swapchain_image) {
+	DrawFrame([this](const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t m_n_swapchain_image) {
 		Draw(m_n_swapchain_image);
 	});
 	EndFrame();
@@ -314,16 +339,18 @@ void Context::ReloadWindow()
 	ReloadSwapchain();
 }
 
-void Context::AllocateDeviceImageBuffer(prosper::Image &img,const void *data)
+void Context::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data)
 {
 	VkMemoryRequirements req {};
-	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<Image&>(img).GetAnvilImage().get_image(),&req);
+	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<VlkImage&>(img).GetAnvilImage().get_image(),&req);
 	auto buf = AllocateDeviceImageBuffer(req.size,req.alignment,data);
-	img.SetMemoryBuffer(buf);
+	img.SetMemoryBuffer(*buf);
 }
-std::shared_ptr<Buffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
 {
-	auto fAllocateImgBuf = [this,size,alignment,data](prosper::DynamicResizableBuffer &deviceImgBuf) -> std::shared_ptr<Buffer> {
+	static uint64_t totalAllocated = 0;
+	totalAllocated += size;
+	auto fAllocateImgBuf = [this,size,alignment,data](prosper::IDynamicResizableBuffer &deviceImgBuf) -> std::shared_ptr<IBuffer> {
 		return deviceImgBuf.AllocateBuffer(size,alignment,data);
 	};
 	for(auto &deviceImgBuf : m_deviceImgBuffers)
@@ -334,7 +361,7 @@ std::shared_ptr<Buffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,u
 	}
 	
 	// Allocate new image buffer with device memory
-	auto bufferSize = 1ull *(1ull<<30); // 1 GiB
+	uint64_t bufferSize = 512 *1'024 *1'024; // 512 MiB
 	auto maxTotalPercent = 0.5f;
 
 	if(m_deviceImgBuffers.empty() == false)
@@ -349,11 +376,12 @@ std::shared_ptr<Buffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,u
 		std::cout<<"Allocated: "<<numAllocated<<" / "<<imgBuf->GetSize()<<std::endl;
 	}
 
-	std::cout<<"Image of buffer size "<<::util::get_pretty_bytes(size)<<" (alignment "<<alignment<<") was requested, but does not fit into previous buffer(s) ("<<m_deviceImgBuffers.size()<<")! Allocating new buffer of size "<<::util::get_pretty_bytes(size)<<"..."<<std::endl;
+	std::cout<<"Image of buffer size "<<::util::get_pretty_bytes(size)<<" (alignment "<<alignment<<") was requested, but does not fit into previous buffer(s) ("<<m_deviceImgBuffers.size()<<")! Allocating new buffer of size "<<::util::get_pretty_bytes(bufferSize)<<"..."<<std::endl;
+	std::cout<<"Total allocated: "<<::util::get_pretty_bytes(totalAllocated)<<std::endl;
 	util::BufferCreateInfo createInfo {};
-	createInfo.memoryFeatures = util::MemoryFeatureFlags::GPUBulk;
+	createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 	createInfo.size = bufferSize;
-	createInfo.usageFlags = Anvil::BufferUsageFlagBits::NONE;
+	createInfo.usageFlags = BufferUsageFlags::None;
 	auto deviceImgBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,bufferSize,maxTotalPercent);
 	assert(m_deviceImgBuffer);
 	std::cout<<"Device image buffer size: "<<bufferSize<<std::endl;
@@ -364,7 +392,7 @@ std::shared_ptr<Buffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,u
 	return buf;
 }
 
-std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
 {
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
@@ -373,19 +401,19 @@ std::shared_ptr<Buffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,uin
 		return allocatedBuffer;
 	// Couldn't allocate from temp buffer, request size was most likely too large. Fall back to creating a completely new buffer.
 	util::BufferCreateInfo createInfo {};
-	createInfo.memoryFeatures = util::MemoryFeatureFlags::CPUToGPU;
+	createInfo.memoryFeatures = MemoryFeatureFlags::CPUToGPU;
 	createInfo.size = size;
-	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
-		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
-		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
-	return prosper::util::create_buffer(GetDevice(),createInfo,data);
+	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | 
+		BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit |
+		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
+	return CreateBuffer(createInfo,data);
 }
-void Context::AllocateTemporaryBuffer(prosper::Image &img,const void *data)
+void Context::AllocateTemporaryBuffer(prosper::IImage &img,const void *data)
 {
 	VkMemoryRequirements req {};
-	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<Image&>(img).GetAnvilImage().get_image(),&req);
+	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<VlkImage&>(img).GetAnvilImage().get_image(),&req);
 	auto buf = AllocateTemporaryBuffer(req.size,req.alignment,data);
-	img.SetMemoryBuffer(buf);
+	img.SetMemoryBuffer(*buf);
 }
 
 void Context::ReloadSwapchain()
@@ -447,23 +475,23 @@ void Context::OnResolutionChanged(uint32_t width,uint32_t height) {}
 void Context::OnWindowInitialized() {}
 void Context::OnSwapchainInitialized() {}
 
-void Context::SetPresentMode(Anvil::PresentModeKHR presentMode)
+void Context::SetPresentMode(prosper::PresentModeKHR presentMode)
 {
 	if(IsPresentationModeSupported(presentMode) == false)
 	{
 		switch(presentMode)
 		{
-			case Anvil::PresentModeKHR::IMMEDIATE_KHR:
+			case prosper::PresentModeKHR::Immediate:
 				throw std::runtime_error("Immediate present mode not supported!");
 			default:
-				return SetPresentMode(Anvil::PresentModeKHR::FIFO_KHR);
+				return SetPresentMode(prosper::PresentModeKHR::Fifo);
 				
 		}
 	}
 	m_presentMode = presentMode;
 }
-Anvil::PresentModeKHR Context::GetPresentMode() const {return m_presentMode;}
-void Context::ChangePresentMode(Anvil::PresentModeKHR presentMode)
+prosper::PresentModeKHR Context::GetPresentMode() const {return m_presentMode;}
+void Context::ChangePresentMode(prosper::PresentModeKHR presentMode)
 {
 	auto oldPresentMode = GetPresentMode();
 	SetPresentMode(presentMode);
@@ -473,12 +501,12 @@ void Context::ChangePresentMode(Anvil::PresentModeKHR presentMode)
 	ReloadSwapchain();
 }
 
-bool Context::IsPresentationModeSupported(Anvil::PresentModeKHR presentMode) const
+bool Context::IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const
 {
 	if(m_renderingSurfacePtr == nullptr)
 		return true;
 	auto res = false;
-	m_renderingSurfacePtr->supports_presentation_mode(m_physicalDevicePtr,presentMode,&res);
+	m_renderingSurfacePtr->supports_presentation_mode(m_physicalDevicePtr,static_cast<Anvil::PresentModeKHR>(presentMode),&res);
 	return res;
 }
 
@@ -545,22 +573,22 @@ void Context::GetScissorViewportInfo(VkRect2D *out_scissors,VkViewport *out_view
 	}
 }
 
-const std::shared_ptr<prosper::PrimaryCommandBuffer> &Context::GetSetupCommandBuffer()
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Context::GetSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer != nullptr)
 		return m_setupCmdBuffer;
 	auto &dev = GetDevice();
-	m_setupCmdBuffer = prosper::PrimaryCommandBuffer::Create(*this,dev.get_command_pool_for_queue_family_index(dev.get_universal_queue(0)->get_queue_family_index())->alloc_primary_level_command_buffer(),Anvil::QueueFamilyType::UNIVERSAL);
-	if(static_cast<Anvil::PrimaryCommandBuffer&>(m_setupCmdBuffer->GetAnvilCommandBuffer()).start_recording(true,false) == false)
+	m_setupCmdBuffer = prosper::VlkPrimaryCommandBuffer::Create(*this,dev.get_command_pool_for_queue_family_index(dev.get_universal_queue(0)->get_queue_family_index())->alloc_primary_level_command_buffer(),prosper::QueueFamilyType::Universal);
+	if(static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer()).start_recording(true,false) == false)
 		throw std::runtime_error("Unable to start recording for primary level command buffer!");
 	return m_setupCmdBuffer;
 }
 
-const std::shared_ptr<prosper::PrimaryCommandBuffer> &Context::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Context::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
 
-const std::shared_ptr<prosper::PrimaryCommandBuffer> &Context::GetDrawCommandBuffer(uint32_t swapchainIdx) const
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Context::GetDrawCommandBuffer(uint32_t swapchainIdx) const
 {
-	static std::shared_ptr<prosper::PrimaryCommandBuffer> nptr = nullptr;
+	static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
 	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
 }
 
@@ -568,10 +596,10 @@ void Context::FlushSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer == nullptr)
 		return;
-	auto bSuccess = static_cast<Anvil::PrimaryCommandBuffer&>(m_setupCmdBuffer->GetAnvilCommandBuffer()).stop_recording();
+	auto bSuccess = static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer()).stop_recording();
 	auto &dev = GetDevice();
 	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&m_setupCmdBuffer->GetAnvilCommandBuffer(),0u,nullptr,
+		&static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer(),0u,nullptr,
 		0u,nullptr,nullptr,true
 	));
 	m_setupCmdBuffer = nullptr;
@@ -629,10 +657,9 @@ void Context::Initialize(const CreateInfo &createInfo)
 	InitDummyTextures();
 	InitDummyBuffer();
 	umath::set_flag(m_stateFlags,StateFlags::Initialized);
-	auto &dev = GetDevice();
-	s_vertexBuffer = prosper::util::get_square_vertex_buffer(dev);
-	s_uvBuffer = prosper::util::get_square_uv_buffer(dev);
-	s_vertexUvBuffer = prosper::util::get_square_vertex_uv_buffer(dev);
+	s_vertexBuffer = prosper::util::get_square_vertex_buffer(*this);
+	s_uvBuffer = prosper::util::get_square_uv_buffer(*this);
+	s_vertexUvBuffer = prosper::util::get_square_vertex_uv_buffer(*this);
 
 	auto &shaderManager = GetShaderManager();
 	shaderManager.RegisterShader("copy_image",[](prosper::Context &context,const std::string &identifier) {return new ShaderCopyImage(context,identifier);});
@@ -640,19 +667,19 @@ void Context::Initialize(const CreateInfo &createInfo)
 	shaderManager.RegisterShader("blur_vertical",[](prosper::Context &context,const std::string &identifier) {return new ShaderBlurV(context,identifier);});
 }
 
-bool Context::IsImageFormatSupported(Anvil::Format format,Anvil::ImageUsageFlags usageFlags,Anvil::ImageType type,Anvil::ImageTiling tiling) const
+bool Context::IsImageFormatSupported(prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type,prosper::ImageTiling tiling) const
 {
 	return m_devicePtr->get_physical_device_image_format_properties(
 		Anvil::ImageFormatPropertiesQuery{
-			format,type,tiling,
-			usageFlags,{}
+			static_cast<Anvil::Format>(format),static_cast<Anvil::ImageType>(type),static_cast<Anvil::ImageTiling>(tiling),
+			static_cast<Anvil::ImageUsageFlagBits>(usageFlags),{}
 		}
 	);
 }
 
 void Context::InitBuffers() {}
 
-void Context::DrawFrame(prosper::PrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image) {}
+void Context::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image) {}
 
 ShaderManager &Context::GetShaderManager() const {return *m_shaderManager;}
 
@@ -661,17 +688,17 @@ ShaderManager &Context::GetShaderManager() const {return *m_shaderManager;}
 
 const std::shared_ptr<Texture> &Context::GetDummyTexture() const {return m_dummyTexture;}
 const std::shared_ptr<Texture> &Context::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
-const std::shared_ptr<Buffer> &Context::GetDummyBuffer() const {return m_dummyBuffer;}
-const std::shared_ptr<DynamicResizableBuffer> &Context::GetTemporaryBuffer() const {return m_tmpBuffer;}
-const std::vector<std::shared_ptr<DynamicResizableBuffer>> &Context::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
+const std::shared_ptr<IBuffer> &Context::GetDummyBuffer() const {return m_dummyBuffer;}
+const std::shared_ptr<IDynamicResizableBuffer> &Context::GetTemporaryBuffer() const {return m_tmpBuffer;}
+const std::vector<std::shared_ptr<IDynamicResizableBuffer>> &Context::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
 void Context::InitDummyBuffer()
 {
 	auto &dev = GetDevice();
 	prosper::util::BufferCreateInfo createInfo {};
-	createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::DeviceLocal;
+	createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
 	createInfo.size = 1ull;
-	createInfo.usageFlags = Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
-	m_dummyBuffer = prosper::util::create_buffer(dev,createInfo);
+	createInfo.usageFlags = BufferUsageFlags::UniformBufferBit | BufferUsageFlags::StorageBufferBit | BufferUsageFlags::VertexBufferBit;
+	m_dummyBuffer = CreateBuffer(createInfo);
 	assert(m_dummyBuffer);
 	m_dummyBuffer->SetDebugName("context_dummy_buf");
 }
@@ -679,41 +706,41 @@ void Context::InitDummyTextures()
 {
 	auto &dev = GetDevice();
 	prosper::util::ImageCreateInfo createInfo {};
-	createInfo.format = Anvil::Format::R8G8B8A8_UNORM;
+	createInfo.format = Format::R8G8B8A8_UNorm;
 	createInfo.height = 1u;
 	createInfo.width = 1u;
-	createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::DeviceLocal;
-	createInfo.postCreateLayout = Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
-	createInfo.usage = Anvil::ImageUsageFlagBits::SAMPLED_BIT;
-	auto img = prosper::util::create_image(dev,createInfo);
+	createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+	createInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
+	createInfo.usage = ImageUsageFlags::SampledBit;
+	auto img = CreateImage(createInfo);
 	assert(img);
 	prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
 	prosper::util::SamplerCreateInfo samplerCreateInfo {};
-	m_dummyTexture = prosper::util::create_texture(dev,{},std::move(img),&imgViewCreateInfo,&samplerCreateInfo);
+	m_dummyTexture = CreateTexture({},*img,imgViewCreateInfo,samplerCreateInfo);
 	assert(m_dummyTexture);
 	m_dummyTexture->SetDebugName("context_dummy_tex");
 
 	createInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
 	createInfo.layers = 6u;
-	auto imgCubemap = prosper::util::create_image(dev,createInfo);
-	m_dummyCubemapTexture = prosper::util::create_texture(dev,{},std::move(imgCubemap),&imgViewCreateInfo,&samplerCreateInfo);
+	auto imgCubemap = CreateImage(createInfo);
+	m_dummyCubemapTexture = CreateTexture({},*imgCubemap,imgViewCreateInfo,samplerCreateInfo);
 	assert(m_dummyCubemapTexture);
 	m_dummyCubemapTexture->SetDebugName("context_dummy_cubemap_tex");
 }
 
-void Context::SubmitCommandBuffer(prosper::CommandBuffer &cmd,bool shouldBlock,Anvil::Fence *fence) {SubmitCommandBuffer(cmd.GetAnvilCommandBuffer(),cmd.GetQueueFamilyType(),shouldBlock,fence);}
-void Context::SubmitCommandBuffer(Anvil::CommandBufferBase &cmd,Anvil::QueueFamilyType queueFamilyType,bool shouldBlock,Anvil::Fence *fence)
+void Context::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,bool shouldBlock,prosper::IFence *fence) {SubmitCommandBuffer(cmd,cmd.GetQueueFamilyType(),shouldBlock,fence);}
+void Context::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock,prosper::IFence *fence)
 {
 	switch(queueFamilyType)
 	{
-		case Anvil::QueueFamilyType::UNIVERSAL:
+		case prosper::QueueFamilyType::Universal:
 			m_devicePtr->get_universal_queue(0u)->submit(Anvil::SubmitInfo::create(
-				&cmd,0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence
+				&dynamic_cast<VlkCommandBuffer&>(cmd).GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<Fence*>(fence)->GetAnvilFence() : nullptr
 			));
 			break;
-		case Anvil::QueueFamilyType::COMPUTE:
+		case prosper::QueueFamilyType::Compute:
 			m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(
-				&cmd,0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence
+				&dynamic_cast<VlkCommandBuffer&>(cmd).GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<Fence*>(fence)->GetAnvilFence() : nullptr
 			));
 			break;
 		default:
@@ -723,31 +750,31 @@ void Context::SubmitCommandBuffer(Anvil::CommandBufferBase &cmd,Anvil::QueueFami
 
 bool Context::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
 bool Context::ScheduleRecordUpdateBuffer(
-	const std::shared_ptr<Buffer> &buffer,uint64_t offset,uint64_t size,const void *data,const BufferUpdateInfo &updateInfo
+	const std::shared_ptr<IBuffer> &buffer,uint64_t offset,uint64_t size,const void *data,const BufferUpdateInfo &updateInfo
 )
 {
 	if(size == 0u)
 		return true;
-	if((buffer->GetBaseAnvilBuffer().get_create_info_ptr()->get_usage_flags() &Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT) == Anvil::BufferUsageFlagBits::NONE)
+	if((dynamic_cast<VlkBuffer&>(*buffer).GetBaseAnvilBuffer().get_create_info_ptr()->get_usage_flags() &Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT) == Anvil::BufferUsageFlagBits::NONE)
 		throw std::logic_error("Buffer has to have been created with VK_BUFFER_USAGE_TRANSFER_DST_BIT flag to allow buffer updates on command buffer!");
-	const auto fRecordSrcBarrier = [this,buffer,updateInfo,offset,size](prosper::CommandBuffer &cmdBuffer) {
+	const auto fRecordSrcBarrier = [this,buffer,updateInfo,offset,size](prosper::ICommandBuffer &cmdBuffer) {
 		if(updateInfo.srcAccessMask.has_value())
 		{
-			prosper::util::record_buffer_barrier(
-				*cmdBuffer,*buffer,
-				*updateInfo.srcStageMask,Anvil::PipelineStageFlagBits::TRANSFER_BIT,
-				*updateInfo.srcAccessMask,Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,
+			cmdBuffer.RecordBufferBarrier(
+				*buffer,
+				*updateInfo.srcStageMask,PipelineStageFlags::TransferBit,
+				*updateInfo.srcAccessMask,AccessFlags::TransferWriteBit,
 				offset,size
 			);
 		}
 	};
-	const auto fUpdateBuffer = [](prosper::CommandBuffer &cmdBuffer,prosper::Buffer &buffer,const uint8_t *data,uint64_t offset,uint64_t size) {
+	const auto fUpdateBuffer = [](prosper::ICommandBuffer &cmdBuffer,prosper::IBuffer &buffer,const uint8_t *data,uint64_t offset,uint64_t size) {
 		auto dataOffset = 0ull;
 		const auto maxUpdateSize = 65'536u; // Maximum size allowed per vkCmdUpdateBuffer-call (see https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		do
 		{
 			auto updateSize = umath::min(static_cast<uint64_t>(maxUpdateSize),size);
-			if(prosper::util::record_update_buffer(cmdBuffer.GetAnvilCommandBuffer(),buffer,offset,updateSize,data +dataOffset) == false)
+			if(cmdBuffer.RecordUpdateBuffer(buffer,offset,updateSize,data +dataOffset) == false)
 				return false;
 			dataOffset += maxUpdateSize;
 			offset += maxUpdateSize;
@@ -793,17 +820,17 @@ bool Context::ScheduleRecordUpdateBuffer(
 	if(IsRecording())
 	{
 		auto &drawCmd = GetDrawCommandBuffer();
-		if(prosper::util::get_current_render_pass_target(**drawCmd) == false) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
+		if(prosper::util::get_current_render_pass_target(*drawCmd) == false) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);
 			if(fUpdateBuffer(*drawCmd,*buffer,static_cast<const uint8_t*>(data),offset,size) == false)
 				return false;
 			if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value())
 			{
-				prosper::util::record_buffer_barrier(
-					**drawCmd,*buffer,
-					Anvil::PipelineStageFlagBits::TRANSFER_BIT,*updateInfo.postUpdateBarrierStageMask,
-					Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,*updateInfo.postUpdateBarrierAccessMask,
+				drawCmd->RecordBufferBarrier(
+					*buffer,
+					PipelineStageFlags::TransferBit,*updateInfo.postUpdateBarrierStageMask,
+					AccessFlags::TransferWriteBit,*updateInfo.postUpdateBarrierAccessMask,
 					offset,size
 				);
 			}
@@ -813,16 +840,16 @@ bool Context::ScheduleRecordUpdateBuffer(
 	// We'll have to make a copy of the data for later
 	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
 	memcpy(ptrData->data(),data,size);
-	m_scheduledBufferUpdates.push([buffer,fRecordSrcBarrier,fUpdateBuffer,offset,size,ptrData,updateInfo](prosper::CommandBuffer &cmdBuffer) {
+	m_scheduledBufferUpdates.push([buffer,fRecordSrcBarrier,fUpdateBuffer,offset,size,ptrData,updateInfo](prosper::ICommandBuffer &cmdBuffer) {
 		fRecordSrcBarrier(cmdBuffer);
 		fUpdateBuffer(cmdBuffer,*buffer,ptrData->data(),offset,size);
 
 		if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value())
 		{
-			prosper::util::record_buffer_barrier(
-				*cmdBuffer,*buffer,
-				Anvil::PipelineStageFlagBits::TRANSFER_BIT,*updateInfo.postUpdateBarrierStageMask,
-				Anvil::AccessFlagBits::TRANSFER_WRITE_BIT,*updateInfo.postUpdateBarrierAccessMask,
+			cmdBuffer.RecordBufferBarrier(
+				*buffer,
+				PipelineStageFlags::TransferBit,*updateInfo.postUpdateBarrierStageMask,
+				AccessFlags::TransferWriteBit,*updateInfo.postUpdateBarrierAccessMask,
 				offset,size
 			);
 		}
@@ -830,12 +857,12 @@ bool Context::ScheduleRecordUpdateBuffer(
 	return true;
 }
 
-bool Context::GetUniversalQueueFamilyIndex(Anvil::QueueFamilyType queueFamilyType,uint32_t &queueFamilyIndex) const
+bool Context::GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFamilyType,uint32_t &queueFamilyIndex) const
 {
     auto n_universal_queue_family_indices = 0u;
     const uint32_t *universal_queue_family_indices = nullptr;
     if(m_devicePtr->get_queue_family_indices_for_queue_family_type(
-		queueFamilyType,
+		static_cast<Anvil::QueueFamilyType>(queueFamilyType),
 		&n_universal_queue_family_indices,
 		&universal_queue_family_indices
 	) == false || n_universal_queue_family_indices == 0u)
@@ -843,25 +870,28 @@ bool Context::GetUniversalQueueFamilyIndex(Anvil::QueueFamilyType queueFamilyTyp
 	queueFamilyIndex = universal_queue_family_indices[0];
 	return true;
 }
-std::shared_ptr<prosper::PrimaryCommandBuffer> Context::AllocatePrimaryLevelCommandBuffer(Anvil::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
+std::shared_ptr<prosper::IPrimaryCommandBuffer> Context::AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
 {
 	if(GetUniversalQueueFamilyIndex(queueFamilyType,universalQueueFamilyIndex) == false)
 	{
-		if(queueFamilyType != Anvil::QueueFamilyType::UNIVERSAL)
-			return AllocatePrimaryLevelCommandBuffer(Anvil::QueueFamilyType::UNIVERSAL,universalQueueFamilyIndex);
+		if(queueFamilyType != prosper::QueueFamilyType::Universal)
+			return AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal,universalQueueFamilyIndex);
 		return nullptr;
 	}
-	return prosper::PrimaryCommandBuffer::Create(*this,GetDevice().get_command_pool_for_queue_family_index(universalQueueFamilyIndex)->alloc_primary_level_command_buffer(),queueFamilyType);
+	return prosper::VlkPrimaryCommandBuffer::Create(*this,GetDevice().get_command_pool_for_queue_family_index(universalQueueFamilyIndex)->alloc_primary_level_command_buffer(),queueFamilyType);
 }
-std::shared_ptr<prosper::SecondaryCommandBuffer> Context::AllocateSecondaryLevelCommandBuffer(Anvil::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
+std::shared_ptr<prosper::ISecondaryCommandBuffer> Context::AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
 {
 	if(GetUniversalQueueFamilyIndex(queueFamilyType,universalQueueFamilyIndex) == false)
 	{
-		if(queueFamilyType != Anvil::QueueFamilyType::UNIVERSAL)
-			return AllocateSecondaryLevelCommandBuffer(Anvil::QueueFamilyType::UNIVERSAL,universalQueueFamilyIndex);
+		if(queueFamilyType != prosper::QueueFamilyType::Universal)
+			return AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType::Universal,universalQueueFamilyIndex);
 		return nullptr;
 	}
-	return prosper::SecondaryCommandBuffer::Create(*this,GetDevice().get_command_pool_for_queue_family_index(universalQueueFamilyIndex)->alloc_secondary_level_command_buffer(),queueFamilyType);
+	return std::dynamic_pointer_cast<ISecondaryCommandBuffer>(prosper::VlkSecondaryCommandBuffer::Create(
+		*this,GetDevice().get_command_pool_for_queue_family_index(universalQueueFamilyIndex)->alloc_secondary_level_command_buffer(),
+		queueFamilyType
+	));
 }
 
 void Context::InitMainRenderPass()
@@ -898,13 +928,15 @@ void Context::InitMainRenderPass()
 
 void Context::InitTemporaryBuffer()
 {
+	auto bufferSize = 512ull *1'024ull *1'024ull; // 512 MiB
+	auto maxBufferSize = 1ull *1'024ull *1'024ull *1'024ull; // 1 GiB
 	util::BufferCreateInfo createInfo {};
-	createInfo.memoryFeatures = util::MemoryFeatureFlags::CPUToGPU;
-	createInfo.size = 67'108'864 *2; // 256 MiB
-	createInfo.usageFlags = Anvil::BufferUsageFlagBits::INDEX_BUFFER_BIT | Anvil::BufferUsageFlagBits::STORAGE_BUFFER_BIT | 
-		Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT | Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT |
-		Anvil::BufferUsageFlagBits::UNIFORM_BUFFER_BIT | Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
-	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,1'048'576 *512 /* 512 MiB */);
+	createInfo.memoryFeatures = MemoryFeatureFlags::CPUToGPU;
+	createInfo.size = bufferSize;
+	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | 
+		BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit |
+		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
+	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,maxBufferSize);
 	assert(m_tmpBuffer);
 	m_tmpBuffer->SetPermanentlyMapped(true);
 }
@@ -998,7 +1030,7 @@ void Context::InitCommandBuffers()
     /* Set up rendering command buffers. We need one per swap-chain image. */
 	for(auto n_current_swapchain_image=0u;n_current_swapchain_image < m_commandBuffers.size();++n_current_swapchain_image)
 	{
-		auto cmd_buffer_ptr = prosper::PrimaryCommandBuffer::Create(*this,m_devicePtr->get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(),Anvil::QueueFamilyType::UNIVERSAL);
+		auto cmd_buffer_ptr = prosper::VlkPrimaryCommandBuffer::Create(*this,m_devicePtr->get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(),prosper::QueueFamilyType::Universal);
 		cmd_buffer_ptr->SetDebugName("swapchain_cmd" +std::to_string(n_current_swapchain_image));
 		//m_devicePtr->get_command_pool(Anvil::QUEUE_FAMILY_TYPE_UNIVERSAL)->alloc_primary_level_command_buffer();
 
@@ -1046,32 +1078,77 @@ void Context::InitSemaphores()
 void Context::InitSwapchain()
 {
 	m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(m_instancePtr.get(),m_devicePtr.get(),m_windowPtr.get()));
+	if(m_renderingSurfacePtr->get_width() == 0 || m_renderingSurfacePtr->get_height() == 0)
+		return; // Minimized?
 
+	m_n_swapchain_image = 0;
 	m_renderingSurfacePtr->set_name("Main rendering surface");
 	SetPresentMode(GetPresentMode()); // Update present mode to make sure it's supported by out surface
 
 	auto presentMode = GetPresentMode();
 	switch(presentMode)
 	{
-		case Anvil::PresentModeKHR::MAILBOX_KHR:
+		case prosper::PresentModeKHR::Mailbox:
 			m_numSwapchainImages = 3u;
 			break;
-		case Anvil::PresentModeKHR::FIFO_KHR:
+		case prosper::PresentModeKHR::Fifo:
 			m_numSwapchainImages = 2u;
 			break;
 		default:
 			m_numSwapchainImages = 1u;
 	}
-	m_keepAliveResources.resize(m_numSwapchainImages);
-	m_commandBuffers.resize(m_keepAliveResources.size());
-	m_cmdFences.resize(m_commandBuffers.size());
-	m_fbos.resize(GetSwapchainImageCount());
 
-	m_swapchainPtr = m_pGpuDevice->create_swapchain(
+	m_swapchainImages.clear();
+	m_cmdFences.clear();
+	m_commandBuffers.clear();
+	m_fbos.clear();
+
+	m_commandBuffers.resize(m_numSwapchainImages);
+	m_cmdFences.resize(m_numSwapchainImages);
+	m_fbos.resize(m_numSwapchainImages);
+
+	auto createInfo = Anvil::SwapchainCreateInfo::create(
+		m_pGpuDevice,
 		m_renderingSurfacePtr.get(),m_windowPtr.get(),
-		Anvil::Format::B8G8R8A8_UNORM,Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR,presentMode,
+		Anvil::Format::B8G8R8A8_UNORM,Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR,static_cast<Anvil::PresentModeKHR>(presentMode),
 		Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT,m_numSwapchainImages
 	);
+	createInfo->set_mt_safety(Anvil::MTSafety::ENABLED);
+
+	auto recreateSwapchain = (m_swapchainPtr != nullptr);
+	if(recreateSwapchain)
+		createInfo->set_old_swapchain(m_swapchainPtr.get());
+	m_swapchainPtr = Anvil::Swapchain::create(std::move(createInfo));
+
+	/*
+	m_swapchainPtr = m_pGpuDevice->create_swapchain(
+		m_renderingSurfacePtr.get(),m_windowPtr.get(),
+		Anvil::Format::B8G8R8A8_UNORM,Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR,static_cast<Anvil::PresentModeKHR>(presentMode),
+		Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT,m_numSwapchainImages
+	);*/
+
+	auto nSwapchainImages = m_swapchainPtr->get_n_images();
+	m_swapchainImages.resize(nSwapchainImages);
+	for(auto i=decltype(nSwapchainImages){0u};i<nSwapchainImages;++i)
+	{
+		auto &img = *m_swapchainPtr->get_image(i);
+		auto *anvCreateInfo = img.get_create_info_ptr();
+		prosper::util::ImageCreateInfo createInfo {};
+		createInfo.format = static_cast<prosper::Format>(anvCreateInfo->get_format());
+		createInfo.width = anvCreateInfo->get_base_mip_width();
+		createInfo.height = anvCreateInfo->get_base_mip_height();
+		createInfo.layers = anvCreateInfo->get_n_layers();
+		createInfo.tiling = static_cast<prosper::ImageTiling>(anvCreateInfo->get_tiling());
+		createInfo.samples = static_cast<prosper::SampleCountFlags>(anvCreateInfo->get_sample_count());
+		createInfo.usage = static_cast<prosper::ImageUsageFlags>(anvCreateInfo->get_usage_flags().get_vk());
+		createInfo.type = static_cast<prosper::ImageType>(anvCreateInfo->get_type());
+		createInfo.postCreateLayout = static_cast<prosper::ImageLayout>(anvCreateInfo->get_post_create_image_layout());
+		createInfo.queueFamilyMask = static_cast<prosper::QueueFamilyFlags>(anvCreateInfo->get_queue_families().get_vk());
+		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+		m_swapchainImages.at(i) = VlkImage::Create(*this,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>>{&img,[](Anvil::Image *img) {
+			// Don't delete, image will be destroyed by Anvil
+		}},createInfo,true);
+	}
 
 	m_swapchainPtr->set_name("Main swapchain");
 
@@ -1082,6 +1159,14 @@ void Context::InitSwapchain()
 		anvil_assert_fail();
 
 	m_presentQueuePtr = m_devicePtr->get_queue_for_queue_family_index(present_queue_fams_ptr->at(0),0);
+
+	if(recreateSwapchain)
+	{
+		InitFrameBuffers();
+		InitCommandBuffers();
+	}
+	m_keepAliveResources.clear();
+	m_keepAliveResources.resize(m_numSwapchainImages);
 }
 
 const GLFW::WindowCreationInfo &Context::GetWindowCreationInfo() const {return const_cast<Context*>(this)->GetWindowCreationInfo();}

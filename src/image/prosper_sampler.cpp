@@ -11,21 +11,68 @@
 
 using namespace prosper;
 
-std::shared_ptr<Sampler> prosper::util::create_sampler(Anvil::BaseDevice &dev,const SamplerCreateInfo &createInfo)
-{
-	return Sampler::Create(Context::GetContext(dev),createInfo);
-}
+bool ISampler::Update() {return DoUpdate();}
+
+ISampler::ISampler(Context &context,const prosper::util::SamplerCreateInfo &samplerCreateInfo)
+	: ContextObject(context),std::enable_shared_from_this<ISampler>(),
+	m_createInfo(samplerCreateInfo)
+{}
+
+ISampler::~ISampler() {}
+
+void ISampler::SetMinFilter(Filter filter) {m_createInfo.minFilter = filter;}
+void ISampler::SetMagFilter(Filter filter) {m_createInfo.magFilter = filter;}
+void ISampler::SetMipmapMode(SamplerMipmapMode mipmapMode) {m_createInfo.mipmapMode = mipmapMode;}
+void ISampler::SetAddressModeU(SamplerAddressMode addressMode) {m_createInfo.addressModeU = addressMode;}
+void ISampler::SetAddressModeV(SamplerAddressMode addressMode) {m_createInfo.addressModeV = addressMode;}
+void ISampler::SetAddressModeW(SamplerAddressMode addressMode) {m_createInfo.addressModeW = addressMode;}
+void ISampler::SetLodBias(float bias) {m_createInfo.mipLodBias = bias;}
+void ISampler::SetMaxAnisotropy(float anisotropy) {m_createInfo.maxAnisotropy = anisotropy;}
+void ISampler::SetCompareEnable(bool bEnable) {m_createInfo.compareEnable = bEnable;}
+void ISampler::SetCompareOp(CompareOp compareOp) {m_createInfo.compareOp = compareOp;}
+void ISampler::SetMinLod(float minLod) {m_createInfo.minLod = minLod;}
+void ISampler::SetMaxLod(float maxLod) {m_createInfo.maxLod = maxLod;}
+void ISampler::SetBorderColor(BorderColor borderColor) {m_createInfo.borderColor = borderColor;}
+void ISampler::SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates) {m_createInfo.useUnnormalizedCoordinates = bUseUnnormalizedCoordinates;}
+
+Filter ISampler::GetMinFilter() const {return m_createInfo.minFilter;}
+Filter ISampler::GetMagFilter() const {return m_createInfo.magFilter;}
+SamplerMipmapMode ISampler::GetMipmapMode() const {return m_createInfo.mipmapMode;}
+SamplerAddressMode ISampler::GetAddressModeU() const {return m_createInfo.addressModeU;}
+SamplerAddressMode ISampler::GetAddressModeV() const {return m_createInfo.addressModeV;}
+SamplerAddressMode ISampler::GetAddressModeW() const {return m_createInfo.addressModeW;}
+float ISampler::GetLodBias() const {return m_createInfo.mipLodBias;}
+float ISampler::GetMaxAnisotropy() const {return m_createInfo.maxAnisotropy;}
+bool ISampler::GetCompareEnabled() const {return m_createInfo.compareEnable;}
+CompareOp ISampler::GetCompareOp() const {return m_createInfo.compareOp;}
+float ISampler::GetMinLod() const {return m_createInfo.minLod;}
+float ISampler::GetMaxLod() const {return m_createInfo.maxLod;}
+BorderColor ISampler::GetBorderColor() const {return m_createInfo.borderColor;}
+bool ISampler::GetUseUnnormalizedCoordinates() const {return m_createInfo.useUnnormalizedCoordinates;}
+
+//////////////
 
 std::shared_ptr<Sampler> Sampler::Create(Context &context,const prosper::util::SamplerCreateInfo &createInfo)
 {
 	auto &dev = context.GetDevice();
-	auto sampler = std::shared_ptr<Sampler>(new Sampler(context,createInfo));
+	auto sampler = std::shared_ptr<Sampler>{new Sampler{context,createInfo},[](Sampler *smp) {
+		smp->OnRelease();
+		delete smp;
+	}};
 	if(sampler->Update() == false)
 		return nullptr;
 	return sampler;
 }
 
-bool Sampler::Update()
+Sampler::Sampler(Context &context,const prosper::util::SamplerCreateInfo &samplerCreateInfo)
+	: ISampler{context,samplerCreateInfo}
+{}
+Sampler::~Sampler()
+{
+	if(m_sampler != nullptr)
+		prosper::debug::deregister_debug_object(m_sampler->get_sampler());
+}
+bool Sampler::DoUpdate()
 {
 	auto &createInfo = m_createInfo;
 	auto &dev = GetDevice();
@@ -35,11 +82,11 @@ bool Sampler::Update()
 		anisotropy = maxDeviceAnisotropy;
 	auto newSampler = Anvil::Sampler::create(
 		Anvil::SamplerCreateInfo::create(
-			&dev,createInfo.magFilter,createInfo.minFilter,
-			createInfo.mipmapMode,createInfo.addressModeU,
-			createInfo.addressModeV,createInfo.addressModeW,
-			createInfo.mipLodBias,anisotropy,createInfo.compareEnable,createInfo.compareOp,
-			createInfo.minLod,createInfo.maxLod,createInfo.borderColor,createInfo.useUnnormalizedCoordinates
+			&dev,static_cast<Anvil::Filter>(createInfo.magFilter),static_cast<Anvil::Filter>(createInfo.minFilter),
+			static_cast<Anvil::SamplerMipmapMode>(createInfo.mipmapMode),static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeU),
+			static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeV),static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeW),
+			createInfo.mipLodBias,anisotropy,createInfo.compareEnable,static_cast<Anvil::CompareOp>(createInfo.compareOp),
+			createInfo.minLod,createInfo.maxLod,static_cast<Anvil::BorderColor>(createInfo.borderColor),createInfo.useUnnormalizedCoordinates
 		)
 	);
 	if(newSampler != nullptr)
@@ -52,48 +99,6 @@ bool Sampler::Update()
 	}
 	return false;
 }
-
-Sampler::Sampler(Context &context,const prosper::util::SamplerCreateInfo &samplerCreateInfo)
-	: ContextObject(context),std::enable_shared_from_this<Sampler>(),
-	m_createInfo(samplerCreateInfo)
-{}
-
-Sampler::~Sampler()
-{
-	if(m_sampler != nullptr)
-		prosper::debug::deregister_debug_object(m_sampler->get_sampler());
-}
-
-void Sampler::SetMinFilter(Anvil::Filter filter) {m_createInfo.minFilter = filter;}
-void Sampler::SetMagFilter(Anvil::Filter filter) {m_createInfo.magFilter = filter;}
-void Sampler::SetMipmapMode(Anvil::SamplerMipmapMode mipmapMode) {m_createInfo.mipmapMode = mipmapMode;}
-void Sampler::SetAddressModeU(Anvil::SamplerAddressMode addressMode) {m_createInfo.addressModeU = addressMode;}
-void Sampler::SetAddressModeV(Anvil::SamplerAddressMode addressMode) {m_createInfo.addressModeV = addressMode;}
-void Sampler::SetAddressModeW(Anvil::SamplerAddressMode addressMode) {m_createInfo.addressModeW = addressMode;}
-void Sampler::SetLodBias(float bias) {m_createInfo.mipLodBias = bias;}
-void Sampler::SetMaxAnisotropy(float anisotropy) {m_createInfo.maxAnisotropy = anisotropy;}
-void Sampler::SetCompareEnable(bool bEnable) {m_createInfo.compareEnable = bEnable;}
-void Sampler::SetCompareOp(Anvil::CompareOp compareOp) {m_createInfo.compareOp = compareOp;}
-void Sampler::SetMinLod(float minLod) {m_createInfo.minLod = minLod;}
-void Sampler::SetMaxLod(float maxLod) {m_createInfo.maxLod = maxLod;}
-void Sampler::SetBorderColor(Anvil::BorderColor borderColor) {m_createInfo.borderColor = borderColor;}
-void Sampler::SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates) {m_createInfo.useUnnormalizedCoordinates = bUseUnnormalizedCoordinates;}
-
-Anvil::Filter Sampler::GetMinFilter() const {return m_createInfo.minFilter;}
-Anvil::Filter Sampler::GetMagFilter() const {return m_createInfo.magFilter;}
-Anvil::SamplerMipmapMode Sampler::GetMipmapMode() const {return m_createInfo.mipmapMode;}
-Anvil::SamplerAddressMode Sampler::GetAddressModeU() const {return m_createInfo.addressModeU;}
-Anvil::SamplerAddressMode Sampler::GetAddressModeV() const {return m_createInfo.addressModeV;}
-Anvil::SamplerAddressMode Sampler::GetAddressModeW() const {return m_createInfo.addressModeW;}
-float Sampler::GetLodBias() const {return m_createInfo.mipLodBias;}
-float Sampler::GetMaxAnisotropy() const {return m_createInfo.maxAnisotropy;}
-bool Sampler::GetCompareEnabled() const {return m_createInfo.compareEnable;}
-Anvil::CompareOp Sampler::GetCompareOp() const {return m_createInfo.compareOp;}
-float Sampler::GetMinLod() const {return m_createInfo.minLod;}
-float Sampler::GetMaxLod() const {return m_createInfo.maxLod;}
-Anvil::BorderColor Sampler::GetBorderColor() const {return m_createInfo.borderColor;}
-bool Sampler::GetUseUnnormalizedCoordinates() const {return m_createInfo.useUnnormalizedCoordinates;}
-
 Anvil::Sampler &Sampler::GetAnvilSampler() const {return *m_sampler;}
 Anvil::Sampler &Sampler::operator*() {return *m_sampler;}
 const Anvil::Sampler &Sampler::operator*() const {return const_cast<Sampler*>(this)->operator*();}

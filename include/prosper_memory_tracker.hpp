@@ -13,8 +13,7 @@
 #pragma warning(disable : 4251)
 namespace prosper
 {
-	class Buffer;
-	class Image;
+	class IBuffer;
 	class DLLPROSPER MemoryTracker
 	{
 	public:
@@ -42,10 +41,10 @@ namespace prosper
 		void GetResources(uint32_t memType,std::vector<const Resource*> &outResources,Resource::TypeFlags typeFlags=Resource::TypeFlags::Any) const;
 		const std::vector<Resource> &GetResources() const;
 
-		void AddResource(Buffer &buffer);
-		void AddResource(Image &buffer);
-		void RemoveResource(Buffer &buffer);
-		void RemoveResource(Image &buffer);
+		void AddResource(IBuffer &buffer);
+		void AddResource(IImage &buffer);
+		void RemoveResource(IBuffer &buffer);
+		void RemoveResource(IImage &buffer);
 	private:
 		void RemoveResource(void *resource);
 		MemoryTracker()=default;

@@ -10,10 +10,10 @@
 
 using namespace prosper;
 
-Anvil::Format prosper::util::get_square_vertex_format() {return Anvil::Format::R32G32_SFLOAT;}
-Anvil::Format prosper::util::get_square_uv_format() {return Anvil::Format::R32G32_SFLOAT;}
+prosper::Format prosper::util::get_square_vertex_format() {return prosper::Format::R32G32_SFloat;}
+prosper::Format prosper::util::get_square_uv_format() {return prosper::Format::R32G32_SFloat;}
 
-std::shared_ptr<Buffer> prosper::util::get_square_vertex_uv_buffer(Anvil::BaseDevice &dev)
+std::shared_ptr<IBuffer> prosper::util::get_square_vertex_uv_buffer(prosper::Context &context)
 {
 #pragma pack(push,1)
 	struct VertexData
@@ -22,8 +22,8 @@ std::shared_ptr<Buffer> prosper::util::get_square_vertex_uv_buffer(Anvil::BaseDe
 		Vector2 uv;
 	};
 #pragma pack(pop)
-	static std::weak_ptr<Buffer> wpBuffer = {};
-	std::shared_ptr<Buffer> buf = nullptr;
+	static std::weak_ptr<IBuffer> wpBuffer = {};
+	std::shared_ptr<IBuffer> buf = nullptr;
 	if(wpBuffer.expired())
 	{
 		auto &vertices = get_square_vertices();
@@ -38,10 +38,10 @@ std::shared_ptr<Buffer> prosper::util::get_square_vertex_uv_buffer(Anvil::BaseDe
 			vertexData.push_back({v,uv});
 		}
 		prosper::util::BufferCreateInfo createInfo {};
-		createInfo.usageFlags = Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
+		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertexData.size() *sizeof(vertexData.front());
-		createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::GPUBulk;
-		buf = prosper::util::create_buffer(dev,createInfo,vertexData.data());
+		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		buf = context.CreateBuffer(createInfo,vertexData.data());
 		buf->SetDebugName("square_vertex_uv_buf");
 		wpBuffer = buf;
 	}
@@ -49,18 +49,18 @@ std::shared_ptr<Buffer> prosper::util::get_square_vertex_uv_buffer(Anvil::BaseDe
 		buf = wpBuffer.lock();
 	return buf;
 }
-std::shared_ptr<Buffer> prosper::util::get_square_vertex_buffer(Anvil::BaseDevice &dev)
+std::shared_ptr<IBuffer> prosper::util::get_square_vertex_buffer(prosper::Context &context)
 {
-	static std::weak_ptr<Buffer> wpBuffer = {};
-	std::shared_ptr<Buffer> buf = nullptr;
+	static std::weak_ptr<IBuffer> wpBuffer = {};
+	std::shared_ptr<IBuffer> buf = nullptr;
 	if(wpBuffer.expired())
 	{
 		auto &vertices = get_square_vertices();
 		prosper::util::BufferCreateInfo createInfo {};
-		createInfo.usageFlags = Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
+		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertices.size() *sizeof(Vector2);
-		createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::GPUBulk;
-		buf = prosper::util::create_buffer(dev,createInfo,vertices.data());
+		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		buf = context.CreateBuffer(createInfo,vertices.data());
 		buf->SetDebugName("square_vertex_buf");
 		wpBuffer = buf;
 	}
@@ -68,18 +68,18 @@ std::shared_ptr<Buffer> prosper::util::get_square_vertex_buffer(Anvil::BaseDevic
 		buf = wpBuffer.lock();
 	return buf;
 }
-std::shared_ptr<Buffer> prosper::util::get_square_uv_buffer(Anvil::BaseDevice &dev)
+std::shared_ptr<IBuffer> prosper::util::get_square_uv_buffer(prosper::Context &context)
 {
-	static std::weak_ptr<Buffer> wpBuffer = {};
-	std::shared_ptr<Buffer> buf = nullptr;
+	static std::weak_ptr<IBuffer> wpBuffer = {};
+	std::shared_ptr<IBuffer> buf = nullptr;
 	if(wpBuffer.expired())
 	{
 		auto &uvCoordinates = get_square_uv_coordinates();
 		prosper::util::BufferCreateInfo createInfo {};
-		createInfo.usageFlags = Anvil::BufferUsageFlagBits::VERTEX_BUFFER_BIT;
+		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = uvCoordinates.size() *sizeof(Vector2);
-		createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::GPUBulk;
-		buf = prosper::util::create_buffer(dev,createInfo,uvCoordinates.data());
+		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		buf = context.CreateBuffer(createInfo,uvCoordinates.data());
 		buf->SetDebugName("square_uv_buf");
 		wpBuffer = buf;
 	}

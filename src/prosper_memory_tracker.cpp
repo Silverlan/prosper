@@ -6,6 +6,10 @@
 #include "prosper_memory_tracker.hpp"
 #include "buffers/prosper_uniform_resizable_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
+#include "buffers/vk_buffer.hpp"
+#include "buffers/vk_dynamic_resizable_buffer.hpp"
+#include "buffers/vk_uniform_resizable_buffer.hpp"
+#include "image/vk_image.hpp"
 #include <wrappers/memory_block.h>
 
 using namespace prosper;
@@ -16,7 +20,7 @@ Anvil::MemoryBlock *MemoryTracker::Resource::GetMemoryBlock(uint32_t i) const
 		return nullptr;
 	if((typeFlags &Resource::TypeFlags::BufferBit) != Resource::TypeFlags::None)
 	{
-		auto &anvBuffer = static_cast<prosper::Buffer*>(resource)->GetAnvilBuffer();
+		auto &anvBuffer = static_cast<prosper::VlkBuffer*>(resource)->GetAnvilBuffer();
 		if(i >= anvBuffer.get_n_memory_blocks())
 			return nullptr;
 		return anvBuffer.get_memory_block(i);
@@ -25,7 +29,7 @@ Anvil::MemoryBlock *MemoryTracker::Resource::GetMemoryBlock(uint32_t i) const
 	{
 		if(i > 0u)
 			return nullptr;
-		return static_cast<prosper::Image*>(resource)->GetAnvilImage().get_memory_block();
+		return static_cast<prosper::VlkImage*>(resource)->GetAnvilImage().get_memory_block();
 	}
 	return nullptr;
 }
@@ -34,7 +38,7 @@ uint32_t MemoryTracker::Resource::GetMemoryBlockCount() const
 	if(resource == nullptr)
 		return 0u;
 	if((typeFlags &Resource::TypeFlags::BufferBit) != Resource::TypeFlags::None)
-		return static_cast<prosper::Buffer*>(resource)->GetAnvilBuffer().get_n_memory_blocks();
+		return static_cast<prosper::VlkBuffer*>(resource)->GetAnvilBuffer().get_n_memory_blocks();
 	if((typeFlags &Resource::TypeFlags::ImageBit) != Resource::TypeFlags::None)
 		return 1u;
 	return 0u;
@@ -89,20 +93,20 @@ void MemoryTracker::GetResources(uint32_t memType,std::vector<const Resource*> &
 		}
 	}
 }
-void MemoryTracker::AddResource(Buffer &buffer)
+void MemoryTracker::AddResource(IBuffer &buffer)
 {
 	if(buffer.GetParent() != nullptr)
 		return; // We're already tracking the top-most buffer, we usually don't care about child-buffers
 	auto typeFlags = Resource::TypeFlags::BufferBit;
-	if(dynamic_cast<DynamicResizableBuffer*>(&buffer) != nullptr)
+	if(dynamic_cast<VkDynamicResizableBuffer*>(&buffer) != nullptr)
 		typeFlags |= Resource::TypeFlags::DynamicBufferBit;
-	else if(dynamic_cast<UniformResizableBuffer*>(&buffer) != nullptr)
+	else if(dynamic_cast<VkUniformResizableBuffer*>(&buffer) != nullptr)
 		typeFlags |= Resource::TypeFlags::UniformBufferBit;
 	else
 		typeFlags |= Resource::TypeFlags::StandAloneBufferBit;
 	m_resources.push_back(Resource{&buffer,typeFlags});
 }
-void MemoryTracker::AddResource(Image &image)
+void MemoryTracker::AddResource(IImage &image)
 {
 	m_resources.push_back(Resource{&image,Resource::TypeFlags::ImageBit});
 }
@@ -115,5 +119,5 @@ void MemoryTracker::RemoveResource(void *ptrResource)
 		return;
 	m_resources.erase(it);
 }
-void MemoryTracker::RemoveResource(Buffer &buffer) {RemoveResource(&buffer);}
-void MemoryTracker::RemoveResource(Image &image) {RemoveResource(&image);}
+void MemoryTracker::RemoveResource(IBuffer &buffer) {RemoveResource(&buffer);}
+void MemoryTracker::RemoveResource(IImage &image) {RemoveResource(&image);}

@@ -8,6 +8,8 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
+#include "prosper_structs.hpp"
+#include "prosper_enums.hpp"
 #include <wrappers/image.h>
 #include <wrappers/image_view.h>
 #include <wrappers/sampler.h>
@@ -19,45 +21,45 @@
 #pragma warning(disable : 4251)
 namespace prosper
 {
-	class CommandBuffer;
-	class Buffer;
+	class ICommandBuffer;
+	class IBuffer;
 	namespace util {struct ImageCreateInfo;};
-	class DLLPROSPER Image
+	class DLLPROSPER IImage
 		: public ContextObject,
-		public std::enable_shared_from_this<Image>
+		public std::enable_shared_from_this<IImage>
 	{
 	public:
-		static std::shared_ptr<Image> Create(Context &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img,const std::function<void(Image&)> &onDestroyedCallback=nullptr);
-		virtual ~Image() override;
-		Anvil::Image &GetAnvilImage() const;
-		Anvil::Image &operator*();
-		const Anvil::Image &operator*() const;
-		Anvil::Image *operator->();
-		const Anvil::Image *operator->() const;
+		IImage(const IImage&)=delete;
+		IImage &operator=(const IImage&)=delete;
+		virtual ~IImage() override;
 
-		Anvil::ImageType GetType() const;
+		ImageType GetType() const;
 		bool IsCubemap() const;
-		Anvil::ImageUsageFlags GetUsageFlags() const;
+		ImageUsageFlags GetUsageFlags() const;
 		uint32_t GetLayerCount() const;
-		Anvil::ImageTiling GetTiling() const;
-		Anvil::Format GetFormat() const;
-		Anvil::SampleCountFlagBits GetSampleCount() const;
-		vk::Extent2D GetExtents(uint32_t mipLevel=0u) const;
-		Anvil::ImageCreateFlags GetCreateFlags() const;
+		ImageTiling GetTiling() const;
+		Format GetFormat() const;
+		SampleCountFlags GetSampleCount() const;
+		Extent2D GetExtents(uint32_t mipLevel=0u) const;
+		uint32_t GetWidth(uint32_t mipLevel=0u) const;
+		uint32_t GetHeight(uint32_t mipLevel=0u) const;
 		uint32_t GetMipmapCount() const;
-		Anvil::SharingMode GetSharingMode() const;
-		Anvil::ImageAspectFlagBits GetAspectFlags() const;
-		std::optional<Anvil::SubresourceLayout> GetSubresourceLayout(uint32_t layerId=0,uint32_t mipMapIdx=0);
-		void GetCreateInfo(prosper::util::ImageCreateInfo &outCreateInfo) const;
-		const prosper::Buffer *GetMemoryBuffer() const;
-		prosper::Buffer *GetMemoryBuffer();
-		bool SetMemoryBuffer(const std::shared_ptr<prosper::Buffer> &buffer);
+		SharingMode GetSharingMode() const;
+		ImageAspectFlags GetAspectFlags() const;
+		virtual std::optional<util::SubresourceLayout> GetSubresourceLayout(uint32_t layerId=0,uint32_t mipMapIdx=0)=0;
+		const util::ImageCreateInfo &GetCreateInfo() const;
+		const prosper::IBuffer *GetMemoryBuffer() const;
+		prosper::IBuffer *GetMemoryBuffer();
+		bool SetMemoryBuffer(IBuffer &buffer);
+		DeviceSize GetAlignment() const;
 
-		std::shared_ptr<Image> Copy(prosper::CommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
+		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr)=0;
+		std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 	protected:
-		Image(Context &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img);
-		std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> m_image = nullptr;
-		std::shared_ptr<prosper::Buffer> m_buffer = nullptr; // Optional buffer
+		IImage(Context &context,const util::ImageCreateInfo &createInfo);
+		virtual bool DoSetMemoryBuffer(IBuffer &buffer)=0;
+		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr; // Optional buffer
+		util::ImageCreateInfo m_createInfo {};
 	};
 };
 #pragma warning(pop)

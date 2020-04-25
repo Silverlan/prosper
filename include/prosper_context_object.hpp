@@ -30,6 +30,9 @@ namespace prosper
 
 		virtual void SetDebugName(const std::string &name);
 		const std::string &GetDebugName() const;
+
+		// For internal use only
+		virtual void OnRelease() {}
 	private:
 		mutable std::weak_ptr<Context> m_wpContext = {};
 		std::string m_dbgName;

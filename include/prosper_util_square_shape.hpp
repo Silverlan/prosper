@@ -11,25 +11,21 @@
 #include <vector>
 #include <mathutil/uvec.h>
 
-namespace Anvil
-{
-	class BaseDevice;
-};
-
 namespace prosper
 {
-	class Buffer;
+	class IBuffer;
+	class Context;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<Buffer> get_square_vertex_uv_buffer(Anvil::BaseDevice &dev);
-		DLLPROSPER std::shared_ptr<Buffer> get_square_vertex_buffer(Anvil::BaseDevice &dev);
-		DLLPROSPER std::shared_ptr<Buffer> get_square_uv_buffer(Anvil::BaseDevice &dev);
+		DLLPROSPER std::shared_ptr<IBuffer> get_square_vertex_uv_buffer(prosper::Context &context);
+		DLLPROSPER std::shared_ptr<IBuffer> get_square_vertex_buffer(prosper::Context &context);
+		DLLPROSPER std::shared_ptr<IBuffer> get_square_uv_buffer(prosper::Context &context);
 		DLLPROSPER const std::vector<Vector2> &get_square_vertices();
 		DLLPROSPER const std::vector<Vector2> &get_square_uv_coordinates();
 		DLLPROSPER uint32_t get_square_vertex_count();
 
-		DLLPROSPER Anvil::Format get_square_vertex_format();
-		DLLPROSPER Anvil::Format get_square_uv_format();
+		DLLPROSPER prosper::Format get_square_vertex_format();
+		DLLPROSPER prosper::Format get_square_uv_format();
 	};
 };
 

@@ -8,6 +8,10 @@
 #include "image/prosper_image.hpp"
 #include "image/prosper_image_view.hpp"
 #include "image/prosper_sampler.hpp"
+#include "image/vk_image.hpp"
+#include "image/vk_image_view.hpp"
+#include "vk_command_buffer.hpp"
+#include "buffers/vk_buffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_command_buffer.hpp"
@@ -84,25 +88,25 @@ void *prosper::debug::get_object(void *vkObj,ObjectType &type)
 		return nullptr;
 	return s_lookupHandler->GetObject(vkObj,&type);
 }
-prosper::Image *prosper::debug::get_image(vk::Image vkImage)
+prosper::VlkImage *prosper::debug::get_image(vk::Image vkImage)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<Image>(vkImage) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImage>(vkImage) : nullptr;
 }
-prosper::ImageView *prosper::debug::get_image_view(vk::ImageView vkImageView)
+prosper::VlkImageView *prosper::debug::get_image_view(vk::ImageView vkImageView)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<ImageView>(vkImageView) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImageView>(vkImageView) : nullptr;
 }
 prosper::Sampler *prosper::debug::get_sampler(vk::Sampler vkSampler)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<Sampler>(vkSampler) : nullptr;
 }
-prosper::Buffer *prosper::debug::get_buffer(vk::Buffer vkBuffer)
+prosper::VkBuffer *prosper::debug::get_buffer(vk::Buffer vkBuffer)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<Buffer>(vkBuffer) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VkBuffer>(vkBuffer) : nullptr;
 }
-prosper::CommandBuffer *prosper::debug::get_command_buffer(vk::CommandBuffer vkBuffer)
+prosper::VlkCommandBuffer *prosper::debug::get_command_buffer(vk::CommandBuffer vkBuffer)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<CommandBuffer>(vkBuffer) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkCommandBuffer>(vkBuffer) : nullptr;
 }
 prosper::RenderPass *prosper::debug::get_render_pass(vk::RenderPass vkBuffer)
 {
@@ -171,7 +175,7 @@ void prosper::debug::add_debug_object_information(std::string &msgValidation)
 	auto prevPos = 0ull;
 	auto pos = msgValidation.find("0x");
 	auto posEnd = msgValidation.find_first_not_of(hexDigits,pos +2u);
-	prosper::CommandBuffer *cmdBuffer = nullptr;
+	prosper::VlkCommandBuffer *cmdBuffer = nullptr;
 	std::stringstream r;
 	while(pos != std::string::npos && posEnd != std::string::npos)
 	{
@@ -187,21 +191,21 @@ void prosper::debug::add_debug_object_information(std::string &msgValidation)
 			switch(type)
 			{
 				case ObjectType::Image:
-					contextObject = static_cast<prosper::Image*>(o);
+					contextObject = static_cast<prosper::VlkImage*>(o);
 					break;
 				case ObjectType::ImageView:
-					contextObject = static_cast<prosper::ImageView*>(o);
+					contextObject = static_cast<prosper::VlkImageView*>(o);
 					break;
 				case ObjectType::Sampler:
 					contextObject = static_cast<prosper::Sampler*>(o);
 					break;
 				case ObjectType::Buffer:
-					contextObject = static_cast<prosper::Buffer*>(o);
+					contextObject = static_cast<prosper::VlkBuffer*>(o);
 					break;
 				case ObjectType::CommandBuffer:
 					if(cmdBuffer == nullptr)
-						cmdBuffer = static_cast<prosper::CommandBuffer*>(o);
-					contextObject = static_cast<prosper::CommandBuffer*>(o);
+						cmdBuffer = static_cast<prosper::VlkCommandBuffer*>(o);
+					contextObject = static_cast<prosper::VlkCommandBuffer*>(o);
 					break;
 				case ObjectType::RenderPass:
 					contextObject = static_cast<prosper::RenderPass*>(o);
@@ -248,7 +252,7 @@ void prosper::debug::add_debug_object_information(std::string &msgValidation)
 		return;
 	msgValidation += ".";
 
-	const auto fPrintBoundPipeline = [&msgValidation](prosper::CommandBuffer &cmd) {
+	const auto fPrintBoundPipeline = [&msgValidation](prosper::ICommandBuffer &cmd) {
 		auto pipelineIdx = 0u;
 		auto *shader = prosper::Shader::GetBoundPipeline(cmd,pipelineIdx);
 		if(shader != nullptr)

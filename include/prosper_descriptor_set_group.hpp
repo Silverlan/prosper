@@ -16,6 +16,8 @@
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class IDescriptorSet;
+	class IBuffer;
 	class DescriptorSetBinding
 	{
 	public:
@@ -30,20 +32,19 @@ namespace prosper
 		};
 		virtual ~DescriptorSetBinding()=default;
 		uint32_t GetBindingIndex() const;
-		DescriptorSet &GetDescriptorSet() const;
+		IDescriptorSet &GetDescriptorSet() const;
 		virtual Type GetType() const=0;
 	protected:
-		DescriptorSetBinding(DescriptorSet &descSet,uint32_t bindingIdx);
-		DescriptorSet &m_descriptorSet;
+		DescriptorSetBinding(IDescriptorSet &descSet,uint32_t bindingIdx);
+		IDescriptorSet &m_descriptorSet;
 		uint32_t m_bindingIndex = 0u;
 	};
 
-	class Image;
 	class DescriptorSetBindingStorageImage
 		: public DescriptorSetBinding
 	{
 	public:
-		DescriptorSetBindingStorageImage(DescriptorSet &descSet,uint32_t bindingIdx,prosper::Texture &texture,std::optional<uint32_t> layerId={});
+		DescriptorSetBindingStorageImage(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::Texture &texture,std::optional<uint32_t> layerId={});
 		virtual Type GetType() const override {return Type::StorageImage;}
 		std::optional<uint32_t> GetLayerIndex() const;
 		const std::shared_ptr<prosper::Texture> &GetTexture() const;
@@ -56,7 +57,7 @@ namespace prosper
 		: public DescriptorSetBinding
 	{
 	public:
-		DescriptorSetBindingTexture(DescriptorSet &descSet,uint32_t bindingIdx,prosper::Texture &texture,std::optional<uint32_t> layerId={});
+		DescriptorSetBindingTexture(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::Texture &texture,std::optional<uint32_t> layerId={});
 		virtual Type GetType() const override {return Type::Texture;}
 		std::optional<uint32_t> GetLayerIndex() const;
 		const std::shared_ptr<prosper::Texture> &GetTexture() const;
@@ -69,25 +70,24 @@ namespace prosper
 		: public DescriptorSetBinding
 	{
 	public:
-		DescriptorSetBindingArrayTexture(DescriptorSet &descSet,uint32_t bindingIdx);
+		DescriptorSetBindingArrayTexture(IDescriptorSet &descSet,uint32_t bindingIdx);
 		virtual Type GetType() const override {return Type::ArrayTexture;}
 		void SetArrayBinding(uint32_t arrayIndex,std::unique_ptr<DescriptorSetBindingTexture> bindingTexture);
 	private:
 		std::vector<std::unique_ptr<DescriptorSetBindingTexture>> m_arrayItems = {};
 	};
 
-	class Buffer;
 	class DescriptorSetBindingUniformBuffer
 		: public DescriptorSetBinding
 	{
 	public:
-		DescriptorSetBindingUniformBuffer(DescriptorSet &descSet,uint32_t bindingIdx,prosper::Buffer &buffer,uint64_t startOffset,uint64_t size);
+		DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
 		virtual Type GetType() const override {return Type::UniformBuffer;}
 		uint64_t GetStartOffset() const;
 		uint64_t GetSize() const;
-		const std::shared_ptr<prosper::Buffer> &GetBuffer() const;
+		const std::shared_ptr<prosper::IBuffer> &GetBuffer() const;
 	private:
-		std::shared_ptr<prosper::Buffer> m_buffer = nullptr;
+		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr;
 		uint64_t m_startOffset = 0u;
 		uint64_t m_size = 0u;
 	};
@@ -96,13 +96,13 @@ namespace prosper
 		: public DescriptorSetBinding
 	{
 	public:
-		DescriptorSetBindingDynamicUniformBuffer(DescriptorSet &descSet,uint32_t bindingIdx,prosper::Buffer &buffer,uint64_t startOffset,uint64_t size);
+		DescriptorSetBindingDynamicUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
 		virtual Type GetType() const override {return Type::DynamicUniformBuffer;}
 		uint64_t GetStartOffset() const;
 		uint64_t GetSize() const;
-		const std::shared_ptr<prosper::Buffer> &GetBuffer() const;
+		const std::shared_ptr<prosper::IBuffer> &GetBuffer() const;
 	private:
-		std::shared_ptr<prosper::Buffer> m_buffer = nullptr;
+		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr;
 		uint64_t m_startOffset = 0u;
 		uint64_t m_size = 0u;
 	};
@@ -111,56 +111,104 @@ namespace prosper
 		: public DescriptorSetBinding
 	{
 	public:
-		DescriptorSetBindingStorageBuffer(DescriptorSet &descSet,uint32_t bindingIdx,prosper::Buffer &buffer,uint64_t startOffset,uint64_t size);
+		DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
 		virtual Type GetType() const override {return Type::StorageBuffer;}
 		uint64_t GetStartOffset() const;
 		uint64_t GetSize() const;
-		const std::shared_ptr<prosper::Buffer> &GetBuffer() const;
+		const std::shared_ptr<prosper::IBuffer> &GetBuffer() const;
 	private:
-		std::shared_ptr<prosper::Buffer> m_buffer = nullptr;
+		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr;
 		uint64_t m_startOffset = 0u;
 		uint64_t m_size = 0u;
 	};
 
-	class DescriptorSetGroup;
-	class DLLPROSPER DescriptorSet
+	class IDescriptorSetGroup;
+	class DLLPROSPER IDescriptorSet
 	{
 	public:
-		DescriptorSet(DescriptorSetGroup &dsg,Anvil::DescriptorSet &ds);
-		DescriptorSet(const DescriptorSet&)=delete;
-		DescriptorSet &operator=(const DescriptorSet&)=delete;
+		IDescriptorSet(IDescriptorSetGroup &dsg);
+		IDescriptorSet(const IDescriptorSet&)=delete;
+		IDescriptorSet &operator=(const IDescriptorSet&)=delete;
 
+		uint32_t GetBindingCount() const;
 		DescriptorSetBinding *GetBinding(uint32_t bindingIndex);
 		const DescriptorSetBinding *GetBinding(uint32_t bindingIndex) const;
 		std::vector<std::unique_ptr<DescriptorSetBinding>> &GetBindings();
 		const std::vector<std::unique_ptr<DescriptorSetBinding>> &GetBindings() const;
 		DescriptorSetBinding &SetBinding(uint32_t bindingIndex,std::unique_ptr<DescriptorSetBinding> binding);
+		virtual bool Update()=0;
 
 		prosper::Texture *GetBoundTexture(uint32_t bindingIndex,std::optional<uint32_t> *optOutLayerIndex=nullptr);
-		prosper::Image *GetBoundImage(uint32_t bindingIndex,std::optional<uint32_t> *optOutLayerIndex=nullptr);
-		prosper::Buffer *GetBoundBuffer(uint32_t bindingIndex,uint64_t *outStartOffset=nullptr,uint64_t *outSize=nullptr);
+		prosper::IImage *GetBoundImage(uint32_t bindingIndex,std::optional<uint32_t> *optOutLayerIndex=nullptr);
+		prosper::IBuffer *GetBoundBuffer(uint32_t bindingIndex,uint64_t *outStartOffset=nullptr,uint64_t *outSize=nullptr);
 
-		DescriptorSetGroup &GetDescriptorSetGroup() const;
+		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)=0;
+		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx)=0;
+		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)=0;
+		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx)=0;
+		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)=0;
+		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)=0;
+		virtual bool SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max())=0;
+		virtual bool SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max())=0;
+		virtual bool SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max())=0;
+
+		IDescriptorSetGroup &GetDescriptorSetGroup() const;
+	private:
+		IDescriptorSetGroup &m_dsg;
+		std::vector<std::unique_ptr<DescriptorSetBinding>> m_bindings = {};
+	};
+
+	class DLLPROSPER IDescriptorSetGroup
+		: public ContextObject,
+		public std::enable_shared_from_this<IDescriptorSetGroup>
+	{
+	public:
+		IDescriptorSetGroup(const IDescriptorSetGroup&)=delete;
+		IDescriptorSetGroup &operator=(const IDescriptorSetGroup&)=delete;
+		virtual ~IDescriptorSetGroup() override;
+		IDescriptorSet *GetDescriptorSet(uint32_t index=0);
+		const IDescriptorSet *GetDescriptorSet(uint32_t index=0) const;
+		uint32_t GetBindingCount() const;
+	protected:
+		IDescriptorSetGroup(Context &context);
+		std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
+	};
+
+	///////////////
+
+	class DescriptorSetGroup;
+	class DLLPROSPER DescriptorSet
+		: public IDescriptorSet
+	{
+	public:
+		DescriptorSet(DescriptorSetGroup &dsg,Anvil::DescriptorSet &ds);
+
 		Anvil::DescriptorSet &GetAnvilDescriptorSet() const;
 		Anvil::DescriptorSet &operator*();
 		const Anvil::DescriptorSet &operator*() const;
 		Anvil::DescriptorSet *operator->();
 		const Anvil::DescriptorSet *operator->() const;
+
+		virtual bool Update() override;
+		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId) override;
+		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx) override;
+		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId) override;
+		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx) override;
+		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId) override;
+		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex) override;
+		virtual bool SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
+		virtual bool SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
+		virtual bool SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
 	private:
-		DescriptorSetGroup &m_dsg;
 		Anvil::DescriptorSet &m_descSet;
-		std::vector<std::unique_ptr<DescriptorSetBinding>> m_bindings = {};
 	};
 
 	class DLLPROSPER DescriptorSetGroup
-		: public ContextObject,
-		public std::enable_shared_from_this<DescriptorSetGroup>
+		: public IDescriptorSetGroup
 	{
 	public:
 		static std::shared_ptr<DescriptorSetGroup> Create(Context &context,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg,const std::function<void(DescriptorSetGroup&)> &onDestroyedCallback=nullptr);
 		virtual ~DescriptorSetGroup() override;
-		DescriptorSet *GetDescriptorSet(uint32_t index=0);
-		const DescriptorSet *GetDescriptorSet(uint32_t index=0) const;
 
 		Anvil::DescriptorSetGroup &GetAnvilDescriptorSetGroup() const;
 		Anvil::DescriptorSetGroup &operator*();
@@ -170,7 +218,6 @@ namespace prosper
 	protected:
 		DescriptorSetGroup(Context &context,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg);
 		std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> m_descriptorSetGroup = nullptr;
-		std::vector<std::shared_ptr<DescriptorSet>> m_descriptorSets = {};
 	};
 };
 #pragma warning(pop)

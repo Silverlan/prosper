@@ -11,28 +11,32 @@
 
 using namespace prosper;
 
+IFence::IFence(Context &context)
+	: ContextObject(context),std::enable_shared_from_this<IFence>()
+{}
+
+IFence::~IFence() {}
+
+/////////////
+
 std::shared_ptr<Fence> Fence::Create(Context &context,bool createSignalled,const std::function<void(Fence&)> &onDestroyedCallback)
 {
 	auto fence = Anvil::Fence::create(Anvil::FenceCreateInfo::create(&context.GetDevice(),createSignalled));
 	if(onDestroyedCallback == nullptr)
 		return std::shared_ptr<Fence>(new Fence(context,std::move(fence)));
 	return std::shared_ptr<Fence>(new Fence(context,std::move(fence)),[onDestroyedCallback](Fence *fence) {
+		fence->OnRelease();
 		onDestroyedCallback(*fence);
 		delete fence;
 	});
 }
 
 Fence::Fence(Context &context,Anvil::FenceUniquePtr fence)
-	: ContextObject(context),std::enable_shared_from_this<Fence>(),m_fence(std::move(fence))
+	: IFence{context},m_fence(std::move(fence))
 {
 	//prosper::debug::register_debug_object(m_framebuffer->get_framebuffer(),this,prosper::debug::ObjectType::Fence);
 }
-
-Fence::~Fence()
-{
-	//prosper::debug::deregister_debug_object(m_framebuffer->get_framebuffer());
-}
-
+Fence::~Fence() {}
 bool Fence::IsSet() const {return m_fence->is_set();}
 bool Fence::Reset() const {return m_fence->reset();}
 

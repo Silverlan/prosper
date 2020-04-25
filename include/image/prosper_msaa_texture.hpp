@@ -17,20 +17,21 @@ namespace prosper
 
 		virtual bool IsMSAATexture() const override;
 		std::shared_ptr<Texture> Resolve(
-			Anvil::CommandBufferBase &cmdBuffer,Anvil::ImageLayout msaaLayoutIn,Anvil::ImageLayout msaaLayoutOut,Anvil::ImageLayout resolvedLayoutIn,Anvil::ImageLayout resolvedLayoutOut
+			prosper::ICommandBuffer &cmdBuffer,ImageLayout msaaLayoutIn,ImageLayout msaaLayoutOut,ImageLayout resolvedLayoutIn,ImageLayout resolvedLayoutOut
 		);
 
 		// Resets resolved flag
 		void Reset();
 		virtual void SetDebugName(const std::string &name) override;
 	protected:
-		friend std::shared_ptr<Texture> util::create_texture(
-			Anvil::BaseDevice &dev,const util::TextureCreateInfo &createInfo,const std::shared_ptr<Image> &img,
-			const util::ImageViewCreateInfo *imageViewCreateInfo,const util::SamplerCreateInfo *samplerCreateInfo
+		friend std::shared_ptr<Texture> Context::CreateTexture(
+			const util::TextureCreateInfo &createInfo,IImage &img,
+			const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo,
+			const std::optional<util::SamplerCreateInfo> &samplerCreateInfo
 		);
 
 		MSAATexture(
-			Context &context,const std::shared_ptr<Image> &img,const std::vector<std::shared_ptr<ImageView>> &imgViews,const std::shared_ptr<Sampler> &sampler,
+			Context &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler,
 			const std::shared_ptr<Texture> &resolvedTexture
 		);
 		std::shared_ptr<Texture> m_resolvedTexture = nullptr;

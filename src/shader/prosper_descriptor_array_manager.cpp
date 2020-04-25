@@ -11,7 +11,7 @@
 
 using namespace prosper;
 
-DescriptorArrayManager::DescriptorArrayManager(const std::shared_ptr<prosper::DescriptorSetGroup> &matArrayDsg,ArrayIndex maxArrayLayers,uint32_t bindingIndex)
+DescriptorArrayManager::DescriptorArrayManager(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg,ArrayIndex maxArrayLayers,uint32_t bindingIndex)
 	: m_dsgArray{matArrayDsg},m_maxArrayLayers{maxArrayLayers},m_bindingIndex{bindingIndex}
 {}
 
@@ -30,7 +30,7 @@ std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::PopFre
 	return m_nextIndex++;
 }
 
-std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::AddItem(const std::function<bool(prosper::DescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding)
+std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::AddItem(const std::function<bool(prosper::IDescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding)
 {
 	auto index = PopFreeIndex();
 	if(index.has_value() == false)

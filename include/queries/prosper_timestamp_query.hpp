@@ -8,30 +8,29 @@
 #include "queries/prosper_query.hpp"
 #include <chrono>
 
-namespace Anvil {class CommandBufferBase;};
-
 namespace prosper
 {
 	class QueryPool;
 	class TimestampQuery;
+	class ICommandBuffer;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<TimestampQuery> create_timestamp_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage);
+		DLLPROSPER std::shared_ptr<TimestampQuery> create_timestamp_query(QueryPool &queryPool,PipelineStageFlags pipelineStage);
 	};
 	class DLLPROSPER TimestampQuery
 		: public Query
 	{
 	public:
-		Anvil::PipelineStageFlagBits GetPipelineStage() const;
-		virtual bool Reset(Anvil::CommandBufferBase &cmdBuffer) override;
-		bool Write(Anvil::CommandBufferBase &cmdBuffer);
+		PipelineStageFlags GetPipelineStage() const;
+		virtual bool Reset(ICommandBuffer &cmdBuffer) override;
+		bool Write(ICommandBuffer &cmdBuffer);
 		bool QueryResult(std::chrono::nanoseconds &outTimestampValue) const;
 	private:
-		TimestampQuery(QueryPool &queryPool,uint32_t queryId,Anvil::PipelineStageFlagBits pipelineStage);
+		TimestampQuery(QueryPool &queryPool,uint32_t queryId,PipelineStageFlags pipelineStage);
 		bool m_bReset = true;
-		Anvil::PipelineStageFlagBits m_pipelineStage;
+		PipelineStageFlags m_pipelineStage;
 	private:
-		friend std::shared_ptr<TimestampQuery> util::create_timestamp_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage);
+		friend std::shared_ptr<TimestampQuery> util::create_timestamp_query(QueryPool &queryPool,PipelineStageFlags pipelineStage);
 	};
 };
 

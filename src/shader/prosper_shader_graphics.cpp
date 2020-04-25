@@ -9,9 +9,11 @@
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"
 #include "image/prosper_image_view.hpp"
+#include "buffers/vk_buffer.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
+#include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 #include <wrappers/buffer.h>
 #include <misc/descriptor_set_create_info.h>
@@ -22,12 +24,12 @@
 #include <queue>
 #include <unordered_map>
 
-prosper::ShaderGraphics::VertexBinding::VertexBinding(Anvil::VertexInputRate inputRate,uint32_t stride)
+prosper::ShaderGraphics::VertexBinding::VertexBinding(prosper::VertexInputRate inputRate,uint32_t stride)
 	: stride(stride),inputRate(inputRate)
 {}
-prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOther,std::optional<Anvil::VertexInputRate> inputRate,std::optional<uint32_t> stride)
+prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOther,std::optional<prosper::VertexInputRate> inputRate,std::optional<uint32_t> stride)
 {
-	auto pinputRate = inputRate ? std::make_shared<Anvil::VertexInputRate>(*inputRate) : nullptr;
+	auto pinputRate = inputRate ? std::make_shared<prosper::VertexInputRate>(*inputRate) : nullptr;
 	auto pstride = stride ? std::make_shared<uint32_t>(*stride) : nullptr;
 	initializer = [this,&vbOther,pinputRate,pstride]() {
 		*this = vbOther;
@@ -39,7 +41,7 @@ prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOth
 	};
 }
 uint32_t prosper::ShaderGraphics::VertexBinding::GetBindingIndex() const {return bindingIndex;}
-prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding,Anvil::Format format,size_t startOffset)
+prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding,prosper::Format format,size_t startOffset)
 	: binding(&binding),format(format),startOffset{(startOffset == std::numeric_limits<size_t>::max()) ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(startOffset)}
 {}
 prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute &vaOther)
@@ -52,11 +54,11 @@ prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute 
 }
 prosper::ShaderGraphics::VertexAttribute::VertexAttribute(
 	const VertexAttribute &vaOther,const VertexBinding &binding,
-	std::optional<Anvil::Format> format
+	std::optional<prosper::Format> format
 )
 	: binding(&binding)
 {
-	auto pformat = format ? std::make_shared<Anvil::Format>(*format) : nullptr;
+	auto pformat = format ? std::make_shared<prosper::Format>(*format) : nullptr;
 	initializer = [this,&vaOther,pformat]() {
 		this->format = vaOther.format;
 		this->startOffset = vaOther.startOffset;
@@ -72,7 +74,7 @@ uint32_t prosper::ShaderGraphics::VertexAttribute::GetLocation() const {return l
 struct RenderPassInfo
 {
 	uint32_t pipelineIdx;
-	std::shared_ptr<prosper::RenderPass> renderPass;
+	std::shared_ptr<prosper::IRenderPass> renderPass;
 	prosper::util::RenderPassCreateInfo renderPassInfo;
 };
 
@@ -94,7 +96,7 @@ prosper::ShaderGraphics::~ShaderGraphics()
 	if(--s_shaderCount == 0u)
 		s_rpManagers.clear();
 }
-const std::shared_ptr<prosper::RenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::Context &context,size_t hashCode,uint32_t pipelineIdx)
+const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::Context &context,size_t hashCode,uint32_t pipelineIdx)
 {
 	auto it = std::find_if(s_rpManagers.begin(),s_rpManagers.end(),[&context](const std::unique_ptr<RenderPassManager> &rpMan) {
 		return rpMan->context.lock().get() == &context;
@@ -114,7 +116,7 @@ const std::shared_ptr<prosper::RenderPass> &prosper::ShaderGraphics::GetRenderPa
 		return nptr;
 	return itRp->renderPass;
 }
-void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode,const prosper::util::RenderPassCreateInfo &renderPassInfo,std::shared_ptr<RenderPass> &outRenderPass,uint32_t pipelineIdx,const std::string &debugName)
+void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode,const prosper::util::RenderPassCreateInfo &renderPassInfo,std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx,const std::string &debugName)
 {
 	auto &context = GetContext();
 	auto it = std::find_if(s_rpManagers.begin(),s_rpManagers.end(),[&context](const std::unique_ptr<RenderPassManager> &rpMan) {
@@ -144,7 +146,7 @@ void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode,const prosp
 	}
 	if(itRp == rps.end() || bInvalidated == true)
 	{
-		auto rp = prosper::util::create_render_pass(context.GetDevice(),renderPassInfo);
+		auto rp = context.CreateRenderPass(renderPassInfo);
 		if(rp)
 		{
 			if(debugName.empty() == false)
@@ -174,17 +176,17 @@ void prosper::ShaderGraphics::InitializePipeline()
 	auto *gfxPipelineManager = dev.get_graphics_pipeline_manager();
 
 	/* Configure the graphics pipeline */
-	auto *modFs = GetStage(Anvil::ShaderStage::FRAGMENT);
-	auto *modVs = GetStage(Anvil::ShaderStage::VERTEX);
-	auto *modGs = GetStage(Anvil::ShaderStage::GEOMETRY);
-	auto *modTessControl = GetStage(Anvil::ShaderStage::TESSELLATION_CONTROL);
-	auto *modTessEval = GetStage(Anvil::ShaderStage::TESSELLATION_EVALUATION);
+	auto *modFs = GetStage(ShaderStage::Fragment);
+	auto *modVs = GetStage(ShaderStage::Vertex);
+	auto *modGs = GetStage(ShaderStage::Geometry);
+	auto *modTessControl = GetStage(ShaderStage::TessellationControl);
+	auto *modTessEval = GetStage(ShaderStage::TessellationEvaluation);
 	auto firstPipelineId = std::numeric_limits<Anvil::PipelineID>::max();
 	for(auto pipelineIdx=decltype(m_pipelineInfos.size()){0};pipelineIdx<m_pipelineInfos.size();++pipelineIdx)
 	{
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
-		std::shared_ptr<RenderPass> renderPass = nullptr;
+		std::shared_ptr<IRenderPass> renderPass = nullptr;
 		InitializeRenderPass(renderPass,pipelineIdx);
 		if(renderPass == nullptr)
 			continue;
@@ -202,7 +204,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 			createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
 		auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(
 			createFlags,
-			&renderPass->GetAnvilRenderPass(),
+			&static_cast<RenderPass&>(*renderPass).GetAnvilRenderPass(),
 			subPassId,
 			(modFs != nullptr) ? *modFs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
 			(modGs != nullptr) ? *modGs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
@@ -224,7 +226,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 			1.0f /* line_width */
 		);
 
-		auto &rpInfo = *(*renderPass)->get_render_pass_create_info();
+		auto &rpInfo = *(static_cast<RenderPass&>(*renderPass))->get_render_pass_create_info();
 		auto numAttachments = rpInfo.get_n_attachments();
 		auto samples = Anvil::SampleCountFlagBits::_1_BIT;
 		for(auto i=decltype(numAttachments){0u};i<numAttachments;++i)
@@ -291,7 +293,7 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 		auto &binding = const_cast<VertexBinding&>(*attr.binding);
 		if(binding.stride == std::numeric_limits<uint32_t>::max())
 			binding.stride = 0u;
-		binding.stride += prosper::util::get_byte_size(attr.format);
+		binding.stride += prosper::util::get_byte_size(static_cast<Format>(attr.format));
 	}
 	//
 
@@ -327,7 +329,7 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 			auto it = nextStartOffsets.find(attr.binding);
 			startOffset = (it != nextStartOffsets.end()) ? it->second : 0u;
 		}
-		nextStartOffsets[attr.binding] = startOffset +prosper::util::get_byte_size(attr.format);
+		nextStartOffsets[attr.binding] = startOffset +prosper::util::get_byte_size(static_cast<Format>(attr.format));
 
 		auto vertexBindingIdx = 0u;
 		auto it = vertexBindingIndices.find(attr.binding);
@@ -341,10 +343,10 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 
 		auto &anvBindingInfo = anvVertexBindings.at(vertexBindingIdx);
 		anvBindingInfo.binding = vertexBindingIdx;
-		anvBindingInfo.stepRate = attr.binding->inputRate;
+		anvBindingInfo.stepRate = static_cast<Anvil::VertexInputRate>(attr.binding->inputRate);
 		anvBindingInfo.strideInBytes = attr.binding->stride;
 		anvBindingInfo.attributes.push_back(
-			{attr.location,attr.format,attr.startOffset}
+			{attr.location,static_cast<Anvil::Format>(attr.format),attr.startOffset}
 		);
 	}
 	for(auto &anvVertexBinding : anvVertexBindings)
@@ -361,7 +363,7 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 	m_vertexAttributes = {};
 	//
 }
-void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<RenderPass> &outRenderPass,uint32_t pipelineIdx)
+void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx)
 {
 	CreateCachedRenderPass<prosper::ShaderGraphics>({{prosper::util::RenderPassCreateInfo::AttachmentInfo{}}},outRenderPass,pipelineIdx);
 }
@@ -381,13 +383,13 @@ void prosper::ShaderGraphics::ToggleDynamicScissorState(Anvil::GraphicsPipelineC
 	pipelineInfo.set_n_dynamic_scissor_boxes(bEnable ? 1u : 0u);
 }
 
-const std::shared_ptr<prosper::RenderPass> &prosper::ShaderGraphics::GetRenderPass(uint32_t pipelineIdx) const
+const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(uint32_t pipelineIdx) const
 {
 	auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 	return pipelineInfo.renderPass;
 }
 static std::vector<vk::DeviceSize> s_vOffsets;
-bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<Anvil::Buffer*> &buffers,uint32_t startBinding,const std::vector<vk::DeviceSize> &offsets)
+bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<vk::DeviceSize> &offsets)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	if(offsets.empty() == false)
@@ -395,51 +397,56 @@ bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<Anvil::B
 		if(offsets.size() > s_vOffsets.size())
 			s_vOffsets.resize(offsets.size(),0ull);
 		for(auto i=decltype(offsets.size()){0};i<offsets.size();++i)
-			s_vOffsets.at(i) = buffers.at(i)->get_create_info_ptr()->get_start_offset() +offsets.at(i);
+			s_vOffsets.at(i) = buffers.at(i)->GetStartOffset() +offsets.at(i);
 	}
 	else
 	{
 		if(buffers.size() > s_vOffsets.size())
 			s_vOffsets.resize(buffers.size(),0ull);
 		for(auto i=decltype(buffers.size()){0};i<buffers.size();++i)
-			s_vOffsets.at(i) = buffers.at(i)->get_create_info_ptr()->get_start_offset();
+			s_vOffsets.at(i) = buffers.at(i)->GetStartOffset();
 	}
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_bind_vertex_buffers(startBinding,buffers.size(),const_cast<Anvil::Buffer**>(buffers.data()),s_vOffsets.data());
+	std::vector<Anvil::Buffer*> anvBuffers;
+	anvBuffers.reserve(buffers.size());
+	for(auto *buf : buffers)
+		anvBuffers.push_back(&dynamic_cast<VlkBuffer*>(buf)->GetAnvilBuffer());
+	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_bind_vertex_buffers(startBinding,buffers.size(),const_cast<Anvil::Buffer**>(anvBuffers.data()),s_vOffsets.data());
 }
 
-bool prosper::ShaderGraphics::RecordBindVertexBuffer(Anvil::Buffer &buffer,uint32_t startBinding,vk::DeviceSize offset)
+bool prosper::ShaderGraphics::RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding,DeviceSize offset)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	if(s_vOffsets.empty())
 		s_vOffsets.resize(1u);
-	s_vOffsets.at(0) = buffer.get_create_info_ptr()->get_start_offset() +offset;
-	auto *ptrBuffer = &buffer;
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_bind_vertex_buffers(startBinding,1u,&ptrBuffer,s_vOffsets.data());
+	s_vOffsets.at(0) = buffer.GetStartOffset() +offset;
+	auto *ptrBuffer = &dynamic_cast<prosper::VlkBuffer&>(buffer).GetAnvilBuffer();
+	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_bind_vertex_buffers(startBinding,1u,&ptrBuffer,s_vOffsets.data());
 }
-bool prosper::ShaderGraphics::RecordBindIndexBuffer(Anvil::Buffer &indexBuffer,Anvil::IndexType indexType,vk::DeviceSize offset)
+bool prosper::ShaderGraphics::RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType,DeviceSize offset)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_bind_index_buffer(&indexBuffer,indexBuffer.get_create_info_ptr()->get_start_offset() +offset,indexType);
+	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_bind_index_buffer(&dynamic_cast<prosper::VlkBuffer&>(indexBuffer).GetAnvilBuffer(),indexBuffer.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
 }
 
 bool prosper::ShaderGraphics::RecordDraw(uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
+	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
 }
 
 bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,int32_t vertexOffset,uint32_t firstInstance)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && (*cmdBuffer)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
+	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
 }
-bool prosper::ShaderGraphics::AddSpecializationConstant(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
+bool prosper::ShaderGraphics::AddSpecializationConstant(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
 {
-	return pipelineInfo.add_specialization_constant(stage,constantId,numBytes,data);
+	return pipelineInfo.add_specialization_constant(static_cast<Anvil::ShaderStage>(stage),constantId,numBytes,data);
 }
 void prosper::ShaderGraphics::AddVertexAttribute(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr) {m_vertexAttributes.push_back(attr);}
-bool prosper::ShaderGraphics::RecordBindDescriptorSet(Anvil::DescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
+bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
 {
+#if 0
 	if(GetContext().IsValidationEnabled())
 	{
 		// Make sure the sample count of all image bindings of the descriptor set corresponds to the shader's sample count
@@ -484,25 +491,26 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(Anvil::DescriptorSet &desc
 			}
 		}
 	}
+#endif
 	return prosper::Shader::RecordBindDescriptorSet(descSet,firstSet,dynamicOffsets);
 }
-bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
 	auto *info = static_cast<const Anvil::GraphicsPipelineCreateInfo*>(GetPipelineInfo(pipelineIdx));
 	if(info == nullptr)
 		return false;
-	auto b = BindPipeline(cmdBuffer->GetAnvilCommandBuffer(),pipelineIdx);
+	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
 	if(b == false)
 		return false;
 	if(GetContext().IsValidationEnabled())
 	{
-		prosper::RenderPass *rp;
-		prosper::Image *img;
+		prosper::IRenderPass *rp;
+		prosper::IImage *img;
 		prosper::RenderTarget *rt;
-		prosper::Framebuffer *fb;
-		if(prosper::util::get_current_render_pass_target(**cmdBuffer,&rp,&img,&fb,&rt) && fb && rp)
+		prosper::IFramebuffer *fb;
+		if(prosper::util::get_current_render_pass_target(*cmdBuffer,&rp,&img,&fb,&rt) && fb && rp)
 		{
-			auto &rpCreateInfo = *rp->GetAnvilRenderPass().get_render_pass_create_info();
+			auto &rpCreateInfo = *static_cast<RenderPass*>(rp)->GetAnvilRenderPass().get_render_pass_create_info();
 			Anvil::SampleCountFlagBits sampleCount;
 			info->get_multisampling_properties(&sampleCount,nullptr);
 			auto numAttachments = umath::min(fb->GetAttachmentCount(),rpCreateInfo.get_n_attachments());
@@ -528,7 +536,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 					}
 				}
 
-				if((sampleCount &img.GetSampleCount()) == Anvil::SampleCountFlagBits::NONE)
+				if((sampleCount &static_cast<Anvil::SampleCountFlagBits>(img.GetSampleCount())) == Anvil::SampleCountFlagBits::NONE)
 				{
 					debug::exec_debug_validation_callback(
 						vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
@@ -548,7 +556,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 						);
 						return false;
 					}
-					if(rpSampleCount != img.GetSampleCount())
+					if(rpSampleCount != static_cast<Anvil::SampleCountFlagBits>(img.GetSampleCount()))
 					{
 						debug::exec_debug_validation_callback(
 							vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
@@ -572,14 +580,12 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 			vk::Extent2D extents {width,height};
 			if(bScissor)
 			{
-				vk::Rect2D scissor(vk::Offset2D(0,0),extents);
-				if((*cmdBuffer)->record_set_scissor(0u,1u,reinterpret_cast<VkRect2D*>(&scissor)) == false)
+				if(cmdBuffer->RecordSetScissor(extents.width,extents.height) == false)
 					return false;
 			}
 			if(bViewport)
 			{
-				auto vp = vk::Viewport(0.f,0.f,extents.width,extents.height,0.f,1.f);
-				if((*cmdBuffer)->record_set_viewport(0u,1u,reinterpret_cast<VkViewport*>(&vp)) == false)
+				if(cmdBuffer->RecordSetViewport(extents.width,extents.height,0,0,0.f /* minDepth */,1.f /* maxDepth */) == false)
 					return false;
 			}
 		}
@@ -587,10 +593,10 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::P
 	SetCurrentDrawCommandBuffer(cmdBuffer,pipelineIdx);
 	return true;
 }
-bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::PrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
-	prosper::Image *img;
-	if(prosper::util::get_current_render_pass_target(cmdBuffer->GetAnvilCommandBuffer(),nullptr,&img) == false || img == nullptr)
+	prosper::IImage *img;
+	if(prosper::util::get_current_render_pass_target(*cmdBuffer,nullptr,&img) == false || img == nullptr)
 		return false;
 	auto extents = img->GetExtents();
 	return BeginDrawViewport(cmdBuffer,extents.width,extents.height,pipelineIdx,recordFlags);

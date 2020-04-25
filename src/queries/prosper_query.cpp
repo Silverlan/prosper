@@ -5,7 +5,9 @@
 #include "stdafx_prosper.h"
 #include "queries/prosper_query.hpp"
 #include "prosper_context.hpp"
+#include "prosper_command_buffer.hpp"
 #include "queries/prosper_query_pool.hpp"
+#include "vk_command_buffer.hpp"
 
 using namespace prosper;
 
@@ -21,16 +23,16 @@ Query::~Query()
 }
 
 QueryPool *Query::GetPool() const {return (m_pool.expired() == false) ? m_pool.lock().get() : nullptr;}
-bool Query::Reset(Anvil::CommandBufferBase &cmdBuffer)
+bool Query::Reset(prosper::ICommandBuffer &cmdBuffer)
 {
 	auto *pQueryPool = GetPool();
 	if(pQueryPool == nullptr)
 		return false;
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
-	return cmdBuffer.record_reset_query_pool(anvPool,m_queryId,1u /* queryCount */);
+	return dynamic_cast<VlkCommandBuffer&>(cmdBuffer)->record_reset_query_pool(anvPool,m_queryId,1u /* queryCount */);
 }
-bool Query::QueryResult(uint32_t &r) const {return QueryResult<uint32_t>(r,Anvil::QueryResultFlags{});}
-bool Query::QueryResult(uint64_t &r) const {return QueryResult<uint64_t>(r,Anvil::QueryResultFlagBits::_64_BIT);}
+bool Query::QueryResult(uint32_t &r) const {return QueryResult<uint32_t>(r,prosper::QueryResultFlags{});}
+bool Query::QueryResult(uint64_t &r) const {return QueryResult<uint64_t>(r,prosper::QueryResultFlags::e64Bit);}
 bool Query::IsResultAvailable() const
 {
 	uint32_t r;

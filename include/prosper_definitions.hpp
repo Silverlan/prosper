@@ -24,6 +24,14 @@
 	#define UNUSED(x) x
 #endif
 
+#include <cinttypes>
+
+namespace prosper
+{
+	// These have to match Vulkan's types
+	using DeviceSize = uint64_t;
+};
+
 // #define DEBUG_VERBOSE
 
 #endif

@@ -11,48 +11,28 @@
 
 using namespace prosper;
 
-std::shared_ptr<ImageView> ImageView::Create(Context &context,Image &img,Anvil::ImageViewUniquePtr imgView,const std::function<void(ImageView&)> &onDestroyedCallback)
+IImageView::IImageView(Context &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags)
+	: ContextObject(context),std::enable_shared_from_this<IImageView>(),m_image{img.shared_from_this()},
+	m_type{type},m_aspectFlags{aspectFlags},m_createInfo{createInfo}
+{}
+IImageView::~IImageView() {}
+
+const IImage &IImageView::GetImage() const {return const_cast<IImageView*>(this)->GetImage();}
+IImage &IImageView::GetImage() {return *m_image;}
+
+ImageViewType IImageView::GetType() const {return m_type;}
+ImageAspectFlags IImageView::GetAspectMask() const {return m_aspectFlags;}
+uint32_t IImageView::GetBaseLayer() const {return m_createInfo.baseLayer.has_value() ? *m_createInfo.baseLayer : 0;}
+uint32_t IImageView::GetLayerCount() const {return m_createInfo.levelCount;}
+uint32_t IImageView::GetBaseMipmapLevel() const {return m_createInfo.baseMipmap;}
+uint32_t IImageView::GetMipmapCount() const {return m_createInfo.mipmapLevels;}
+Format IImageView::GetFormat() const {return m_createInfo.format;}
+std::array<ComponentSwizzle,4> IImageView::GetSwizzleArray() const
 {
-	if(imgView == nullptr)
-		return nullptr;
-	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<ImageView>(new ImageView(context,img,std::move(imgView)));
-	return std::shared_ptr<ImageView>(new ImageView(context,img,std::move(imgView)),[onDestroyedCallback](ImageView *buf) {
-		onDestroyedCallback(*buf);
-		delete buf;
-	});
-}
-
-ImageView::ImageView(Context &context,Image &img,Anvil::ImageViewUniquePtr imgView)
-	: ContextObject(context),std::enable_shared_from_this<ImageView>(),m_imageView(std::move(imgView)),
-	m_image{img.shared_from_this()}
-{
-	prosper::debug::register_debug_object(m_imageView->get_image_view(),this,prosper::debug::ObjectType::ImageView);
-}
-
-ImageView::~ImageView()
-{
-	prosper::debug::deregister_debug_object(m_imageView->get_image_view());
-}
-
-const Image &ImageView::GetImage() const {return const_cast<ImageView*>(this)->GetImage();}
-Image &ImageView::GetImage() {return *m_image;}
-
-Anvil::ImageView &ImageView::GetAnvilImageView() const {return *m_imageView;}
-Anvil::ImageView &ImageView::operator*() {return *m_imageView;}
-const Anvil::ImageView &ImageView::operator*() const {return const_cast<ImageView*>(this)->operator*();}
-Anvil::ImageView *ImageView::operator->() {return m_imageView.get();}
-const Anvil::ImageView *ImageView::operator->() const {return const_cast<ImageView*>(this)->operator->();}
-
-Anvil::ImageViewType ImageView::GetType() const {return m_imageView->get_create_info_ptr()->get_type();}
-Anvil::ImageAspectFlags ImageView::GetAspectMask() const {return m_imageView->get_create_info_ptr()->get_aspect();}
-uint32_t ImageView::GetBaseLayer() const {return m_imageView->get_create_info_ptr()->get_base_layer();}
-uint32_t ImageView::GetLayerCount() const {return m_imageView->get_create_info_ptr()->get_n_layers();}
-uint32_t ImageView::GetBaseMipmapLevel() const {return m_imageView->get_create_info_ptr()->get_base_mipmap_level();}
-uint32_t ImageView::GetMipmapCount() const {return m_imageView->get_create_info_ptr()->get_n_mipmaps();}
-Anvil::Format ImageView::GetFormat() const {return m_imageView->get_create_info_ptr()->get_format();}
-std::array<Anvil::ComponentSwizzle,4> ImageView::GetSwizzleArray() const
-{
-	auto &swizzle = m_imageView->get_create_info_ptr()->get_swizzle_array();
-	return reinterpret_cast<const std::array<Anvil::ComponentSwizzle,4>&>(swizzle);
+	return {
+		m_createInfo.swizzleRed,
+		m_createInfo.swizzleGreen,
+		m_createInfo.swizzleBlue,
+		m_createInfo.swizzleAlpha
+	};
 }

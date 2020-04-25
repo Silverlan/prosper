@@ -39,9 +39,9 @@ namespace prosper
 		};
 #pragma pack(pop)
 
-		bool Reset(Anvil::CommandBufferBase &cmdBuffer);
-		bool RecordBegin(Anvil::CommandBufferBase &cmdBuffer);
-		bool RecordEnd(Anvil::CommandBufferBase &cmdBuffer) const;
+		bool Reset(prosper::ICommandBuffer &cmdBuffer);
+		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer);
+		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
 		bool QueryResult(Statistics &outStatistics) const;
 	private:
 		PipelineStatisticsQuery(QueryPool &queryPool,uint32_t queryId);

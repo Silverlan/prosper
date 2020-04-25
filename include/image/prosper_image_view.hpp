@@ -14,35 +14,34 @@
 
 namespace prosper
 {
-	class Image;
-	class DLLPROSPER ImageView
+	class IImage;
+	namespace util {struct ImageViewCreateInfo;};
+	class DLLPROSPER IImageView
 		: public ContextObject,
-		public std::enable_shared_from_this<ImageView>
+		public std::enable_shared_from_this<IImageView>
 	{
 	public:
-		static std::shared_ptr<ImageView> Create(Context &context,Image &img,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView,const std::function<void(ImageView&)> &onDestroyedCallback=nullptr);
-		virtual ~ImageView() override;
-		Anvil::ImageView &GetAnvilImageView() const;
-		Anvil::ImageView &operator*();
-		const Anvil::ImageView &operator*() const;
-		Anvil::ImageView *operator->();
-		const Anvil::ImageView *operator->() const;
+		IImageView(const IImageView&)=delete;
+		IImageView &operator=(const IImageView&)=delete;
+		virtual ~IImageView() override;
 
-		Anvil::ImageViewType GetType() const;
-		Anvil::ImageAspectFlags GetAspectMask() const;
+		ImageViewType GetType() const;
+		ImageAspectFlags GetAspectMask() const;
 		uint32_t GetBaseLayer() const;
 		uint32_t GetLayerCount() const;
 		uint32_t GetBaseMipmapLevel() const;
 		uint32_t GetMipmapCount() const;
-		Anvil::Format GetFormat() const;
-		std::array<Anvil::ComponentSwizzle,4> GetSwizzleArray() const;
+		Format GetFormat() const;
+		std::array<ComponentSwizzle,4> GetSwizzleArray() const;
 
-		const Image &GetImage() const;
-		Image &GetImage();
+		const IImage &GetImage() const;
+		IImage &GetImage();
 	protected:
-		ImageView(Context &context,Image &img,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);
-		std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> m_imageView = nullptr;
-		std::shared_ptr<Image> m_image = nullptr;
+		IImageView(Context &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags);
+		std::shared_ptr<IImage> m_image = nullptr;
+		util::ImageViewCreateInfo m_createInfo {};
+		ImageViewType m_type = ImageViewType::e2D;
+		ImageAspectFlags m_aspectFlags = ImageAspectFlags::ColorBit;
 	};
 };
 

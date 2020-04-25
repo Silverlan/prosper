@@ -21,46 +21,45 @@ namespace Anvil
 namespace prosper
 {
 	class Context;
-	class Buffer;
-	class DynamicResizableBuffer;
+	class IBuffer;
 	namespace util
 	{
 		struct BufferCreateInfo;
-		DLLPROSPER std::shared_ptr<DynamicResizableBuffer> create_dynamic_resizable_buffer(
+		DLLPROSPER std::shared_ptr<VkDynamicResizableBuffer> create_dynamic_resizable_buffer(
 			Context &context,BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
 		);
 	};
 
-	class DLLPROSPER DynamicResizableBuffer
-		: public ResizableBuffer
+	class DLLPROSPER IDynamicResizableBuffer
+		: public IResizableBuffer
 	{
 	public:
-		std::shared_ptr<Buffer> AllocateBuffer(vk::DeviceSize size,const void *data=nullptr);
-		std::shared_ptr<Buffer> AllocateBuffer(vk::DeviceSize size,uint32_t alignment,const void *data);
+		std::shared_ptr<IBuffer> AllocateBuffer(vk::DeviceSize size,const void *data=nullptr);
+		std::shared_ptr<IBuffer> AllocateBuffer(vk::DeviceSize size,uint32_t alignment,const void *data);
 
-		friend std::shared_ptr<DynamicResizableBuffer> util::create_dynamic_resizable_buffer(
+		friend std::shared_ptr<VkDynamicResizableBuffer> util::create_dynamic_resizable_buffer(
 			Context &context,util::BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
 		);
 
 		void DebugPrint(std::stringstream &strFilledData,std::stringstream &strFreeData,std::stringstream *bufferData=nullptr) const;
-		const std::vector<Buffer*> &GetAllocatedSubBuffers() const;
+		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;
 		uint64_t GetFreeSize() const;
 		float GetFragmentationPercent() const;
-	private:
+	protected:
 		struct Range
 		{
 			vk::DeviceSize startOffset;
 			vk::DeviceSize size;
 		};
-		DynamicResizableBuffer(
-			Context &context,Buffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
+		IDynamicResizableBuffer(
+			Context &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 		);
 		void InsertFreeMemoryRange(std::list<Range>::iterator itWhere,vk::DeviceSize startOffset,vk::DeviceSize size);
 		void MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size);
 		std::list<Range>::iterator FindFreeRange(vk::DeviceSize size,uint32_t alignment);
-		std::vector<Buffer*> m_allocatedSubBuffers;
+		std::vector<IBuffer*> m_allocatedSubBuffers;
 		std::list<Range> m_freeRanges;
 		uint32_t m_alignment = 0u;
 	};

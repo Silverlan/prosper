@@ -13,24 +13,24 @@ namespace Anvil {class Image;};
 namespace prosper
 {
 	class Context;
-	class Image;
+	class VlkImage;
 	namespace debug
 	{
 		DLLPROSPER void dump_layers(Context &context,std::stringstream &out);
 		DLLPROSPER void dump_extensions(Context &context,std::stringstream &out);
 		DLLPROSPER void dump_limits(Context &context,std::stringstream &out);
 		DLLPROSPER void dump_features(Context &context,std::stringstream &out);
-		DLLPROSPER void dump_image_format_properties(Context &context,std::stringstream &out,Anvil::ImageCreateFlags createFlags=Anvil::ImageCreateFlags{});
+		DLLPROSPER void dump_image_format_properties(Context &context,std::stringstream &out,prosper::ImageCreateFlags createFlags=prosper::ImageCreateFlags{});
 		DLLPROSPER void dump_format_properties(Context &context,std::stringstream &out);
 		DLLPROSPER void dump_layers(Context &context,const std::string &fileName);
 		DLLPROSPER void dump_extensions(Context &context,const std::string &fileName);
 		DLLPROSPER void dump_limits(Context &context,const std::string &fileName);
 		DLLPROSPER void dump_features(Context &context,const std::string &fileName);
-		DLLPROSPER void dump_image_format_properties(Context &context,const std::string &fileName,Anvil::ImageCreateFlags createFlags=Anvil::ImageCreateFlags{});
+		DLLPROSPER void dump_image_format_properties(Context &context,const std::string &fileName,prosper::ImageCreateFlags createFlags=prosper::ImageCreateFlags{});
 		DLLPROSPER void dump_format_properties(Context &context,const std::string &fileName);
 
 		DLLPROSPER void add_debug_object_information(std::string &msgValidation);
-		DLLPROSPER Image *get_image_from_anvil_image(Anvil::Image &img);
+		DLLPROSPER VlkImage *get_image_from_anvil_image(Anvil::Image &img);
 	};
 };
 

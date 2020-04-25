@@ -26,10 +26,10 @@ namespace prosper
 		virtual bool QueryResult(uint32_t &r) const;
 		// Returns true if the result is available, and false otherwise
 		virtual bool QueryResult(uint64_t &r) const;
-		virtual bool Reset(Anvil::CommandBufferBase &cmdBuffer);
+		virtual bool Reset(ICommandBuffer &cmdBuffer);
 		bool IsResultAvailable() const;
 		template<class T,typename TBaseType=T>
-			bool QueryResult(T &r,Anvil::QueryResultFlags resultFlags) const;
+			bool QueryResult(T &r,QueryResultFlags resultFlags) const;
 	protected:
 		Query(QueryPool &queryPool,uint32_t queryId);
 		uint32_t m_queryId = std::numeric_limits<uint32_t>::max();
@@ -38,7 +38,7 @@ namespace prosper
 };
 
 template<class T,typename TBaseType>
-	bool prosper::Query::QueryResult(T &outResult,Anvil::QueryResultFlags resultFlags) const
+	bool prosper::Query::QueryResult(T &outResult,QueryResultFlags resultFlags) const
 {
 	if(m_pool.expired())
 		return false;
@@ -51,7 +51,7 @@ template<class T,typename TBaseType>
 #pragma pack(pop)
 	auto bAllQueryResultsRetrieved = false;
 	ResultData resultData;
-	auto bSuccess = m_pool.lock()->GetAnvilQueryPool().get_query_pool_results(m_queryId,1u,resultFlags | Anvil::QueryResultFlagBits::WITH_AVAILABILITY_BIT,reinterpret_cast<TBaseType*>(&resultData),&bAllQueryResultsRetrieved);
+	auto bSuccess = m_pool.lock()->GetAnvilQueryPool().get_query_pool_results(m_queryId,1u,static_cast<Anvil::QueryResultFlagBits>(resultFlags | prosper::QueryResultFlags::WithAvailabilityBit),reinterpret_cast<TBaseType*>(&resultData),&bAllQueryResultsRetrieved);
 	if(bSuccess == false || bAllQueryResultsRetrieved == false || resultData.availability == 0)
 		return false;
 	outResult = resultData.data;

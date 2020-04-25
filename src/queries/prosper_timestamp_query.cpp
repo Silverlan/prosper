@@ -6,15 +6,17 @@
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_query_pool.hpp"
 #include "prosper_context.hpp"
+#include "prosper_command_buffer.hpp"
+#include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 
 using namespace prosper;
 
-TimestampQuery::TimestampQuery(QueryPool &queryPool,uint32_t queryId,Anvil::PipelineStageFlagBits pipelineStage)
+TimestampQuery::TimestampQuery(QueryPool &queryPool,uint32_t queryId,PipelineStageFlags pipelineStage)
 	: Query(queryPool,queryId),m_pipelineStage(pipelineStage)
 {}
 
-bool TimestampQuery::Reset(Anvil::CommandBufferBase &cmdBuffer)
+bool TimestampQuery::Reset(prosper::ICommandBuffer &cmdBuffer)
 {
 	auto r = Query::Reset(cmdBuffer);
 	if(r == true)
@@ -22,7 +24,7 @@ bool TimestampQuery::Reset(Anvil::CommandBufferBase &cmdBuffer)
 	return r;
 }
 
-bool TimestampQuery::Write(Anvil::CommandBufferBase &cmdBuffer)
+bool TimestampQuery::Write(prosper::ICommandBuffer &cmdBuffer)
 {
 	auto *pQueryPool = GetPool();
 	if(pQueryPool == nullptr)
@@ -30,7 +32,7 @@ bool TimestampQuery::Write(Anvil::CommandBufferBase &cmdBuffer)
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
 	if(m_bReset == false && Reset(cmdBuffer) == false)
 		return false;
-	return cmdBuffer.record_write_timestamp(m_pipelineStage,anvPool,m_queryId);
+	return dynamic_cast<prosper::VlkCommandBuffer&>(cmdBuffer)->record_write_timestamp(static_cast<Anvil::PipelineStageFlagBits>(m_pipelineStage),anvPool,m_queryId);
 }
 
 bool TimestampQuery::QueryResult(std::chrono::nanoseconds &outTimestampValue) const
@@ -43,9 +45,9 @@ bool TimestampQuery::QueryResult(std::chrono::nanoseconds &outTimestampValue) co
 	return true;
 }
 
-Anvil::PipelineStageFlagBits TimestampQuery::GetPipelineStage() const {return m_pipelineStage;}
+prosper::PipelineStageFlags TimestampQuery::GetPipelineStage() const {return m_pipelineStage;}
 
-std::shared_ptr<TimestampQuery> prosper::util::create_timestamp_query(QueryPool &queryPool,Anvil::PipelineStageFlagBits pipelineStage)
+std::shared_ptr<TimestampQuery> prosper::util::create_timestamp_query(QueryPool &queryPool,PipelineStageFlags pipelineStage)
 {
 	uint32_t query = 0;
 	if(queryPool.RequestQuery(query) == false)

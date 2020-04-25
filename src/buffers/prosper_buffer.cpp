@@ -9,44 +9,25 @@
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_memory_tracker.hpp"
-#include <wrappers/buffer.h>
-#include <wrappers/memory_block.h>
-#include <misc/buffer_create_info.h>
 #include <iostream>
 
-using namespace prosper;
+prosper::IBuffer::IBuffer(Context &context,const prosper::util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size)
+	: ContextObject(context),std::enable_shared_from_this<IBuffer>(),m_createInfo{bufCreateInfo},m_startOffset{startOffset},
+	m_size{size}
+{}
 
-std::shared_ptr<Buffer> Buffer::Create(Context &context,Anvil::BufferUniquePtr buf,const std::function<void(Buffer&)> &onDestroyedCallback)
+prosper::IBuffer::~IBuffer()
 {
-	if(buf == nullptr)
-		return nullptr;
-	auto r = std::shared_ptr<Buffer>(new Buffer(context,std::move(buf)),[onDestroyedCallback](Buffer *buf) {
-		if(onDestroyedCallback != nullptr)
-			onDestroyedCallback(*buf);
-		buf->GetContext().ReleaseResource<Buffer>(buf);
-	});
-	r->Initialize();
-	return r;
-}
-
-Buffer::Buffer(Context &context,Anvil::BufferUniquePtr buf)
-	: ContextObject(context),std::enable_shared_from_this<Buffer>(),m_buffer(std::move(buf))
-{
-	if(m_buffer != nullptr)
-		prosper::debug::register_debug_object(m_buffer->get_buffer(),this,prosper::debug::ObjectType::Buffer);
-}
-
-Buffer::~Buffer()
-{
-	if(m_buffer != nullptr)
-		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
 	MemoryTracker::GetInstance().RemoveResource(*this);
+}
 
+void prosper::IBuffer::OnRelease()
+{
 	if(m_bPermanentlyMapped == true)
 		Unmap();
 }
 
-void Buffer::SetPermanentlyMapped(bool b)
+void prosper::IBuffer::SetPermanentlyMapped(bool b)
 {
 	if(m_bPermanentlyMapped == b)
 		return;
@@ -56,38 +37,46 @@ void Buffer::SetPermanentlyMapped(bool b)
 	else
 		Unmap();
 }
-void Buffer::SetParent(const std::shared_ptr<Buffer> &parent,SubBufferIndex baseIndex)
+void prosper::IBuffer::SetParent(IBuffer &parent,SubBufferIndex baseIndex)
 {
-	m_parent = parent;
+	m_parent = parent.shared_from_this();
 	m_baseIndex = baseIndex;
 }
-void Buffer::SetBuffer(Anvil::BufferUniquePtr buf)
+
+prosper::IBuffer::Offset prosper::IBuffer::GetStartOffset() const {return m_startOffset;}
+prosper::IBuffer::Size prosper::IBuffer::GetSize() const {return m_size;}
+std::shared_ptr<prosper::IBuffer> prosper::IBuffer::GetParent() {return m_parent;}
+const std::shared_ptr<prosper::IBuffer> prosper::IBuffer::GetParent() const {return const_cast<IBuffer*>(this)->GetParent();}
+
+bool prosper::IBuffer::Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags) const
 {
-	auto bPermanentlyMapped = m_bPermanentlyMapped;
-	SetPermanentlyMapped(false);
-
-	if(m_buffer != nullptr)
-		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
-	m_buffer = std::move(buf);
-	if(m_buffer != nullptr)
-		prosper::debug::register_debug_object(m_buffer->get_buffer(),this,prosper::debug::ObjectType::Buffer);
-
-	if(bPermanentlyMapped == true)
-		SetPermanentlyMapped(true);
+	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
+	{
+		if((GetUsageFlags() &deviceUsageFlags) == BufferUsageFlags::None)
+		{
+			if(GetContext().IsValidationEnabled() == true)
+				std::cout<<"WARNING: Attempted to map unmappable buffer without usage flags required for copy commands! Skipping..."<<std::endl;
+			return false;
+		}
+		if(GetContext().IsValidationEnabled() == true)
+			;//std::cout<<"WARNING: Attempted to map unmappable buffer! While still possible, this is highly discouraged!"<<std::endl;
+		auto &context = const_cast<Context&>(GetContext());
+		prosper::util::BufferCreateInfo createInfo {};
+		createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::HostCached;
+		createInfo.size = size;
+		createInfo.usageFlags = hostUsageFlags;
+		auto buf = context.CreateBuffer(createInfo);
+		if(buf == nullptr)
+			return false;
+		m_mappedTmpBuffer = std::unique_ptr<MappedBuffer>(new MappedBuffer());
+		m_mappedTmpBuffer->buffer = buf;
+		m_mappedTmpBuffer->offset = GetStartOffset() +offset;
+		return true;
+	}
+	return DoMap(offset,size);
 }
-Anvil::Buffer &Buffer::GetAnvilBuffer() const {return *m_buffer;}
-Anvil::Buffer &Buffer::GetBaseAnvilBuffer() const {return (m_parent.expired() == false) ? m_parent.lock()->GetAnvilBuffer() : GetAnvilBuffer();}
-Anvil::Buffer &Buffer::operator*() {return *m_buffer;}
-const Anvil::Buffer &Buffer::operator*() const {return const_cast<Buffer*>(this)->operator*();}
-Anvil::Buffer *Buffer::operator->() {return m_buffer.get();}
-const Anvil::Buffer *Buffer::operator->() const {return const_cast<Buffer*>(this)->operator->();}
 
-Buffer::Offset Buffer::GetStartOffset() const {return (*this)->get_create_info_ptr()->get_start_offset();}
-Buffer::Size Buffer::GetSize() const {return m_buffer->get_create_info_ptr()->get_size();}
-std::shared_ptr<Buffer> Buffer::GetParent() {return m_parent.lock();}
-const std::shared_ptr<Buffer> Buffer::GetParent() const {return const_cast<Buffer*>(this)->GetParent();}
-
-bool Buffer::Write(Offset offset,Size size,const void *data) const
+bool prosper::IBuffer::Write(Offset offset,Size size,const void *data) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
@@ -98,25 +87,25 @@ bool Buffer::Write(Offset offset,Size size,const void *data) const
 		auto &buf = m_mappedTmpBuffer->buffer;
 		if(buf->Write(0ull,size,data) == false)
 			return false;
-		Anvil::BufferCopy copyInfo {};
+		util::BufferCopy copyInfo {};
 		copyInfo.size = size;
-		copyInfo.src_offset = 0ull;
-		copyInfo.dst_offset = offset;
+		copyInfo.srcOffset = 0ull;
+		copyInfo.dstOffset = offset;
 		auto &setupCmd = context.GetSetupCommandBuffer();
-		auto r = prosper::util::record_copy_buffer(setupCmd->GetAnvilCommandBuffer(),copyInfo,*buf,*const_cast<Buffer*>(this));
+		auto r = setupCmd->RecordCopyBuffer(copyInfo,*buf,*const_cast<IBuffer*>(this));
 		context.FlushSetupCommandBuffer();
 		return r;
 	}
-	if((m_buffer->get_memory_block(0u)->get_create_info_ptr()->get_memory_features() &Anvil::MemoryFeatureFlagBits::MAPPABLE_BIT) == 0)
+	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
-		if(Map(offset,size,Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT,Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT) == false)
+		if(Map(offset,size,BufferUsageFlags::TransferDstBit,BufferUsageFlags::TransferSrcBit) == false)
 			return false;
 		Write(offset,size,data);
 		return Unmap();
 	}
-	return m_buffer->get_memory_block(0u)->write(offset,size,data);
+	return DoWrite(offset,size,data);
 }
-bool Buffer::Read(Offset offset,Size size,void *data) const
+bool prosper::IBuffer::Read(Offset offset,Size size,void *data) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
@@ -125,64 +114,36 @@ bool Buffer::Read(Offset offset,Size size,void *data) const
 	{
 		auto &context = const_cast<Context&>(GetContext());
 		auto &buf = m_mappedTmpBuffer->buffer;
-		Anvil::BufferCopy copyInfo {};
+		util::BufferCopy copyInfo {};
 		copyInfo.size = size;
-		copyInfo.src_offset = offset;
-		copyInfo.dst_offset = 0ull;
+		copyInfo.srcOffset = offset;
+		copyInfo.dstOffset = 0ull;
 		auto &setupCmd = context.GetSetupCommandBuffer();
-		auto r = prosper::util::record_copy_buffer(setupCmd->GetAnvilCommandBuffer(),copyInfo,*const_cast<Buffer*>(this),*buf);
+		auto r = setupCmd->RecordCopyBuffer(copyInfo,*const_cast<IBuffer*>(this),*buf);
 		context.FlushSetupCommandBuffer();
 		if(r == false)
 			return false;
 		return buf->Read(0ull,size,data);
 	}
-	if((m_buffer->get_create_info_ptr()->get_memory_features() &Anvil::MemoryFeatureFlagBits::MAPPABLE_BIT) == 0)
+	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
-		if(Map(offset,size,Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT,Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT) == false)
+		if(Map(offset,size,BufferUsageFlags::TransferSrcBit,BufferUsageFlags::TransferDstBit) == false)
 			return false;
 		Read(offset,size,data);
 		return Unmap();
 	}
-	return m_buffer->get_memory_block(0u)->read(offset,size,data);
+	return DoRead(offset,size,data);
 }
-void Buffer::Initialize() {MemoryTracker::GetInstance().AddResource(*this);}
-bool Buffer::Map(Offset offset,Size size,Anvil::BufferUsageFlags deviceUsageFlags,Anvil::BufferUsageFlags hostUsageFlags) const
-{
-	if((m_buffer->get_memory_block(0u)->get_create_info_ptr()->get_memory_features() &Anvil::MemoryFeatureFlagBits::MAPPABLE_BIT) == 0)
-	{
-		if((GetUsageFlags() &deviceUsageFlags) == Anvil::BufferUsageFlagBits::NONE)
-		{
-			if(GetContext().IsValidationEnabled() == true)
-				std::cout<<"WARNING: Attempted to map unmappable buffer without usage flags required for copy commands! Skipping..."<<std::endl;
-			return false;
-		}
-		if(GetContext().IsValidationEnabled() == true)
-			;//std::cout<<"WARNING: Attempted to map unmappable buffer! While still possible, this is highly discouraged!"<<std::endl;
-		auto &context = const_cast<Context&>(GetContext());
-		auto &dev = context.GetDevice();
-		prosper::util::BufferCreateInfo createInfo {};
-		createInfo.memoryFeatures = prosper::util::MemoryFeatureFlags::HostAccessable | prosper::util::MemoryFeatureFlags::HostCached;
-		createInfo.size = size;
-		createInfo.usageFlags = hostUsageFlags;
-		auto buf = prosper::util::create_buffer(dev,createInfo);
-		if(buf == nullptr)
-			return false;
-		m_mappedTmpBuffer = std::unique_ptr<MappedBuffer>(new MappedBuffer());
-		m_mappedTmpBuffer->buffer = buf;
-		m_mappedTmpBuffer->offset = GetStartOffset() +offset;
-		return true;
-	}
-	return m_buffer->get_memory_block(0u)->map(offset,size);
-}
-bool Buffer::Map(Offset offset,Size size) const
+void prosper::IBuffer::Initialize() {MemoryTracker::GetInstance().AddResource(*this);}
+bool prosper::IBuffer::Map(Offset offset,Size size) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
 		return parent->Map(GetStartOffset() +offset,size);
-	const auto usageFlags = Anvil::BufferUsageFlagBits::TRANSFER_SRC_BIT | Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT;
+	const auto usageFlags = BufferUsageFlags::TransferSrcBit | BufferUsageFlags::TransferDstBit;
 	return Map(offset,size,usageFlags,usageFlags);
 }
-bool Buffer::Unmap() const
+bool prosper::IBuffer::Unmap() const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
@@ -192,7 +153,8 @@ bool Buffer::Unmap() const
 		m_mappedTmpBuffer = nullptr;
 		return true;
 	}
-	return m_buffer->get_memory_block(0u)->unmap();
+	return DoUnmap();
 }
-Buffer::SubBufferIndex Buffer::GetBaseIndex() const {return m_baseIndex;}
-Anvil::BufferUsageFlags Buffer::GetUsageFlags() const {return m_buffer->get_create_info_ptr()->get_usage_flags();}
+const prosper::util::BufferCreateInfo &prosper::IBuffer::GetCreateInfo() const {return m_createInfo;}
+prosper::IBuffer::SubBufferIndex prosper::IBuffer::GetBaseIndex() const {return m_baseIndex;}
+prosper::BufferUsageFlags prosper::IBuffer::GetUsageFlags() const {return m_createInfo.usageFlags;}

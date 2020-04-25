@@ -14,9 +14,23 @@
 
 namespace prosper
 {
-	class DLLPROSPER Fence
+	class DLLPROSPER IFence
 		: public ContextObject,
-		public std::enable_shared_from_this<Fence>
+		public std::enable_shared_from_this<IFence>
+	{
+	public:
+		IFence(const IFence&)=delete;
+		IFence &operator=(const IFence&)=delete;
+		virtual ~IFence() override;
+
+		virtual bool IsSet() const=0;
+		virtual bool Reset() const=0;
+	protected:
+		IFence(Context &context);
+	};
+
+	class DLLPROSPER Fence
+		: public IFence
 	{
 	public:
 		static std::shared_ptr<Fence> Create(Context &context,bool createSignalled=false,const std::function<void(Fence&)> &onDestroyedCallback=nullptr);
@@ -27,8 +41,8 @@ namespace prosper
 		Anvil::Fence *operator->();
 		const Anvil::Fence *operator->() const;
 
-		bool IsSet() const;
-		bool Reset() const;
+		virtual bool IsSet() const override;
+		virtual bool Reset() const override;
 	protected:
 		Fence(Context &context,std::unique_ptr<Anvil::Fence,std::function<void(Anvil::Fence*)>> fence);
 		std::unique_ptr<Anvil::Fence,std::function<void(Anvil::Fence*)>> m_fence = nullptr;

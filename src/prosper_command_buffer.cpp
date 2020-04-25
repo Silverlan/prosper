@@ -7,95 +7,102 @@
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
+#include "buffers/vk_buffer.hpp"
+#include "vk_command_buffer.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
+#include "prosper_descriptor_set_group.hpp"
 
-using namespace prosper;
+prosper::ICommandBuffer::ICommandBuffer(Context &context,prosper::QueueFamilyType queueFamilyType)
+	: ContextObject(context),std::enable_shared_from_this<ICommandBuffer>(),m_queueFamilyType{queueFamilyType}
+{}
 
-CommandBuffer::CommandBuffer(Context &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,Anvil::QueueFamilyType queueFamilyType)
-	: ContextObject(context),std::enable_shared_from_this<CommandBuffer>(),m_cmdBuffer(cmdBuffer),
-	m_queueFamilyType(queueFamilyType)
+prosper::ICommandBuffer::~ICommandBuffer() {}
+
+bool prosper::ICommandBuffer::IsPrimary() const {return false;}
+bool prosper::ICommandBuffer::IsSecondary() const {return false;}
+bool prosper::ICommandBuffer::RecordBindDescriptorSets(
+	PipelineBindPoint bindPoint,Anvil::PipelineLayout &layout,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets
+)
 {
-	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
-}
-
-CommandBuffer::~CommandBuffer()
-{
-	prosper::debug::deregister_debug_object(m_cmdBuffer->get_command_buffer());
-}
-
-bool CommandBuffer::IsPrimary() const {return false;}
-bool CommandBuffer::IsSecondary() const {return false;}
-Anvil::QueueFamilyType CommandBuffer::GetQueueFamilyType() const {return m_queueFamilyType;}
-bool CommandBuffer::Reset(bool shouldReleaseResources) const {return m_cmdBuffer->reset(shouldReleaseResources);}
-
-bool CommandBuffer::StopRecording() const {return m_cmdBuffer->stop_recording();}
-
-Anvil::CommandBufferBase &CommandBuffer::GetAnvilCommandBuffer() const {return *m_cmdBuffer;}
-Anvil::CommandBufferBase &CommandBuffer::operator*() {return *m_cmdBuffer;}
-const Anvil::CommandBufferBase &CommandBuffer::operator*() const {return const_cast<CommandBuffer*>(this)->operator*();}
-Anvil::CommandBufferBase *CommandBuffer::operator->() {return m_cmdBuffer.get();}
-const Anvil::CommandBufferBase *CommandBuffer::operator->() const {return const_cast<CommandBuffer*>(this)->operator->();}
-
-///////////////////
-
-std::shared_ptr<PrimaryCommandBuffer> PrimaryCommandBuffer::Create(Context &context,Anvil::PrimaryCommandBufferUniquePtr cmdBuffer,Anvil::QueueFamilyType queueFamilyType,const std::function<void(CommandBuffer&)> &onDestroyedCallback)
-{
-	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<PrimaryCommandBuffer>(new PrimaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType));
-	return std::shared_ptr<PrimaryCommandBuffer>(new PrimaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType),[onDestroyedCallback](CommandBuffer *buf) {
-		onDestroyedCallback(*buf);
-		delete buf;
-	});
-}
-PrimaryCommandBuffer::PrimaryCommandBuffer(Context &context,Anvil::PrimaryCommandBufferUniquePtr cmdBuffer,Anvil::QueueFamilyType queueFamilyType)
-	: CommandBuffer(context,prosper::util::unique_ptr_to_shared_ptr(std::move(cmdBuffer)),queueFamilyType)
-{
-	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
-}
-bool PrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
-{
-	return static_cast<Anvil::PrimaryCommandBuffer&>(*m_cmdBuffer).start_recording(oneTimeSubmit,simultaneousUseAllowed);
-}
-bool PrimaryCommandBuffer::IsPrimary() const {return true;}
-Anvil::PrimaryCommandBuffer &PrimaryCommandBuffer::GetAnvilCommandBuffer() const {return static_cast<Anvil::PrimaryCommandBuffer&>(CommandBuffer::GetAnvilCommandBuffer());}
-Anvil::PrimaryCommandBuffer &PrimaryCommandBuffer::operator*() {return static_cast<Anvil::PrimaryCommandBuffer&>(CommandBuffer::operator*());}
-const Anvil::PrimaryCommandBuffer &PrimaryCommandBuffer::operator*() const {return static_cast<const Anvil::PrimaryCommandBuffer&>(CommandBuffer::operator*());}
-Anvil::PrimaryCommandBuffer *PrimaryCommandBuffer::operator->() {return static_cast<Anvil::PrimaryCommandBuffer*>(CommandBuffer::operator->());}
-const Anvil::PrimaryCommandBuffer *PrimaryCommandBuffer::operator->() const {return static_cast<const Anvil::PrimaryCommandBuffer*>(CommandBuffer::operator->());}
-
-///////////////////
-
-std::shared_ptr<SecondaryCommandBuffer> SecondaryCommandBuffer::Create(Context &context,std::unique_ptr<Anvil::SecondaryCommandBuffer,std::function<void(Anvil::SecondaryCommandBuffer*)>> cmdBuffer,Anvil::QueueFamilyType queueFamilyType,const std::function<void(CommandBuffer&)> &onDestroyedCallback)
-{
-	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType));
-	return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType),[onDestroyedCallback](CommandBuffer *buf) {
-		onDestroyedCallback(*buf);
-		delete buf;
-	});
-}
-SecondaryCommandBuffer::SecondaryCommandBuffer(Context &context,Anvil::SecondaryCommandBufferUniquePtr cmdBuffer,Anvil::QueueFamilyType queueFamilyType)
-	: CommandBuffer(context,prosper::util::unique_ptr_to_shared_ptr(std::move(cmdBuffer)),queueFamilyType)
-{
-	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
-}
-bool SecondaryCommandBuffer::StartRecording(
-	bool oneTimeSubmit,bool simultaneousUseAllowed,bool renderPassUsageOnly,
-	const Framebuffer &framebuffer,const RenderPass &rp,Anvil::SubPassID subPassId,
-	Anvil::OcclusionQuerySupportScope occlusionQuerySupportScope,bool occlusionQueryUsedByPrimaryCommandBuffer,
-	Anvil::QueryPipelineStatisticFlags statisticsFlags
-) const
-{
-	return static_cast<Anvil::SecondaryCommandBuffer&>(*m_cmdBuffer).start_recording(
-		oneTimeSubmit,simultaneousUseAllowed,
-		renderPassUsageOnly,&framebuffer.GetAnvilFramebuffer(),&rp.GetAnvilRenderPass(),subPassId,occlusionQuerySupportScope,
-		occlusionQueryUsedByPrimaryCommandBuffer,statisticsFlags
+	std::vector<Anvil::DescriptorSet*> anvDescSets {};
+	anvDescSets.reserve(descSets.size());
+	for(auto *ds : descSets)
+		anvDescSets.push_back(&static_cast<prosper::DescriptorSet&>(*ds).GetAnvilDescriptorSet());
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_descriptor_sets(
+		static_cast<Anvil::PipelineBindPoint>(bindPoint),&layout,firstSet,anvDescSets.size(),anvDescSets.data(),
+		dynamicOffsets.size(),dynamicOffsets.data()
 	);
 }
-bool SecondaryCommandBuffer::IsSecondary() const {return true;}
-Anvil::SecondaryCommandBuffer &SecondaryCommandBuffer::GetAnvilCommandBuffer() const {return static_cast<Anvil::SecondaryCommandBuffer&>(CommandBuffer::GetAnvilCommandBuffer());}
-Anvil::SecondaryCommandBuffer &SecondaryCommandBuffer::operator*() {return static_cast<Anvil::SecondaryCommandBuffer&>(CommandBuffer::operator*());}
-const Anvil::SecondaryCommandBuffer &SecondaryCommandBuffer::operator*() const {return static_cast<const Anvil::SecondaryCommandBuffer&>(CommandBuffer::operator*());}
-Anvil::SecondaryCommandBuffer *SecondaryCommandBuffer::operator->() {return static_cast<Anvil::SecondaryCommandBuffer*>(CommandBuffer::operator->());}
-const Anvil::SecondaryCommandBuffer *SecondaryCommandBuffer::operator->() const {return static_cast<const Anvil::SecondaryCommandBuffer*>(CommandBuffer::operator->());}
+bool prosper::ICommandBuffer::RecordPushConstants(Anvil::PipelineLayout &layout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_push_constants(&layout,static_cast<Anvil::ShaderStageFlagBits>(stageFlags),offset,size,data);
+}
+bool prosper::ICommandBuffer::RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_pipeline(static_cast<Anvil::PipelineBindPoint>(in_pipeline_bind_point),static_cast<Anvil::PipelineID>(in_pipeline_id));
+}
+bool prosper::ICommandBuffer::RecordSetLineWidth(float lineWidth)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_line_width(lineWidth);
+}
+bool prosper::ICommandBuffer::RecordBindIndexBuffer(IBuffer &buf,IndexType indexType,DeviceSize offset)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_index_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,static_cast<Anvil::IndexType>(indexType));
+}
+bool prosper::ICommandBuffer::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets)
+{
+	std::vector<Anvil::Buffer*> anvBuffers {};
+	anvBuffers.reserve(buffers.size());
+	for(auto *buf : buffers)
+		anvBuffers.push_back(&dynamic_cast<VlkBuffer*>(buf)->GetAnvilBuffer());
+	std::vector<DeviceSize> anvOffsets;
+	if(offsets.empty())
+		anvOffsets.resize(buffers.size(),0);
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
+}
+bool prosper::ICommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_dispatch_indirect(&dynamic_cast<VlkBuffer&>(buffer).GetAnvilBuffer(),size);
+}
+bool prosper::ICommandBuffer::RecordDraw(uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
+}
+bool prosper::ICommandBuffer::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,int32_t vertexOffset,uint32_t firstInstance)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
+}
+bool prosper::ICommandBuffer::RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indexed_indirect(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,drawCount,stride);
+}
+bool prosper::ICommandBuffer::RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indirect(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,count,stride);
+}
+bool prosper::ICommandBuffer::RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_fill_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,size,data);
+}
+bool prosper::ICommandBuffer::RecordSetBlendConstants(const std::array<float,4> &blendConstants)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_blend_constants(blendConstants.data());
+}
+bool prosper::ICommandBuffer::RecordSetDepthBounds(float minDepthBounds,float maxDepthBounds)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_depth_bounds(minDepthBounds,maxDepthBounds);
+}
+bool prosper::ICommandBuffer::RecordSetStencilCompareMask(StencilFaceFlags faceMask,uint32_t stencilCompareMask)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_stencil_compare_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilCompareMask);
+}
+bool prosper::ICommandBuffer::RecordSetStencilReference(StencilFaceFlags faceMask,uint32_t stencilReference)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_stencil_reference(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilReference);
+}
+bool prosper::ICommandBuffer::RecordSetStencilWriteMask(StencilFaceFlags faceMask,uint32_t stencilWriteMask)
+{
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_stencil_write_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilWriteMask);
+}
+prosper::QueueFamilyType prosper::ICommandBuffer::GetQueueFamilyType() const {return m_queueFamilyType;}

@@ -14,9 +14,20 @@
 
 namespace prosper
 {
-	class DLLPROSPER RenderPass
+	class DLLPROSPER IRenderPass
 		: public ContextObject,
-		public std::enable_shared_from_this<RenderPass>
+		public std::enable_shared_from_this<IRenderPass>
+	{
+	public:
+		IRenderPass(const IRenderPass&)=delete;
+		IRenderPass &operator=(const IRenderPass&)=delete;
+		virtual ~IRenderPass() override;
+	protected:
+		IRenderPass(Context &context);
+	};
+
+	class DLLPROSPER RenderPass
+		: public IRenderPass
 	{
 	public:
 		static std::shared_ptr<RenderPass> Create(Context &context,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp,const std::function<void(RenderPass&)> &onDestroyedCallback=nullptr);
