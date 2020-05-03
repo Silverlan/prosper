@@ -11,37 +11,8 @@
 
 using namespace prosper;
 
-IFence::IFence(Context &context)
+IFence::IFence(IPrContext &context)
 	: ContextObject(context),std::enable_shared_from_this<IFence>()
 {}
 
 IFence::~IFence() {}
-
-/////////////
-
-std::shared_ptr<Fence> Fence::Create(Context &context,bool createSignalled,const std::function<void(Fence&)> &onDestroyedCallback)
-{
-	auto fence = Anvil::Fence::create(Anvil::FenceCreateInfo::create(&context.GetDevice(),createSignalled));
-	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<Fence>(new Fence(context,std::move(fence)));
-	return std::shared_ptr<Fence>(new Fence(context,std::move(fence)),[onDestroyedCallback](Fence *fence) {
-		fence->OnRelease();
-		onDestroyedCallback(*fence);
-		delete fence;
-	});
-}
-
-Fence::Fence(Context &context,Anvil::FenceUniquePtr fence)
-	: IFence{context},m_fence(std::move(fence))
-{
-	//prosper::debug::register_debug_object(m_framebuffer->get_framebuffer(),this,prosper::debug::ObjectType::Fence);
-}
-Fence::~Fence() {}
-bool Fence::IsSet() const {return m_fence->is_set();}
-bool Fence::Reset() const {return m_fence->reset();}
-
-Anvil::Fence &Fence::GetAnvilFence() const {return *m_fence;}
-Anvil::Fence &Fence::operator*() {return *m_fence;}
-const Anvil::Fence &Fence::operator*() const {return const_cast<Fence*>(this)->operator*();}
-Anvil::Fence *Fence::operator->() {return m_fence.get();}
-const Anvil::Fence *Fence::operator->() const {return const_cast<Fence*>(this)->operator->();}

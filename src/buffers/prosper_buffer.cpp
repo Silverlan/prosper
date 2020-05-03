@@ -11,7 +11,7 @@
 #include "prosper_memory_tracker.hpp"
 #include <iostream>
 
-prosper::IBuffer::IBuffer(Context &context,const prosper::util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size)
+prosper::IBuffer::IBuffer(IPrContext &context,const prosper::util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size)
 	: ContextObject(context),std::enable_shared_from_this<IBuffer>(),m_createInfo{bufCreateInfo},m_startOffset{startOffset},
 	m_size{size}
 {}
@@ -60,7 +60,7 @@ bool prosper::IBuffer::Map(Offset offset,Size size,BufferUsageFlags deviceUsageF
 		}
 		if(GetContext().IsValidationEnabled() == true)
 			;//std::cout<<"WARNING: Attempted to map unmappable buffer! While still possible, this is highly discouraged!"<<std::endl;
-		auto &context = const_cast<Context&>(GetContext());
+		auto &context = const_cast<IPrContext&>(GetContext());
 		prosper::util::BufferCreateInfo createInfo {};
 		createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::HostCached;
 		createInfo.size = size;
@@ -83,7 +83,7 @@ bool prosper::IBuffer::Write(Offset offset,Size size,const void *data) const
 		return parent->Write(GetStartOffset() +offset,size,data);
 	if(m_mappedTmpBuffer != nullptr)
 	{
-		auto &context = const_cast<Context&>(GetContext());
+		auto &context = const_cast<IPrContext&>(GetContext());
 		auto &buf = m_mappedTmpBuffer->buffer;
 		if(buf->Write(0ull,size,data) == false)
 			return false;
@@ -112,7 +112,7 @@ bool prosper::IBuffer::Read(Offset offset,Size size,void *data) const
 		return parent->Read(GetStartOffset() +offset,size,data);
 	if(m_mappedTmpBuffer != nullptr)
 	{
-		auto &context = const_cast<Context&>(GetContext());
+		auto &context = const_cast<IPrContext&>(GetContext());
 		auto &buf = m_mappedTmpBuffer->buffer;
 		util::BufferCopy copyInfo {};
 		copyInfo.size = size;

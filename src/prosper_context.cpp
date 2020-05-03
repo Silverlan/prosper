@@ -21,38 +21,13 @@
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
 #include "prosper_pipeline_cache.hpp"
+#include <wrappers/command_buffer.h>
+#include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
-#include <misc/buffer_create_info.h>
-#include <misc/fence_create_info.h>
-#include <misc/semaphore_create_info.h>
-#include <misc/framebuffer_create_info.h>
-#include <misc/swapchain_create_info.h>
-#include <misc/rendering_surface_create_info.h>
-#include <misc/image_create_info.h>
 #include <thread>
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
-
-#include <string>
-#include <cmath>
-#include <iglfw/glfw_window.h>
-
-#ifdef _WIN32
-	#define GLFW_EXPOSE_NATIVE_WIN32
-#else
-	#define GLFW_EXPOSE_NATIVE_X11
-#endif
-
-#include <GLFW/glfw3native.h>
-
-#ifdef __linux__
-#define ENABLE_GLFW_ANVIL_COMPATIBILITY
-#endif
-#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
-#include <xcb/xcb.h>
-#include <X11/Xlib-xcb.h>
-#endif
 
 /* Sanity checks */
 #if defined(_WIN32)
@@ -68,24 +43,10 @@
 using namespace prosper;
 
 #pragma optimize("",off)
-REGISTER_BASIC_BITWISE_OPERATORS(prosper::Context::StateFlags)
-
-decltype(Context::s_devToContext) Context::s_devToContext = {};
-
-const std::string PIPELINE_CACHE_PATH = "cache/shader.cache";
-
-Context &Context::GetContext(Anvil::BaseDevice &dev)
-{
-	auto it = s_devToContext.find(&dev);
-	if(it == s_devToContext.end())
-		throw std::runtime_error("Invalid context for device!");
-	return *it->second;
-}
-
 static std::shared_ptr<prosper::IBuffer> s_vertexBuffer = nullptr;
 static std::shared_ptr<prosper::IBuffer> s_uvBuffer = nullptr;
 static std::shared_ptr<prosper::IBuffer> s_vertexUvBuffer = nullptr;
-Context::Context(const std::string &appName,bool bEnableValidation)
+IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>())
 {
@@ -93,57 +54,44 @@ Context::Context(const std::string &appName,bool bEnableValidation)
 	m_windowCreationInfo->title = appName;
 }
 
-Context::~Context()
+IPrContext::~IPrContext()
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed) == false)
 		throw std::logic_error{"Prosper context has to be closed before being destroyed!"};
 }
 
-void Context::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
-bool Context::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
+void IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
+bool IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
 
-Anvil::SGPUDevice &Context::GetDevice() {return *m_pGpuDevice;}
-const std::shared_ptr<Anvil::RenderPass> &Context::GetMainRenderPass() const {return m_renderPass;}
-Anvil::SubPassID Context::GetMainSubPassID() const {return m_mainSubPass;}
-std::shared_ptr<Anvil::Swapchain> Context::GetSwapchain() {return m_swapchainPtr;}
+const std::string &IPrContext::GetAppName() const {return m_appName;}
+uint32_t IPrContext::GetSwapchainImageCount() const {return m_numSwapchainImages;}
 
-const std::string &Context::GetAppName() const {return m_appName;}
-uint32_t Context::GetSwapchainImageCount() const {return m_numSwapchainImages;}
-
-prosper::IImage *Context::GetSwapchainImage(uint32_t idx)
+prosper::IImage *IPrContext::GetSwapchainImage(uint32_t idx)
 {
 	return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr;
 }
 
-GLFW::Window &Context::GetWindow() {return *m_glfwWindow;}
-std::array<uint32_t,2> Context::GetWindowSize() const {return {m_windowCreationInfo->width,m_windowCreationInfo->height};}
-uint32_t Context::GetWindowWidth() const {return m_windowCreationInfo->width;}
-uint32_t Context::GetWindowHeight() const {return m_windowCreationInfo->height;}
+GLFW::Window &IPrContext::GetWindow() {return *m_glfwWindow;}
+std::array<uint32_t,2> IPrContext::GetWindowSize() const {return {m_windowCreationInfo->width,m_windowCreationInfo->height};}
+uint32_t IPrContext::GetWindowWidth() const {return m_windowCreationInfo->width;}
+uint32_t IPrContext::GetWindowHeight() const {return m_windowCreationInfo->height;}
 
-void Context::Close()
+void IPrContext::Close()
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed))
 		return;
 	WaitIdle();
 	OnClose();
 }
-void Context::OnClose()
+void IPrContext::OnClose()
 {
 	Release();
 }
-void Context::Release()
+void IPrContext::Release()
 {
-	if(m_devicePtr == nullptr)
-		return;
-	ReleaseSwapchain();
-
-	auto &dev = GetDevice();
-	auto it = s_devToContext.find(&dev);
 	s_vertexBuffer = nullptr;
 	s_uvBuffer = nullptr;
 	s_vertexUvBuffer = nullptr;
-	if(it != s_devToContext.end())
-		s_devToContext.erase(it);
 
 	m_shaderManager = nullptr;
 	m_dummyTexture = nullptr;
@@ -159,156 +107,15 @@ void Context::Release()
 	while(m_scheduledBufferUpdates.empty() == false)
 		m_scheduledBufferUpdates.pop();
 
-	m_devicePtr.reset(); // All Vulkan resources related to the device have to be cleared at this point!
-
-	vkDestroySurfaceKHR(m_instancePtr->get_instance_vk(),m_surface,nullptr);
-
-	m_instancePtr.reset();
-
-	m_windowPtr.reset();
-
 	m_glfwWindow = nullptr;
 	m_stateFlags |= StateFlags::Closed;
 }
 
-uint64_t Context::GetLastFrameId() const {return m_frameId;}
+uint64_t IPrContext::GetLastFrameId() const {return m_frameId;}
 
-void Context::EndFrame() {++m_frameId;}
+void IPrContext::EndFrame() {++m_frameId;}
 
-vk::Result Context::WaitForFence(const IFence &fence,uint64_t timeout) const
-{
-	auto vkFence = static_cast<const Fence&>(fence).GetAnvilFence().get_fence();
-	return static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,&vkFence,true,timeout));
-}
-
-vk::Result Context::WaitForFences(const std::vector<IFence*> &fences,bool waitAll,uint64_t timeout) const
-{
-	std::vector<VkFence> vkFences {};
-	vkFences.reserve(fences.size());
-	for(auto &fence : fences)
-		vkFences.push_back(static_cast<Fence&>(*fence).GetAnvilFence().get_fence());
-	return static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),vkFences.size(),vkFences.data(),waitAll,timeout));
-}
-
-bool Context::Submit(ICommandBuffer &cmdBuf,bool shouldBlock,IFence *optFence)
-{
-	auto &dev = GetDevice();
-	return dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&dynamic_cast<VlkCommandBuffer&>(cmdBuf).GetAnvilCommandBuffer(),0u,nullptr,
-		0u,nullptr,nullptr,shouldBlock,optFence ? &dynamic_cast<Fence*>(optFence)->GetAnvilFence() : nullptr
-	));
-}
-
-void Context::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
-{
-	Anvil::Semaphore *curr_frame_signal_semaphore_ptr;
-	Anvil::Semaphore *curr_frame_wait_semaphore_ptr;
-	static uint32_t n_frames_rendered = 0;
-	auto *present_queue_ptr = m_devicePtr->get_universal_queue(0);
-	Anvil::PipelineStageFlags wait_stage_mask = Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT;
-
-    /* Determine the signal + wait semaphores to use for drawing this frame */
-    m_lastSemaporeUsed = (m_lastSemaporeUsed +1) %m_numSwapchainImages;
-
-    curr_frame_signal_semaphore_ptr = m_frameSignalSemaphores[m_lastSemaporeUsed].get();
-    curr_frame_wait_semaphore_ptr = m_frameWaitSemaphores[m_lastSemaporeUsed].get();
-
-    /* Determine the semaphore which the swapchain image */
-    auto errCode = m_swapchainPtr->acquire_image(curr_frame_wait_semaphore_ptr,&m_n_swapchain_image);
-	if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
-	{
-		InitSwapchain();
-		return;
-	}
-
-	auto success = (errCode == Anvil::SwapchainOperationErrorCode::SUCCESS);
-	std::string errMsg;
-	if(success)
-	{
-		auto waitResult = static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
-		if(waitResult == vk::Result::eSuccess)
-		{
-			if(m_cmdFences[m_n_swapchain_image]->reset() == false)
-				errMsg = "Unable to reset swapchain fence!";
-		}
-		else
-			errMsg = "An error has occurred when waiting for swapchain fence: " +prosper::util::to_string(waitResult);
-	}
-	else
-		errMsg = "Unable to acquire next swapchain image: " +std::to_string(umath::to_integral(errCode));
-	if(errMsg.empty() == false)
-		throw std::runtime_error(errMsg);
-	
-	ClearKeepAliveResources();
-
-	//auto &keepAliveResources = m_keepAliveResources.at(m_n_swapchain_image);
-	//auto numKeepAliveResources = keepAliveResources.size(); // We can clear the resources from the previous render pass of this swapchain after we've waited for the semaphore (i.e. after the frame rendering is complete)
-	
-	auto &cmd_buffer_ptr = m_commandBuffers.at(m_n_swapchain_image);
-	/* Start recording commands */
-	static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr).GetAnvilCommandBuffer()).start_recording(false,true);
-	umath::set_flag(m_stateFlags,StateFlags::IsRecording);
-	umath::set_flag(m_stateFlags,StateFlags::Idle,false);
-	while(m_scheduledBufferUpdates.empty() == false)
-	{
-		auto &f = m_scheduledBufferUpdates.front();
-		f(*cmd_buffer_ptr);
-		m_scheduledBufferUpdates.pop();
-	}
-	drawFrame(GetDrawCommandBuffer(),m_n_swapchain_image);
-	/* Close the recording process */
-	umath::set_flag(m_stateFlags,StateFlags::IsRecording,false);
-	static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr).GetAnvilCommandBuffer()).stop_recording();
-
-
-    /* Submit work chunk and present */
-	auto *signalSemaphore = curr_frame_signal_semaphore_ptr;
-	auto *waitSemaphore = curr_frame_wait_semaphore_ptr;
-    m_devicePtr->get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_commandBuffers[m_n_swapchain_image]).GetAnvilCommandBuffer(),
-		1, /* n_semaphores_to_signal */
-		&signalSemaphore,
-		1, /* n_semaphores_to_wait_on */
-		&waitSemaphore,
-		&wait_stage_mask,
-		false, /* should_block  */
-		m_cmdFences.at(m_n_swapchain_image).get()
-	)); /* opt_fence_ptr */
-
-	//ClearKeepAliveResources(numKeepAliveResources);
-
-	auto bPresentSuccess = present_queue_ptr->present(
-		m_swapchainPtr.get(),
-		m_n_swapchain_image,
-		1, /* n_wait_semaphores */
-		&signalSemaphore,
-		&errCode
-	);
-	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS || bPresentSuccess == false)
-	{
-		std::cout<<"Swapchain present error: "<<umath::to_integral(errCode)<<"!"<<std::endl;
-		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
-		{
-			ChangeResolution(m_windowCreationInfo->width,m_windowCreationInfo->height); // prosper TODO: Force reload
-			/*InitVulkan();
-			auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
-			m_windowPtr = Anvil::WindowFactory::create_window(Anvil::WINDOW_PLATFORM_SYSTEM,hWindow);
-			VkSurfaceKHR surface = nullptr;
-			auto err = glfwCreateWindowSurface(
-				m_instancePtr->get_instance_vk(),
-				const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()),
-				nullptr,
-				reinterpret_cast<VkSurfaceKHR*>(&surface)
-			);
-			InitSwapchain();*/
-		}
-		else
-			; // Terminal error?
-	}
-	//m_glfwWindow->SwapBuffers();
-}
-
-void Context::DrawFrame()
+void IPrContext::DrawFrame()
 {
 	DrawFrame([this](const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t m_n_swapchain_image) {
 		Draw(m_n_swapchain_image);
@@ -316,37 +123,13 @@ void Context::DrawFrame()
 	EndFrame();
 }
 
-void Context::ReleaseSwapchain()
+void IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data)
 {
-	m_renderPass.reset();
-	m_swapchainPtr.reset();
-	m_renderingSurfacePtr.reset();
-	for(auto &fbo : m_fbos)
-		fbo.reset();
-
-	m_commandBuffers.clear();
-	m_cmdFences.clear();
-	m_fbos.clear();
-	m_frameSignalSemaphores.clear();
-	m_frameWaitSemaphores.clear();
-}
-
-void Context::ReloadWindow()
-{
-	WaitIdle();
-	ReleaseSwapchain();
-	InitWindow();
-	ReloadSwapchain();
-}
-
-void Context::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data)
-{
-	VkMemoryRequirements req {};
-	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<VlkImage&>(img).GetAnvilImage().get_image(),&req);
+	auto req = GetMemoryRequirements(img);
 	auto buf = AllocateDeviceImageBuffer(req.size,req.alignment,data);
 	img.SetMemoryBuffer(*buf);
 }
-std::shared_ptr<IBuffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
 {
 	static uint64_t totalAllocated = 0;
 	totalAllocated += size;
@@ -392,7 +175,7 @@ std::shared_ptr<IBuffer> Context::AllocateDeviceImageBuffer(vk::DeviceSize size,
 	return buf;
 }
 
-std::shared_ptr<IBuffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IPrContext::AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
 {
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
@@ -408,56 +191,14 @@ std::shared_ptr<IBuffer> Context::AllocateTemporaryBuffer(vk::DeviceSize size,ui
 		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
 	return CreateBuffer(createInfo,data);
 }
-void Context::AllocateTemporaryBuffer(prosper::IImage &img,const void *data)
+void IPrContext::AllocateTemporaryBuffer(prosper::IImage &img,const void *data)
 {
-	VkMemoryRequirements req {};
-	vkGetImageMemoryRequirements(GetDevice().get_device_vk(),static_cast<VlkImage&>(img).GetAnvilImage().get_image(),&req);
+	auto req = GetMemoryRequirements(img);
 	auto buf = AllocateTemporaryBuffer(req.size,req.alignment,data);
 	img.SetMemoryBuffer(*buf);
 }
 
-void Context::ReloadSwapchain()
-{
-	// Reload swapchain related objects
-	WaitIdle();
-	ReleaseSwapchain();
-	InitSwapchain();
-	InitFrameBuffers();
-	InitCommandBuffers();
-	InitSemaphores();
-	InitMainRenderPass();
-	InitTemporaryBuffer();
-	OnSwapchainInitialized();
-
-	if(m_shaderManager != nullptr)
-	{
-		auto &shaderManager = *m_shaderManager;
-		for(auto &pair : shaderManager.GetShaders())
-		{
-			if(pair.second->IsGraphicsShader() == false)
-				continue;
-			auto &shader = static_cast<prosper::ShaderGraphics&>(*pair.second);
-			auto numPipelines = shader.GetPipelineCount();
-			auto bHasStaticViewportOrScissor = false;
-			for(auto i=decltype(numPipelines){0};i<numPipelines;++i)
-			{
-				auto *baseInfo = shader.GetPipelineInfo(i);
-				if(baseInfo == nullptr)
-					continue;
-				auto &info = static_cast<const Anvil::GraphicsPipelineCreateInfo&>(*baseInfo);
-				if(info.get_n_scissor_boxes() == 0u && info.get_n_viewports() == 0u)
-					continue;
-				bHasStaticViewportOrScissor = true;
-				break;
-			}
-			if(bHasStaticViewportOrScissor == false)
-				continue;
-			shader.ReloadPipelines();
-		}
-	}
-}
-
-void Context::ChangeResolution(uint32_t width,uint32_t height)
+void IPrContext::ChangeResolution(uint32_t width,uint32_t height)
 {
 	if(width == m_windowCreationInfo->width && height == m_windowCreationInfo->height)
 		return;
@@ -471,11 +212,11 @@ void Context::ChangeResolution(uint32_t width,uint32_t height)
 	OnResolutionChanged(width,height);
 }
 
-void Context::OnResolutionChanged(uint32_t width,uint32_t height) {}
-void Context::OnWindowInitialized() {}
-void Context::OnSwapchainInitialized() {}
+void IPrContext::OnResolutionChanged(uint32_t width,uint32_t height) {}
+void IPrContext::OnWindowInitialized() {}
+void IPrContext::OnSwapchainInitialized() {}
 
-void Context::SetPresentMode(prosper::PresentModeKHR presentMode)
+void IPrContext::SetPresentMode(prosper::PresentModeKHR presentMode)
 {
 	if(IsPresentationModeSupported(presentMode) == false)
 	{
@@ -490,8 +231,8 @@ void Context::SetPresentMode(prosper::PresentModeKHR presentMode)
 	}
 	m_presentMode = presentMode;
 }
-prosper::PresentModeKHR Context::GetPresentMode() const {return m_presentMode;}
-void Context::ChangePresentMode(prosper::PresentModeKHR presentMode)
+prosper::PresentModeKHR IPrContext::GetPresentMode() const {return m_presentMode;}
+void IPrContext::ChangePresentMode(prosper::PresentModeKHR presentMode)
 {
 	auto oldPresentMode = GetPresentMode();
 	SetPresentMode(presentMode);
@@ -501,26 +242,7 @@ void Context::ChangePresentMode(prosper::PresentModeKHR presentMode)
 	ReloadSwapchain();
 }
 
-bool Context::IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const
-{
-	if(m_renderingSurfacePtr == nullptr)
-		return true;
-	auto res = false;
-	m_renderingSurfacePtr->supports_presentation_mode(m_physicalDevicePtr,static_cast<Anvil::PresentModeKHR>(presentMode),&res);
-	return res;
-}
-
-Vendor Context::GetPhysicalDeviceVendor() const
-{
-	return static_cast<Vendor>(const_cast<Context*>(this)->GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->vendor_id);
-}
-
-bool Context::GetSurfaceCapabilities(Anvil::SurfaceCapabilities &caps) const
-{
-	return const_cast<Context*>(this)->GetDevice().get_physical_device_surface_capabilities(m_renderingSurfacePtr.get(),&caps);
-}
-
-void Context::GetScissorViewportInfo(VkRect2D *out_scissors,VkViewport *out_viewports)
+void IPrContext::GetScissorViewportInfo(VkRect2D *out_scissors,VkViewport *out_viewports)
 {
 	auto width = GetWindowWidth();
 	auto height = GetWindowHeight();
@@ -573,39 +295,36 @@ void Context::GetScissorViewportInfo(VkRect2D *out_scissors,VkViewport *out_view
 	}
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Context::GetSetupCommandBuffer()
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer != nullptr)
 		return m_setupCmdBuffer;
-	auto &dev = GetDevice();
-	m_setupCmdBuffer = prosper::VlkPrimaryCommandBuffer::Create(*this,dev.get_command_pool_for_queue_family_index(dev.get_universal_queue(0)->get_queue_family_index())->alloc_primary_level_command_buffer(),prosper::QueueFamilyType::Universal);
-	if(static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer()).start_recording(true,false) == false)
+	uint32_t queueFamilyIndex;
+	m_setupCmdBuffer = AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal,queueFamilyIndex);
+	if(m_setupCmdBuffer == nullptr)
+		throw std::runtime_error{"Unable to allocate setup command buffer!"};
+	if(m_setupCmdBuffer->StartRecording(true,false) == false)
 		throw std::runtime_error("Unable to start recording for primary level command buffer!");
 	return m_setupCmdBuffer;
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Context::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Context::GetDrawCommandBuffer(uint32_t swapchainIdx) const
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetDrawCommandBuffer(uint32_t swapchainIdx) const
 {
 	static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
 	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
 }
 
-void Context::FlushSetupCommandBuffer()
+void IPrContext::FlushSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer == nullptr)
 		return;
-	auto bSuccess = static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer()).stop_recording();
-	auto &dev = GetDevice();
-	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer(),0u,nullptr,
-		0u,nullptr,nullptr,true
-	));
+	DoFlushSetupCommandBuffer();
 	m_setupCmdBuffer = nullptr;
 }
 
-void Context::ClearKeepAliveResources(uint32_t n)
+void IPrContext::ClearKeepAliveResources(uint32_t n)
 {
 	if(m_n_swapchain_image >= m_keepAliveResources.size())
 		return;
@@ -614,7 +333,7 @@ void Context::ClearKeepAliveResources(uint32_t n)
 	while(n-- > 0u)
 		resources.erase(resources.begin());
 }
-void Context::ClearKeepAliveResources()
+void IPrContext::ClearKeepAliveResources()
 {
 	if(m_n_swapchain_image >= m_keepAliveResources.size())
 		return;
@@ -625,33 +344,28 @@ void Context::ClearKeepAliveResources()
 	resources.clear();
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources,false);
 }
-void Context::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
+void IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
-	if(m_cmdFences[m_n_swapchain_image]->is_set())
-		return;
-	m_keepAliveResources.at(m_n_swapchain_image).push_back(resource);
+	DoKeepResourceAliveUntilPresentationComplete(resource);
 }
 
-void Context::WaitIdle()
+void IPrContext::WaitIdle()
 {
 	FlushSetupCommandBuffer();
-	auto &dev = GetDevice();
-	dev.wait_idle();
+	DoWaitIdle();
 	umath::set_flag(m_stateFlags,StateFlags::Idle);
 	ClearKeepAliveResources();
 }
 
-void Context::Initialize(const CreateInfo &createInfo)
+void IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	// TODO: Check if resolution is supported
 	m_windowCreationInfo->width = createInfo.width;
 	m_windowCreationInfo->height = createInfo.height;
 	ChangePresentMode(createInfo.presentMode);
-	InitVulkan(createInfo);
-	InitWindow();
-	ReloadSwapchain();
+	InitAPI(createInfo);
 	InitBuffers();
 	InitGfxPipelines();
 	InitDummyTextures();
@@ -662,38 +376,27 @@ void Context::Initialize(const CreateInfo &createInfo)
 	s_vertexUvBuffer = prosper::util::get_square_vertex_uv_buffer(*this);
 
 	auto &shaderManager = GetShaderManager();
-	shaderManager.RegisterShader("copy_image",[](prosper::Context &context,const std::string &identifier) {return new ShaderCopyImage(context,identifier);});
-	shaderManager.RegisterShader("blur_horizontal",[](prosper::Context &context,const std::string &identifier) {return new ShaderBlurH(context,identifier);});
-	shaderManager.RegisterShader("blur_vertical",[](prosper::Context &context,const std::string &identifier) {return new ShaderBlurV(context,identifier);});
+	shaderManager.RegisterShader("copy_image",[](prosper::IPrContext &context,const std::string &identifier) {return new ShaderCopyImage(context,identifier);});
+	shaderManager.RegisterShader("blur_horizontal",[](prosper::IPrContext &context,const std::string &identifier) {return new ShaderBlurH(context,identifier);});
+	shaderManager.RegisterShader("blur_vertical",[](prosper::IPrContext &context,const std::string &identifier) {return new ShaderBlurV(context,identifier);});
 }
 
-bool Context::IsImageFormatSupported(prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type,prosper::ImageTiling tiling) const
+void IPrContext::InitBuffers() {}
+
+void IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image) {}
+
+ShaderManager &IPrContext::GetShaderManager() const {return *m_shaderManager;}
+
+::util::WeakHandle<Shader> IPrContext::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
+::util::WeakHandle<Shader> IPrContext::GetShader(const std::string &identifier) const {return m_shaderManager->GetShader(identifier);}
+
+const std::shared_ptr<Texture> &IPrContext::GetDummyTexture() const {return m_dummyTexture;}
+const std::shared_ptr<Texture> &IPrContext::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
+const std::shared_ptr<IBuffer> &IPrContext::GetDummyBuffer() const {return m_dummyBuffer;}
+const std::shared_ptr<IDynamicResizableBuffer> &IPrContext::GetTemporaryBuffer() const {return m_tmpBuffer;}
+const std::vector<std::shared_ptr<IDynamicResizableBuffer>> &IPrContext::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
+void IPrContext::InitDummyBuffer()
 {
-	return m_devicePtr->get_physical_device_image_format_properties(
-		Anvil::ImageFormatPropertiesQuery{
-			static_cast<Anvil::Format>(format),static_cast<Anvil::ImageType>(type),static_cast<Anvil::ImageTiling>(tiling),
-			static_cast<Anvil::ImageUsageFlagBits>(usageFlags),{}
-		}
-	);
-}
-
-void Context::InitBuffers() {}
-
-void Context::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image) {}
-
-ShaderManager &Context::GetShaderManager() const {return *m_shaderManager;}
-
-::util::WeakHandle<Shader> Context::RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
-::util::WeakHandle<Shader> Context::GetShader(const std::string &identifier) const {return m_shaderManager->GetShader(identifier);}
-
-const std::shared_ptr<Texture> &Context::GetDummyTexture() const {return m_dummyTexture;}
-const std::shared_ptr<Texture> &Context::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
-const std::shared_ptr<IBuffer> &Context::GetDummyBuffer() const {return m_dummyBuffer;}
-const std::shared_ptr<IDynamicResizableBuffer> &Context::GetTemporaryBuffer() const {return m_tmpBuffer;}
-const std::vector<std::shared_ptr<IDynamicResizableBuffer>> &Context::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
-void Context::InitDummyBuffer()
-{
-	auto &dev = GetDevice();
 	prosper::util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
 	createInfo.size = 1ull;
@@ -702,9 +405,8 @@ void Context::InitDummyBuffer()
 	assert(m_dummyBuffer);
 	m_dummyBuffer->SetDebugName("context_dummy_buf");
 }
-void Context::InitDummyTextures()
+void IPrContext::InitDummyTextures()
 {
-	auto &dev = GetDevice();
 	prosper::util::ImageCreateInfo createInfo {};
 	createInfo.format = Format::R8G8B8A8_UNorm;
 	createInfo.height = 1u;
@@ -728,34 +430,16 @@ void Context::InitDummyTextures()
 	m_dummyCubemapTexture->SetDebugName("context_dummy_cubemap_tex");
 }
 
-void Context::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,bool shouldBlock,prosper::IFence *fence) {SubmitCommandBuffer(cmd,cmd.GetQueueFamilyType(),shouldBlock,fence);}
-void Context::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock,prosper::IFence *fence)
-{
-	switch(queueFamilyType)
-	{
-		case prosper::QueueFamilyType::Universal:
-			m_devicePtr->get_universal_queue(0u)->submit(Anvil::SubmitInfo::create(
-				&dynamic_cast<VlkCommandBuffer&>(cmd).GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<Fence*>(fence)->GetAnvilFence() : nullptr
-			));
-			break;
-		case prosper::QueueFamilyType::Compute:
-			m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(
-				&dynamic_cast<VlkCommandBuffer&>(cmd).GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<Fence*>(fence)->GetAnvilFence() : nullptr
-			));
-			break;
-		default:
-			throw std::invalid_argument("No device queue exists for queue family " +std::to_string(umath::to_integral(queueFamilyType)) +"!");
-	}
-}
+void IPrContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,bool shouldBlock,prosper::IFence *fence) {SubmitCommandBuffer(cmd,cmd.GetQueueFamilyType(),shouldBlock,fence);}
 
-bool Context::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
-bool Context::ScheduleRecordUpdateBuffer(
+bool IPrContext::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
+bool IPrContext::ScheduleRecordUpdateBuffer(
 	const std::shared_ptr<IBuffer> &buffer,uint64_t offset,uint64_t size,const void *data,const BufferUpdateInfo &updateInfo
 )
 {
 	if(size == 0u)
 		return true;
-	if((dynamic_cast<VlkBuffer&>(*buffer).GetBaseAnvilBuffer().get_create_info_ptr()->get_usage_flags() &Anvil::BufferUsageFlagBits::TRANSFER_DST_BIT) == Anvil::BufferUsageFlagBits::NONE)
+	if((buffer->GetUsageFlags() &prosper::BufferUsageFlags::TransferDstBit) == prosper::BufferUsageFlags::None)
 		throw std::logic_error("Buffer has to have been created with VK_BUFFER_USAGE_TRANSFER_DST_BIT flag to allow buffer updates on command buffer!");
 	const auto fRecordSrcBarrier = [this,buffer,updateInfo,offset,size](prosper::ICommandBuffer &cmdBuffer) {
 		if(updateInfo.srcAccessMask.has_value())
@@ -857,76 +541,7 @@ bool Context::ScheduleRecordUpdateBuffer(
 	return true;
 }
 
-bool Context::GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFamilyType,uint32_t &queueFamilyIndex) const
-{
-    auto n_universal_queue_family_indices = 0u;
-    const uint32_t *universal_queue_family_indices = nullptr;
-    if(m_devicePtr->get_queue_family_indices_for_queue_family_type(
-		static_cast<Anvil::QueueFamilyType>(queueFamilyType),
-		&n_universal_queue_family_indices,
-		&universal_queue_family_indices
-	) == false || n_universal_queue_family_indices == 0u)
-		return false;
-	queueFamilyIndex = universal_queue_family_indices[0];
-	return true;
-}
-std::shared_ptr<prosper::IPrimaryCommandBuffer> Context::AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
-{
-	if(GetUniversalQueueFamilyIndex(queueFamilyType,universalQueueFamilyIndex) == false)
-	{
-		if(queueFamilyType != prosper::QueueFamilyType::Universal)
-			return AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal,universalQueueFamilyIndex);
-		return nullptr;
-	}
-	return prosper::VlkPrimaryCommandBuffer::Create(*this,GetDevice().get_command_pool_for_queue_family_index(universalQueueFamilyIndex)->alloc_primary_level_command_buffer(),queueFamilyType);
-}
-std::shared_ptr<prosper::ISecondaryCommandBuffer> Context::AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
-{
-	if(GetUniversalQueueFamilyIndex(queueFamilyType,universalQueueFamilyIndex) == false)
-	{
-		if(queueFamilyType != prosper::QueueFamilyType::Universal)
-			return AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType::Universal,universalQueueFamilyIndex);
-		return nullptr;
-	}
-	return std::dynamic_pointer_cast<ISecondaryCommandBuffer>(prosper::VlkSecondaryCommandBuffer::Create(
-		*this,GetDevice().get_command_pool_for_queue_family_index(universalQueueFamilyIndex)->alloc_secondary_level_command_buffer(),
-		queueFamilyType
-	));
-}
-
-void Context::InitMainRenderPass()
-{
-	Anvil::RenderPassAttachmentID render_pass_color_attachment_id;
-	VkRect2D scissors[4];
-
-	GetScissorViewportInfo(scissors,nullptr); /* viewports */
-
-	std::unique_ptr<Anvil::RenderPassCreateInfo> render_pass_info_ptr(new Anvil::RenderPassCreateInfo(m_devicePtr.get()));
-
-	render_pass_info_ptr->add_color_attachment(m_swapchainPtr->get_create_info_ptr()->get_format(),
-		Anvil::SampleCountFlagBits::_1_BIT,
-		Anvil::AttachmentLoadOp::CLEAR,
-		Anvil::AttachmentStoreOp::STORE,
-		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-		false, /* may_alias */
-		&render_pass_color_attachment_id
-	);
-	render_pass_info_ptr->add_subpass(&m_mainSubPass);
-	render_pass_info_ptr->add_subpass_color_attachment(
-		m_mainSubPass,
-		Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-		render_pass_color_attachment_id,
-		0, /* in_location */
-		nullptr
-	); /* in_opt_attachment_resolve_id_ptr */
-
-	m_renderPass = Anvil::RenderPass::create(std::move(render_pass_info_ptr),m_swapchainPtr.get()); // TODO: Deprecated? Remove main render pass entirely
-
-	m_renderPass->set_name("Main renderpass");
-}
-
-void Context::InitTemporaryBuffer()
+void IPrContext::InitTemporaryBuffer()
 {
 	auto bufferSize = 512ull *1'024ull *1'024ull; // 512 MiB
 	auto maxBufferSize = 1ull *1'024ull *1'024ull *1'024ull; // 1 GiB
@@ -941,7 +556,7 @@ void Context::InitTemporaryBuffer()
 	m_tmpBuffer->SetPermanentlyMapped(true);
 }
 
-void Context::Draw(uint32_t n_swapchain_image)
+void IPrContext::Draw(uint32_t n_swapchain_image)
 {
 	{
 #if 0
@@ -1006,365 +621,12 @@ void Context::Draw(uint32_t n_swapchain_image)
 	}
 }
 
-void Context::InitCommandBuffers()
-{
-	VkImageSubresourceRange subresource_range;
-	auto *universal_queue_ptr = m_devicePtr->get_universal_queue(0);
+void IPrContext::InitGfxPipelines() {}
 
-	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresource_range.baseArrayLayer = 0;
-	subresource_range.baseMipLevel = 0;
-	subresource_range.layerCount = 1;
-	subresource_range.levelCount = 1;
+const GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() const {return const_cast<IPrContext*>(this)->GetWindowCreationInfo();}
+GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() {return *m_windowCreationInfo;}
 
-    /* Set up rendering command buffers. We need one per swap-chain image. */
-    uint32_t        n_universal_queue_family_indices = 0;
-    const uint32_t* universal_queue_family_indices   = nullptr;
-
-    m_devicePtr->get_queue_family_indices_for_queue_family_type(
-		Anvil::QueueFamilyType::UNIVERSAL,
-		&n_universal_queue_family_indices,
-		&universal_queue_family_indices
-	);
-
-    /* Set up rendering command buffers. We need one per swap-chain image. */
-	for(auto n_current_swapchain_image=0u;n_current_swapchain_image < m_commandBuffers.size();++n_current_swapchain_image)
-	{
-		auto cmd_buffer_ptr = prosper::VlkPrimaryCommandBuffer::Create(*this,m_devicePtr->get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(),prosper::QueueFamilyType::Universal);
-		cmd_buffer_ptr->SetDebugName("swapchain_cmd" +std::to_string(n_current_swapchain_image));
-		//m_devicePtr->get_command_pool(Anvil::QUEUE_FAMILY_TYPE_UNIVERSAL)->alloc_primary_level_command_buffer();
-
-		m_commandBuffers[n_current_swapchain_image] = cmd_buffer_ptr;
-		m_cmdFences[n_current_swapchain_image] = Anvil::Fence::create(Anvil::FenceCreateInfo::create(m_devicePtr.get(),true));
-	}
-}
-
-void Context::InitFrameBuffers()
-{
-	bool result;
-	for(uint32_t n_swapchain_image=0;n_swapchain_image<m_numSwapchainImages;++n_swapchain_image)
-	{
-		auto createinfo = Anvil::FramebufferCreateInfo::create(
-			m_devicePtr.get(),
-			GetWindowWidth(),
-			GetWindowHeight(),
-			1
-		);
-		result = createinfo->add_attachment(m_swapchainPtr->get_image_view(n_swapchain_image),nullptr /* out_opt_attachment_id_ptrs */);
-		anvil_assert(result);
-		m_fbos[n_swapchain_image] = Anvil::Framebuffer::create(std::move(createinfo));
-
-		m_fbos[n_swapchain_image]->set_name_formatted("Framebuffer used to render to swapchain image [%d]",n_swapchain_image);
-	}
-}
-
-void Context::InitGfxPipelines() {}
-
-void Context::InitSemaphores()
-{
-	for(auto n_semaphore=0u;n_semaphore < m_numSwapchainImages;++n_semaphore)
-	{
-		auto new_signal_semaphore_ptr = Anvil::Semaphore::create(Anvil::SemaphoreCreateInfo::create(m_devicePtr.get()));
-		auto new_wait_semaphore_ptr = Anvil::Semaphore::create(Anvil::SemaphoreCreateInfo::create(m_devicePtr.get()));
-
-		new_signal_semaphore_ptr->set_name_formatted("Signal semaphore [%d]",n_semaphore);
-		new_wait_semaphore_ptr->set_name_formatted("Wait semaphore [%d]",n_semaphore);
-
-		m_frameSignalSemaphores.push_back(std::move(new_signal_semaphore_ptr));
-		m_frameWaitSemaphores.push_back(std::move(new_wait_semaphore_ptr));
-	}
-}
-
-void Context::InitSwapchain()
-{
-	m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(m_instancePtr.get(),m_devicePtr.get(),m_windowPtr.get()));
-	if(m_renderingSurfacePtr->get_width() == 0 || m_renderingSurfacePtr->get_height() == 0)
-		return; // Minimized?
-
-	m_n_swapchain_image = 0;
-	m_renderingSurfacePtr->set_name("Main rendering surface");
-	SetPresentMode(GetPresentMode()); // Update present mode to make sure it's supported by out surface
-
-	auto presentMode = GetPresentMode();
-	switch(presentMode)
-	{
-		case prosper::PresentModeKHR::Mailbox:
-			m_numSwapchainImages = 3u;
-			break;
-		case prosper::PresentModeKHR::Fifo:
-			m_numSwapchainImages = 2u;
-			break;
-		default:
-			m_numSwapchainImages = 1u;
-	}
-
-	m_swapchainImages.clear();
-	m_cmdFences.clear();
-	m_commandBuffers.clear();
-	m_fbos.clear();
-
-	m_commandBuffers.resize(m_numSwapchainImages);
-	m_cmdFences.resize(m_numSwapchainImages);
-	m_fbos.resize(m_numSwapchainImages);
-
-	auto createInfo = Anvil::SwapchainCreateInfo::create(
-		m_pGpuDevice,
-		m_renderingSurfacePtr.get(),m_windowPtr.get(),
-		Anvil::Format::B8G8R8A8_UNORM,Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR,static_cast<Anvil::PresentModeKHR>(presentMode),
-		Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT,m_numSwapchainImages
-	);
-	createInfo->set_mt_safety(Anvil::MTSafety::ENABLED);
-
-	auto recreateSwapchain = (m_swapchainPtr != nullptr);
-	if(recreateSwapchain)
-		createInfo->set_old_swapchain(m_swapchainPtr.get());
-	m_swapchainPtr = Anvil::Swapchain::create(std::move(createInfo));
-
-	/*
-	m_swapchainPtr = m_pGpuDevice->create_swapchain(
-		m_renderingSurfacePtr.get(),m_windowPtr.get(),
-		Anvil::Format::B8G8R8A8_UNORM,Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR,static_cast<Anvil::PresentModeKHR>(presentMode),
-		Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT,m_numSwapchainImages
-	);*/
-
-	auto nSwapchainImages = m_swapchainPtr->get_n_images();
-	m_swapchainImages.resize(nSwapchainImages);
-	for(auto i=decltype(nSwapchainImages){0u};i<nSwapchainImages;++i)
-	{
-		auto &img = *m_swapchainPtr->get_image(i);
-		auto *anvCreateInfo = img.get_create_info_ptr();
-		prosper::util::ImageCreateInfo createInfo {};
-		createInfo.format = static_cast<prosper::Format>(anvCreateInfo->get_format());
-		createInfo.width = anvCreateInfo->get_base_mip_width();
-		createInfo.height = anvCreateInfo->get_base_mip_height();
-		createInfo.layers = anvCreateInfo->get_n_layers();
-		createInfo.tiling = static_cast<prosper::ImageTiling>(anvCreateInfo->get_tiling());
-		createInfo.samples = static_cast<prosper::SampleCountFlags>(anvCreateInfo->get_sample_count());
-		createInfo.usage = static_cast<prosper::ImageUsageFlags>(anvCreateInfo->get_usage_flags().get_vk());
-		createInfo.type = static_cast<prosper::ImageType>(anvCreateInfo->get_type());
-		createInfo.postCreateLayout = static_cast<prosper::ImageLayout>(anvCreateInfo->get_post_create_image_layout());
-		createInfo.queueFamilyMask = static_cast<prosper::QueueFamilyFlags>(anvCreateInfo->get_queue_families().get_vk());
-		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
-		m_swapchainImages.at(i) = VlkImage::Create(*this,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>>{&img,[](Anvil::Image *img) {
-			// Don't delete, image will be destroyed by Anvil
-		}},createInfo,true);
-	}
-
-	m_swapchainPtr->set_name("Main swapchain");
-
-	/* Cache the queue we are going to use for presentation */
-	const std::vector<uint32_t>* present_queue_fams_ptr = nullptr;
-
-	if(!m_renderingSurfacePtr->get_queue_families_with_present_support(m_physicalDevicePtr,&present_queue_fams_ptr))
-		anvil_assert_fail();
-
-	m_presentQueuePtr = m_devicePtr->get_queue_for_queue_family_index(present_queue_fams_ptr->at(0),0);
-
-	if(recreateSwapchain)
-	{
-		InitFrameBuffers();
-		InitCommandBuffers();
-	}
-	m_keepAliveResources.clear();
-	m_keepAliveResources.resize(m_numSwapchainImages);
-}
-
-const GLFW::WindowCreationInfo &Context::GetWindowCreationInfo() const {return const_cast<Context*>(this)->GetWindowCreationInfo();}
-GLFW::WindowCreationInfo &Context::GetWindowCreationInfo() {return *m_windowCreationInfo;}
-
-void Context::InitWindow()
-{
-#ifdef _WIN32
-	const Anvil::WindowPlatform platform = Anvil::WINDOW_PLATFORM_SYSTEM;
-#else
-	const Anvil::WindowPlatform platform = Anvil::WINDOW_PLATFORM_XCB;
-#endif
-	auto oldSize = (m_glfwWindow != nullptr) ? m_glfwWindow->GetSize() : Vector2i();
-	auto &appName = GetAppName();
-	/* Create a window */
-	//m_windowPtr = Anvil::WindowFactory::create_window(platform,appName,width,height,true,std::bind(&Context::DrawFrame,this));
-
-	// TODO: Clean this up
-	try
-	{
-		m_glfwWindow = nullptr;
-		GLFW::poll_events();
-		m_glfwWindow = GLFW::Window::Create(*m_windowCreationInfo); // TODO: Release
-#ifdef _WIN32
-		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
-#else
-#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
-		// This is a workaround since GLFW does not expose any functions
-		// for retrieving XCB connection.
-		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
-		auto *pConnection =  XGetXCBConnection(glfwGetX11Display());
-#else
-		#error "Unable to retrieve xcb connection: GLFW does not expose required functions."
-		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()));
-#endif
-#endif
-		const char *errDesc;
-		auto err = glfwGetError(&errDesc);
-		if(err != GLFW_NO_ERROR)
-		{
-			std::cout<<"Error retrieving GLFW window handle: "<<errDesc<<std::endl;
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			exit(EXIT_FAILURE);
-		}
-
-		// GLFW does not guarantee to actually use the size which was specified,
-		// in some cases it may change, so we have to retrieve it again here
-		auto actualWindowSize = m_glfwWindow->GetSize();
-		m_windowCreationInfo->width = actualWindowSize.x;
-		m_windowCreationInfo->height = actualWindowSize.y;
-
-		m_windowPtr = Anvil::WindowFactory::create_window(platform,hWindow
-#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
-			,pConnection
-#endif
-		);
-
-		err = glfwCreateWindowSurface(
-			m_instancePtr->get_instance_vk(),
-			const_cast<GLFWwindow*>(m_glfwWindow->GetGLFWWindow()),
-			nullptr,
-			reinterpret_cast<VkSurfaceKHR*>(&m_surface)
-		);
-		if(err != GLFW_NO_ERROR)
-		{
-			glfwGetError(&errDesc);
-			std::cout<<"Error creating GLFW window surface: "<<errDesc<<std::endl;
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			exit(EXIT_FAILURE);
-		}
-		
-		m_glfwWindow->SetResizeCallback([](GLFW::Window &window,Vector2i size) {
-			std::cout<<"Resizing..."<<std::endl; // TODO
-		});
-
-		//glfwDestroyWindow
-
-		//m_window = window.GetHandle();
-		//auto *allocatorCallbacks = GetAllocatorCallbacks();
-		//glfwCreateWindowSurface(s_info.instance,const_cast<GLFWwindow*>(window.GetGLFWWindow()),reinterpret_cast<const VkAllocationCallbacks*>(allocatorCallbacks),reinterpret_cast<VkSurfaceKHR*>(&m_surface));
-
-		//m_window->SetKeyCallback(std::bind(&RenderState::KeyCallback,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3,std::placeholders::_4,std::placeholders::_5));
-		//m_window->SetRefereshCallback(std::bind(&RenderState::RefreshCallback,this,std::placeholders::_1));
-		//m_window->SetResizeCallback(std::bind(&RenderState::ResizeCallback,this,std::placeholders::_1,std::placeholders::_2));
-		//m_context->AttachWindow(*m_window.get(),features);
-	}
-	catch(const std::exception &e)
-	{
-
-	}
-	//catch(Vulkan::Exception &e)
-	//{
-	//	throw e;
-	//}
-	//catch(std::exception &e)
-	//{
-	//	throw Vulkan::Exception{e.what(),vk::Result::eErrorInitializationFailed};
-	//}
-	OnWindowInitialized();
-	if(m_glfwWindow != nullptr && umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == true)
-	{
-		auto newSize = m_glfwWindow->GetSize();
-		if(newSize != oldSize)
-			OnResolutionChanged(newSize.x,newSize.y);
-	}
-}
-
-const Anvil::Instance &Context::GetAnvilInstance() const {return const_cast<Context*>(this)->GetAnvilInstance();}
-Anvil::Instance &Context::GetAnvilInstance() {return *m_instancePtr;}
-
-void Context::InitVulkan(const CreateInfo &createInfo)
-{
-	auto &appName = GetAppName();
-	/* Create a Vulkan instance */
-	m_instancePtr = Anvil::Instance::create(Anvil::InstanceCreateInfo::create(
-		appName, /* app_name */
-		appName, /* engine_name */
-		(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true) ? [this](
-			Anvil::DebugMessageSeverityFlags severityFlags,
-			const char *message
-		) -> VkBool32 {
-			return this->ValidationCallback(severityFlags,message);
-		} :  Anvil::DebugCallbackFunction(),
-		false
-	)); /* in_mt_safe */
-
-	if(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true)
-		prosper::debug::set_debug_mode_enabled(true);
-
-	if(createInfo.device.has_value())
-	{
-		auto numDevices = m_instancePtr->get_n_physical_devices();
-		for(auto i=decltype(numDevices){0u};i<numDevices;++i)
-		{
-			auto *pDevice = m_instancePtr->get_physical_device(i);
-			auto *props = (pDevice != nullptr) ? pDevice->get_device_properties().core_vk1_0_properties_ptr : nullptr;
-			if(props == nullptr || static_cast<Vendor>(props->vendor_id) != createInfo.device->vendorId || props->device_id != createInfo.device->deviceId)
-				continue;
-			m_physicalDevicePtr = m_instancePtr->get_physical_device(i);
-		}
-	}
-	if(m_physicalDevicePtr == nullptr)
-		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
-
-	m_shaderManager = std::make_unique<ShaderManager>(*this);
-
-    /* Create a Vulkan device */
-	Anvil::DeviceExtensionConfiguration devExtConfig {};
-
-	// Note: These are required for VR on Nvidia GPUs!
-	devExtConfig.extension_status["VK_NV_dedicated_allocation"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
-	devExtConfig.extension_status["VK_NV_external_memory"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
-	devExtConfig.extension_status["VK_NV_external_memory_win32"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
-	devExtConfig.extension_status["VK_NV_win32_keyed_mutex"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
-
-	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(
-		m_physicalDevicePtr,
-		true, /* in_enable_shader_module_cache */
-		devExtConfig,
-		std::vector<std::string>(),
-		Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT,
-		false /* in_mt_safe */
-	);
-	// devCreateInfo->set_pipeline_cache_ptr() // TODO
-    m_devicePtr = Anvil::SGPUDevice::create(
-		std::move(devCreateInfo)
-	);
-	/*[](Anvil::BaseDevice &dev) -> Anvil::PipelineCacheUniquePtr {
-		prosper::PipelineCache::LoadError loadErr {};
-		auto pipelineCache = PipelineCache::Load(dev,PIPELINE_CACHE_PATH,loadErr);
-		if(pipelineCache == nullptr)
-			pipelineCache = PipelineCache::Create(dev);
-		if(pipelineCache == nullptr)
-			throw std::runtime_error("Unable to create pipeline cache!");
-		return pipelineCache;
-	}*/
-
-	m_pGpuDevice = static_cast<Anvil::SGPUDevice*>(m_devicePtr.get());
-	s_devToContext[m_devicePtr.get()] = this;
-}
-
-bool Context::SavePipelineCache()
-{
-	auto *pPipelineCache = m_devicePtr->get_pipeline_cache();
-	if(pPipelineCache == nullptr)
-		return false;
-	return PipelineCache::Save(*pPipelineCache,PIPELINE_CACHE_PATH);
-}
-
-VkBool32 Context::ValidationCallback(
-	Anvil::DebugMessageSeverityFlags severityFlags,
-	const char *message
-)
-{
-    return false;
-}
-
-void Context::Run()
+void IPrContext::Run()
 {
 	auto t = ::util::Clock::now();
 	while(true) // TODO
@@ -1380,5 +642,16 @@ void Context::Run()
 		DrawFrame();
 		GLFW::poll_events();
 	}
+}
+
+static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range,prosper::IImage &img)
+{
+	Anvil::ImageSubresourceRange anvRange {};
+	anvRange.base_array_layer = range.baseArrayLayer;
+	anvRange.base_mip_level = range.baseMipLevel;
+	anvRange.layer_count = range.layerCount;
+	anvRange.level_count = range.levelCount;
+	anvRange.aspect_mask = static_cast<Anvil::ImageAspectFlagBits>(prosper::util::get_aspect_mask(img));
+	return anvRange;
 }
 #pragma optimize("",on)

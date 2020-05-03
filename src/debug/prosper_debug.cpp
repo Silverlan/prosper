@@ -4,13 +4,15 @@
 
 #include "stdafx_prosper.h"
 #include "debug/prosper_debug.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "prosper_util.hpp"
 #include <fsys/filesystem.h>
+#include <wrappers/device.h>
+#include <wrappers/physical_device.h>
 
 using namespace prosper;
 
-void prosper::debug::dump_layers(Context &context,std::stringstream &ss)
+void prosper::debug::dump_layers(IPrContext &context,std::stringstream &ss)
 {
 	uint32_t instanceLayerCount = 0;
 	auto err = static_cast<vk::Result>(vkEnumerateInstanceLayerProperties(&instanceLayerCount,nullptr));
@@ -20,7 +22,7 @@ void prosper::debug::dump_layers(Context &context,std::stringstream &ss)
 	err = static_cast<vk::Result>(vkEnumerateInstanceLayerProperties(&instanceLayerCount,reinterpret_cast<VkLayerProperties*>(instanceLayers.data())));
 	if(err != vk::Result::eSuccess)
 		return;
-	auto *dev = context.GetDevice().get_physical_device()->get_physical_device();
+	auto *dev = static_cast<VlkContext&>(context).GetDevice().get_physical_device()->get_physical_device();
 	uint32_t deviceLayerCount = 0;
 	err = static_cast<vk::Result>(vkEnumerateDeviceLayerProperties(dev,&deviceLayerCount,nullptr));
 	if(err != vk::Result::eSuccess)
@@ -50,7 +52,7 @@ void prosper::debug::dump_layers(Context &context,std::stringstream &ss)
 		ss<<"\n";
 	}
 }
-void prosper::debug::dump_extensions(Context &context,std::stringstream &ss)
+void prosper::debug::dump_extensions(IPrContext &context,std::stringstream &ss)
 {
 	uint32_t instanceExtensionCount = 0;
 	auto err = static_cast<vk::Result>(vkEnumerateInstanceExtensionProperties(nullptr,&instanceExtensionCount,nullptr));
@@ -60,7 +62,7 @@ void prosper::debug::dump_extensions(Context &context,std::stringstream &ss)
 	err = vk::enumerateInstanceExtensionProperties("",&instanceExtensionCount,instanceExtensions.data());
 	if(err != vk::Result::eSuccess)
 		return;
-	auto *dev = context.GetDevice().get_physical_device()->get_physical_device();
+	auto *dev = static_cast<VlkContext&>(context).GetDevice().get_physical_device()->get_physical_device();
 	uint32_t deviceExtensionCount = 0;
 	err = static_cast<vk::Result>(vkEnumerateDeviceExtensionProperties(dev,nullptr,&deviceExtensionCount,nullptr));
 	if(err != vk::Result::eSuccess)
@@ -86,9 +88,9 @@ void prosper::debug::dump_extensions(Context &context,std::stringstream &ss)
 		ss<<"\n";
 	}
 }
-void prosper::debug::dump_limits(Context &context,std::stringstream &ss)
+void prosper::debug::dump_limits(IPrContext &context,std::stringstream &ss)
 {
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	auto &limits = dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits;
 	ss<<"Buffer Image Granularity: "<<limits.buffer_image_granularity<<"\n";
 	ss<<"Discrete Queue Priorities: "<<limits.discrete_queue_priorities<<"\n";
@@ -209,9 +211,9 @@ void prosper::debug::dump_limits(Context &context,std::stringstream &ss)
 	ss<<"Optimal Buffer Copy Row Pitch Alignment: "<<limits.optimal_buffer_copy_row_pitch_alignment<<"\n";
 	ss<<"Non-coherent Atom Size: "<<limits.non_coherent_atom_size;
 }
-void prosper::debug::dump_features(Context &context,std::stringstream &ss)
+void prosper::debug::dump_features(IPrContext &context,std::stringstream &ss)
 {
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	auto &features = dev.get_physical_device_features();
 	auto &devFeatures = *features.core_vk1_0_features_ptr;
 	ss<<"Robust Buffer Access: "<<devFeatures.robust_buffer_access<<"\n";
@@ -271,7 +273,7 @@ void prosper::debug::dump_features(Context &context,std::stringstream &ss)
 	ss<<"Inherited Queries: "<<devFeatures.inherited_queries;
 }
 
-void prosper::debug::dump_image_format_properties(Context &context,std::stringstream &ss,prosper::ImageCreateFlags createFlags)
+void prosper::debug::dump_image_format_properties(IPrContext &context,std::stringstream &ss,prosper::ImageCreateFlags createFlags)
 {
 	struct FormatPropertyInfo {
 		Anvil::ImageFormatProperties formatProperties;
@@ -301,7 +303,7 @@ void prosper::debug::dump_image_format_properties(Context &context,std::stringst
 							format,type,tiling,
 							usage,static_cast<Anvil::ImageCreateFlagBits>(createFlags)
 						};
-						context.GetDevice().get_physical_device_image_format_properties(
+						static_cast<VlkContext&>(context).GetDevice().get_physical_device_image_format_properties(
 							query,
 							&properties
 						);
@@ -377,11 +379,11 @@ void prosper::debug::dump_image_format_properties(Context &context,std::stringst
 		}
 	}
 }
-void prosper::debug::dump_format_properties(Context &context,std::stringstream &ss)
+void prosper::debug::dump_format_properties(IPrContext &context,std::stringstream &ss)
 {
 	for(auto i=Anvil::Format::UNKNOWN;i<Anvil::Format::ASTC_12x12_SRGB_BLOCK;i=static_cast<Anvil::Format>(static_cast<uint32_t>(i) +1))
 	{
-		auto props = context.GetDevice().get_physical_device_format_properties(i);
+		auto props = static_cast<VlkContext&>(context).GetDevice().get_physical_device_format_properties(i);
 		ss<<prosper::util::to_string(static_cast<prosper::Format>(i))<<":\n";
 		std::map<std::string,const Anvil::FormatFeatureFlags&> formatFeatures = {
 			{"Buffer",props.buffer_capabilities},
@@ -409,7 +411,7 @@ void prosper::debug::dump_format_properties(Context &context,std::stringstream &
 	}
 }
 
-void prosper::debug::dump_layers(Context &context,const std::string &fileName)
+void prosper::debug::dump_layers(IPrContext &context,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)
@@ -419,7 +421,7 @@ void prosper::debug::dump_layers(Context &context,const std::string &fileName)
 	f->WriteString(ss.str());
 	f = nullptr;
 }
-void prosper::debug::dump_extensions(Context &context,const std::string &fileName)
+void prosper::debug::dump_extensions(IPrContext &context,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)
@@ -430,7 +432,7 @@ void prosper::debug::dump_extensions(Context &context,const std::string &fileNam
 	f = nullptr;
 }
 
-void prosper::debug::dump_limits(Context &context,const std::string &fileName)
+void prosper::debug::dump_limits(IPrContext &context,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)
@@ -441,7 +443,7 @@ void prosper::debug::dump_limits(Context &context,const std::string &fileName)
 	f = nullptr;
 }
 
-void prosper::debug::dump_features(Context &context,const std::string &fileName)
+void prosper::debug::dump_features(IPrContext &context,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)
@@ -452,7 +454,7 @@ void prosper::debug::dump_features(Context &context,const std::string &fileName)
 	f = nullptr;
 }
 
-void prosper::debug::dump_image_format_properties(Context &context,const std::string &fileName,prosper::ImageCreateFlags createFlags)
+void prosper::debug::dump_image_format_properties(IPrContext &context,const std::string &fileName,prosper::ImageCreateFlags createFlags)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)
@@ -463,7 +465,7 @@ void prosper::debug::dump_image_format_properties(Context &context,const std::st
 	f = nullptr;
 }
 
-void prosper::debug::dump_format_properties(Context &context,const std::string &fileName)
+void prosper::debug::dump_format_properties(IPrContext &context,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(),"w");
 	if(f == nullptr)

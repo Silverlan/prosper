@@ -14,12 +14,12 @@
 namespace prosper
 {
 	class IBuffer;
-	class Context;
+	class IPrContext;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<IBuffer> get_square_vertex_uv_buffer(prosper::Context &context);
-		DLLPROSPER std::shared_ptr<IBuffer> get_square_vertex_buffer(prosper::Context &context);
-		DLLPROSPER std::shared_ptr<IBuffer> get_square_uv_buffer(prosper::Context &context);
+		DLLPROSPER std::shared_ptr<IBuffer> get_square_vertex_uv_buffer(prosper::IPrContext &context);
+		DLLPROSPER std::shared_ptr<IBuffer> get_square_vertex_buffer(prosper::IPrContext &context);
+		DLLPROSPER std::shared_ptr<IBuffer> get_square_uv_buffer(prosper::IPrContext &context);
 		DLLPROSPER const std::vector<Vector2> &get_square_vertices();
 		DLLPROSPER const std::vector<Vector2> &get_square_uv_coordinates();
 		DLLPROSPER uint32_t get_square_vertex_count();

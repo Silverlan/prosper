@@ -8,12 +8,6 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
-#include <wrappers/pipeline_cache.h>
-
-namespace Anvil
-{
-	class Buffer;
-};
 
 #undef max
 

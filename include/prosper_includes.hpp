@@ -13,7 +13,6 @@
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
-#include <misc/types_enums.h>
 #include "prosper_enums.hpp"
 
 namespace prosper

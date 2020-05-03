@@ -8,7 +8,6 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
-#include <wrappers/render_pass.h>
 
 #undef max
 
@@ -23,23 +22,7 @@ namespace prosper
 		IRenderPass &operator=(const IRenderPass&)=delete;
 		virtual ~IRenderPass() override;
 	protected:
-		IRenderPass(Context &context);
-	};
-
-	class DLLPROSPER RenderPass
-		: public IRenderPass
-	{
-	public:
-		static std::shared_ptr<RenderPass> Create(Context &context,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp,const std::function<void(RenderPass&)> &onDestroyedCallback=nullptr);
-		virtual ~RenderPass() override;
-		Anvil::RenderPass &GetAnvilRenderPass() const;
-		Anvil::RenderPass &operator*();
-		const Anvil::RenderPass &operator*() const;
-		Anvil::RenderPass *operator->();
-		const Anvil::RenderPass *operator->() const;
-	protected:
-		RenderPass(Context &context,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp);
-		std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> m_renderPass = nullptr;
+		IRenderPass(IPrContext &context);
 	};
 };
 

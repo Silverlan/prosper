@@ -11,7 +11,7 @@
 
 using namespace prosper;
 
-IImageView::IImageView(Context &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags)
+IImageView::IImageView(IPrContext &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags)
 	: ContextObject(context),std::enable_shared_from_this<IImageView>(),m_image{img.shared_from_this()},
 	m_type{type},m_aspectFlags{aspectFlags},m_createInfo{createInfo}
 {}

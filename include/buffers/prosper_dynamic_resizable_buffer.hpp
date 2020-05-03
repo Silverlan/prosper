@@ -9,6 +9,7 @@
 #include "buffers/prosper_resizable_buffer.hpp"
 #include <memory>
 #include <queue>
+#include <cinttypes>
 #include <functional>
 #include <list>
 
@@ -20,13 +21,13 @@ namespace Anvil
 
 namespace prosper
 {
-	class Context;
+	class IPrContext;
 	class IBuffer;
 	namespace util
 	{
 		struct BufferCreateInfo;
 		DLLPROSPER std::shared_ptr<VkDynamicResizableBuffer> create_dynamic_resizable_buffer(
-			Context &context,BufferCreateInfo createInfo,
+			IPrContext &context,BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
 		);
 	};
@@ -39,7 +40,7 @@ namespace prosper
 		std::shared_ptr<IBuffer> AllocateBuffer(vk::DeviceSize size,uint32_t alignment,const void *data);
 
 		friend std::shared_ptr<VkDynamicResizableBuffer> util::create_dynamic_resizable_buffer(
-			Context &context,util::BufferCreateInfo createInfo,
+			IPrContext &context,util::BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
 		);
 
@@ -54,7 +55,7 @@ namespace prosper
 			vk::DeviceSize size;
 		};
 		IDynamicResizableBuffer(
-			Context &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
+			IPrContext &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 		);
 		void InsertFreeMemoryRange(std::list<Range>::iterator itWhere,vk::DeviceSize startOffset,vk::DeviceSize size);
 		void MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size);

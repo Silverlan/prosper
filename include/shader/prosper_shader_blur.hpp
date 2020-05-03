@@ -44,7 +44,7 @@ namespace prosper
 		};
 #pragma pack(pop)
 
-		ShaderBlurBase(prosper::Context &context,const std::string &identifier,const std::string &fsShader);
+		ShaderBlurBase(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader);
 		bool BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx=Pipeline::R8G8B8A8Unorm);
 		bool Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants);
 	protected:
@@ -58,7 +58,7 @@ namespace prosper
 		: public ShaderBlurBase
 	{
 	public:
-		ShaderBlurH(prosper::Context &context,const std::string &identifier);
+		ShaderBlurH(prosper::IPrContext &context,const std::string &identifier);
 		~ShaderBlurH();
 	};
 
@@ -68,7 +68,7 @@ namespace prosper
 		: public ShaderBlurBase
 	{
 	public:
-		ShaderBlurV(prosper::Context &context,const std::string &identifier);
+		ShaderBlurV(prosper::IPrContext &context,const std::string &identifier);
 		~ShaderBlurV();
 	};
 
@@ -78,7 +78,7 @@ namespace prosper
 	{
 	public:
 		// If no source texture is specified, the texture of 'finalRt' will be used both as a source and a target
-		static std::shared_ptr<BlurSet> Create(prosper::Context &context,const std::shared_ptr<prosper::RenderTarget> &finalRt,const std::shared_ptr<prosper::Texture> &srcTexture=nullptr);
+		static std::shared_ptr<BlurSet> Create(prosper::IPrContext &context,const std::shared_ptr<prosper::RenderTarget> &finalRt,const std::shared_ptr<prosper::Texture> &srcTexture=nullptr);
 
 		const std::shared_ptr<prosper::RenderTarget> &GetFinalRenderTarget() const;
 		IDescriptorSet &GetFinalDescriptorSet() const;
@@ -102,7 +102,7 @@ namespace prosper
 
 	namespace util
 	{
-		DLLPROSPER bool record_blur_image(prosper::Context &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants);
+		DLLPROSPER bool record_blur_image(prosper::IPrContext &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants);
 	};
 };
 

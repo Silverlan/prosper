@@ -25,7 +25,7 @@ namespace prosper
 		RenderTarget(const RenderTarget&)=delete;
 		RenderTarget &operator=(const RenderTarget&)=delete;
 		RenderTarget(
-			Context &context,const std::vector<std::shared_ptr<Texture>> &textures,
+			IPrContext &context,const std::vector<std::shared_ptr<Texture>> &textures,
 			const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers,
 			IRenderPass &renderPass
 		);

@@ -9,7 +9,7 @@
 #include <wrappers/memory_block.h>
 #include <misc/buffer_create_info.h>
 
-prosper::VlkBuffer::VlkBuffer(Context &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,Anvil::BufferUniquePtr buf)
+prosper::VlkBuffer::VlkBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,Anvil::BufferUniquePtr buf)
 	: IBuffer{context,bufCreateInfo,startOffset,size},m_buffer{std::move(buf)}
 {
 	if(m_buffer != nullptr)
@@ -20,7 +20,7 @@ prosper::VlkBuffer::~VlkBuffer()
 	if(m_buffer != nullptr)
 		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
 }
-std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::Create(Context &context,Anvil::BufferUniquePtr buf,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback)
+std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::Create(IPrContext &context,Anvil::BufferUniquePtr buf,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback)
 {
 	if(buf == nullptr)
 		return nullptr;

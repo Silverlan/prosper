@@ -8,7 +8,6 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
-#include <wrappers/image_view.h>
 
 #undef max
 
@@ -37,7 +36,7 @@ namespace prosper
 		const IImage &GetImage() const;
 		IImage &GetImage();
 	protected:
-		IImageView(Context &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags);
+		IImageView(IPrContext &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags);
 		std::shared_ptr<IImage> m_image = nullptr;
 		util::ImageViewCreateInfo m_createInfo {};
 		ImageViewType m_type = ImageViewType::e2D;

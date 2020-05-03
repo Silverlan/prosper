@@ -14,7 +14,7 @@
 using namespace prosper;
 
 RenderTarget::RenderTarget(
-	Context &context,const std::vector<std::shared_ptr<Texture>> &textures,
+	IPrContext &context,const std::vector<std::shared_ptr<Texture>> &textures,
 	const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers,
 	IRenderPass &renderPass
 )

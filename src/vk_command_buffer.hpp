@@ -36,7 +36,7 @@ namespace prosper
 		virtual bool RecordSetScissor(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u) override;
 		virtual bool RecordUpdateBuffer(IBuffer &buffer,uint64_t offset,uint64_t size,const void *data) override;
 	protected:
-		VlkCommandBuffer(Context &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType);
+		VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst) override;
 		virtual bool DoRecordCopyImage(const util::CopyInfo &copyInfo,IImage &imgSrc,IImage &imgDst,uint32_t w,uint32_t h) override;
 		virtual bool DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h) override;
@@ -54,7 +54,7 @@ namespace prosper
 		public IPrimaryCommandBuffer
 	{
 	public:
-		static std::shared_ptr<VlkPrimaryCommandBuffer> Create(Context &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<VlkPrimaryCommandBuffer> Create(IPrContext &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback=nullptr);
 		virtual bool IsPrimary() const override;
 
 		Anvil::PrimaryCommandBuffer &GetAnvilCommandBuffer() const;
@@ -67,7 +67,7 @@ namespace prosper
 		virtual bool RecordEndRenderPass() override;
 		virtual bool RecordNextSubPass() override;
 	protected:
-		VlkPrimaryCommandBuffer(Context &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType);
+		VlkPrimaryCommandBuffer(IPrContext &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 	};
 
 	///////////////////
@@ -77,7 +77,7 @@ namespace prosper
 		public ISecondaryCommandBuffer
 	{
 	public:
-		static std::shared_ptr<VlkSecondaryCommandBuffer> Create(Context &context,std::unique_ptr<Anvil::SecondaryCommandBuffer,std::function<void(Anvil::SecondaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<VlkSecondaryCommandBuffer> Create(IPrContext &context,std::unique_ptr<Anvil::SecondaryCommandBuffer,std::function<void(Anvil::SecondaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback=nullptr);
 		virtual bool IsSecondary() const override;
 
 		Anvil::SecondaryCommandBuffer &GetAnvilCommandBuffer() const;
@@ -88,12 +88,12 @@ namespace prosper
 
 		bool StartRecording(
 			bool oneTimeSubmit,bool simultaneousUseAllowed,bool renderPassUsageOnly,
-			const Framebuffer &framebuffer,const RenderPass &rp,Anvil::SubPassID subPassId,
+			const IFramebuffer &framebuffer,const IRenderPass &rp,Anvil::SubPassID subPassId,
 			Anvil::OcclusionQuerySupportScope occlusionQuerySupportScope,bool occlusionQueryUsedByPrimaryCommandBuffer,
 			Anvil::QueryPipelineStatisticFlags statisticsFlags
 		) const;
 	protected:
-		VlkSecondaryCommandBuffer(Context &context,std::unique_ptr<Anvil::SecondaryCommandBuffer,std::function<void(Anvil::SecondaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType);
+		VlkSecondaryCommandBuffer(IPrContext &context,std::unique_ptr<Anvil::SecondaryCommandBuffer,std::function<void(Anvil::SecondaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 	};
 };
 

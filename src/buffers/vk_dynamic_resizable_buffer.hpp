@@ -18,7 +18,7 @@ namespace prosper
 	{
 	public:
 		VkDynamicResizableBuffer(
-			Context &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
+			IPrContext &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 		);
 	};
 };

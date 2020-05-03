@@ -26,7 +26,7 @@ namespace prosper
 			CPU
 		};
 
-		static std::shared_ptr<Profiler> Create(Context &context);
+		static std::shared_ptr<Profiler> Create(IPrContext &context);
 		virtual ~Profiler() override;
 
 		void StartStage(Device device,Stage stage);

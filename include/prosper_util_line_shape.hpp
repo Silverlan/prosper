@@ -13,10 +13,10 @@
 
 namespace prosper
 {
-	class Context;
+	class IPrContext;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<IBuffer> get_line_vertex_buffer(prosper::Context &context);
+		DLLPROSPER std::shared_ptr<IBuffer> get_line_vertex_buffer(prosper::IPrContext &context);
 		DLLPROSPER const std::vector<Vector2> &get_line_vertices();
 		DLLPROSPER uint32_t get_line_vertex_count();
 

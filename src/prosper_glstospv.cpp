@@ -8,11 +8,14 @@
 #ifdef VK_ENABLE_GLSLANG
 #include "prosper_includes.hpp"
 #include "prosper_glstospv.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "shader/prosper_shader.hpp"
 #include <fsys/filesystem.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
+#include <wrappers/device.h>
+#include <wrappers/shader_module.h>
+#include <misc/glsl_to_spirv.h>
 #include <sstream>
 
 static unsigned int get_line_break(std::string &str,int pos=0)
@@ -104,7 +107,7 @@ static bool glsl_preprocessing(const std::string &path,std::string &shader,std::
 	return true;
 }
 
-static bool glsl_preprocessing(prosper::Context &context,Anvil::ShaderStage stage,const std::string &path,std::string &shader,std::string *err,std::vector<IncludeLine> &includeLines,unsigned int &lineId,bool bHlsl=false)
+static bool glsl_preprocessing(prosper::IPrContext &context,Anvil::ShaderStage stage,const std::string &path,std::string &shader,std::string *err,std::vector<IncludeLine> &includeLines,unsigned int &lineId,bool bHlsl=false)
 {
 	lineId = 0;
 	auto r = glsl_preprocessing(path,shader,err,includeLines,lineId,0,true);
@@ -130,7 +133,7 @@ static bool glsl_preprocessing(prosper::Context &context,Anvil::ShaderStage stag
 			break;
 	}
 
-	auto &properties = context.GetDevice().get_physical_device_properties();
+	auto &properties = static_cast<prosper::VlkContext&>(context).GetDevice().get_physical_device_properties();
 	switch(properties.core_vk1_0_properties_ptr->vendor_id)
 	{
 		case umath::to_integral(prosper::Vendor::AMD):
@@ -262,7 +265,7 @@ static void glsl_translate_error(const std::string &shaderCode,const std::string
 	}
 }
 
-static bool glsl_to_spv(prosper::Context &context,Anvil::ShaderStage stage,const char *pshader,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,const std::string &fileName,bool bHlsl=false)
+static bool glsl_to_spv(prosper::IPrContext &context,Anvil::ShaderStage stage,const char *pshader,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,const std::string &fileName,bool bHlsl=false)
 {
 	std::string shaderCode{pshader};
 	std::vector<IncludeLine> includeLines;
@@ -273,7 +276,7 @@ static bool glsl_to_spv(prosper::Context &context,Anvil::ShaderStage stage,const
 			*infoLog = std::string("Module: \"") +fileName +"\"\n" +(*infoLog);
 		return false;
 	}
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<prosper::VlkContext&>(context).GetDevice();
 	auto shaderPtr = Anvil::GLSLShaderToSPIRVGenerator::create(
 		&dev,
 		Anvil::GLSLShaderToSPIRVGenerator::MODE_USE_SPECIFIED_SOURCE,
@@ -318,7 +321,7 @@ static bool glsl_to_spv(prosper::Context &context,Anvil::ShaderStage stage,const
 	return true;
 }
 
-void prosper::dump_parsed_shader(Context &context,uint32_t stage,const std::string &shaderFile,const std::string &fileName)
+void prosper::dump_parsed_shader(IPrContext &context,uint32_t stage,const std::string &shaderFile,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile(shaderFile.c_str(),"r");
 	if(f == nullptr)
@@ -334,7 +337,7 @@ void prosper::dump_parsed_shader(Context &context,uint32_t stage,const std::stri
 	fOut->WriteString(shaderCode);
 }
 
-bool prosper::glsl_to_spv(Context &context,uint32_t stage,const std::string &fileName,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,bool bReload)
+bool prosper::glsl_to_spv(IPrContext &context,uint32_t stage,const std::string &fileName,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,bool bReload)
 {
 	auto fName = fileName;
 	std::string ext;

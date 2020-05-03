@@ -9,6 +9,7 @@
 #include "buffers/prosper_resizable_buffer.hpp"
 #include <memory>
 #include <queue>
+#include <cinttypes>
 #include <functional>
 
 namespace Anvil
@@ -25,7 +26,7 @@ namespace prosper
 	{
 		struct BufferCreateInfo;
 		DLLPROSPER std::shared_ptr<VkUniformResizableBuffer> create_uniform_resizable_buffer(
-			Context &context,BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
+			IPrContext &context,BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
 		);
 	};
@@ -38,7 +39,7 @@ namespace prosper
 
 		uint64_t GetInstanceSize() const;
 		friend std::shared_ptr<VkUniformResizableBuffer> util::create_uniform_resizable_buffer(
-			Context &context,util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
+			IPrContext &context,util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
 		);
 
@@ -47,7 +48,7 @@ namespace prosper
 		uint32_t GetTotalInstanceCount() const;
 	protected:
 		IUniformResizableBuffer(
-			Context &context,IBuffer &buffer,
+			IPrContext &context,IBuffer &buffer,
 			uint64_t bufferInstanceSize,
 			uint64_t alignedBufferBaseSize,uint64_t maxTotalSize,uint32_t alignment
 		);

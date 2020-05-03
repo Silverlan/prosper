@@ -17,7 +17,7 @@ using namespace prosper;
 
 static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
-IImage::IImage(Context &context,const prosper::util::ImageCreateInfo &createInfo)
+IImage::IImage(IPrContext &context,const prosper::util::ImageCreateInfo &createInfo)
 	: ContextObject(context),std::enable_shared_from_this<IImage>(),m_createInfo{createInfo}
 {
 	MemoryTracker::GetInstance().AddResource(*this);
@@ -67,14 +67,11 @@ bool IImage::SetMemoryBuffer(prosper::IBuffer &buffer)
 	return DoSetMemoryBuffer(buffer);
 }
 
-DeviceSize IImage::GetAlignment() const {return static_cast<const VlkImage&>(*this)->get_image_alignment(0);}
-
 const prosper::util::ImageCreateInfo &IImage::GetCreateInfo() const {return m_createInfo;}
 
 std::shared_ptr<IImage> IImage::Copy(prosper::ICommandBuffer &cmd,const prosper::util::ImageCreateInfo &copyCreateInfo)
 {
 	auto &context = GetContext();
-	auto &dev = context.GetDevice();
 
 	auto createInfo = copyCreateInfo;
 	createInfo.usage |= ImageUsageFlags::TransferDstBit;

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "stdafx_prosper.h"
-#include "prosper_descriptor_set_group.hpp"
+#include "vk_descriptor_set_group.hpp"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "image/prosper_image_view.hpp"
@@ -15,26 +15,13 @@
 using namespace prosper;
 
 #pragma optimize("",off)
-std::shared_ptr<DescriptorSetGroup> DescriptorSetGroup::Create(Context &context,Anvil::DescriptorSetGroupUniquePtr imgView,const std::function<void(DescriptorSetGroup&)> &onDestroyedCallback)
-{
-	if(imgView == nullptr)
-		return nullptr;
-	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<DescriptorSetGroup>(new DescriptorSetGroup(context,std::move(imgView)));
-	return std::shared_ptr<DescriptorSetGroup>(new DescriptorSetGroup(context,std::move(imgView)),[onDestroyedCallback](DescriptorSetGroup *buf) {
-		buf->OnRelease();
-		onDestroyedCallback(*buf);
-		delete buf;
-	});
-}
-
-IDescriptorSetGroup::IDescriptorSetGroup(Context &context)
+IDescriptorSetGroup::IDescriptorSetGroup(IPrContext &context)
 	: ContextObject(context),std::enable_shared_from_this<IDescriptorSetGroup>()
 {}
 
 IDescriptorSetGroup::~IDescriptorSetGroup() {}
 
-uint32_t IDescriptorSetGroup::GetBindingCount() const {return dynamic_cast<const DescriptorSetGroup&>(*this)->get_descriptor_set_create_info()->at(0)->get_n_bindings();}//m_descriptorSets.front()->GetBindingCount();}
+uint32_t IDescriptorSetGroup::GetBindingCount() const {return dynamic_cast<const VlkDescriptorSetGroup&>(*this)->get_descriptor_set_create_info()->at(0)->get_n_bindings();}//m_descriptorSets.front()->GetBindingCount();}
 
 IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) {return (index < m_descriptorSets.size()) ? m_descriptorSets.at(index).get() : nullptr;}
 const IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) const {return const_cast<IDescriptorSetGroup*>(this)->GetDescriptorSet(index);}
@@ -197,145 +184,4 @@ DescriptorSetBindingStorageBuffer::DescriptorSetBindingStorageBuffer(IDescriptor
 uint64_t DescriptorSetBindingStorageBuffer::GetStartOffset() const {return m_startOffset;}
 uint64_t DescriptorSetBindingStorageBuffer::GetSize() const {return m_size;}
 const std::shared_ptr<prosper::IBuffer> &DescriptorSetBindingStorageBuffer::GetBuffer() const {return m_buffer;}
-
-//////////////
-
-DescriptorSetGroup::DescriptorSetGroup(Context &context,Anvil::DescriptorSetGroupUniquePtr imgView)
-	: IDescriptorSetGroup{context},m_descriptorSetGroup(std::move(imgView))
-{
-	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
-	for(auto i=decltype(numSets){0};i<numSets;++i)
-		prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i),this,prosper::debug::ObjectType::DescriptorSet);
-	m_descriptorSets.resize(numSets);
-
-	for(auto i=decltype(m_descriptorSets.size()){0u};i<m_descriptorSets.size();++i)
-	{
-		m_descriptorSets.at(i) = std::shared_ptr<DescriptorSet>{new DescriptorSet{*this,*m_descriptorSetGroup->get_descriptor_set(i)},[](DescriptorSet *ds) {
-			// ds->OnRelease();
-			delete ds;
-		}};
-	}
-}
-DescriptorSetGroup::~DescriptorSetGroup()
-{
-	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
-	for(auto i=decltype(numSets){0};i<numSets;++i)
-		prosper::debug::deregister_debug_object(m_descriptorSetGroup->get_descriptor_set(i));
-}
-
-DescriptorSet::DescriptorSet(DescriptorSetGroup &dsg,Anvil::DescriptorSet &ds)
-	: IDescriptorSet{dsg},m_descSet{ds}
-{}
-
-Anvil::DescriptorSet &DescriptorSet::GetAnvilDescriptorSet() const {return m_descSet;}
-Anvil::DescriptorSet &DescriptorSet::operator*() {return m_descSet;}
-const Anvil::DescriptorSet &DescriptorSet::operator*() const {return const_cast<DescriptorSet*>(this)->operator*();}
-Anvil::DescriptorSet *DescriptorSet::operator->() {return &m_descSet;}
-const Anvil::DescriptorSet *DescriptorSet::operator->() const {return const_cast<DescriptorSet*>(this)->operator->();}
-
-bool DescriptorSet::Update() {return m_descSet.update();}
-bool DescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
-{
-	auto *imgView = texture.GetImageView(layerId);
-	if(imgView == nullptr)
-		return false;
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(*this,bindingIdx,texture,layerId));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView()
-	});
-}
-bool DescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx)
-{
-	auto *imgView = texture.GetImageView();
-	if(imgView == nullptr)
-		return false;
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(*this,bindingIdx,texture));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView()
-	});
-}
-bool DescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
-{
-	auto *imgView = texture.GetImageView(layerId);
-	if(imgView == nullptr && texture.GetImage().GetLayerCount() == 1)
-		imgView = texture.GetImageView();
-	auto *sampler = texture.GetSampler();
-	if(imgView == nullptr || sampler == nullptr)
-		return false;
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture,layerId));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView(),&static_cast<Sampler*>(sampler)->GetAnvilSampler()
-	});
-}
-bool DescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx)
-{
-	auto *imgView = texture.GetImageView();
-	auto *sampler = texture.GetSampler();
-	if(imgView == nullptr || sampler == nullptr)
-		return false;
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView(),&static_cast<Sampler*>(sampler)->GetAnvilSampler()
-	});
-}
-bool DescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)
-{
-	std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(1u,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(texture.GetImageView(layerId))->GetAnvilImageView(),&static_cast<Sampler*>(texture.GetSampler())->GetAnvilSampler()
-	});
-	auto *binding = GetBinding(bindingIdx);
-	if(binding == nullptr)
-		binding = &SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(*this,bindingIdx));
-	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
-		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture,layerId));
-	return GetAnvilDescriptorSet().set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
-}
-bool DescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)
-{
-	std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(1u,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(texture.GetImageView())->GetAnvilImageView(),&static_cast<Sampler*>(texture.GetSampler())->GetAnvilSampler()
-	});
-	auto *binding = GetBinding(bindingIdx);
-	if(binding == nullptr)
-		binding = &SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(*this,bindingIdx));
-	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
-		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture));
-	return GetAnvilDescriptorSet().set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
-}
-bool DescriptorSet::SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
-{
-	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingUniformBuffer>(*this,bindingIdx,buffer,startOffset,size));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::UniformBufferBindingElement{
-		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
-	});
-}
-bool DescriptorSet::SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
-{
-	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingDynamicUniformBuffer>(*this,bindingIdx,buffer,startOffset,size));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
-		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
-	});
-}
-bool DescriptorSet::SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
-{
-	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageBuffer>(*this,bindingIdx,buffer,startOffset,size));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageBufferBindingElement{
-		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
-		});
-}
-
-Anvil::DescriptorSetGroup &DescriptorSetGroup::GetAnvilDescriptorSetGroup() const {return *m_descriptorSetGroup;}
-Anvil::DescriptorSetGroup &DescriptorSetGroup::operator*() {return *m_descriptorSetGroup;}
-const Anvil::DescriptorSetGroup &DescriptorSetGroup::operator*() const {return const_cast<DescriptorSetGroup*>(this)->operator*();}
-Anvil::DescriptorSetGroup *DescriptorSetGroup::operator->() {return m_descriptorSetGroup.get();}
-const Anvil::DescriptorSetGroup *DescriptorSetGroup::operator->() const {return const_cast<DescriptorSetGroup*>(this)->operator->();}
 #pragma optimize("",on)

@@ -5,8 +5,10 @@
 #include "stdafx_prosper.h"
 #include "queries/prosper_occlusion_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include <wrappers/command_buffer.h>
+#include <wrappers/device.h>
+#include <wrappers/physical_device.h>
 
 using namespace prosper;
 
@@ -34,7 +36,7 @@ bool OcclusionQuery::RecordEnd(Anvil::CommandBufferBase &cmdBuffer) const
 
 std::shared_ptr<OcclusionQuery> prosper::util::create_occlusion_query(QueryPool &queryPool)
 {
-	if(queryPool.GetContext().GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
+	if(static_cast<VlkContext&>(queryPool.GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
 		return nullptr;
 	uint32_t query = 0;
 	if(queryPool.RequestQuery(query) == false)

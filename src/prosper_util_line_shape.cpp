@@ -12,7 +12,7 @@ using namespace prosper;
 
 Anvil::Format prosper::util::get_line_vertex_format() {return Anvil::Format::R32G32_SFLOAT;}
 
-std::shared_ptr<IBuffer> prosper::util::get_line_vertex_buffer(prosper::Context &context)
+std::shared_ptr<IBuffer> prosper::util::get_line_vertex_buffer(prosper::IPrContext &context)
 {
 	static std::weak_ptr<IBuffer> wpBuffer = {};
 	std::shared_ptr<IBuffer> buf = nullptr;

@@ -22,7 +22,7 @@ VlkImage *prosper::debug::get_image_from_anvil_image(Anvil::Image &img)
 	return (it != s_imageMap->end()) ? it->second : nullptr;
 }
 std::shared_ptr<VlkImage> VlkImage::Create(
-	Context &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img,const prosper::util::ImageCreateInfo &createInfo,bool isSwapchainImage,
+	IPrContext &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img,const prosper::util::ImageCreateInfo &createInfo,bool isSwapchainImage,
 	const std::function<void(VlkImage&)> &onDestroyedCallback
 )
 {
@@ -35,7 +35,7 @@ std::shared_ptr<VlkImage> VlkImage::Create(
 		img->GetContext().ReleaseResource<VlkImage>(img);
 		});
 }
-VlkImage::VlkImage(Context &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img,const prosper::util::ImageCreateInfo &createInfo,bool isSwapchainImage)
+VlkImage::VlkImage(IPrContext &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img,const prosper::util::ImageCreateInfo &createInfo,bool isSwapchainImage)
 	: IImage{context,createInfo},m_image{std::move(img)},m_swapchainImage{isSwapchainImage}
 {
 	if(m_swapchainImage)
@@ -60,6 +60,8 @@ VlkImage::~VlkImage()
 	}
 	prosper::debug::deregister_debug_object(m_image->get_image());
 }
+
+DeviceSize VlkImage::GetAlignment() const {return m_image->get_image_alignment(0);}
 
 bool VlkImage::Map(DeviceSize offset,DeviceSize size,void **outPtr)
 {

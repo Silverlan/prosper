@@ -11,9 +11,10 @@
 #include "vk_command_buffer.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
-#include "prosper_descriptor_set_group.hpp"
+#include "vk_descriptor_set_group.hpp"
+#include <wrappers/command_buffer.h>
 
-prosper::ICommandBuffer::ICommandBuffer(Context &context,prosper::QueueFamilyType queueFamilyType)
+prosper::ICommandBuffer::ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType)
 	: ContextObject(context),std::enable_shared_from_this<ICommandBuffer>(),m_queueFamilyType{queueFamilyType}
 {}
 
@@ -28,7 +29,7 @@ bool prosper::ICommandBuffer::RecordBindDescriptorSets(
 	std::vector<Anvil::DescriptorSet*> anvDescSets {};
 	anvDescSets.reserve(descSets.size());
 	for(auto *ds : descSets)
-		anvDescSets.push_back(&static_cast<prosper::DescriptorSet&>(*ds).GetAnvilDescriptorSet());
+		anvDescSets.push_back(&static_cast<prosper::VlkDescriptorSet&>(*ds).GetAnvilDescriptorSet());
 	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_descriptor_sets(
 		static_cast<Anvil::PipelineBindPoint>(bindPoint),&layout,firstSet,anvDescSets.size(),anvDescSets.data(),
 		dynamicOffsets.size(),dynamicOffsets.data()

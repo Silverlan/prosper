@@ -5,21 +5,24 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
 #include "prosper_util.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"
 #include "image/prosper_image_view.hpp"
 #include "buffers/vk_buffer.hpp"
 #include "prosper_framebuffer.hpp"
-#include "prosper_render_pass.hpp"
+#include "vk_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
 #include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 #include <wrappers/buffer.h>
+#include <wrappers/graphics_pipeline_manager.h>
+#include <wrappers/device.h>
 #include <misc/descriptor_set_create_info.h>
 #include <misc/buffer_create_info.h>
 #include <misc/image_create_info.h>
 #include <misc/image_view_create_info.h>
+#include <misc/render_pass_create_info.h>
 #include <sharedutils/util.h>
 #include <queue>
 #include <unordered_map>
@@ -80,13 +83,13 @@ struct RenderPassInfo
 
 struct RenderPassManager
 {
-	std::weak_ptr<prosper::Context> context = {};
+	std::weak_ptr<prosper::IPrContext> context = {};
 	std::unordered_map<size_t,std::vector<RenderPassInfo>> renderPasses;
 };
 
 static uint32_t s_shaderCount = 0u;
 static std::vector<std::unique_ptr<RenderPassManager>> s_rpManagers = {};
-prosper::ShaderGraphics::ShaderGraphics(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader)
+prosper::ShaderGraphics::ShaderGraphics(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader)
 	: Shader(context,identifier,vsShader,fsShader,gsShader)
 {
 	++s_shaderCount;
@@ -96,12 +99,12 @@ prosper::ShaderGraphics::~ShaderGraphics()
 	if(--s_shaderCount == 0u)
 		s_rpManagers.clear();
 }
-const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::Context &context,size_t hashCode,uint32_t pipelineIdx)
+const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::IPrContext &context,size_t hashCode,uint32_t pipelineIdx)
 {
 	auto it = std::find_if(s_rpManagers.begin(),s_rpManagers.end(),[&context](const std::unique_ptr<RenderPassManager> &rpMan) {
 		return rpMan->context.lock().get() == &context;
 	});
-	static std::shared_ptr<RenderPass> nptr = nullptr;
+	static std::shared_ptr<IRenderPass> nptr = nullptr;
 	if(it == s_rpManagers.end())
 		return nptr;
 	auto &rpManager = *(*it);
@@ -171,8 +174,8 @@ void prosper::ShaderGraphics::InitializeGfxPipeline(Anvil::GraphicsPipelineCreat
 void prosper::ShaderGraphics::InitializePipeline()
 {
 	auto &context = GetContext();
-	auto &dev = context.GetDevice();
-	auto swapchain = context.GetSwapchain();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
+	auto swapchain = static_cast<VlkContext&>(context).GetSwapchain();
 	auto *gfxPipelineManager = dev.get_graphics_pipeline_manager();
 
 	/* Configure the graphics pipeline */
@@ -204,7 +207,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 			createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
 		auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(
 			createFlags,
-			&static_cast<RenderPass&>(*renderPass).GetAnvilRenderPass(),
+			&static_cast<VlkRenderPass&>(*renderPass).GetAnvilRenderPass(),
 			subPassId,
 			(modFs != nullptr) ? *modFs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
 			(modGs != nullptr) ? *modGs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
@@ -226,7 +229,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 			1.0f /* line_width */
 		);
 
-		auto &rpInfo = *(static_cast<RenderPass&>(*renderPass))->get_render_pass_create_info();
+		auto &rpInfo = *(static_cast<VlkRenderPass&>(*renderPass))->get_render_pass_create_info();
 		auto numAttachments = rpInfo.get_n_attachments();
 		auto samples = Anvil::SampleCountFlagBits::_1_BIT;
 		for(auto i=decltype(numAttachments){0u};i<numAttachments;++i)
@@ -260,7 +263,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 Anvil::BasePipelineManager *prosper::ShaderGraphics::GetPipelineManager() const
 {
 	auto &context = const_cast<const ShaderGraphics*>(this)->GetContext();
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	return dev.get_graphics_pipeline_manager();
 }
 void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo)
@@ -510,7 +513,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 		prosper::IFramebuffer *fb;
 		if(prosper::util::get_current_render_pass_target(*cmdBuffer,&rp,&img,&fb,&rt) && fb && rp)
 		{
-			auto &rpCreateInfo = *static_cast<RenderPass*>(rp)->GetAnvilRenderPass().get_render_pass_create_info();
+			auto &rpCreateInfo = *static_cast<VlkRenderPass*>(rp)->GetAnvilRenderPass().get_render_pass_create_info();
 			Anvil::SampleCountFlagBits sampleCount;
 			info->get_multisampling_properties(&sampleCount,nullptr);
 			auto numAttachments = umath::min(fb->GetAttachmentCount(),rpCreateInfo.get_n_attachments());

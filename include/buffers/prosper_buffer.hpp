@@ -14,11 +14,6 @@
 #include <cinttypes>
 #include <functional>
 
-namespace Anvil
-{
-	class Buffer;
-};
-
 #undef max
 
 #pragma warning(push)
@@ -80,7 +75,7 @@ namespace prosper
 		virtual bool DoMap(Offset offset,Size size) const=0;
 		virtual bool DoUnmap() const=0;
 
-		IBuffer(Context &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size);
+		IBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size);
 		bool Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags) const;
 		void SetParent(IBuffer &parent,SubBufferIndex baseIndex=INVALID_INDEX);
 

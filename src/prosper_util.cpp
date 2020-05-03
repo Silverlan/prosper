@@ -19,6 +19,8 @@
 #include "image/prosper_image_view.hpp"
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
+#include "vk_fence.hpp"
+#include "vk_event.hpp"
 #include "buffers/vk_uniform_resizable_buffer.hpp"
 #include "buffers/vk_dynamic_resizable_buffer.hpp"
 #include <sharedutils/util.h>
@@ -31,14 +33,22 @@
 #include <wrappers/buffer.h>
 #include <wrappers/device.h>
 #include <wrappers/physical_device.h>
+#include <wrappers/descriptor_set_group.h>
+#include <wrappers/framebuffer.h>
 #include <misc/image_create_info.h>
 #include <misc/image_view_create_info.h>
 #include <misc/buffer_create_info.h>
 #include <misc/framebuffer_create_info.h>
+#include <misc/render_pass_create_info.h>
 #include <util_image_buffer.hpp>
 #include <util_image.hpp>
 #include <util_texture_info.hpp>
 #include <gli/gli.hpp>
+#include <sstream>
+
+#include "image/vk_sampler.hpp"
+#include "vk_context.hpp"
+#include "vk_framebuffer.hpp"
 
 #ifdef DEBUG_VERBOSE
 #include <iostream>
@@ -189,12 +199,21 @@ static void find_compatible_memory_feature_flags(Anvil::BaseDevice &dev,prosper:
 	featureFlags = r.second;
 }
 
-std::shared_ptr<prosper::ISampler> prosper::Context::CreateSampler(const util::SamplerCreateInfo &createInfo)
+std::shared_ptr<prosper::ISampler> prosper::IPrContext::CreateSampler(const util::SamplerCreateInfo &createInfo)
 {
-	return Sampler::Create(*this,createInfo);
+	return VlkSampler::Create(*this,createInfo);
 }
 
-std::shared_ptr<prosper::IImageView> prosper::Context::CreateImageView(const prosper::util::ImageViewCreateInfo &createInfo,prosper::IImage &img)
+std::shared_ptr<prosper::IEvent> prosper::IPrContext::CreateEvent()
+{
+	return VlkEvent::Create(*this);
+}
+std::shared_ptr<prosper::IFence> prosper::IPrContext::CreateFence(bool createSignalled)
+{
+	return VlkFence::Create(*this,createSignalled,nullptr);
+}
+
+std::shared_ptr<prosper::IImageView> prosper::IPrContext::CreateImageView(const prosper::util::ImageViewCreateInfo &createInfo,prosper::IImage &img)
 {
 	auto format = createInfo.format;
 	if(format == Format::Unknown)
@@ -226,7 +245,7 @@ std::shared_ptr<prosper::IImageView> prosper::Context::CreateImageView(const pro
 	case ImageViewType::e2D:
 		return VlkImageView::Create(*this,img,createInfo,type,aspectMask,Anvil::ImageView::create(
 			Anvil::ImageViewCreateInfo::create_2D(
-				&GetDevice(),&static_cast<VlkImage&>(img).GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,img.GetMipmapCount()) -createInfo.baseMipmap,
+				&static_cast<VlkContext&>(*this).GetDevice(),&static_cast<VlkImage&>(img).GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,img.GetMipmapCount()) -createInfo.baseMipmap,
 				static_cast<Anvil::ImageAspectFlagBits>(aspectMask),static_cast<Anvil::Format>(format),
 				static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen),
 				static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue),static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha)
@@ -235,7 +254,7 @@ std::shared_ptr<prosper::IImageView> prosper::Context::CreateImageView(const pro
 	case ImageViewType::Cube:
 		return VlkImageView::Create(*this,img,createInfo,type,aspectMask,Anvil::ImageView::create(
 			Anvil::ImageViewCreateInfo::create_cube_map(
-				&GetDevice(),&static_cast<VlkImage&>(img).GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,img.GetMipmapCount()) -createInfo.baseMipmap,
+				&static_cast<VlkContext&>(*this).GetDevice(),&static_cast<VlkImage&>(img).GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,img.GetMipmapCount()) -createInfo.baseMipmap,
 				static_cast<Anvil::ImageAspectFlagBits>(aspectMask),static_cast<Anvil::Format>(format),
 				static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen),
 				static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue),static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha)
@@ -244,7 +263,7 @@ std::shared_ptr<prosper::IImageView> prosper::Context::CreateImageView(const pro
 	case ImageViewType::e2DArray:
 		return VlkImageView::Create(*this,img,createInfo,type,aspectMask,Anvil::ImageView::create(
 			Anvil::ImageViewCreateInfo::create_2D_array(
-				&GetDevice(),&static_cast<VlkImage&>(img).GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,numLayers,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,img.GetMipmapCount()) -createInfo.baseMipmap,
+				&static_cast<VlkContext&>(*this).GetDevice(),&static_cast<VlkImage&>(img).GetAnvilImage(),createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u,numLayers,createInfo.baseMipmap,umath::min(createInfo.baseMipmap +createInfo.mipmapLevels,img.GetMipmapCount()) -createInfo.baseMipmap,
 				static_cast<Anvil::ImageAspectFlagBits>(aspectMask),static_cast<Anvil::Format>(format),
 				static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen),
 				static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue),static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha)
@@ -255,14 +274,14 @@ std::shared_ptr<prosper::IImageView> prosper::Context::CreateImageView(const pro
 	}
 }
 
-std::shared_ptr<prosper::IUniformResizableBuffer> prosper::Context::CreateUniformResizableBuffer(
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(
 	util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
 	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
 )
 {
 	return util::create_uniform_resizable_buffer(*this,createInfo,bufferInstanceSize,maxTotalSize,clampSizeToAvailableGPUMemoryPercentage,data);
 }
-std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::Context::CreateDynamicResizableBuffer(
+std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::IPrContext::CreateDynamicResizableBuffer(
 	util::BufferCreateInfo createInfo,
 	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
 )
@@ -270,7 +289,7 @@ std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::Context::CreateDynami
 	return util::create_dynamic_resizable_buffer(*this,createInfo,maxTotalSize,clampSizeToAvailableGPUMemoryPercentage,data);
 }
 
-std::shared_ptr<prosper::IBuffer> prosper::Context::CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data)
+std::shared_ptr<prosper::IBuffer> prosper::IPrContext::CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data)
 {
 	if(createInfo.size == 0ull)
 		return nullptr;
@@ -278,7 +297,7 @@ std::shared_ptr<prosper::IBuffer> prosper::Context::CreateBuffer(const util::Buf
 	if((createInfo.flags &util::BufferCreateInfo::Flags::ConcurrentSharing) != util::BufferCreateInfo::Flags::None)
 		sharingMode = Anvil::SharingMode::CONCURRENT;
 
-	auto &dev = GetDevice();
+	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
 	if((createInfo.flags &util::BufferCreateInfo::Flags::Sparse) != util::BufferCreateInfo::Flags::None)
 	{
 		Anvil::BufferCreateFlags createFlags {Anvil::BufferCreateFlagBits::NONE};
@@ -315,7 +334,7 @@ std::shared_ptr<prosper::IBuffer> prosper::Context::CreateBuffer(const util::Buf
 	),createInfo,0ull,createInfo.size);
 }
 
-static std::shared_ptr<prosper::IImage> create_image(prosper::Context &context,const prosper::util::ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> *data)
+std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> *data)
 {
 	auto layers = createInfo.layers;
 	auto imageCreateFlags = Anvil::ImageCreateFlags{};
@@ -330,7 +349,7 @@ static std::shared_ptr<prosper::IImage> create_image(prosper::Context &context,c
 		postCreateLayout = prosper::ImageLayout::DepthStencilAttachmentOptimal;
 
 	auto memoryFeatures = createInfo.memoryFeatures;
-	find_compatible_memory_feature_flags(context.GetDevice(),memoryFeatures);
+	find_compatible_memory_feature_flags(static_cast<prosper::VlkContext&>(context).GetDevice(),memoryFeatures);
 	auto memoryFeatureFlags = memory_feature_flags_to_anvil_flags(memoryFeatures);
 	auto queueFamilies = queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask);
 	auto sharingMode = Anvil::SharingMode::EXCLUSIVE;
@@ -356,7 +375,7 @@ static std::shared_ptr<prosper::IImage> create_image(prosper::Context &context,c
 		;
 		auto img = prosper::VlkImage::Create(context,Anvil::Image::create(
 			Anvil::ImageCreateInfo::create_no_alloc(
-				&context.GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
+				&static_cast<prosper::VlkContext&>(context).GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
 				static_cast<Anvil::ImageTiling>(createInfo.tiling),static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage),
 				createInfo.width,createInfo.height,1u,layers,
 				static_cast<Anvil::SampleCountFlagBits>(createInfo.samples),queueFamilies,
@@ -372,7 +391,7 @@ static std::shared_ptr<prosper::IImage> create_image(prosper::Context &context,c
 	std::cout<<"Allocating SSAO Image "<<createInfo.width<<"x"<<createInfo.height<<","<<umath::to_integral(createInfo.samples)<<","<<bUseFullMipmapChain<<std::endl;
 	auto result = prosper::VlkImage::Create(context,Anvil::Image::create(
 		Anvil::ImageCreateInfo::create_alloc(
-			&context.GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
+			&static_cast<prosper::VlkContext&>(context).GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
 			static_cast<Anvil::ImageTiling>(createInfo.tiling),static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage),
 			createInfo.width,createInfo.height,1u,layers,
 			static_cast<Anvil::SampleCountFlagBits>(createInfo.samples),queueFamilies,
@@ -384,112 +403,24 @@ static std::shared_ptr<prosper::IImage> create_image(prosper::Context &context,c
 	return result;
 }
 
-static std::shared_ptr<prosper::IImage> create_image(prosper::Context &context,std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap)
-{
-	if(imgBuffers.empty() || imgBuffers.size() != (cubemap ? 6 : 1))
-		return nullptr;
-	auto &img0 = imgBuffers.at(0);
-	auto format = img0->GetFormat();
-	auto w = img0->GetWidth();
-	auto h = img0->GetHeight();
-	for(auto &img : imgBuffers)
-	{
-		if(img->GetFormat() != format || img->GetWidth() != w || img->GetHeight() != h)
-			return nullptr;
-	}
-
-	std::optional<uimg::ImageBuffer::Format> conversionFormatRequired = {};
-	prosper::Format prosperFormat;
-	switch(format)
-	{
-	case uimg::ImageBuffer::Format::RGB8:
-		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA8;
-		break;
-	case uimg::ImageBuffer::Format::RGB16:
-		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA16;
-		break;
-	case uimg::ImageBuffer::Format::RGB32:
-		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA32;
-		break;
-	case uimg::ImageBuffer::Format::RGBA8:
-		prosperFormat = prosper::Format::R8G8B8A8_UNorm;
-		break;
-	case uimg::ImageBuffer::Format::RGBA16:
-		prosperFormat = prosper::Format::R16G16B16A16_UNorm;
-		break;
-	case uimg::ImageBuffer::Format::RGBA32:
-		prosperFormat = prosper::Format::R32G32B32A32_SFloat;
-		break;
-	}
-	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 7);
-	if(conversionFormatRequired.has_value())
-	{
-		std::vector<std::shared_ptr<uimg::ImageBuffer>> converted {};
-		converted.reserve(imgBuffers.size());
-		for(auto &img : imgBuffers)
-		{
-			auto copy = img->Copy(*conversionFormatRequired);
-			converted.push_back(copy);
-		}
-		return create_image(context,converted,cubemap);
-	}
-	prosper::util::ImageCreateInfo imgCreateInfo {};
-	imgCreateInfo.format = prosperFormat;
-	imgCreateInfo.width = w;
-	imgCreateInfo.height = h;
-	imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
-	imgCreateInfo.postCreateLayout = prosper::ImageLayout::ShaderReadOnlyOptimal;
-	imgCreateInfo.tiling = prosper::ImageTiling::Optimal;
-	imgCreateInfo.usage = prosper::ImageUsageFlags::SampledBit;
-	imgCreateInfo.layers = imgBuffers.size();
-	if(cubemap)
-		imgCreateInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
-
-	auto byteSize = prosper::util::get_byte_size(imgCreateInfo.format);
-	std::vector<Anvil::MipmapRawData> layers {};
-	layers.reserve(imgBuffers.size());
-	for(auto iLayer=decltype(imgBuffers.size()){0u};iLayer<imgBuffers.size();++iLayer)
-	{
-		auto &imgBuf = imgBuffers.at(iLayer);
-		if(cubemap)
-		{
-			layers.push_back(Anvil::MipmapRawData::create_cube_map_from_uchar_ptr(
-				Anvil::ImageAspectFlagBits::COLOR_BIT,iLayer,0,
-				static_cast<uint8_t*>(imgBuf->GetData()),imgCreateInfo.width *imgCreateInfo.height *byteSize,imgCreateInfo.width *byteSize
-			));
-		}
-		else
-		{
-			layers.push_back(Anvil::MipmapRawData::create_2D_from_uchar_ptr(
-				Anvil::ImageAspectFlagBits::COLOR_BIT,0u,
-				static_cast<uint8_t*>(imgBuf->GetData()),imgCreateInfo.width *imgCreateInfo.height *byteSize,imgCreateInfo.width *byteSize
-			));
-		}
-	}
-	return context.CreateImage(imgCreateInfo,layers);
-}
-
-std::shared_ptr<prosper::IImage> prosper::Context::CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data)
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data)
 {
 	if(data == nullptr)
 		return ::create_image(*this,createInfo,nullptr);
 	auto byteSize = util::get_byte_size(createInfo.format);
-	return CreateImage(createInfo,std::vector<Anvil::MipmapRawData>{
+	return static_cast<VlkContext*>(this)->CreateImage(createInfo,std::vector<Anvil::MipmapRawData>{
 		Anvil::MipmapRawData::create_2D_from_uchar_ptr(
 			Anvil::ImageAspectFlagBits::COLOR_BIT,0u,
 			data,createInfo.width *createInfo.height *byteSize,createInfo.width *byteSize
 		)
 	});
 }
-std::shared_ptr<prosper::IImage> prosper::Context::CreateImage(const util::ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data)
-{
-	return ::create_image(*this,createInfo,&data);
-}
-std::shared_ptr<prosper::IImage> prosper::Context::CreateImage(uimg::ImageBuffer &imgBuffer)
+extern std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap);
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(uimg::ImageBuffer &imgBuffer)
 {
 	return ::create_image(*this,std::vector<std::shared_ptr<uimg::ImageBuffer>>{imgBuffer.shared_from_this()},false);
 }
-std::shared_ptr<prosper::IImage> prosper::Context::CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers)
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers)
 {
 	std::vector<std::shared_ptr<uimg::ImageBuffer>> vImgBuffers {};
 	vImgBuffers.reserve(imgBuffers.size());
@@ -497,15 +428,11 @@ std::shared_ptr<prosper::IImage> prosper::Context::CreateCubemap(std::array<std:
 		vImgBuffers.push_back(imgBuf);
 	return ::create_image(*this,vImgBuffers,true);
 }
-std::shared_ptr<prosper::IRenderPass> prosper::Context::CreateRenderPass(std::unique_ptr<Anvil::RenderPassCreateInfo> renderPassInfo)
-{
-	return prosper::RenderPass::Create(*this,Anvil::RenderPass::create(std::move(renderPassInfo),GetSwapchain().get()));
-}
-std::shared_ptr<prosper::IRenderPass> prosper::Context::CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)
+std::shared_ptr<prosper::IRenderPass> prosper::IPrContext::CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)
 {
 	if(renderPassInfo.attachments.empty())
 		throw std::logic_error("Attempted to create render pass with 0 attachments, this is not allowed!");
-	auto rpInfo = std::make_unique<Anvil::RenderPassCreateInfo>(&GetDevice());
+	auto rpInfo = std::make_unique<Anvil::RenderPassCreateInfo>(&static_cast<VlkContext&>(*this).GetDevice());
 	std::vector<Anvil::RenderPassAttachmentID> attachmentIds;
 	attachmentIds.reserve(renderPassInfo.attachments.size());
 	auto depthStencilAttId = std::numeric_limits<Anvil::RenderPassAttachmentID>::max();
@@ -579,101 +506,25 @@ std::shared_ptr<prosper::IRenderPass> prosper::Context::CreateRenderPass(const u
 			++attId;
 		}
 	}
-	return CreateRenderPass(std::move(rpInfo));
+	return static_cast<VlkContext*>(this)->CreateRenderPass(std::move(rpInfo));
 }
-static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSetGroup &dsg)
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::IPrContext::CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo)
 {
-	// Initialize image sampler bindings with dummy texture
-	auto &context = prosper::Context::GetContext(dev);
-	auto &dummyTex = context.GetDummyTexture();
-	auto &dummyBuf = context.GetDummyBuffer();
-	auto numSets = dsg.get_n_descriptor_sets();
-	for(auto i=decltype(numSets){0};i<numSets;++i)
-	{
-		auto *descSet = dsg.get_descriptor_set(i);
-		auto *descSetLayout = dsg.get_descriptor_set_layout(i);
-		auto &info = *descSetLayout->get_create_info();
-		auto numBindings = info.get_n_bindings();
-		auto bindingIndex = 0u;
-		for(auto j=decltype(numBindings){0};j<numBindings;++j)
-		{
-			Anvil::DescriptorType descType;
-			uint32_t arraySize;
-			info.get_binding_properties_by_index_number(j,nullptr,&descType,&arraySize,nullptr,nullptr);
-			switch(descType)
-			{
-			case Anvil::DescriptorType::COMBINED_IMAGE_SAMPLER:
-			{
-				std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-					Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-					&static_cast<prosper::VlkImageView&>(*dummyTex->GetImageView()).GetAnvilImageView(),&static_cast<prosper::Sampler&>(*dummyTex->GetSampler()).GetAnvilSampler()
-					});
-				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
-				break;
-			}
-			case Anvil::DescriptorType::UNIFORM_BUFFER:
-			{
-				std::vector<Anvil::DescriptorSet::UniformBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::UniformBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
-					});
-				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
-				break;
-			}
-			case Anvil::DescriptorType::UNIFORM_BUFFER_DYNAMIC:
-			{
-				std::vector<Anvil::DescriptorSet::DynamicUniformBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
-					});
-				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
-				break;
-			}
-			case Anvil::DescriptorType::STORAGE_BUFFER:
-			{
-				std::vector<Anvil::DescriptorSet::StorageBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::StorageBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
-					});
-				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
-				break;
-			}
-			case Anvil::DescriptorType::STORAGE_BUFFER_DYNAMIC:
-			{
-				std::vector<Anvil::DescriptorSet::DynamicStorageBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::DynamicStorageBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
-					});
-				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
-				break;
-			}
-			}
-			//bindingIndex += arraySize;
-			++bindingIndex;
-		}
-	}
+	return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(std::move(descSetInfo.ToAnvilDescriptorSetInfo()));
 }
-std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Context::CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo)
-{
-	return CreateDescriptorSetGroup(std::move(descSetInfo.ToAnvilDescriptorSetInfo()));
-}
-std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Context::CreateDescriptorSetGroup(std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo)
-{
-	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> descSetInfos = {};
-	descSetInfos.push_back(std::move(descSetInfo));
-	auto dsg = Anvil::DescriptorSetGroup::create(&GetDevice(),descSetInfos,Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
-	init_default_dsg_bindings(GetDevice(),*dsg);
-	return prosper::DescriptorSetGroup::Create(*this,std::move(dsg));
-}
-std::shared_ptr<prosper::IFramebuffer> prosper::Context::CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)
+std::shared_ptr<prosper::IFramebuffer> prosper::IPrContext::CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)
 {
 	auto createInfo = Anvil::FramebufferCreateInfo::create(
-		&GetDevice(),width,height,layers
+		&static_cast<VlkContext&>(*this).GetDevice(),width,height,layers
 	);
 	uint32_t depth = 1u;
 	for(auto *att : attachments)
 		createInfo->add_attachment(&static_cast<prosper::VlkImageView*>(att)->GetAnvilImageView(),nullptr);
-	return prosper::Framebuffer::Create(*this,attachments,width,height,depth,layers,Anvil::Framebuffer::create(
+	return prosper::VlkFramebuffer::Create(*this,attachments,width,height,depth,layers,Anvil::Framebuffer::create(
 		std::move(createInfo)
 	));
 }
-std::shared_ptr<prosper::Texture> prosper::Context::CreateTexture(
+std::shared_ptr<prosper::Texture> prosper::IPrContext::CreateTexture(
 	const util::TextureCreateInfo &createInfo,IImage &img,
 	const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo,
 	const std::optional<util::SamplerCreateInfo> &samplerCreateInfo
@@ -736,7 +587,7 @@ std::shared_ptr<prosper::Texture> prosper::Context::CreateTexture(
 	});
 }
 
-std::shared_ptr<prosper::RenderTarget> prosper::Context::CreateRenderTarget(
+std::shared_ptr<prosper::RenderTarget> prosper::IPrContext::CreateRenderTarget(
 	const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<IRenderPass> &rp,const util::RenderTargetCreateInfo &rtCreateInfo
 )
 {
@@ -769,7 +620,7 @@ std::shared_ptr<prosper::RenderTarget> prosper::Context::CreateRenderTarget(
 		delete rt;
 	}};
 }
-std::shared_ptr<prosper::RenderTarget> prosper::Context::CreateRenderTarget(
+std::shared_ptr<prosper::RenderTarget> prosper::IPrContext::CreateRenderTarget(
 	Texture &texture,IImageView &imgView,IRenderPass &rp,const util::RenderTargetCreateInfo &rtCreateInfo)
 {
 	auto &img = imgView.GetImage();
@@ -960,6 +811,7 @@ std::string prosper::util::to_string(prosper::ShaderStage stage)
 std::string prosper::util::to_string(prosper::PipelineStageFlags stage) {return vk::to_string(static_cast<vk::PipelineStageFlagBits>(stage));}
 std::string prosper::util::to_string(prosper::ImageTiling tiling) {return vk::to_string(static_cast<vk::ImageTiling>(tiling));}
 std::string prosper::util::to_string(vk::PhysicalDeviceType type) {return vk::to_string(type);}
+std::string prosper::util::to_string(ImageLayout layout) {return vk::to_string(static_cast<vk::ImageLayout>(layout));}
 
 bool prosper::util::has_alpha(Format format)
 {

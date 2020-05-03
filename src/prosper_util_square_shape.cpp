@@ -13,7 +13,7 @@ using namespace prosper;
 prosper::Format prosper::util::get_square_vertex_format() {return prosper::Format::R32G32_SFloat;}
 prosper::Format prosper::util::get_square_uv_format() {return prosper::Format::R32G32_SFloat;}
 
-std::shared_ptr<IBuffer> prosper::util::get_square_vertex_uv_buffer(prosper::Context &context)
+std::shared_ptr<IBuffer> prosper::util::get_square_vertex_uv_buffer(prosper::IPrContext &context)
 {
 #pragma pack(push,1)
 	struct VertexData
@@ -49,7 +49,7 @@ std::shared_ptr<IBuffer> prosper::util::get_square_vertex_uv_buffer(prosper::Con
 		buf = wpBuffer.lock();
 	return buf;
 }
-std::shared_ptr<IBuffer> prosper::util::get_square_vertex_buffer(prosper::Context &context)
+std::shared_ptr<IBuffer> prosper::util::get_square_vertex_buffer(prosper::IPrContext &context)
 {
 	static std::weak_ptr<IBuffer> wpBuffer = {};
 	std::shared_ptr<IBuffer> buf = nullptr;
@@ -68,7 +68,7 @@ std::shared_ptr<IBuffer> prosper::util::get_square_vertex_buffer(prosper::Contex
 		buf = wpBuffer.lock();
 	return buf;
 }
-std::shared_ptr<IBuffer> prosper::util::get_square_uv_buffer(prosper::Context &context)
+std::shared_ptr<IBuffer> prosper::util::get_square_uv_buffer(prosper::IPrContext &context)
 {
 	static std::weak_ptr<IBuffer> wpBuffer = {};
 	std::shared_ptr<IBuffer> buf = nullptr;

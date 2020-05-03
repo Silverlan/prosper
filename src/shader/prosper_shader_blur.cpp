@@ -16,6 +16,7 @@
 #include "prosper_command_buffer.hpp"
 #include <vulkan/vulkan.hpp>
 #include <wrappers/descriptor_set_group.h>
+#include <wrappers/graphics_pipeline_manager.h>
 #include <misc/image_create_info.h>
 
 using namespace prosper;
@@ -42,7 +43,7 @@ static constexpr std::array<vk::Format,umath::to_integral(prosper::ShaderBlurBas
 	vk::Format::eBc3UnormBlock
 };
 
-ShaderBlurBase::ShaderBlurBase(prosper::Context &context,const std::string &identifier,const std::string &fsShader)
+ShaderBlurBase::ShaderBlurBase(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader)
 	: ShaderGraphics(context,identifier,"screen/vs_screen_uv",fsShader)
 {
 	SetPipelineCount(umath::to_integral(Pipeline::Count));
@@ -72,7 +73,7 @@ bool ShaderBlurBase::Draw(IDescriptorSet &descSetTexture,const PushConstants &pu
 {
 	if(
 		RecordBindVertexBuffer(dynamic_cast<VlkBuffer&>(*prosper::util::get_square_vertex_uv_buffer(GetContext()))) == false ||
-		RecordBindDescriptorSet(static_cast<DescriptorSet&>(descSetTexture)) == false ||
+		RecordBindDescriptorSet(static_cast<IDescriptorSet&>(descSetTexture)) == false ||
 		RecordPushConstants(pushConstants) == false ||
 		RecordDraw(prosper::util::get_square_vertex_count()) == false
 	)
@@ -83,7 +84,7 @@ bool ShaderBlurBase::Draw(IDescriptorSet &descSetTexture,const PushConstants &pu
 /////////////////////////
 
 static ShaderBlurH *s_blurShaderH = nullptr;
-ShaderBlurH::ShaderBlurH(prosper::Context &context,const std::string &identifier)
+ShaderBlurH::ShaderBlurH(prosper::IPrContext &context,const std::string &identifier)
 	: ShaderBlurBase(context,identifier,"screen/fs_gaussianblur_horizontal")
 {
 	s_blurShaderH = this;
@@ -93,7 +94,7 @@ ShaderBlurH::~ShaderBlurH() {s_blurShaderH = nullptr;}
 /////////////////////////
 
 static ShaderBlurV *s_blurShaderV = nullptr;
-ShaderBlurV::ShaderBlurV(prosper::Context &context,const std::string &identifier)
+ShaderBlurV::ShaderBlurV(prosper::IPrContext &context,const std::string &identifier)
 	: ShaderBlurBase(context,identifier,"screen/fs_gaussianblur_vertical")
 {
 	s_blurShaderV = this;
@@ -103,7 +104,7 @@ ShaderBlurV::~ShaderBlurV() {s_blurShaderV = nullptr;}
 
 /////////////////////////
 
-bool prosper::util::record_blur_image(prosper::Context &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants)
+bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants)
 {
 	if(s_blurShaderH == nullptr || s_blurShaderV == nullptr)
 		return false;
@@ -188,7 +189,7 @@ BlurSet::BlurSet(
 		m_srcTexture(srcTexture)
 {}
 
-std::shared_ptr<BlurSet> BlurSet::Create(prosper::Context &context,const std::shared_ptr<prosper::RenderTarget> &finalRt,const std::shared_ptr<prosper::Texture> &srcTexture)
+std::shared_ptr<BlurSet> BlurSet::Create(prosper::IPrContext &context,const std::shared_ptr<prosper::RenderTarget> &finalRt,const std::shared_ptr<prosper::Texture> &srcTexture)
 {
 	if(s_blurShaderH == nullptr)
 		return nullptr;

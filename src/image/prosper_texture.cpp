@@ -13,7 +13,7 @@
 
 using namespace prosper;
 
-Texture::Texture(Context &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler)
+Texture::Texture(IPrContext &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler)
 	: ContextObject(context),std::enable_shared_from_this<Texture>(),m_image{img.shared_from_this()},
 	m_imageViews{imgViews},m_sampler{sampler ? sampler->shared_from_this() : nullptr}
 {}

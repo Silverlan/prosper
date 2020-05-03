@@ -13,7 +13,7 @@ namespace prosper
 		: public IImageView
 	{
 	public:
-		static std::shared_ptr<VlkImageView> Create(Context &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView,const std::function<void(IImageView&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<VlkImageView> Create(IPrContext &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView,const std::function<void(IImageView&)> &onDestroyedCallback=nullptr);
 		virtual ~VlkImageView() override;
 		Anvil::ImageView &GetAnvilImageView() const;
 		Anvil::ImageView &operator*();
@@ -21,7 +21,7 @@ namespace prosper
 		Anvil::ImageView *operator->();
 		const Anvil::ImageView *operator->() const;
 	protected:
-		VlkImageView(Context &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);
+		VlkImageView(IPrContext &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);
 		std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> m_imageView = nullptr;
 	};
 };

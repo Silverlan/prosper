@@ -9,10 +9,11 @@
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include <misc/image_view_create_info.h>
+#include <wrappers/image_view.h>
 
 using namespace prosper;
 
-std::shared_ptr<VlkImageView> VlkImageView::Create(Context &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,Anvil::ImageViewUniquePtr imgView,const std::function<void(IImageView&)> &onDestroyedCallback)
+std::shared_ptr<VlkImageView> VlkImageView::Create(IPrContext &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,Anvil::ImageViewUniquePtr imgView,const std::function<void(IImageView&)> &onDestroyedCallback)
 {
 	if(imgView == nullptr)
 		return nullptr;
@@ -25,7 +26,7 @@ std::shared_ptr<VlkImageView> VlkImageView::Create(Context &context,IImage &img,
 	});
 }
 
-VlkImageView::VlkImageView(Context &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,Anvil::ImageViewUniquePtr imgView)
+VlkImageView::VlkImageView(IPrContext &context,IImage &img,const prosper::util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,Anvil::ImageViewUniquePtr imgView)
 	: IImageView{context,img,createInfo,type,aspectFlags},m_imageView(std::move(imgView))
 {
 	prosper::debug::register_debug_object(m_imageView->get_image_view(),this,prosper::debug::ObjectType::ImageView);

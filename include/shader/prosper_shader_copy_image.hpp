@@ -21,7 +21,7 @@ namespace prosper
 			Count
 		};
 
-		ShaderCopyImage(prosper::Context &context,const std::string &identifier);
+		ShaderCopyImage(prosper::IPrContext &context,const std::string &identifier);
 		bool BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx=Pipeline::R8G8B8A8Unorm);
 	protected:
 		virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx) override;

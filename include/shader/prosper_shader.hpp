@@ -5,21 +5,20 @@
 #ifndef __PROSPER_SHADER_HPP__
 #define __PROSPER_SHADER_HPP__
 
+#include <config.h>
+#include <misc/types.h>
+#include <misc/descriptor_set_create_info.h>
+#include <misc/graphics_pipeline_create_info.h>
 #include "prosper_definitions.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_enums.hpp"
 #include <config.h>
-#include <wrappers/shader_module.h>
-#include <misc/graphics_pipeline_create_info.h>
 #include <cinttypes>
 #include <vulkan/vulkan.hpp>
 #include <sharedutils/util_weak_handle.hpp>
 #include <mathutil/umath.h>
 #include <unordered_map>
 #include <optional>
-#ifdef __linux__
-	#include <misc/descriptor_set_create_info.h>
-#endif
 
 #undef max
 
@@ -91,8 +90,8 @@ namespace prosper
 		static const std::string &GetRootShaderLocation();
 		//static int32_t Register(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory);
 
-		Shader(Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader="");
-		Shader(Context &context,const std::string &identifier,const std::string &csShader);
+		Shader(IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader="");
+		Shader(IPrContext &context,const std::string &identifier,const std::string &csShader);
 		Shader(const Shader&)=delete;
 		Shader &operator=(const Shader&)=delete;
 		virtual ~Shader() override=default;
@@ -245,7 +244,7 @@ namespace prosper
 			RenderPassTargetAsViewportAndScissor = RenderPassTargetAsViewport | RenderPassTargetAsScissor
 		};
 
-		ShaderGraphics(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader="");
+		ShaderGraphics(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader="");
 		virtual ~ShaderGraphics() override;
 		virtual bool RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet=0u,const std::vector<uint32_t> &dynamicOffsets={}) override;
 		bool RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<vk::DeviceSize> &offsets={});
@@ -261,7 +260,7 @@ namespace prosper
 
 		const std::shared_ptr<IRenderPass> &GetRenderPass(uint32_t pipelineIdx=0u) const;
 		template<class TShader>
-			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::Context &context,uint32_t pipelineIdx=0u);
+			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context,uint32_t pipelineIdx=0u);
 	protected:
 		bool BeginDrawViewport(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		void SetGenericAlphaColorBlendAttachmentProperties(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
@@ -273,7 +272,7 @@ namespace prosper
 		void CreateCachedRenderPass(size_t hashCode,const prosper::util::RenderPassCreateInfo &renderPassInfo,std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx,const std::string &debugName="");
 		template<class TShader>
 			void CreateCachedRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo,std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx);
-		static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::Context &context,size_t hashCode,uint32_t pipelineIdx);
+		static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context,size_t hashCode,uint32_t pipelineIdx);
 	private:
 		virtual void InitializePipeline() override;
 		virtual Anvil::BasePipelineManager *GetPipelineManager() const override;
@@ -284,7 +283,7 @@ namespace prosper
 		: public Shader
 	{
 	public:
-		ShaderCompute(prosper::Context &context,const std::string &identifier,const std::string &csShader);
+		ShaderCompute(prosper::IPrContext &context,const std::string &identifier,const std::string &csShader);
 
 		bool RecordDispatch(uint32_t x=1u,uint32_t y=1u,uint32_t z=1u);
 		virtual bool BeginCompute(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u);
@@ -346,7 +345,7 @@ template<class TShader>
 }
 
 template<class TShader>
-	const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::Context &context,uint32_t pipelineIdx)
+	const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::IPrContext &context,uint32_t pipelineIdx)
 {
 	return GetRenderPass(context,typeid(TShader).hash_code(),pipelineIdx);
 }

@@ -481,7 +481,9 @@ namespace prosper
 		StorageBuffer = 7,
 		UniformBufferDynamic = 8,
 		StorageBufferDynamic = 9,
-		InputAttachment = 10
+		InputAttachment = 10,
+
+		Unknown = std::numeric_limits<uint8_t>::max()
 	};
 
 	enum class ShaderStageFlags : uint32_t
@@ -566,7 +568,23 @@ namespace prosper
 		SharedContinuousRefresh = 1000111001
 	};
 
+	enum class DescriptorBindingFlags : uint32_t
+	{
+		UpdateAfterBindBit = 0x00000001,
+		UpdateUnusedWhilePendingBit = 0x00000002,
+		PartiallyBoundBit = 0x00000004,
+		VariableDescriptorCountBit = 0x00000008
+	};
+
+	struct MemoryRequirements
+	{
+		DeviceSize size = 0;
+		DeviceSize alignment = 0;
+		uint32_t memoryTypeBits = 0;
+	};
+
 	using PipelineID = uint32_t;
+	using BindingIndex = uint32_t;
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryFeatureFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueueFamilyFlags)
@@ -580,5 +598,6 @@ REGISTER_BASIC_BITWISE_OPERATORS(prosper::PipelineStageFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::ShaderStageFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::StencilFaceFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueryResultFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::DescriptorBindingFlags)
 
 #endif

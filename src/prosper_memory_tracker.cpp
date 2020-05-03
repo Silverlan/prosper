@@ -10,7 +10,10 @@
 #include "buffers/vk_dynamic_resizable_buffer.hpp"
 #include "buffers/vk_uniform_resizable_buffer.hpp"
 #include "image/vk_image.hpp"
+#include "vk_context.hpp"
 #include <wrappers/memory_block.h>
+#include <wrappers/image.h>
+#include <wrappers/device.h>
 
 using namespace prosper;
 
@@ -49,9 +52,9 @@ MemoryTracker &MemoryTracker::GetInstance()
 	static MemoryTracker r {};
 	return r;
 }
-bool MemoryTracker::GetMemoryStats(prosper::Context &context,uint32_t memType,uint64_t &allocatedSize,uint64_t &totalSize,Resource::TypeFlags typeFlags) const
+bool MemoryTracker::GetMemoryStats(prosper::IPrContext &context,uint32_t memType,uint64_t &allocatedSize,uint64_t &totalSize,Resource::TypeFlags typeFlags) const
 {
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	auto &memProps = dev.get_physical_device_memory_properties();
 	if(memType >= memProps.types.size() || memProps.types.at(memType).heap_ptr == nullptr)
 		return false;

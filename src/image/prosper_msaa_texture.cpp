@@ -14,14 +14,14 @@
 using namespace prosper;
 
 prosper::MSAATexture::MSAATexture(
-	Context &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler,
+	IPrContext &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler,
 	const std::shared_ptr<Texture> &resolvedTexture
 )
 	: Texture(context,img,imgViews,sampler),m_resolvedTexture(resolvedTexture)
 {
 	if(umath::is_flag_set(img.GetUsageFlags(),prosper::ImageUsageFlags::TransferSrcBit) == false)
 		throw std::logic_error("MSAA source image must be created with VK_IMAGE_USAGE_TRANSFER_SRC_BIT usage flag!");
-	if((static_cast<VlkImage&>(resolvedTexture->GetImage()).GetAnvilImage().get_create_info_ptr()->get_usage_flags() &Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT) == Anvil::ImageUsageFlagBits::NONE)
+	if((resolvedTexture->GetImage().GetUsageFlags() &prosper::ImageUsageFlags::TransferDstBit) == prosper::ImageUsageFlags::None)
 		throw std::logic_error("MSAA destination image must be created with VK_IMAGE_USAGE_TRANSFER_DST_BIT usage flag!");
 }
 

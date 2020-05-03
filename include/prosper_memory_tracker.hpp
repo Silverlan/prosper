@@ -37,7 +37,7 @@ namespace prosper
 		};
 		static MemoryTracker &GetInstance();
 
-		bool GetMemoryStats(prosper::Context &context,uint32_t memType,uint64_t &allocatedSize,uint64_t &totalSize,Resource::TypeFlags typeFlags=Resource::TypeFlags::Any) const;
+		bool GetMemoryStats(prosper::IPrContext &context,uint32_t memType,uint64_t &allocatedSize,uint64_t &totalSize,Resource::TypeFlags typeFlags=Resource::TypeFlags::Any) const;
 		void GetResources(uint32_t memType,std::vector<const Resource*> &outResources,Resource::TypeFlags typeFlags=Resource::TypeFlags::Any) const;
 		const std::vector<Resource> &GetResources() const;
 

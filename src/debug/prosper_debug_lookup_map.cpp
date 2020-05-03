@@ -10,7 +10,11 @@
 #include "image/prosper_sampler.hpp"
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
+#include "image/vk_sampler.hpp"
 #include "vk_command_buffer.hpp"
+#include "vk_render_pass.hpp"
+#include "vk_framebuffer.hpp"
+#include "vk_descriptor_set_group.hpp"
 #include "buffers/vk_buffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_framebuffer.hpp"
@@ -96,9 +100,9 @@ prosper::VlkImageView *prosper::debug::get_image_view(vk::ImageView vkImageView)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImageView>(vkImageView) : nullptr;
 }
-prosper::Sampler *prosper::debug::get_sampler(vk::Sampler vkSampler)
+prosper::VlkSampler *prosper::debug::get_sampler(vk::Sampler vkSampler)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<Sampler>(vkSampler) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkSampler>(vkSampler) : nullptr;
 }
 prosper::VkBuffer *prosper::debug::get_buffer(vk::Buffer vkBuffer)
 {
@@ -108,17 +112,17 @@ prosper::VlkCommandBuffer *prosper::debug::get_command_buffer(vk::CommandBuffer 
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkCommandBuffer>(vkBuffer) : nullptr;
 }
-prosper::RenderPass *prosper::debug::get_render_pass(vk::RenderPass vkBuffer)
+prosper::VlkRenderPass *prosper::debug::get_render_pass(vk::RenderPass vkBuffer)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<RenderPass>(vkBuffer) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkRenderPass>(vkBuffer) : nullptr;
 }
-prosper::Framebuffer *prosper::debug::get_framebuffer(vk::Framebuffer vkBuffer)
+prosper::VlkFramebuffer *prosper::debug::get_framebuffer(vk::Framebuffer vkBuffer)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<Framebuffer>(vkBuffer) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkFramebuffer>(vkBuffer) : nullptr;
 }
-prosper::DescriptorSetGroup *prosper::debug::get_descriptor_set_group(vk::DescriptorSet vkBuffer)
+prosper::VlkDescriptorSetGroup *prosper::debug::get_descriptor_set_group(vk::DescriptorSet vkBuffer)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<DescriptorSetGroup>(vkBuffer) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkDescriptorSetGroup>(vkBuffer) : nullptr;
 }
 prosper::debug::ShaderPipelineInfo *prosper::debug::get_shader_pipeline(vk::Pipeline vkPipeline)
 {
@@ -197,7 +201,7 @@ void prosper::debug::add_debug_object_information(std::string &msgValidation)
 					contextObject = static_cast<prosper::VlkImageView*>(o);
 					break;
 				case ObjectType::Sampler:
-					contextObject = static_cast<prosper::Sampler*>(o);
+					contextObject = static_cast<prosper::VlkSampler*>(o);
 					break;
 				case ObjectType::Buffer:
 					contextObject = static_cast<prosper::VlkBuffer*>(o);
@@ -208,13 +212,13 @@ void prosper::debug::add_debug_object_information(std::string &msgValidation)
 					contextObject = static_cast<prosper::VlkCommandBuffer*>(o);
 					break;
 				case ObjectType::RenderPass:
-					contextObject = static_cast<prosper::RenderPass*>(o);
+					contextObject = static_cast<prosper::VlkRenderPass*>(o);
 					break;
 				case ObjectType::Framebuffer:
-					contextObject = static_cast<prosper::Framebuffer*>(o);
+					contextObject = static_cast<prosper::VlkFramebuffer*>(o);
 					break;
 				case ObjectType::DescriptorSet:
-					contextObject = static_cast<prosper::DescriptorSetGroup*>(o);
+					contextObject = static_cast<prosper::VlkDescriptorSetGroup*>(o);
 					break;
 				case ObjectType::Pipeline:
 				{

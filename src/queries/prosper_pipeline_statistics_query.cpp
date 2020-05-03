@@ -5,10 +5,13 @@
 #include "stdafx_prosper.h"
 #include "queries/prosper_pipeline_statistics_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
+#include <wrappers/device.h>
+#include <wrappers/physical_device.h>
+#include <wrappers/query_pool.h>
 
 using namespace prosper;
 
@@ -49,7 +52,7 @@ bool PipelineStatisticsQuery::QueryResult(Statistics &outStatistics) const
 
 std::shared_ptr<PipelineStatisticsQuery> prosper::util::create_pipeline_statistics_query(QueryPool &queryPool)
 {
-	if(queryPool.GetContext().GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
+	if(static_cast<VlkContext&>(queryPool.GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
 		return nullptr;
 	uint32_t query = 0;
 	if(queryPool.RequestQuery(query) == false)

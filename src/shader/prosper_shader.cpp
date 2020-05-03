@@ -4,7 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "prosper_util.hpp"
 #include "prosper_glstospv.hpp"
 #include "prosper_command_buffer.hpp"
@@ -16,6 +16,8 @@
 #include <wrappers/graphics_pipeline_manager.h>
 #include <wrappers/compute_pipeline_manager.h>
 #include <wrappers/pipeline_cache.h>
+#include <wrappers/shader_module.h>
+#include <misc/descriptor_set_create_info.h>
 #include <misc/render_pass_create_info.h>
 #include <misc/image_view_create_info.h>
 #include <iostream>
@@ -39,7 +41,7 @@ prosper::DescriptorSetInfo::Binding::Binding(DescriptorType type,ShaderStageFlag
 decltype(prosper::Shader::s_logCallback) prosper::Shader::s_logCallback = nullptr;
 void prosper::Shader::SetLogCallback(const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &fLogCallback) {s_logCallback = fLogCallback;}
 
-prosper::Shader::Shader(Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader)
+prosper::Shader::Shader(IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader)
 	: std::enable_shared_from_this<Shader>(),
 	ContextObject(context),m_pipelineBindPoint(PipelineBindPoint::Graphics),m_identifier(identifier)
 {
@@ -51,7 +53,7 @@ prosper::Shader::Shader(Context &context,const std::string &identifier,const std
 		(m_stages.at(umath::to_integral(ShaderStage::Geometry)) = std::make_shared<ShaderStageData>())->path = gsShader;
 	SetPipelineCount(1u);
 }
-prosper::Shader::Shader(Context &context,const std::string &identifier,const std::string &csShader)
+prosper::Shader::Shader(IPrContext &context,const std::string &identifier,const std::string &csShader)
 	: ContextObject(context),m_pipelineBindPoint(PipelineBindPoint::Compute),m_identifier(identifier)
 {
 	if(csShader.empty() == false)
@@ -188,7 +190,7 @@ void prosper::Shader::InitializePipeline() {}
 void prosper::Shader::InitializeStages()
 {
 	auto &context = GetContext();
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	for(auto i=decltype(m_stages.size()){0};i<m_stages.size();++i)
 	{
 		auto &stage = m_stages.at(i);
@@ -232,7 +234,7 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorS
 	auto *dsInfoItems = pipeline->get_ds_create_info_items();
 	if(dsInfoItems == nullptr || setIdx >= dsInfoItems->size())
 		return nullptr;
-	return GetContext().CreateDescriptorSetGroup(Anvil::DescriptorSetCreateInfoUniquePtr(new Anvil::DescriptorSetCreateInfo(*dsInfoItems->at(setIdx))));
+	return static_cast<VlkContext&>(GetContext()).CreateDescriptorSetGroup(Anvil::DescriptorSetCreateInfoUniquePtr(new Anvil::DescriptorSetCreateInfo(*dsInfoItems->at(setIdx))));
 }
 
 void prosper::Shader::InitializeDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo)

@@ -38,13 +38,13 @@ namespace prosper
 		virtual bool IsMSAATexture() const;
 		virtual void SetDebugName(const std::string &name) override;
 	protected:
-		friend std::shared_ptr<Texture> Context::CreateTexture(
+		friend std::shared_ptr<Texture> IPrContext::CreateTexture(
 			const util::TextureCreateInfo &createInfo,IImage &img,
 			const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo,
 			const std::optional<util::SamplerCreateInfo> &samplerCreateInfo
 		);
 
-		Texture(Context &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler=nullptr);
+		Texture(IPrContext &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler=nullptr);
 		std::shared_ptr<IImage> m_image = nullptr;
 		std::vector<std::shared_ptr<IImageView>> m_imageViews = {};
 		std::shared_ptr<ISampler> m_sampler = nullptr;

@@ -12,24 +12,7 @@
 #include "prosper_includes.hpp"
 #include "prosper_enums.hpp"
 #include "prosper_structs.hpp"
-
-namespace Anvil
-{
-	struct BufferBarrier;
-	class PrimaryCommandBuffer;
-	class CommandBufferBase;
-	class BaseDevice;
-	class Image;
-	struct ImageBarrier;
-	class ImageView;
-	class Sampler;
-	class RenderPass;
-	class DescriptorSet;
-	class DescriptorSetGroup;
-	class DescriptorSetCreateInfo;
-	struct MipmapRawData;
-	class Framebuffer;
-};
+#include <misc/types.h>
 
 namespace uimg
 {
@@ -86,6 +69,7 @@ namespace prosper
 		DLLPROSPER std::string to_string(ImageCreateFlags createFlags);
 		DLLPROSPER std::string to_string(ShaderStage stage);
 		DLLPROSPER std::string to_string(PipelineStageFlags stage);
+		DLLPROSPER std::string to_string(ImageLayout layout);
 		DLLPROSPER std::string to_string(vk::PhysicalDeviceType type);
 		DLLPROSPER bool has_alpha(Format format);
 		DLLPROSPER bool is_depth_format(Format format);

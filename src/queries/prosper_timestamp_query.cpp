@@ -5,9 +5,11 @@
 #include "stdafx_prosper.h"
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "vk_command_buffer.hpp"
+#include <wrappers/device.h>
+#include <wrappers/physical_device.h>
 #include <wrappers/command_buffer.h>
 
 using namespace prosper;
@@ -40,7 +42,7 @@ bool TimestampQuery::QueryResult(std::chrono::nanoseconds &outTimestampValue) co
 	uint64_t result;
 	if(Query::QueryResult(result) == false)
 		return false;
-	auto ns = result *static_cast<double>(GetContext().GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period);
+	auto ns = result *static_cast<double>(static_cast<VlkContext&>(GetContext()).GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period);
 	outTimestampValue = static_cast<std::chrono::nanoseconds>(static_cast<uint64_t>(ns));
 	return true;
 }

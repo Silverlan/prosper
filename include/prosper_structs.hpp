@@ -375,6 +375,76 @@ namespace prosper
 			std::vector<SubPass> subPasses;
 		};
 	};
+
+	class DLLPROSPER DescriptorSetCreateInfo
+	{
+	public:
+		struct DLLPROSPER Binding
+		{
+			Binding()=default;
+			Binding(
+				uint32_t descriptorArraySize,
+				DescriptorType descriptorType,
+				ShaderStageFlags stageFlags,
+				const ISampler * const* immutableSamplerPtrs,
+				DescriptorBindingFlags flags
+			)
+				: descriptorArraySize{descriptorArraySize},descriptorType{descriptorType},
+				stageFlags{stageFlags},flags{flags}
+			{
+				if(immutableSamplerPtrs != nullptr)
+				{
+					for(uint32_t n_sampler = 0;
+						n_sampler < descriptorArraySize;
+						++n_sampler)
+					{
+						immutableSamplers.push_back(immutableSamplerPtrs[n_sampler]);
+					}
+				}
+			}
+			uint32_t descriptorArraySize = 0;
+			DescriptorType descriptorType = DescriptorType::Unknown;
+			DescriptorBindingFlags flags {};
+			std::vector<const ISampler*> immutableSamplers {};
+			ShaderStageFlags stageFlags {};
+			bool operator==(const Binding &binding) const
+			{
+				return binding.descriptorArraySize == descriptorArraySize &&
+					binding.descriptorType == descriptorType &&
+					binding.flags == flags &&
+					binding.immutableSamplers == immutableSamplers &&
+					binding.stageFlags == stageFlags;
+			}
+			bool operator!=(const Binding &binding) const {return !operator==(binding);}
+		};
+
+		bool GetBindingPropertiesByBindingIndex(
+			uint32_t bindingIndex,
+			DescriptorType *outOptDescriptorType=nullptr,
+			uint32_t *outOptDescriptorArraySize=nullptr,
+			ShaderStageFlags *outOptStageFlags=nullptr,
+			bool *outOptImmutableSamplersEnabled=nullptr,
+			DescriptorBindingFlags *outOptFlags=nullptr
+		) const;
+		bool GetBindingPropertiesByIndexNumber(
+			uint32_t nBinding,
+			DescriptorType *outOptDescriptorType=nullptr,
+			uint32_t *outOptDescriptorArraySize=nullptr,
+			ShaderStageFlags *outOptStageFlags=nullptr,
+			bool *outOptImmutableSamplersEnabled=nullptr,
+			DescriptorBindingFlags *outOptFlags=nullptr
+		);
+		uint32_t GetBindingCount() const {return static_cast<uint32_t>(m_bindings.size());}
+	private:
+		using BindingIndexToBindingMap = std::map<BindingIndex,Binding>;
+
+		DescriptorSetCreateInfo();
+
+		BindingIndexToBindingMap m_bindings {};
+
+		uint32_t m_numVariableDescriptorCountBinding;
+		uint32_t m_variableDescriptorCountBindingSize;
+	};
 };
 
 #endif

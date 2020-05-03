@@ -5,13 +5,14 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader_rect.hpp"
 #include "prosper_util_square_shape.hpp"
+#include <wrappers/graphics_pipeline_manager.h>
 
 using namespace prosper;
 
-ShaderRect::ShaderRect(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader)
+ShaderRect::ShaderRect(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader)
 	: ShaderBaseImageProcessing(context,identifier,vsShader,fsShader)
 {}
-ShaderRect::ShaderRect(prosper::Context &context,const std::string &identifier)
+ShaderRect::ShaderRect(prosper::IPrContext &context,const std::string &identifier)
 	: ShaderRect(context,identifier,"screen/vs_screen_uv_cheap","screen/fs_screen")
 {}
 void ShaderRect::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)

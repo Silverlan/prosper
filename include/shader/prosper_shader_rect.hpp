@@ -14,8 +14,8 @@ namespace prosper
 		: public ShaderBaseImageProcessing
 	{
 	public:
-		ShaderRect(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
-		ShaderRect(prosper::Context &context,const std::string &identifier);
+		ShaderRect(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
+		ShaderRect(prosper::IPrContext &context,const std::string &identifier);
 		bool Draw(const Mat4 &modelMatrix);
 	protected:
 		virtual void InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;

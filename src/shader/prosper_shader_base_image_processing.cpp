@@ -8,6 +8,7 @@
 #include "prosper_context.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "prosper_util_square_shape.hpp"
+#include <wrappers/graphics_pipeline_manager.h>
 
 using namespace prosper;
 
@@ -25,11 +26,11 @@ decltype(ShaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE) ShaderBaseImageProce
 		}
 	}
 };
-ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader)
+ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader)
 	: ShaderGraphics(context,identifier,vsShader,fsShader)
 {}
 
-ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::Context &context,const std::string &identifier,const std::string &fsShader)
+ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader)
 	: ShaderBaseImageProcessing(context,identifier,"screen/vs_screen_uv",fsShader)
 {}
 

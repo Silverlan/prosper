@@ -12,10 +12,10 @@
 
 namespace prosper
 {
-	class Context;
+	class IPrContext;
 	enum class Vendor : uint32_t;
-	DLLPROSPER void dump_parsed_shader(Context &context,uint32_t stage,const std::string &shaderFile,const std::string &fileName);
-	DLLPROSPER bool glsl_to_spv(Context &context,uint32_t stage,const std::string &fileName,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,bool bReload);
+	DLLPROSPER void dump_parsed_shader(IPrContext &context,uint32_t stage,const std::string &shaderFile,const std::string &fileName);
+	DLLPROSPER bool glsl_to_spv(IPrContext &context,uint32_t stage,const std::string &fileName,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,bool bReload);
 };
 
 #endif

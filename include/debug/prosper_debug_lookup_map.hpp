@@ -14,12 +14,12 @@ namespace prosper
 {
 	class VlkImage;
 	class VlkImageView;
-	class Sampler;
+	class VlkSampler;
 	class VkBuffer;
 	class VlkCommandBuffer;
-	class RenderPass;
-	class Framebuffer;
-	class DescriptorSetGroup;
+	class VlkRenderPass;
+	class VlkFramebuffer;
+	class VlkDescriptorSetGroup;
 	class Shader;
 	namespace debug
 	{
@@ -49,12 +49,12 @@ namespace prosper
 		DLLPROSPER void *get_object(void *vkObj,ObjectType &type);
 		DLLPROSPER VlkImage *get_image(vk::Image vkImage);
 		DLLPROSPER VlkImageView *get_image_view(vk::ImageView vkImageView);
-		DLLPROSPER Sampler *get_sampler(vk::Sampler vkSampler);
+		DLLPROSPER VlkSampler *get_sampler(vk::Sampler vkSampler);
 		DLLPROSPER VkBuffer *get_buffer(vk::Buffer vkBuffer);
 		DLLPROSPER VlkCommandBuffer *get_command_buffer(vk::CommandBuffer vkBuffer);
-		DLLPROSPER RenderPass *get_render_pass(vk::RenderPass vkBuffer);
-		DLLPROSPER Framebuffer *get_framebuffer(vk::Framebuffer vkBuffer);
-		DLLPROSPER DescriptorSetGroup *get_descriptor_set_group(vk::DescriptorSet vkBuffer);
+		DLLPROSPER VlkRenderPass *get_render_pass(vk::RenderPass vkBuffer);
+		DLLPROSPER VlkFramebuffer *get_framebuffer(vk::Framebuffer vkBuffer);
+		DLLPROSPER VlkDescriptorSetGroup *get_descriptor_set_group(vk::DescriptorSet vkBuffer);
 		DLLPROSPER ShaderPipelineInfo *get_shader_pipeline(vk::Pipeline vkPipeline);
 	};
 };

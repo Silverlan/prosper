@@ -11,7 +11,7 @@
 
 using namespace prosper;
 
-ShaderCopyImage::ShaderCopyImage(prosper::Context &context,const std::string &identifier)
+ShaderCopyImage::ShaderCopyImage(prosper::IPrContext &context,const std::string &identifier)
 	: ShaderBaseImageProcessing(context,identifier,"screen/fs_screen")
 {
 	SetPipelineCount(umath::to_integral(Pipeline::Count));

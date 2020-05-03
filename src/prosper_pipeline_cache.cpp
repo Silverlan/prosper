@@ -4,6 +4,8 @@
 
 #include "stdafx_prosper.h"
 #include "prosper_pipeline_cache.hpp"
+#include <wrappers/pipeline_cache.h>
+#include <wrappers/device.h>
 #include <fsys/filesystem.h>
 
 using namespace prosper;

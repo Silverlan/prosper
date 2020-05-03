@@ -11,11 +11,6 @@
 #include "prosper_enums.hpp"
 #include <functional>
 
-namespace Anvil
-{
-	class Sampler;
-};
-
 #undef max
 
 #pragma warning(push)
@@ -63,27 +58,9 @@ namespace prosper
 
 		bool Update();
 	protected:
-		ISampler(Context &context,const util::SamplerCreateInfo &samplerCreateInfo);
+		ISampler(IPrContext &context,const util::SamplerCreateInfo &samplerCreateInfo);
 		virtual bool DoUpdate()=0;
 		util::SamplerCreateInfo m_createInfo = {};
-	};
-
-	class DLLPROSPER Sampler
-		: public ISampler
-	{
-	public:
-		static std::shared_ptr<Sampler> Create(Context &context,const util::SamplerCreateInfo &createInfo);
-		virtual ~Sampler() override;
-
-		Anvil::Sampler &GetAnvilSampler() const;
-		Anvil::Sampler &operator*();
-		const Anvil::Sampler &operator*() const;
-		Anvil::Sampler *operator->();
-		const Anvil::Sampler *operator->() const;
-	protected:
-		Sampler(Context &context,const util::SamplerCreateInfo &samplerCreateInfo);
-		virtual bool DoUpdate() override;
-		std::unique_ptr<Anvil::Sampler,std::function<void(Anvil::Sampler*)>> m_sampler = nullptr;
 	};
 };
 #pragma warning(pop)

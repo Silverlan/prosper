@@ -23,8 +23,8 @@ namespace prosper
 
 		static prosper::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
 
-		ShaderBaseImageProcessing(prosper::Context &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
-		ShaderBaseImageProcessing(prosper::Context &context,const std::string &identifier,const std::string &fsShader);
+		ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
+		ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader);
 		bool Draw(prosper::IDescriptorSet &descSetTexture);
 		virtual bool Draw() override;
 	protected:

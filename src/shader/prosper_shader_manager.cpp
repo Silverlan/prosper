@@ -11,7 +11,7 @@
 #include <sharedutils/util_string.h>
 #include <iostream>
 
-prosper::ShaderManager::ShaderManager(Context &context)
+prosper::ShaderManager::ShaderManager(IPrContext &context)
 	: ContextObject(context)
 {}
 util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(const std::string &identifier)
@@ -26,7 +26,7 @@ util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(c
 	return it->second;
 }
 
-::util::WeakHandle<prosper::Shader> prosper::ShaderManager::RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&,bool&)> &fFactory)
+::util::WeakHandle<prosper::Shader> prosper::ShaderManager::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&,bool&)> &fFactory)
 {
 	if(GetContext().IsValidationEnabled())
 		std::cout<<"[VK] Registering shader '"<<identifier<<"'..."<<std::endl;
@@ -46,9 +46,9 @@ util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(c
 	shader->Initialize();
 	return wpShader;
 }
-util::WeakHandle<prosper::Shader> prosper::ShaderManager::RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory)
+util::WeakHandle<prosper::Shader> prosper::ShaderManager::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory)
 {
-	return RegisterShader(identifier,[fFactory](Context &context,const std::string &identifier,bool &bExternalOwnership) {
+	return RegisterShader(identifier,[fFactory](IPrContext &context,const std::string &identifier,bool &bExternalOwnership) {
 		bExternalOwnership = false;
 		return fFactory(context,identifier);
 	});

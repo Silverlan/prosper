@@ -4,22 +4,23 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 #include <misc/descriptor_set_create_info.h>
 #include <misc/compute_pipeline_create_info.h>
+#include <wrappers/device.h>
 #include <wrappers/compute_pipeline_manager.h>
 
-prosper::ShaderCompute::ShaderCompute(prosper::Context &context,const std::string &identifier,const std::string &csShader)
+prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context,const std::string &identifier,const std::string &csShader)
 	: Shader(context,identifier,csShader)
 {}
 
 Anvil::BasePipelineManager *prosper::ShaderCompute::GetPipelineManager() const
 {
 	auto &context = const_cast<const ShaderCompute*>(this)->GetContext();
-	auto &dev = context.GetDevice();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	return dev.get_compute_pipeline_manager();
 }
 bool prosper::ShaderCompute::AddSpecializationConstant(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data)
@@ -30,8 +31,8 @@ void prosper::ShaderCompute::InitializeComputePipeline(Anvil::ComputePipelineCre
 void prosper::ShaderCompute::InitializePipeline()
 {
 	auto &context = GetContext();
-	auto &dev = context.GetDevice();
-	auto swapchain = context.GetSwapchain();
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
+	auto swapchain = static_cast<VlkContext&>(context).GetSwapchain();
 	auto *computePipelineManager = dev.get_compute_pipeline_manager();
 
 	/* Configure the graphics pipeline */

@@ -19,12 +19,12 @@ namespace prosper
 		: public ContextObject
 	{
 	public:
-		ShaderManager(Context &context);
+		ShaderManager(IPrContext &context);
 		~ShaderManager()=default;
 
 		::util::WeakHandle<::util::ShaderInfo> PreRegisterShader(const std::string &identifier);
-		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory);
-		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(Context&,const std::string&,bool&)> &fFactory);
+		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
+		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&,bool&)> &fFactory);
 		::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
 		const std::unordered_map<std::string,std::shared_ptr<Shader>> &GetShaders() const;
 		bool RemoveShader(Shader &shader);

@@ -2,6 +2,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <sstream>
 #include "prosper_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_util.hpp"
@@ -16,7 +17,10 @@
 #include "buffers/prosper_buffer.hpp"
 #include "buffers/vk_buffer.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
+#include "prosper_util.hpp"
 #include <sharedutils/util.h>
+#include <wrappers/command_buffer.h>
+#include <wrappers/image.h>
 
 bool prosper::ICommandBuffer::RecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst)
 {
@@ -99,7 +103,7 @@ bool prosper::ICommandBuffer::RecordBlitImage(const util::BlitInfo &blitInfo,IIm
 				debug::exec_debug_validation_callback(
 					vk::DebugReportObjectTypeEXT::eImage,"Blit: Source image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) +
 					" for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " +
-					to_string(static_cast<vk::ImageLayout>(lastImgLayout)) +"!"
+					prosper::util::to_string(lastImgLayout) +"!"
 				);
 			}
 		}
@@ -246,7 +250,7 @@ bool prosper::ICommandBuffer::RecordGenerateMipmaps(IImage &img,ImageLayout curr
 
 ///////////////
 
-prosper::VlkCommandBuffer::VlkCommandBuffer(Context &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType)
+prosper::VlkCommandBuffer::VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType)
 	: ICommandBuffer{context,queueFamilyType},m_cmdBuffer{cmdBuffer}
 {
 	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);

@@ -9,7 +9,6 @@
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_structs.hpp"
-#include <wrappers/command_buffer.h>
 #include <optional>
 
 #undef max
@@ -22,8 +21,8 @@ namespace prosper
 	class IDescriptorSet;
 	class Texture;
 	class RenderTarget;
-	class Framebuffer;
-	class RenderPass;
+	class IFramebuffer;
+	class IRenderPass;
 	class DLLPROSPER ICommandBuffer
 		: public ContextObject,
 		public std::enable_shared_from_this<ICommandBuffer>
@@ -107,7 +106,7 @@ namespace prosper
 		virtual bool RecordSetViewport(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u,float minDepth=0.f,float maxDepth=0.f)=0;
 		virtual bool RecordSetScissor(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u)=0;
 	protected:
-		ICommandBuffer(Context &context,prosper::QueueFamilyType queueFamilyType);
+		ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst)=0;
 		virtual bool DoRecordCopyImage(const util::CopyInfo &copyInfo,IImage &imgSrc,IImage &imgDst,uint32_t w,uint32_t h)=0;
 		virtual bool DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h)=0;

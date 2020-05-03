@@ -8,7 +8,6 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
-#include <wrappers/render_pass.h>
 
 #undef max
 
@@ -32,7 +31,7 @@ namespace prosper
 		uint32_t GetLayerCount() const;
 	protected:
 		IFramebuffer(
-			Context &context,const std::vector<std::shared_ptr<IImageView>> &attachments,
+			IPrContext &context,const std::vector<std::shared_ptr<IImageView>> &attachments,
 			uint32_t width,uint32_t height,uint32_t depth,uint32_t layers
 		);
 		std::vector<std::shared_ptr<IImageView>> m_attachments = {};
@@ -40,30 +39,6 @@ namespace prosper
 		uint32_t m_height = 0;
 		uint32_t m_depth = 0;
 		uint32_t m_layers = 1;
-	};
-
-	class DLLPROSPER Framebuffer
-		: public IFramebuffer
-	{
-	public:
-		static std::shared_ptr<Framebuffer> Create(
-			Context &context,const std::vector<IImageView*> &attachments,
-			uint32_t width,uint32_t height,uint32_t depth,uint32_t layers,
-			std::unique_ptr<Anvil::Framebuffer,std::function<void(Anvil::Framebuffer*)>> fb,const std::function<void(Framebuffer&)> &onDestroyedCallback=nullptr
-		);
-		virtual ~Framebuffer() override;
-		Anvil::Framebuffer &GetAnvilFramebuffer() const;
-		Anvil::Framebuffer &operator*();
-		const Anvil::Framebuffer &operator*() const;
-		Anvil::Framebuffer *operator->();
-		const Anvil::Framebuffer *operator->() const;
-	protected:
-		Framebuffer(
-			Context &context,const std::vector<std::shared_ptr<IImageView>> &attachments,
-			uint32_t width,uint32_t height,uint32_t depth,uint32_t layers,
-			std::unique_ptr<Anvil::Framebuffer,std::function<void(Anvil::Framebuffer*)>> fb
-		);
-		std::unique_ptr<Anvil::Framebuffer,std::function<void(Anvil::Framebuffer*)>> m_framebuffer = nullptr;
 	};
 };
 

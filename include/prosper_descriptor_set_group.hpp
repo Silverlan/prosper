@@ -8,7 +8,6 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
-#include <wrappers/descriptor_set_group.h>
 
 #undef max
 
@@ -170,54 +169,8 @@ namespace prosper
 		const IDescriptorSet *GetDescriptorSet(uint32_t index=0) const;
 		uint32_t GetBindingCount() const;
 	protected:
-		IDescriptorSetGroup(Context &context);
+		IDescriptorSetGroup(IPrContext &context);
 		std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
-	};
-
-	///////////////
-
-	class DescriptorSetGroup;
-	class DLLPROSPER DescriptorSet
-		: public IDescriptorSet
-	{
-	public:
-		DescriptorSet(DescriptorSetGroup &dsg,Anvil::DescriptorSet &ds);
-
-		Anvil::DescriptorSet &GetAnvilDescriptorSet() const;
-		Anvil::DescriptorSet &operator*();
-		const Anvil::DescriptorSet &operator*() const;
-		Anvil::DescriptorSet *operator->();
-		const Anvil::DescriptorSet *operator->() const;
-
-		virtual bool Update() override;
-		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId) override;
-		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx) override;
-		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId) override;
-		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx) override;
-		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId) override;
-		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex) override;
-		virtual bool SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
-		virtual bool SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
-		virtual bool SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
-	private:
-		Anvil::DescriptorSet &m_descSet;
-	};
-
-	class DLLPROSPER DescriptorSetGroup
-		: public IDescriptorSetGroup
-	{
-	public:
-		static std::shared_ptr<DescriptorSetGroup> Create(Context &context,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg,const std::function<void(DescriptorSetGroup&)> &onDestroyedCallback=nullptr);
-		virtual ~DescriptorSetGroup() override;
-
-		Anvil::DescriptorSetGroup &GetAnvilDescriptorSetGroup() const;
-		Anvil::DescriptorSetGroup &operator*();
-		const Anvil::DescriptorSetGroup &operator*() const;
-		Anvil::DescriptorSetGroup *operator->();
-		const Anvil::DescriptorSetGroup *operator->() const;
-	protected:
-		DescriptorSetGroup(Context &context,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg);
-		std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> m_descriptorSetGroup = nullptr;
 	};
 };
 #pragma warning(pop)

@@ -29,7 +29,7 @@ namespace prosper
 		: virtual public IBuffer
 	{
 	public:
-		static std::shared_ptr<VlkBuffer> Create(Context &context,Anvil::BufferUniquePtr buf,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<VlkBuffer> Create(IPrContext &context,Anvil::BufferUniquePtr buf,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback=nullptr);
 
 		virtual ~VlkBuffer() override;
 
@@ -48,7 +48,7 @@ namespace prosper
 		friend VkDynamicResizableBuffer;
 		friend IUniformResizableBuffer;
 		friend VkUniformResizableBuffer;
-		VlkBuffer(Context &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
+		VlkBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
 		virtual bool DoWrite(Offset offset,Size size,const void *data) const override;
 		virtual bool DoRead(Offset offset,Size size,void *data) const override;
 		virtual bool DoMap(Offset offset,Size size) const override;

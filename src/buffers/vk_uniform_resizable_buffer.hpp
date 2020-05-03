@@ -18,7 +18,7 @@ namespace prosper
 	{
 	public:
 		VkUniformResizableBuffer(
-			Context &context,IBuffer &buffer,
+			IPrContext &context,IBuffer &buffer,
 			uint64_t bufferInstanceSize,
 			uint64_t alignedBufferBaseSize,uint64_t maxTotalSize,uint32_t alignment
 		);

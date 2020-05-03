@@ -6,12 +6,14 @@
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
 #include "vk_dynamic_resizable_buffer.hpp"
 #include "vk_buffer.hpp"
+#include "vk_context.hpp"
 #include "prosper_util.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "prosper_context.hpp"
 #include <wrappers/buffer.h>
 #include <misc/memory_allocator.h>
 #include <misc/buffer_create_info.h>
+#include <wrappers/device.h>
 #include <wrappers/memory_block.h>
 #include <sstream>
 
@@ -94,13 +96,13 @@ static void test_dynamic_resizable_buffer()
 */
 
 IDynamicResizableBuffer::IDynamicResizableBuffer(
-	Context &context,IBuffer &buffer,
+	IPrContext &context,IBuffer &buffer,
 	const prosper::util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 )
 	: IResizableBuffer{buffer,maxTotalSize}
 {
 	m_freeRanges.push_back({0ull,createInfo.size});
-	m_alignment = prosper::util::calculate_buffer_alignment(context.GetDevice(),createInfo.usageFlags);
+	m_alignment = context.GetBufferAlignment(createInfo.usageFlags);
 }
 
 void IDynamicResizableBuffer::InsertFreeMemoryRange(std::list<Range>::iterator itWhere,DeviceSize startOffset,DeviceSize size)
@@ -319,16 +321,4 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(vk::DeviceSize 
 		m_allocatedSubBuffers.reserve(m_allocatedSubBuffers.size() +50u);
 	m_allocatedSubBuffers.push_back(subBuffer.get());
 	return subBuffer;
-}
-
-std::shared_ptr<VkDynamicResizableBuffer> prosper::util::create_dynamic_resizable_buffer(Context &context,BufferCreateInfo createInfo,uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data)
-{
-	createInfo.size = prosper::util::clamp_gpu_memory_size(context.GetDevice(),createInfo.size,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
-	maxTotalSize = prosper::util::clamp_gpu_memory_size(context.GetDevice(),maxTotalSize,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
-	auto buf = context.CreateBuffer(createInfo,data);
-	if(buf == nullptr)
-		return nullptr;
-	auto r = std::shared_ptr<VkDynamicResizableBuffer>(new VkDynamicResizableBuffer{context,*buf,createInfo,maxTotalSize});
-	r->Initialize();
-	return r;
 }

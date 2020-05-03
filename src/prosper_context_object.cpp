@@ -4,13 +4,14 @@
 
 #include "stdafx_prosper.h"
 #include "prosper_context_object.hpp"
-#include "prosper_context.hpp"
+#include "vk_context.hpp"
+#include <wrappers/device.h>
 
 using namespace prosper;
 
-ContextObject::ContextObject(Context &context)
+ContextObject::ContextObject(IPrContext &context)
 	: m_wpContext(context.shared_from_this())
 {}
 
-Context &ContextObject::GetContext() const {return *(m_wpContext.lock());}
-Anvil::BaseDevice &ContextObject::GetDevice() const {return const_cast<Context&>(GetContext()).GetDevice();}
+IPrContext &ContextObject::GetContext() const {return *(m_wpContext.lock());}
+Anvil::BaseDevice &ContextObject::GetDevice() const {return const_cast<VlkContext&>(static_cast<const VlkContext&>(GetContext())).GetDevice();}

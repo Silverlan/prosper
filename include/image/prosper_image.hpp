@@ -10,9 +10,6 @@
 #include "prosper_context_object.hpp"
 #include "prosper_structs.hpp"
 #include "prosper_enums.hpp"
-#include <wrappers/image.h>
-#include <wrappers/image_view.h>
-#include <wrappers/sampler.h>
 #include <optional>
 
 #undef max
@@ -51,12 +48,12 @@ namespace prosper
 		const prosper::IBuffer *GetMemoryBuffer() const;
 		prosper::IBuffer *GetMemoryBuffer();
 		bool SetMemoryBuffer(IBuffer &buffer);
-		DeviceSize GetAlignment() const;
+		virtual DeviceSize GetAlignment() const=0;
 
 		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr)=0;
 		std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 	protected:
-		IImage(Context &context,const util::ImageCreateInfo &createInfo);
+		IImage(IPrContext &context,const util::ImageCreateInfo &createInfo);
 		virtual bool DoSetMemoryBuffer(IBuffer &buffer)=0;
 		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr; // Optional buffer
 		util::ImageCreateInfo m_createInfo {};
