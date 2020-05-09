@@ -26,6 +26,203 @@ uint32_t IDescriptorSetGroup::GetBindingCount() const {return dynamic_cast<const
 IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) {return (index < m_descriptorSets.size()) ? m_descriptorSets.at(index).get() : nullptr;}
 const IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) const {return const_cast<IDescriptorSetGroup*>(this)->GetDescriptorSet(index);}
 
+ShaderModuleStageEntryPoint::ShaderModuleStageEntryPoint(const ShaderModuleStageEntryPoint& in)
+	: name{in.name},shader_module_ptr{in.shader_module_ptr},stage{in.stage}
+{}
+
+ShaderModuleStageEntryPoint::ShaderModuleStageEntryPoint(const std::string&    in_name,
+	ShaderModule*         in_shader_module_ptr,
+	ShaderStage           in_stage)
+	: name{in_name},shader_module_ptr{in_shader_module_ptr},stage{in_stage}
+{}
+ShaderModuleStageEntryPoint::ShaderModuleStageEntryPoint(const std::string&    in_name,
+	std::unique_ptr<ShaderModule> in_shader_module_ptr,
+	ShaderStage           in_stage)
+	: name{in_name},shader_module_ptr{in_shader_module_ptr.get()},stage{in_stage},
+	shader_module_owned_ptr{std::move(in_shader_module_ptr)}
+{}
+
+ShaderModuleStageEntryPoint& ShaderModuleStageEntryPoint::operator=(const ShaderModuleStageEntryPoint &in)
+{
+	name              = in.name;
+	shader_module_ptr = in.shader_module_ptr;
+	stage             = in.stage;
+
+	return *this;
+}
+
+bool DescriptorSetCreateInfo::GetBindingPropertiesByBindingIndex(
+	uint32_t bindingIndex,
+	DescriptorType *outOptDescriptorType,
+	uint32_t *outOptDescriptorArraySize,
+	ShaderStageFlags *outOptStageFlags,
+	bool *outOptImmutableSamplersEnabled,
+	DescriptorBindingFlags *outOptFlags
+) const
+{
+	auto binding_iterator = m_bindings.find(bindingIndex);
+	bool result           = false;
+
+	if (binding_iterator == m_bindings.end() )
+	{
+		goto end;
+	}
+
+	if (outOptDescriptorArraySize != nullptr)
+	{
+		*outOptDescriptorArraySize = binding_iterator->second.descriptorArraySize;
+	}
+
+	if (outOptDescriptorType != nullptr)
+	{
+		*outOptDescriptorType = binding_iterator->second.descriptorType;
+	}
+
+	if (outOptImmutableSamplersEnabled != nullptr)
+	{
+		*outOptImmutableSamplersEnabled = (binding_iterator->second.immutableSamplers.size() != 0);
+	}
+
+	if (outOptStageFlags != nullptr)
+	{
+		*outOptStageFlags = binding_iterator->second.stageFlags;
+	}
+
+	if (outOptFlags != nullptr)
+	{
+		*outOptFlags = binding_iterator->second.flags;
+	}
+
+	result = true;
+
+end:
+	return result;
+}
+bool DescriptorSetCreateInfo::GetBindingPropertiesByIndexNumber(
+	uint32_t nBinding,
+	uint32_t *out_opt_binding_index_ptr,
+	DescriptorType *outOptDescriptorType,
+	uint32_t *outOptDescriptorArraySize,
+	ShaderStageFlags *outOptStageFlags,
+	bool *outOptImmutableSamplersEnabled,
+	DescriptorBindingFlags *outOptFlags
+)
+{
+	auto binding_iterator = m_bindings.begin();
+	bool result           = false;
+
+	if (m_bindings.size() <= nBinding)
+	{
+		goto end;
+	}
+
+	for (uint32_t n_current_binding = 0;
+		n_current_binding < nBinding;
+		++n_current_binding)
+	{
+		binding_iterator ++;
+	}
+
+	if (binding_iterator != m_bindings.end() )
+	{
+		if (out_opt_binding_index_ptr != nullptr)
+		{
+			*out_opt_binding_index_ptr = binding_iterator->first;
+		}
+
+		if (outOptDescriptorArraySize != nullptr)
+		{
+			*outOptDescriptorArraySize = binding_iterator->second.descriptorArraySize;
+		}
+
+		if (outOptDescriptorType != nullptr)
+		{
+			*outOptDescriptorType = binding_iterator->second.descriptorType;
+		}
+
+		if (outOptImmutableSamplersEnabled != nullptr)
+		{
+			*outOptImmutableSamplersEnabled = (binding_iterator->second.immutableSamplers.size() != 0);
+		}
+
+		if (outOptStageFlags != nullptr)
+		{
+			*outOptStageFlags = binding_iterator->second.stageFlags;
+		}
+
+		if (outOptFlags != nullptr)
+		{
+			*outOptFlags = binding_iterator->second.flags;
+		}
+
+		result = true;
+	}
+
+end:
+	return result;
+}
+bool DescriptorSetCreateInfo::AddBinding(uint32_t                             in_binding_index,
+	DescriptorType                in_descriptor_type,
+	uint32_t                             in_descriptor_array_size,
+	ShaderStageFlags              in_stage_flags,
+	const DescriptorBindingFlags& in_flags,
+	const ISampler* const*         in_immutable_sampler_ptrs)
+{
+	bool result = false;
+
+	/* Make sure the binding is not already defined */
+	if (m_bindings.find(in_binding_index) != m_bindings.end() )
+	{
+		anvil_assert_fail();
+
+		goto end;
+	}
+
+	/* Make sure the sampler array can actually be specified for this descriptor type. */
+	if (in_immutable_sampler_ptrs != nullptr)
+	{
+		if (in_descriptor_type != DescriptorType::CombinedImageSampler &&
+			in_descriptor_type != DescriptorType::Sampler)
+		{
+			anvil_assert_fail();
+
+			goto end;
+		}
+	}
+
+	if (in_descriptor_type == DescriptorType::InlineUniformBlock)
+	{
+		anvil_assert((in_descriptor_array_size % 4) == 0);
+	}
+
+	if ((in_flags & DescriptorBindingFlags::VariableDescriptorCountBit) != DescriptorBindingFlags::None)
+	{
+		Anvil::DescriptorSetCreateInfo;
+		if (m_numVariableDescriptorCountBinding != UINT32_MAX)
+		{
+			/* If this assertion check fails, you're attempting to add more than 1 variable descriptor count binding
+			* which is illegal! */
+			anvil_assert(m_numVariableDescriptorCountBinding == UINT32_MAX);
+
+			goto end;
+		}
+
+		m_numVariableDescriptorCountBinding = in_binding_index;
+	}
+
+	/* Add a new binding entry and mark the layout as dirty, so that it is re-baked next time
+	* the user calls the getter func */
+	m_bindings[in_binding_index] = Binding(in_descriptor_array_size,
+		in_descriptor_type,
+		in_stage_flags,
+		in_immutable_sampler_ptrs,
+		in_flags);
+
+	result  = true;
+end:
+	return result;
+}
+
 /////////////////
 
 IDescriptorSet::IDescriptorSet(IDescriptorSetGroup &dsg)

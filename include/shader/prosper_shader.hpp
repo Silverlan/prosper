@@ -31,6 +31,7 @@ namespace Anvil
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class DescriptorSetCreateInfo;
 	struct DLLPROSPER ShaderStageData
 	{
 		std::unique_ptr<Anvil::ShaderModule,std::function<void(Anvil::ShaderModule*)>> module = nullptr;
@@ -63,10 +64,11 @@ namespace prosper
 		std::vector<Binding> bindings;
 		uint32_t setIndex = 0u; // This value will be set after the shader has been baked
 
-		Anvil::DescriptorSetCreateInfoUniquePtr ToAnvilDescriptorSetInfo() const;
+		std::unique_ptr<prosper::DescriptorSetCreateInfo> ToProsperDescriptorSetInfo() const;
+		std::unique_ptr<Anvil::DescriptorSetCreateInfo> ToAnvilDescriptorSetInfo() const;
 	private:
 		friend Shader;
-		Anvil::DescriptorSetCreateInfoUniquePtr Bake();
+		std::unique_ptr<prosper::DescriptorSetCreateInfo> Bake();
 		bool m_bWasBaked = false;
 	};
 
@@ -185,7 +187,7 @@ namespace prosper
 		void InitializeStages();
 		
 		std::array<std::shared_ptr<ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> m_stages;
-		std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> m_dsInfos = {};
+		std::vector<std::unique_ptr<DescriptorSetCreateInfo>> m_dsInfos = {};
 		uint32_t m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
 		bool m_bValid = false;
 		bool m_bFirstTimeInit = true;

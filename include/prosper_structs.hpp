@@ -10,6 +10,7 @@
 #include <limits>
 #include <cinttypes>
 #include <optional>
+#include <map>
 
 #undef max
 
@@ -379,6 +380,17 @@ namespace prosper
 	class DLLPROSPER DescriptorSetCreateInfo
 	{
 	public:
+		static std::unique_ptr<DescriptorSetCreateInfo> Create()
+		{
+			std::unique_ptr<DescriptorSetCreateInfo> result_ptr(nullptr,
+				std::default_delete<DescriptorSetCreateInfo>() );
+
+			result_ptr.reset(
+				new DescriptorSetCreateInfo()
+			);
+
+			return result_ptr;
+		}
 		struct DLLPROSPER Binding
 		{
 			Binding()=default;
@@ -428,23 +440,179 @@ namespace prosper
 		) const;
 		bool GetBindingPropertiesByIndexNumber(
 			uint32_t nBinding,
+			uint32_t *out_opt_binding_index_ptr=nullptr,
 			DescriptorType *outOptDescriptorType=nullptr,
 			uint32_t *outOptDescriptorArraySize=nullptr,
 			ShaderStageFlags *outOptStageFlags=nullptr,
 			bool *outOptImmutableSamplersEnabled=nullptr,
 			DescriptorBindingFlags *outOptFlags=nullptr
 		);
+		bool AddBinding(uint32_t                               in_binding_index,
+			DescriptorType                  in_descriptor_type,
+			uint32_t                               in_descriptor_array_size,
+			ShaderStageFlags                in_stage_flags,
+			const DescriptorBindingFlags&   in_flags                         = DescriptorBindingFlags::None,
+			const ISampler* const*           in_opt_immutable_sampler_ptr_ptr = nullptr);
 		uint32_t GetBindingCount() const {return static_cast<uint32_t>(m_bindings.size());}
 	private:
 		using BindingIndexToBindingMap = std::map<BindingIndex,Binding>;
 
-		DescriptorSetCreateInfo();
+		DescriptorSetCreateInfo()=default;
 
 		BindingIndexToBindingMap m_bindings {};
 
-		uint32_t m_numVariableDescriptorCountBinding;
-		uint32_t m_variableDescriptorCountBindingSize;
+		uint32_t m_numVariableDescriptorCountBinding = std::numeric_limits<uint32_t>::max();
+		uint32_t m_variableDescriptorCountBindingSize = 0;
 	};
+
+	struct DLLPROSPER SpecializationConstant
+	{
+		SpecializationConstant(
+			uint32_t constantId,
+			uint32_t numBytes,
+			uint32_t startOffset
+		)
+			: constantId{constantId},numBytes{numBytes},
+			startOffset{startOffset}
+		{}
+		uint32_t constantId;
+		uint32_t numBytes;
+		uint32_t startOffset;
+	};
+
+	struct DLLPROSPER PushConstantRange
+	{
+		PushConstantRange(
+			uint32_t offset,
+			uint32_t size,
+			ShaderStageFlags stages
+		)
+			: offset{offset},size{size},
+			stages{stages}
+		{}
+		uint32_t offset;
+		uint32_t size;
+		ShaderStageFlags stages;
+
+		bool operator==(const PushConstantRange& in) const
+		{
+			return in.offset == offset &&
+				in.size == size &&
+				in.stages == stages;
+		}
+		bool operator!=(const PushConstantRange& in) const {return !operator==(in);}
+	};
+
+	class DLLPROSPER ShaderModule
+	{
+	public:
+		/** Destructor. Releases internally maintained Vulkan shader module instance. */
+		virtual ~ShaderModule()=default;
+
+		const std::string& get_cs_entrypoint_name() const
+		{
+			return m_csEntrypointName;
+		}
+
+		const std::string& get_fs_entrypoint_name() const
+		{
+			return m_fsEntrypointName;
+		}
+
+		const std::string& get_glsl_source_code() const
+		{
+			return m_glslSourceCode;
+		}
+		const std::string& get_gs_entrypoint_name() const
+		{
+			return m_gsEntrypointName;
+		}
+		const std::string& get_tc_entrypoint_name() const
+		{
+			return m_tcEntrypointName;
+		}
+		const std::string& get_te_entrypoint_name() const
+		{
+			return m_teEntrypointName;
+		}
+		const std::string& get_vs_entrypoint_name() const
+		{
+			return m_vsEntrypointName;
+		}
+
+	private:
+		ShaderModule(
+			const std::string&          in_opt_cs_entrypoint_name,
+			const std::string&          in_opt_fs_entrypoint_name,
+			const std::string&          in_opt_gs_entrypoint_name,
+			const std::string&          in_opt_tc_entrypoint_name,
+			const std::string&          in_opt_te_entrypoint_name,
+			const std::string&          in_opt_vs_entrypoint_name
+		);
+
+		ShaderModule           (const ShaderModule&);
+		ShaderModule& operator=(const ShaderModule&);
+
+		std::string m_csEntrypointName;
+		std::string m_fsEntrypointName;
+		std::string m_gsEntrypointName;
+		std::string m_tcEntrypointName;
+		std::string m_teEntrypointName;
+		std::string m_vsEntrypointName;
+		std::string m_glslSourceCode;
+	};
+
+	struct DLLPROSPER ShaderModuleStageEntryPoint
+	{
+		std::string name = "";
+		std::unique_ptr<ShaderModule> shader_module_owned_ptr = nullptr;
+		ShaderModule *shader_module_ptr = nullptr;
+		ShaderStage stage = ShaderStage::Unknown;
+
+		ShaderModuleStageEntryPoint()=default;
+		~ShaderModuleStageEntryPoint()=default;
+
+		ShaderModuleStageEntryPoint(const ShaderModuleStageEntryPoint& in);
+
+		ShaderModuleStageEntryPoint(const std::string&    in_name,
+			ShaderModule*         in_shader_module_ptr,
+			ShaderStage           in_stage);
+		ShaderModuleStageEntryPoint(const std::string&    in_name,
+			std::unique_ptr<ShaderModule> in_shader_module_ptr,
+			ShaderStage           in_stage);
+
+		ShaderModuleStageEntryPoint& operator=(const ShaderModuleStageEntryPoint&);
+	};
+
+	struct DLLPROSPER VertexInputAttribute
+	{
+		Format format = Format::Unknown;
+		uint32_t location = std::numeric_limits<uint32_t>::max();
+		uint32_t offsetInBytes = std::numeric_limits<uint32_t>::max();
+
+		VertexInputAttribute()=default;
+		VertexInputAttribute(uint32_t location,
+			Format format,
+			uint32_t offset
+		)
+			: location{location},format{format},offsetInBytes{offset}
+		{}
+	};
+
+	struct StencilOpState
+	{
+		StencilOp failOp;
+		StencilOp passOp;
+		StencilOp depthFailOp;
+		CompareOp compareOp;
+		uint32_t compareMask;
+		uint32_t writeMask;
+		uint32_t reference;
+	};
+
+	using PipelineID = uint32_t;
+	using SubPassID = uint32_t;
+	using SubPassAttachmentID = uint32_t;
 };
 
 #endif

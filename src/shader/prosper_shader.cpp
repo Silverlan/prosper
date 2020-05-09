@@ -237,14 +237,39 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorS
 	return static_cast<VlkContext&>(GetContext()).CreateDescriptorSetGroup(Anvil::DescriptorSetCreateInfoUniquePtr(new Anvil::DescriptorSetCreateInfo(*dsInfoItems->at(setIdx))));
 }
 
+static std::unique_ptr<Anvil::DescriptorSetCreateInfo> to_anvil_descriptor_set(prosper::DescriptorSetCreateInfo &createInfo)
+{
+	auto anvCreateInfo = Anvil::DescriptorSetCreateInfo::create();
+	auto numBindings = createInfo.GetBindingCount();
+	for(auto i=decltype(numBindings){0u};i<numBindings;++i)
+	{
+		prosper::DescriptorType descType;
+		uint32_t descArraySize;
+		prosper::ShaderStageFlags shaderStageFlags;
+		bool immutableSamplersEnabled;
+		prosper::DescriptorBindingFlags bindingFlags;
+		auto result = createInfo.GetBindingPropertiesByBindingIndex(i,&descType,&descArraySize,&shaderStageFlags,&immutableSamplersEnabled,&bindingFlags);
+		assert(result && immutableSamplersEnabled == false);
+		anvCreateInfo->add_binding(
+			i,static_cast<Anvil::DescriptorType>(descType),descArraySize,
+			static_cast<Anvil::ShaderStageFlagBits>(shaderStageFlags)
+		);
+	}
+	return anvCreateInfo;
+}
 void prosper::Shader::InitializeDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo)
 {
 	if(m_dsInfos.empty())
 		return;
 	std::vector<const Anvil::DescriptorSetCreateInfo*> dsInfos;
+	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> ownedDsInfos;
+	ownedDsInfos.reserve(m_dsInfos.size());
 	dsInfos.reserve(m_dsInfos.size());
 	for(auto &dsInfo : m_dsInfos)
-		dsInfos.push_back(dsInfo.get());
+	{
+		ownedDsInfos.push_back(to_anvil_descriptor_set(*dsInfo));
+		dsInfos.push_back(ownedDsInfos.back().get());
+	}
 	pipelineInfo.set_descriptor_set_create_info(&dsInfos);
 	m_dsInfos.clear();
 }
@@ -461,8 +486,19 @@ bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pi
 		OnPipelineBound();
 	return r;
 }
-
-Anvil::DescriptorSetCreateInfoUniquePtr prosper::DescriptorSetInfo::ToAnvilDescriptorSetInfo() const
+std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::ToProsperDescriptorSetInfo() const
+{
+	auto dsInfo = DescriptorSetCreateInfo::Create();
+	for(auto &binding : bindings)
+	{
+		dsInfo->AddBinding(
+			binding.bindingIndex,binding.type,binding.descriptorArraySize,
+			binding.shaderStages
+		);
+	}
+	return dsInfo;
+}
+std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::ToAnvilDescriptorSetInfo() const
 {
 	auto dsInfo = Anvil::DescriptorSetCreateInfo::create();
 	for(auto &binding : bindings)
@@ -474,7 +510,7 @@ Anvil::DescriptorSetCreateInfoUniquePtr prosper::DescriptorSetInfo::ToAnvilDescr
 	}
 	return dsInfo;
 }
-std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Bake()
+std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Bake()
 {
 	if(m_bWasBaked == false)
 	{
@@ -489,8 +525,24 @@ std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Bake
 			//nextIdx = bindingIdx +binding.descriptorArraySize;
 		}
 	}
-	return ToAnvilDescriptorSetInfo();
+	return ToProsperDescriptorSetInfo();
 }
+
+prosper::ShaderModule::ShaderModule(
+	const std::string&          in_opt_cs_entrypoint_name,
+	const std::string&          in_opt_fs_entrypoint_name,
+	const std::string&          in_opt_gs_entrypoint_name,
+	const std::string&          in_opt_tc_entrypoint_name,
+	const std::string&          in_opt_te_entrypoint_name,
+	const std::string&          in_opt_vs_entrypoint_name
+)
+	: m_csEntrypointName      (in_opt_cs_entrypoint_name),
+	m_fsEntrypointName      (in_opt_fs_entrypoint_name),
+	m_gsEntrypointName      (in_opt_gs_entrypoint_name),
+	m_tcEntrypointName      (in_opt_tc_entrypoint_name),
+	m_teEntrypointName      (in_opt_te_entrypoint_name),
+	m_vsEntrypointName      (in_opt_vs_entrypoint_name)
+{}
 
 void prosper::Shader::AddDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)
 {

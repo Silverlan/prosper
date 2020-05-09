@@ -466,10 +466,11 @@ namespace prosper
 		TessellationEvaluation = 4,
 		Vertex = 5,
 
-		Count
+		Count,
+		Unknown = Count
 	};
 
-	enum class DescriptorType : uint8_t
+	enum class DescriptorType : uint32_t
 	{
 		Sampler = 0,
 		CombinedImageSampler = 1,
@@ -482,8 +483,9 @@ namespace prosper
 		UniformBufferDynamic = 8,
 		StorageBufferDynamic = 9,
 		InputAttachment = 10,
+		InlineUniformBlock = 1'000'138'000,
 
-		Unknown = std::numeric_limits<uint8_t>::max()
+		Unknown = std::numeric_limits<uint32_t>::max()
 	};
 
 	enum class ShaderStageFlags : uint32_t
@@ -523,7 +525,9 @@ namespace prosper
 	enum class VertexInputRate : uint8_t
 	{
 		Vertex = 0,
-		Instance = 1
+		Instance = 1,
+
+		Unknown = std::numeric_limits<uint8_t>::max()
 	};
 
 	enum class QueueFamilyType : uint8_t
@@ -570,10 +574,142 @@ namespace prosper
 
 	enum class DescriptorBindingFlags : uint32_t
 	{
+		None = 0,
 		UpdateAfterBindBit = 0x00000001,
 		UpdateUnusedWhilePendingBit = 0x00000002,
 		PartiallyBoundBit = 0x00000004,
 		VariableDescriptorCountBit = 0x00000008
+	};
+
+	enum class PipelineCreateFlags : uint32_t
+	{
+		None = 0,
+		AllowDerivativesBit = 2,
+		DisableOptimizationBit = 1,
+		DerivativeBit = 4
+	};
+
+	enum class DynamicState : uint8_t
+	{
+		Viewport = 0,
+		Scissor = 1,
+		LineWidth = 2,
+		DepthBias = 3,
+		BlendConstants = 4,
+		DepthBounds = 5,
+		StencilCompareMask = 6,
+		StencilWriteMask = 7,
+		StencilReference = 8
+	};
+
+	enum class CullModeFlags : uint8_t
+	{
+		None = 0,
+		BackBit = 2,
+		FrontBit = 1,
+
+		FrontAndBack = 3,
+	};
+
+	enum class PolygonMode : uint8_t
+	{
+		Fill = 0,
+		Line = 1,
+		Point = 2
+	};
+
+	enum class FrontFace : uint8_t
+	{
+		CounterClockwise = 0,
+		Clockwise = 1
+	};
+
+	enum class LogicOp : uint8_t
+	{
+		Clear = 0,
+		And = 1,
+		AndReverse = 2,
+		Copy = 3,
+		AndInverted = 4,
+		NoOp = 5,
+		Xor = 6,
+		Or = 7,
+		Nor = 8,
+		Equivalent = 9,
+		Invert = 10,
+		OrReverse = 11,
+		CopyInverted = 12,
+		OrInverted = 13,
+		Nand = 14,
+		Set = 15
+	};
+
+	enum class PrimitiveTopology : uint8_t
+	{
+		PointList = 0,
+		LineList = 1,
+		LineStrip = 2,
+		TriangleList = 3,
+		TriangleStrip = 4,
+		TriangleFan = 5,
+		LineListWithAdjacency = 6,
+		LineStripWithAdjacency = 7,
+		TriangleListWithAdjacency = 8,
+		TriangleStripWithAdjacency = 9,
+		PatchList = 10
+	};
+
+	enum StencilOp : uint8_t
+	{
+		Keep = 0,
+		Zero = 1,
+		Replace = 2,
+		IncrementAndClamp = 3,
+		DecrementAndClamp = 4,
+		Invert = 5,
+		IncrementAndWrap = 6,
+		DecrementAndWrap = 7
+	};
+
+	enum class BlendOp : uint8_t
+	{
+		Add = 0,
+		Subtract = 1,
+		ReverseSubtract = 2,
+		Min = 3,
+		Max = 4
+	};
+
+	enum class BlendFactor : uint8_t
+	{
+		Zero = 0,
+		One = 1,
+		SrcColor = 2,
+		OneMinusSrcColor = 3,
+		DstColor = 4,
+		OneMinusDstColor = 5,
+		SrcAlpha = 6,
+		OneMinusSrcAlpha = 7,
+		DstAlpha = 8,
+		OneMinusDstAlpha = 9,
+		ConstantColor = 10,
+		OneMinusConstantColor = 11,
+		ConstantAlpha = 12,
+		OneMinusConstantAlpha = 13,
+		SrcAlphaSaturate = 14,
+		Src1Color = 15,
+		OneMinusSrc1Color = 16,
+		Src1Alpha = 17,
+		OneMinusSrc1Alpha = 18
+	};
+
+	enum class ColorComponentFlags
+	{
+		None = 0,
+		RBit = 1,
+		GBit = 2,
+		BBit = 4,
+		ABit = 8,
 	};
 
 	struct MemoryRequirements
@@ -585,6 +721,7 @@ namespace prosper
 
 	using PipelineID = uint32_t;
 	using BindingIndex = uint32_t;
+	using SampleMask = uint32_t;
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryFeatureFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueueFamilyFlags)
@@ -599,5 +736,8 @@ REGISTER_BASIC_BITWISE_OPERATORS(prosper::ShaderStageFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::StencilFaceFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueryResultFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::DescriptorBindingFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::PipelineCreateFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::CullModeFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::ColorComponentFlags)
 
 #endif
