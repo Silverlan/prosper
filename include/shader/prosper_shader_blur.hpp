@@ -49,7 +49,7 @@ namespace prosper
 		bool Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants);
 	protected:
 		virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx) override;
-		virtual void InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
+		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
 	};
 
 	/////////////////////////

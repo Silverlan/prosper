@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader_base_image_processing.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "buffers/prosper_buffer.hpp"
@@ -34,13 +35,13 @@ ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::IPrContext &contex
 	: ShaderBaseImageProcessing(context,identifier,"screen/vs_screen_uv",fsShader)
 {}
 
-void ShaderBaseImageProcessing::AddDefaultVertexAttributes(Anvil::GraphicsPipelineCreateInfo &pipelineInfo)
+void ShaderBaseImageProcessing::AddDefaultVertexAttributes(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
 {
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_POSITION);
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_UV);
 }
 
-void ShaderBaseImageProcessing::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
+void ShaderBaseImageProcessing::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
 {
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo,pipelineIdx);
 

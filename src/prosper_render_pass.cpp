@@ -10,8 +10,10 @@
 
 using namespace prosper;
 
-IRenderPass::IRenderPass(IPrContext &context)
-	: ContextObject(context),std::enable_shared_from_this<IRenderPass>()
+IRenderPass::IRenderPass(IPrContext &context,const prosper::util::RenderPassCreateInfo &createInfo)
+	: ContextObject(context),std::enable_shared_from_this<IRenderPass>(),m_createInfo{createInfo}
 {}
 
 IRenderPass::~IRenderPass() {}
+
+const prosper::util::RenderPassCreateInfo &IRenderPass::GetCreateInfo() const {return m_createInfo;}

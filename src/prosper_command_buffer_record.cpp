@@ -337,9 +337,10 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImage(const util::CopyInfo &copyInfo
 {
 	vk::Extent3D extent{w,h,1};
 	static_assert(sizeof(Anvil::ImageSubresourceLayers) == sizeof(util::ImageSubresourceLayers));
+	static_assert(sizeof(vk::Offset3D) == sizeof(Offset3D));
 	Anvil::ImageCopy copyRegion{
-		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.srcSubresource),copyInfo.srcOffset,
-		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.dstSubresource),copyInfo.dstOffset,extent
+		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.srcSubresource),reinterpret_cast<const vk::Offset3D&>(copyInfo.srcOffset),
+		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.dstSubresource),reinterpret_cast<const vk::Offset3D&>(copyInfo.dstOffset),extent
 	};
 	return m_cmdBuffer->record_copy_image(
 		&*static_cast<VlkImage&>(imgSrc),static_cast<Anvil::ImageLayout>(copyInfo.srcImageLayout),

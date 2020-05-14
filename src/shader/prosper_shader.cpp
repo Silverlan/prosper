@@ -4,6 +4,8 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
+#include "shader/prosper_pipeline_manager.hpp"
 #include "vk_context.hpp"
 #include "prosper_util.hpp"
 #include "prosper_glstospv.hpp"
@@ -89,13 +91,13 @@ void prosper::Shader::SetStageSourceFilePath(ShaderStage stage,const std::string
 
 const std::string &prosper::Shader::GetIdentifier() const {return m_identifier;}
 
-void prosper::Shader::SetPipelineCount(uint32_t count) {m_pipelineInfos.resize(count,{std::numeric_limits<Anvil::PipelineID>::max(),nullptr});}
+void prosper::Shader::SetPipelineCount(uint32_t count) {m_pipelineInfos.resize(count,{});}
 
 bool prosper::Shader::IsGraphicsShader() const {return m_pipelineBindPoint == PipelineBindPoint::Graphics;}
 bool prosper::Shader::IsComputeShader() const {return m_pipelineBindPoint == PipelineBindPoint::Compute;}
 prosper::PipelineBindPoint prosper::Shader::GetPipelineBindPoint() const {return m_pipelineBindPoint;}
 
-Anvil::ShaderModule *prosper::Shader::GetModule(ShaderStage stage)
+prosper::ShaderModule *prosper::Shader::GetModule(ShaderStage stage)
 {
 	auto *stageModule = GetStage(stage);
 	if(stageModule == nullptr)
@@ -206,21 +208,16 @@ void prosper::Shader::InitializeStages()
 		stage->module = Anvil::ShaderModule::create_from_spirv_generator(dev,shaderPtr);*/
 		auto &spirvBlob = stage->spirvBlob;
 		const std::string entryPointName = "main";
-		stage->module = Anvil::ShaderModule::create_from_spirv_blob(
-			&dev,
-			spirvBlob.data(),spirvBlob.size(),
-			(stage->stage == prosper::ShaderStage::Compute) ? entryPointName : "",
-			(stage->stage == prosper::ShaderStage::Fragment) ? entryPointName : "",
-			(stage->stage == prosper::ShaderStage::Geometry) ? entryPointName : "",
-			(stage->stage == prosper::ShaderStage::TessellationControl) ? entryPointName : "",
-			(stage->stage == prosper::ShaderStage::TessellationEvaluation) ? entryPointName : "",
-			(stage->stage == prosper::ShaderStage::Vertex) ? entryPointName : ""
+		stage->module = context.CreateShaderModuleFromSPIRVBlob(
+			spirvBlob,
+			stage->stage,
+			entryPointName
 		);
 		stage->entryPoint.reset(
-			new Anvil::ShaderModuleStageEntryPoint(
+			new prosper::ShaderModuleStageEntryPoint(
 				entryPointName,
 				stage->module.get(),
-				static_cast<Anvil::ShaderStage>(stage->stage)
+				stage->stage
 			)
 		);
 	}
@@ -231,47 +228,21 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorS
 	auto *pipeline = GetPipelineInfo(pipelineIdx);
 	if(pipeline == nullptr)
 		return nullptr;
-	auto *dsInfoItems = pipeline->get_ds_create_info_items();
-	if(dsInfoItems == nullptr || setIdx >= dsInfoItems->size())
+	if(setIdx >= pipeline->descSetInfos.size())
 		return nullptr;
-	return static_cast<VlkContext&>(GetContext()).CreateDescriptorSetGroup(Anvil::DescriptorSetCreateInfoUniquePtr(new Anvil::DescriptorSetCreateInfo(*dsInfoItems->at(setIdx))));
+	return static_cast<VlkContext&>(GetContext()).CreateDescriptorSetGroup(*pipeline->descSetInfos.at(setIdx));
 }
 
-static std::unique_ptr<Anvil::DescriptorSetCreateInfo> to_anvil_descriptor_set(prosper::DescriptorSetCreateInfo &createInfo)
+void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo)
 {
-	auto anvCreateInfo = Anvil::DescriptorSetCreateInfo::create();
-	auto numBindings = createInfo.GetBindingCount();
-	for(auto i=decltype(numBindings){0u};i<numBindings;++i)
-	{
-		prosper::DescriptorType descType;
-		uint32_t descArraySize;
-		prosper::ShaderStageFlags shaderStageFlags;
-		bool immutableSamplersEnabled;
-		prosper::DescriptorBindingFlags bindingFlags;
-		auto result = createInfo.GetBindingPropertiesByBindingIndex(i,&descType,&descArraySize,&shaderStageFlags,&immutableSamplersEnabled,&bindingFlags);
-		assert(result && immutableSamplersEnabled == false);
-		anvCreateInfo->add_binding(
-			i,static_cast<Anvil::DescriptorType>(descType),descArraySize,
-			static_cast<Anvil::ShaderStageFlagBits>(shaderStageFlags)
-		);
-	}
-	return anvCreateInfo;
-}
-void prosper::Shader::InitializeDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo)
-{
-	if(m_dsInfos.empty())
+	auto *pipeline = GetPipelineInfo(m_currentPipelineIdx);
+	if(pipeline == nullptr)
 		return;
-	std::vector<const Anvil::DescriptorSetCreateInfo*> dsInfos;
-	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> ownedDsInfos;
-	ownedDsInfos.reserve(m_dsInfos.size());
-	dsInfos.reserve(m_dsInfos.size());
-	for(auto &dsInfo : m_dsInfos)
-	{
-		ownedDsInfos.push_back(to_anvil_descriptor_set(*dsInfo));
-		dsInfos.push_back(ownedDsInfos.back().get());
-	}
-	pipelineInfo.set_descriptor_set_create_info(&dsInfos);
-	m_dsInfos.clear();
+	std::vector<const prosper::DescriptorSetCreateInfo*> dsInfos;
+	dsInfos.reserve(pipeline->descSetInfos.size());
+	for(auto &dsInfo : pipeline->descSetInfos)
+		dsInfos.push_back(dsInfo.get());
+	pipelineInfo.SetDescriptorSetCreateInfo(&dsInfos);
 }
 void prosper::Shader::SetDebugName(uint32_t pipelineIdx,const std::string &name)
 {
@@ -288,22 +259,19 @@ const std::string *prosper::Shader::GetDebugName(uint32_t pipelineIdx) const
 void prosper::Shader::OnPipelineInitialized(uint32_t pipelineIdx)
 {
 	SetDebugName(pipelineIdx,"shader_" +GetIdentifier() +"_pipeline" +std::to_string(pipelineIdx));
-	auto *vkPipeline = GetPipelineManager()->get_pipeline(m_pipelineInfos.at(pipelineIdx).id);
-	if(vkPipeline != nullptr)
-		prosper::debug::register_debug_shader_pipeline(vkPipeline,{this,pipelineIdx});
+	// auto *vkPipeline = GetPipelineManager()->GetPipelineInfo(m_pipelineInfos.at(pipelineIdx).id);
+	// if(vkPipeline != nullptr)
+	// 	prosper::debug::register_debug_shader_pipeline(vkPipeline,{this,pipelineIdx});
 }
 void prosper::Shader::ClearPipelines()
 {
-	auto *pipelineManager = GetPipelineManager();
-	if(pipelineManager == nullptr)
-		return;
 	GetContext().WaitIdle();
 	for(auto &pipelineInfo : m_pipelineInfos)
 	{
 		if(pipelineInfo.id == std::numeric_limits<Anvil::PipelineID>::max())
 			continue;
-		prosper::debug::deregister_debug_object(pipelineManager->get_pipeline(pipelineInfo.id));
-		pipelineManager->delete_pipeline(pipelineInfo.id);
+		// prosper::debug::deregister_debug_object(pipelineManager->GetPipelineInfo(pipelineInfo.id));
+		GetContext().ClearPipeline(IsGraphicsShader(),pipelineInfo.id);
 		pipelineInfo.id = std::numeric_limits<Anvil::PipelineID>::max();
 	}
 }
@@ -328,39 +296,14 @@ std::vector<std::string> prosper::Shader::GetSourceFilePaths() const
 	return r;
 }
 
-Anvil::PipelineLayout *prosper::Shader::GetPipelineLayout(uint32_t pipelineIdx) const
-{
-	auto *pipelineManager = GetPipelineManager();
-	if(pipelineManager == nullptr || IsValid() == false || pipelineIdx >= m_pipelineInfos.size())
-		return nullptr;
-	return pipelineManager->get_pipeline_layout(m_pipelineInfos.at(pipelineIdx).id);
-}
-
-const Anvil::BasePipelineCreateInfo *prosper::Shader::GetPipelineInfo(uint32_t pipelineIdx) const
-{
-	auto *pipelineManager = GetPipelineManager();
-	if(pipelineManager == nullptr || IsValid() == false || pipelineIdx >= m_pipelineInfos.size())
-		return nullptr;
-	return pipelineManager->get_pipeline_create_info(m_pipelineInfos.at(pipelineIdx).id);
-}
-bool prosper::Shader::GetShaderStatistics(vk::ShaderStatisticsInfoAMD &stats,prosper::ShaderStage stage,uint32_t pipelineIdx) const
-{
-	auto *pipelineManager = GetPipelineManager();
-	if(pipelineManager == nullptr || pipelineIdx >= m_pipelineInfos.size())
-		return false;
-	return pipelineManager->get_shader_statistics(m_pipelineInfos.at(pipelineIdx).id,static_cast<Anvil::ShaderStage>(stage),&reinterpret_cast<VkShaderStatisticsInfoAMD&>(stats));
-}
 void prosper::Shader::SetBaseShader(Shader &shader) {m_basePipeline = shader.shared_from_this();}
 void prosper::Shader::ClearBaseShader() {m_basePipeline = {};}
-const Anvil::ShaderModuleStageEntryPoint *prosper::Shader::GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx) const
+const prosper::ShaderModuleStageEntryPoint *prosper::Shader::GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx) const
 {
-	auto *info = GetPipelineInfo(pipelineIdx);
-	if(info == nullptr)
+	auto *stageData = GetStage(stage);
+	if(stageData == nullptr)
 		return nullptr;
-	const Anvil::ShaderModuleStageEntryPoint *r;
-	if(info->get_shader_stage_properties(static_cast<Anvil::ShaderStage>(stage),&r) == false)
-		return nullptr;
-	return r;
+	return stageData->entryPoint.get();
 }
 bool prosper::Shader::GetPipelineId(Anvil::PipelineID &pipelineId,uint32_t pipelineIdx) const
 {
@@ -379,18 +322,29 @@ bool prosper::Shader::RecordPushConstants(uint32_t size,const void *data,uint32_
 	auto *info = GetPipelineInfo(m_currentPipelineIdx);
 	if(cmdBuffer == nullptr || info == nullptr)
 		return false;
-	for(auto &range : info->get_push_constant_ranges())
+	for(auto &range : info->pushConstantRanges)
 	{
 		if(offset >= range.offset && (offset +size) <= (range.offset +range.size))
-			return cmdBuffer->RecordPushConstants(*GetPipelineLayout(m_currentPipelineIdx),static_cast<ShaderStageFlags>(range.stages.get_vk()),offset,size,data);
+			return cmdBuffer->RecordPushConstants(*this,m_currentPipelineIdx,range.stages,offset,size,data);
 	}
 	return false;
+}
+
+const prosper::PipelineInfo *prosper::Shader::GetPipelineInfo(PipelineID id) const {return const_cast<Shader*>(this)->GetPipelineInfo(id);}
+prosper::PipelineInfo *prosper::Shader::GetPipelineInfo(PipelineID id)
+{
+	return (id < m_pipelineInfos.size()) ? &m_pipelineInfos.at(id) : nullptr;
+}
+prosper::BasePipelineCreateInfo *prosper::Shader::GetPipelineCreateInfo(PipelineID id)
+{
+	auto *info = GetPipelineInfo(id);
+	return info ? info->createInfo.get() : nullptr;
 }
 
 bool prosper::Shader::RecordBindDescriptorSets(const std::vector<prosper::IDescriptorSet*> &descSets,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*GetPipelineLayout(m_currentPipelineIdx),firstSet,descSets,dynamicOffsets);
+	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*this,m_currentPipelineIdx,firstSet,descSets,dynamicOffsets);
 }
 
 bool prosper::Shader::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
@@ -443,7 +397,7 @@ bool prosper::Shader::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,u
 #endif
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	auto *ptrDescSet = &descSet;
-	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*GetPipelineLayout(m_currentPipelineIdx),firstSet,{ptrDescSet},dynamicOffsets);
+	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*this,m_currentPipelineIdx,firstSet,{ptrDescSet},dynamicOffsets);
 }
 
 static std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> s_boundShaderPipeline = {};
@@ -529,6 +483,7 @@ std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Ba
 }
 
 prosper::ShaderModule::ShaderModule(
+	const std::vector<uint32_t> &spirvBlob,
 	const std::string&          in_opt_cs_entrypoint_name,
 	const std::string&          in_opt_fs_entrypoint_name,
 	const std::string&          in_opt_gs_entrypoint_name,
@@ -541,10 +496,13 @@ prosper::ShaderModule::ShaderModule(
 	m_gsEntrypointName      (in_opt_gs_entrypoint_name),
 	m_tcEntrypointName      (in_opt_tc_entrypoint_name),
 	m_teEntrypointName      (in_opt_te_entrypoint_name),
-	m_vsEntrypointName      (in_opt_vs_entrypoint_name)
+	m_vsEntrypointName      (in_opt_vs_entrypoint_name),
+	m_spirvData{spirvBlob}
 {}
 
-void prosper::Shader::AddDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)
+const std::optional<std::vector<uint32_t>> &prosper::ShaderModule::GetSPIRVData() const {return m_spirvData;}
+
+void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)
 {
 	if(descSetInfo.parent != nullptr)
 	{
@@ -557,82 +515,88 @@ void prosper::Shader::AddDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipel
 		for(auto &childBinding : childBindings)
 			descSetInfo.bindings.push_back(childBinding);
 	}
-	m_dsInfos.emplace_back(descSetInfo.Bake());
-	descSetInfo.setIndex = m_dsInfos.size() -1u;
-	if(m_dsInfos.size() > 8)
+	auto &pipelineInitInfo = m_pipelineInfos.at(m_currentPipelineIdx);
+	pipelineInitInfo.descSetInfos.emplace_back(descSetInfo.Bake());
+	descSetInfo.setIndex = pipelineInitInfo.descSetInfos.size() -1u;
+	if(pipelineInitInfo.descSetInfos.size() > 8)
 		throw std::logic_error("Attempted to add more than 8 descriptor sets to shader. This exceeds the limit on some GPUs!");
 }
 
 ::util::WeakHandle<const prosper::Shader> prosper::Shader::GetHandle() const {return ::util::WeakHandle<const Shader>(shared_from_this());}
 ::util::WeakHandle<prosper::Shader> prosper::Shader::GetHandle() {return ::util::WeakHandle<Shader>(shared_from_this());}
 
-bool prosper::Shader::AttachPushConstantRange(Anvil::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages) {return pipelineInfo.attach_push_constant_range(offset,size,static_cast<Anvil::ShaderStageFlagBits>(stages));}
+bool prosper::Shader::AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages)
+{
+	auto &pipelineInitInfo = m_pipelineInfos.at(m_currentPipelineIdx);
+	pipelineInitInfo.pushConstantRanges.push_back({offset,size,stages});
+	return pipelineInfo.AttachPushConstantRange(offset,size,stages);
+}
 
 ///////////////////////////
 
-void prosper::util::set_graphics_pipeline_polygon_mode(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::PolygonMode polygonMode)
+void prosper::util::set_graphics_pipeline_polygon_mode(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::PolygonMode polygonMode)
 {
-	Anvil::CullModeFlags cullModeFlags;
-	Anvil::FrontFace frontFace;
+	prosper::CullModeFlags cullModeFlags;
+	prosper::FrontFace frontFace;
 	float lineWidth;
-	pipelineInfo.get_rasterization_properties(nullptr,&cullModeFlags,&frontFace,&lineWidth);
-	pipelineInfo.set_rasterization_properties(polygonMode,cullModeFlags,frontFace,lineWidth);
+	pipelineInfo.GetRasterizationProperties(nullptr,&cullModeFlags,&frontFace,&lineWidth);
+	pipelineInfo.SetRasterizationProperties(polygonMode,cullModeFlags,frontFace,lineWidth);
 }
-void prosper::util::set_graphics_pipeline_line_width(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,float lineWidth)
+void prosper::util::set_graphics_pipeline_line_width(prosper::GraphicsPipelineCreateInfo &pipelineInfo,float lineWidth)
 {
-	Anvil::CullModeFlags cullModeFlags;
-	Anvil::FrontFace frontFace;
-	Anvil::PolygonMode polygonMode;
-	pipelineInfo.get_rasterization_properties(&polygonMode,&cullModeFlags,&frontFace,nullptr);
-	pipelineInfo.set_rasterization_properties(polygonMode,cullModeFlags,frontFace,lineWidth);
+	prosper::CullModeFlags cullModeFlags;
+	prosper::FrontFace frontFace;
+	prosper::PolygonMode polygonMode;
+	pipelineInfo.GetRasterizationProperties(&polygonMode,&cullModeFlags,&frontFace,nullptr);
+	pipelineInfo.SetRasterizationProperties(polygonMode,cullModeFlags,frontFace,lineWidth);
 }
-void prosper::util::set_graphics_pipeline_cull_mode_flags(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::CullModeFlags cullModeFlags)
+void prosper::util::set_graphics_pipeline_cull_mode_flags(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::CullModeFlags cullModeFlags)
 {
-	Anvil::FrontFace frontFace;
-	Anvil::PolygonMode polygonMode;
+	prosper::FrontFace frontFace;
+	prosper::PolygonMode polygonMode;
 	float lineWidth;
-	pipelineInfo.get_rasterization_properties(&polygonMode,nullptr,&frontFace,&lineWidth);
-	pipelineInfo.set_rasterization_properties(polygonMode,cullModeFlags,frontFace,lineWidth);
+	pipelineInfo.GetRasterizationProperties(&polygonMode,nullptr,&frontFace,&lineWidth);
+	pipelineInfo.SetRasterizationProperties(polygonMode,cullModeFlags,frontFace,lineWidth);
 }
-void prosper::util::set_graphics_pipeline_front_face(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::FrontFace frontFace)
+void prosper::util::set_graphics_pipeline_front_face(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::FrontFace frontFace)
 {
-	Anvil::CullModeFlags cullModeFlags;
-	Anvil::PolygonMode polygonMode;
+	prosper::CullModeFlags cullModeFlags;
+	prosper::PolygonMode polygonMode;
 	float lineWidth;
-	pipelineInfo.get_rasterization_properties(&polygonMode,&cullModeFlags,nullptr,&lineWidth);
-	pipelineInfo.set_rasterization_properties(polygonMode,cullModeFlags,frontFace,lineWidth);
+	pipelineInfo.GetRasterizationProperties(&polygonMode,&cullModeFlags,nullptr,&lineWidth);
+	pipelineInfo.SetRasterizationProperties(polygonMode,cullModeFlags,frontFace,lineWidth);
 }
-void prosper::util::set_generic_alpha_color_blend_attachment_properties(Anvil::GraphicsPipelineCreateInfo &pipelineInfo)
+void prosper::util::set_generic_alpha_color_blend_attachment_properties(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
 {
-	pipelineInfo.set_color_blend_attachment_properties(
-		0u,true,Anvil::BlendOp::ADD,Anvil::BlendOp::ADD,
-		Anvil::BlendFactor::SRC_ALPHA,Anvil::BlendFactor::ONE_MINUS_SRC_ALPHA,
-		Anvil::BlendFactor::SRC_ALPHA,Anvil::BlendFactor::ONE_MINUS_SRC_ALPHA,
-		Anvil::ColorComponentFlagBits::R_BIT | Anvil::ColorComponentFlagBits::G_BIT | Anvil::ColorComponentFlagBits::B_BIT | Anvil::ColorComponentFlagBits::A_BIT
+	pipelineInfo.SetColorBlendAttachmentProperties(
+		0u,true,prosper::BlendOp::Add,prosper::BlendOp::Add,
+		prosper::BlendFactor::SrcAlpha,prosper::BlendFactor::OneMinusSrcAlpha,
+		prosper::BlendFactor::SrcAlpha,prosper::BlendFactor::OneMinusSrcAlpha,
+		prosper::ColorComponentFlags::RBit | prosper::ColorComponentFlags::GBit | prosper::ColorComponentFlags::BBit | prosper::ColorComponentFlags::ABit
 	);
 }
-static Anvil::DynamicState get_anvil_dynamic_state(prosper::util::DynamicStateFlags state)
+static prosper::DynamicState get_anvil_dynamic_state(prosper::util::DynamicStateFlags state)
 {
 	switch(state)
 	{
 		case prosper::util::DynamicStateFlags::Viewport:
-			return Anvil::DynamicState::VIEWPORT;
+			return prosper::DynamicState::Viewport;
 		case prosper::util::DynamicStateFlags::Scissor:
-			return Anvil::DynamicState::SCISSOR;
+			return prosper::DynamicState::Scissor;
 		case prosper::util::DynamicStateFlags::LineWidth:
-			return Anvil::DynamicState::LINE_WIDTH;
+			return prosper::DynamicState::LineWidth;
 		case prosper::util::DynamicStateFlags::DepthBias:
-			return Anvil::DynamicState::DEPTH_BIAS;
+			return prosper::DynamicState::DepthBias;
 		case prosper::util::DynamicStateFlags::BlendConstants:
-			return Anvil::DynamicState::BLEND_CONSTANTS;
+			return prosper::DynamicState::BlendConstants;
 		case prosper::util::DynamicStateFlags::DepthBounds:
-			return Anvil::DynamicState::DEPTH_BOUNDS;
+			return prosper::DynamicState::DepthBounds;
 		case prosper::util::DynamicStateFlags::StencilCompareMask:
-			return Anvil::DynamicState::STENCIL_COMPARE_MASK;
+			return prosper::DynamicState::StencilCompareMask;
 		case prosper::util::DynamicStateFlags::StencilWriteMask:
-			return Anvil::DynamicState::STENCIL_WRITE_MASK;
+			return prosper::DynamicState::StencilWriteMask;
 		case prosper::util::DynamicStateFlags::StencilReference:
-			return Anvil::DynamicState::STENCIL_REFERENCE;
+			return prosper::DynamicState::StencilReference;
 #if 0
 		case prosper::util::DynamicStateFlags::ViewportWScalingNV:
 			return static_cast<Anvil::DynamicState>(vk::DynamicState::eViewportWScalingNV);
@@ -648,29 +612,29 @@ static Anvil::DynamicState get_anvil_dynamic_state(prosper::util::DynamicStateFl
 			return static_cast<Anvil::DynamicState>(vk::DynamicState::eExclusiveScissorNV);
 #endif
 	}
-	return Anvil::DynamicState{};
+	return prosper::DynamicState{};
 }
-static prosper::util::DynamicStateFlags get_prosper_dynamic_state(Anvil::DynamicState state)
+static prosper::util::DynamicStateFlags get_prosper_dynamic_state(prosper::DynamicState state)
 {
 	switch(state)
 	{
-		case Anvil::DynamicState::VIEWPORT:
+		case prosper::DynamicState::Viewport:
 			return prosper::util::DynamicStateFlags::Viewport;
-		case Anvil::DynamicState::SCISSOR:
+		case prosper::DynamicState::Scissor:
 			return prosper::util::DynamicStateFlags::Scissor;
-		case Anvil::DynamicState::LINE_WIDTH:
+		case prosper::DynamicState::LineWidth:
 			return prosper::util::DynamicStateFlags::LineWidth;
-		case Anvil::DynamicState::DEPTH_BIAS:
+		case prosper::DynamicState::DepthBias:
 			return prosper::util::DynamicStateFlags::DepthBias;
-		case Anvil::DynamicState::BLEND_CONSTANTS:
+		case prosper::DynamicState::BlendConstants:
 			return prosper::util::DynamicStateFlags::BlendConstants;
-		case Anvil::DynamicState::DEPTH_BOUNDS:
+		case prosper::DynamicState::DepthBounds:
 			return prosper::util::DynamicStateFlags::DepthBounds;
-		case Anvil::DynamicState::STENCIL_COMPARE_MASK:
+		case prosper::DynamicState::StencilCompareMask:
 			return prosper::util::DynamicStateFlags::StencilCompareMask;
-		case Anvil::DynamicState::STENCIL_WRITE_MASK:
+		case prosper::DynamicState::StencilWriteMask:
 			return prosper::util::DynamicStateFlags::StencilWriteMask;
-		case Anvil::DynamicState::STENCIL_REFERENCE:
+		case prosper::DynamicState::StencilReference:
 			return prosper::util::DynamicStateFlags::StencilReference;
 #if 0
 		case static_cast<Anvil::DynamicState>(vk::DynamicState::eViewportWScalingNV):
@@ -689,31 +653,31 @@ static prosper::util::DynamicStateFlags get_prosper_dynamic_state(Anvil::Dynamic
 	}
 	return prosper::util::DynamicStateFlags::None;
 }
-static std::vector<Anvil::DynamicState> get_enabled_anvil_states(prosper::util::DynamicStateFlags states)
+static std::vector<prosper::DynamicState> get_enabled_dynamic_states(prosper::util::DynamicStateFlags states)
 {
 	auto values = umath::get_power_of_2_values(umath::to_integral(states));
-	std::vector<Anvil::DynamicState> r {};
+	std::vector<prosper::DynamicState> r {};
 	r.reserve(values.size());
 	for(auto &v : values)
 		r.push_back(get_anvil_dynamic_state(static_cast<prosper::util::DynamicStateFlags>(v)));
 	return r;
 }
-void prosper::util::set_dynamic_states_enabled(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states,bool enabled)
+void prosper::util::set_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states,bool enabled)
 {
-	pipelineInfo.toggle_dynamic_states(enabled,get_enabled_anvil_states(states));
+	pipelineInfo.ToggleDynamicStates(enabled,::get_enabled_dynamic_states(states));
 }
-bool prosper::util::are_dynamic_states_enabled(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states)
+bool prosper::util::are_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states)
 {
 	return (states &get_enabled_dynamic_states(pipelineInfo)) == states;
 }
-prosper::util::DynamicStateFlags prosper::util::get_enabled_dynamic_states(Anvil::GraphicsPipelineCreateInfo &pipelineInfo)
+prosper::util::DynamicStateFlags prosper::util::get_enabled_dynamic_states(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
 {
-	const Anvil::DynamicState *states;
+	const prosper::DynamicState *states;
 	auto numStates = 0u;
-	pipelineInfo.get_enabled_dynamic_states(&states,&numStates);
+	pipelineInfo.GetEnabledDynamicStates(&states,&numStates);
 
 	auto r = prosper::util::DynamicStateFlags::None;
 	for(auto i=decltype(numStates){0u};i<numStates;++i)
-		r |= get_prosper_dynamic_state(static_cast<Anvil::DynamicState>(states[i]));
+		r |= get_prosper_dynamic_state(static_cast<prosper::DynamicState>(states[i]));
 	return r;
 }

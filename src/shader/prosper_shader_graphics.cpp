@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_util.hpp"
 #include "vk_context.hpp"
 #include "image/prosper_render_target.hpp"
@@ -167,17 +168,12 @@ void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode,const prosp
 	}
 	outRenderPass = itRp->renderPass;
 }
-void prosper::ShaderGraphics::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
+void prosper::ShaderGraphics::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
 {
-	pipelineInfo.toggle_dynamic_states(true,{Anvil::DynamicState::VIEWPORT});
+	pipelineInfo.ToggleDynamicStates(true,{prosper::DynamicState::Viewport});
 }
 void prosper::ShaderGraphics::InitializePipeline()
 {
-	auto &context = GetContext();
-	auto &dev = static_cast<VlkContext&>(context).GetDevice();
-	auto swapchain = static_cast<VlkContext&>(context).GetSwapchain();
-	auto *gfxPipelineManager = dev.get_graphics_pipeline_manager();
-
 	/* Configure the graphics pipeline */
 	auto *modFs = GetStage(ShaderStage::Fragment);
 	auto *modVs = GetStage(ShaderStage::Vertex);
@@ -201,58 +197,58 @@ void prosper::ShaderGraphics::InitializePipeline()
 		else if(m_basePipeline.expired() == false)
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
 
-		Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
+		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
 		auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
 		if(bIsDerivative)
-			createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
-		auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(
+			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
+		auto gfxPipelineInfo = prosper::GraphicsPipelineCreateInfo::Create(
 			createFlags,
-			&static_cast<VlkRenderPass&>(*renderPass).GetAnvilRenderPass(),
+			renderPass.get(),
 			subPassId,
-			(modFs != nullptr) ? *modFs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
-			(modGs != nullptr) ? *modGs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
-			(modTessControl != nullptr) ? *modTessControl->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
-			(modTessEval != nullptr) ? *modTessEval->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
-			(modVs != nullptr) ? *modVs->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
+			(modFs != nullptr) ? *modFs->entryPoint : prosper::ShaderModuleStageEntryPoint(),
+			(modGs != nullptr) ? *modGs->entryPoint : prosper::ShaderModuleStageEntryPoint(),
+			(modTessControl != nullptr) ? *modTessControl->entryPoint : prosper::ShaderModuleStageEntryPoint(),
+			(modTessEval != nullptr) ? *modTessEval->entryPoint : prosper::ShaderModuleStageEntryPoint(),
+			(modVs != nullptr) ? *modVs->entryPoint : prosper::ShaderModuleStageEntryPoint(),
 			nullptr,bIsDerivative ? &basePipelineId : nullptr
 		);
 
 		if(gfxPipelineInfo == nullptr)
 			continue;
 		ToggleDynamicViewportState(*gfxPipelineInfo,true);
-		gfxPipelineInfo->set_primitive_topology(Anvil::PrimitiveTopology::TRIANGLE_LIST);
+		gfxPipelineInfo->SetPrimitiveTopology(prosper::PrimitiveTopology::TriangleList);
 
-		gfxPipelineInfo->set_rasterization_properties(
-			Anvil::PolygonMode::FILL,
-			Anvil::CullModeFlagBits::BACK_BIT,
-			Anvil::FrontFace::COUNTER_CLOCKWISE,
+		gfxPipelineInfo->SetRasterizationProperties(
+			prosper::PolygonMode::Fill,
+			prosper::CullModeFlags::BackBit,
+			prosper::FrontFace::CounterClockwise,
 			1.0f /* line_width */
 		);
 
-		auto &rpInfo = *(static_cast<VlkRenderPass&>(*renderPass))->get_render_pass_create_info();
-		auto numAttachments = rpInfo.get_n_attachments();
-		auto samples = Anvil::SampleCountFlagBits::_1_BIT;
-		for(auto i=decltype(numAttachments){0u};i<numAttachments;++i)
-		{
-			if(rpInfo.get_color_attachment_properties(i,nullptr,&samples) == true)
-				break;
-		}
-		if(samples != Anvil::SampleCountFlagBits::_1_BIT)
-			gfxPipelineInfo->set_multisampling_properties(samples,0.f,std::numeric_limits<VkSampleMask>::max());
+		auto &rpInfo = renderPass->GetCreateInfo();
+		auto numAttachments = rpInfo.attachments.size();
+		auto samples = (numAttachments > 0) ? rpInfo.attachments.front().sampleCount : prosper::SampleCountFlags::e1Bit;
+		if(samples != prosper::SampleCountFlags::e1Bit)
+			gfxPipelineInfo->SetMultisamplingProperties(samples,0.f,std::numeric_limits<VkSampleMask>::max());
 
+		m_currentPipelineIdx = pipelineIdx;
 		InitializeGfxPipeline(*gfxPipelineInfo,pipelineIdx);
 		InitializeDescriptorSetGroup(*gfxPipelineInfo);
 		PrepareGfxPipeline(*gfxPipelineInfo);
+		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 
 		if(prosper::util::are_dynamic_states_enabled(*gfxPipelineInfo,prosper::util::DynamicStateFlags::Scissor) == false)
-			gfxPipelineInfo->set_scissor_box_properties(0u,0,0,std::numeric_limits<int32_t>::max(),std::numeric_limits<int32_t>::max());
+			gfxPipelineInfo->SetScissorBoxProperties(0u,0,0,std::numeric_limits<int32_t>::max(),std::numeric_limits<int32_t>::max());
 		else
-			gfxPipelineInfo->set_n_dynamic_scissor_boxes(1u);
+			gfxPipelineInfo->SetDynamicScissorBoxesCount(1u);
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = std::numeric_limits<decltype(pipelineInfo.id)>::max();
-		auto r = gfxPipelineManager->add_pipeline(std::move(gfxPipelineInfo),&pipelineInfo.id);
-		if(r == true)
+		auto &context = GetContext();
+		auto result = context.AddPipeline(*gfxPipelineInfo,*renderPass,modFs,modVs,modGs,modTessControl,modTessEval,subPassId,basePipelineId);
+		pipelineInfo.createInfo = std::move(gfxPipelineInfo);
+		if(result.has_value())
 		{
+			pipelineInfo.id = *result;
 			if(firstPipelineId == std::numeric_limits<Anvil::PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			pipelineInfo.renderPass = renderPass;
@@ -260,13 +256,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 		}
 	}
 }
-Anvil::BasePipelineManager *prosper::ShaderGraphics::GetPipelineManager() const
-{
-	auto &context = const_cast<const ShaderGraphics*>(this)->GetContext();
-	auto &dev = static_cast<VlkContext&>(context).GetDevice();
-	return dev.get_graphics_pipeline_manager();
-}
-void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo)
+void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
 {
 	// Initialize vertex bindings and attributes
 
@@ -304,15 +294,15 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 	std::unordered_map<const VertexBinding*,uint32_t> nextStartOffsets;
 	std::unordered_map<const VertexBinding*,uint32_t> vertexBindingIndices;
 
-	struct AnvilVertexBinding
+	struct VertexBindingInfo
 	{
 		uint32_t binding;
-		Anvil::VertexInputRate stepRate;
+		prosper::VertexInputRate stepRate;
 		uint32_t strideInBytes;
-		std::vector<Anvil::VertexInputAttribute> attributes;
+		std::vector<prosper::VertexInputAttribute> attributes;
 	};
-	std::vector<AnvilVertexBinding> anvVertexBindings {};
-	anvVertexBindings.reserve(m_vertexAttributes.size());
+	std::vector<VertexBindingInfo> vertexBindingsInfo {};
+	vertexBindingsInfo.reserve(m_vertexAttributes.size());
 
 	auto vertexBindingCount = 0u;
 	for(auto &refAttr : m_vertexAttributes)
@@ -340,28 +330,28 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateIn
 		{
 			it = vertexBindingIndices.insert(std::make_pair(attr.binding,vertexBindingCount++)).first;
 			const_cast<prosper::ShaderGraphics::VertexBinding&>(*attr.binding).bindingIndex = it->second;
-			anvVertexBindings.push_back({});
+			vertexBindingsInfo.push_back({});
 		}
 		vertexBindingIdx = it->second;
 
-		auto &anvBindingInfo = anvVertexBindings.at(vertexBindingIdx);
+		auto &anvBindingInfo = vertexBindingsInfo.at(vertexBindingIdx);
 		anvBindingInfo.binding = vertexBindingIdx;
-		anvBindingInfo.stepRate = static_cast<Anvil::VertexInputRate>(attr.binding->inputRate);
+		anvBindingInfo.stepRate = attr.binding->inputRate;
 		anvBindingInfo.strideInBytes = attr.binding->stride;
 		anvBindingInfo.attributes.push_back(
-			{attr.location,static_cast<Anvil::Format>(attr.format),attr.startOffset}
+			{attr.location,attr.format,attr.startOffset}
 		);
 	}
-	for(auto &anvVertexBinding : anvVertexBindings)
+	for(auto &vertexBindingInfo : vertexBindingsInfo)
 	{
-		if(pipelineInfo.add_vertex_binding(
-			anvVertexBinding.binding,
-			anvVertexBinding.stepRate,
-			anvVertexBinding.strideInBytes,
-			anvVertexBinding.attributes.size(),
-			anvVertexBinding.attributes.data()
+		if(pipelineInfo.AddVertexBinding(
+			vertexBindingInfo.binding,
+			vertexBindingInfo.stepRate,
+			vertexBindingInfo.strideInBytes,
+			vertexBindingInfo.attributes.size(),
+			vertexBindingInfo.attributes.data()
 		) == false)
-			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " +std::to_string(anvVertexBinding.binding));
+			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " +std::to_string(vertexBindingInfo.binding));
 	}
 	m_vertexAttributes = {};
 	//
@@ -370,20 +360,20 @@ void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<IRenderPass> 
 {
 	CreateCachedRenderPass<prosper::ShaderGraphics>({{prosper::util::RenderPassCreateInfo::AttachmentInfo{}}},outRenderPass,pipelineIdx);
 }
-void prosper::ShaderGraphics::SetGenericAlphaColorBlendAttachmentProperties(Anvil::GraphicsPipelineCreateInfo &pipelineInfo)
+void prosper::ShaderGraphics::SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
 {
 	prosper::util::set_generic_alpha_color_blend_attachment_properties(pipelineInfo);
 }
-void prosper::ShaderGraphics::ToggleDynamicViewportState(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable)
+void prosper::ShaderGraphics::ToggleDynamicViewportState(prosper::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable)
 {
-	pipelineInfo.toggle_dynamic_states(bEnable,{Anvil::DynamicState::VIEWPORT});
-	pipelineInfo.set_n_dynamic_viewports(bEnable ? 1u : 0u);
+	pipelineInfo.ToggleDynamicStates(bEnable,{prosper::DynamicState::Viewport});
+	pipelineInfo.SetDynamicViewportCount(bEnable ? 1u : 0u);
 }
 
-void prosper::ShaderGraphics::ToggleDynamicScissorState(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable)
+void prosper::ShaderGraphics::ToggleDynamicScissorState(prosper::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable)
 {
-	pipelineInfo.toggle_dynamic_states(bEnable,{Anvil::DynamicState::SCISSOR});
-	pipelineInfo.set_n_dynamic_scissor_boxes(bEnable ? 1u : 0u);
+	pipelineInfo.ToggleDynamicStates(bEnable,{prosper::DynamicState::Scissor});
+	pipelineInfo.SetDynamicScissorBoxesCount(bEnable ? 1u : 0u);
 }
 
 const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(uint32_t pipelineIdx) const
@@ -442,11 +432,11 @@ bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t ins
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
 }
-bool prosper::ShaderGraphics::AddSpecializationConstant(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
+bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
 {
-	return pipelineInfo.add_specialization_constant(static_cast<Anvil::ShaderStage>(stage),constantId,numBytes,data);
+	return pipelineInfo.AddSpecializationConstant(stage,constantId,numBytes,data);
 }
-void prosper::ShaderGraphics::AddVertexAttribute(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr) {m_vertexAttributes.push_back(attr);}
+void prosper::ShaderGraphics::AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr) {m_vertexAttributes.push_back(attr);}
 bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
 {
 #if 0
@@ -499,7 +489,7 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &d
 }
 bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
-	auto *info = static_cast<const Anvil::GraphicsPipelineCreateInfo*>(GetPipelineInfo(pipelineIdx));
+	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo*>(GetPipelineCreateInfo(pipelineIdx));
 	if(info == nullptr)
 		return false;
 	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
@@ -513,33 +503,23 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 		prosper::IFramebuffer *fb;
 		if(prosper::util::get_current_render_pass_target(*cmdBuffer,&rp,&img,&fb,&rt) && fb && rp)
 		{
-			auto &rpCreateInfo = *static_cast<VlkRenderPass*>(rp)->GetAnvilRenderPass().get_render_pass_create_info();
-			Anvil::SampleCountFlagBits sampleCount;
-			info->get_multisampling_properties(&sampleCount,nullptr);
-			auto numAttachments = umath::min(fb->GetAttachmentCount(),rpCreateInfo.get_n_attachments());
+			auto &rpCreateInfo = rp->GetCreateInfo();
+			prosper::SampleCountFlags sampleCount;
+			info->GetMultisamplingProperties(&sampleCount,nullptr);
+			auto numAttachments = umath::min(fb->GetAttachmentCount(),static_cast<uint32_t>(rpCreateInfo.attachments.size()));
 			for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
 			{
 				auto *imgView = fb->GetAttachment(i);
 				if(imgView == nullptr)
 					continue;
 				auto &img = imgView->GetImage();
-				Anvil::AttachmentType attType;
-				Anvil::SampleCountFlagBits rpSampleCount;
+				auto &attInfo = rpCreateInfo.attachments.at(i);
+				auto rpSampleCount = attInfo.sampleCount;
 				auto bRpHasColorAttachment = false;
-				if(rpCreateInfo.get_attachment_type(i,&attType) == true)
-				{
-					switch(attType)
-					{
-					case Anvil::AttachmentType::COLOR:
-					{
-						bRpHasColorAttachment = true;
-						rpCreateInfo.get_color_attachment_properties(i,nullptr,&rpSampleCount);
-						break;
-					}
-					}
-				}
+				if(util::is_depth_format(attInfo.format) == false)
+					bRpHasColorAttachment = true;
 
-				if((sampleCount &static_cast<Anvil::SampleCountFlagBits>(img.GetSampleCount())) == Anvil::SampleCountFlagBits::NONE)
+				if((sampleCount &img.GetSampleCount()) == prosper::SampleCountFlags::None)
 				{
 					debug::exec_debug_validation_callback(
 						vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
@@ -550,7 +530,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 				}
 				if(bRpHasColorAttachment == true)
 				{
-					if((sampleCount &rpSampleCount) == Anvil::SampleCountFlagBits::NONE)
+					if((sampleCount &rpSampleCount) == prosper::SampleCountFlags::None)
 					{
 						debug::exec_debug_validation_callback(
 							vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
@@ -559,7 +539,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 						);
 						return false;
 					}
-					if(rpSampleCount != static_cast<Anvil::SampleCountFlagBits>(img.GetSampleCount()))
+					if(rpSampleCount != img.GetSampleCount())
 					{
 						debug::exec_debug_validation_callback(
 							vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
@@ -574,8 +554,8 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 	}
 	if(recordFlags != RecordFlags::None)
 	{
-		auto nDynamicScissors = info->get_n_dynamic_scissor_boxes();
-		auto nDynamicViewports = info->get_n_dynamic_viewports();
+		auto nDynamicScissors = info->GetDynamicScissorBoxesCount();
+		auto nDynamicViewports = info->GetDynamicViewportsCount();
 		auto bScissor = (nDynamicScissors > 0u && (recordFlags &RecordFlags::RenderPassTargetAsScissor) != RecordFlags::None) ? true : false;
 		auto bViewport = (nDynamicViewports > 0u && (recordFlags &RecordFlags::RenderPassTargetAsViewport) != RecordFlags::None) ? true : false;
 		if(bScissor || bViewport)

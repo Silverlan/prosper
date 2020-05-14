@@ -11,6 +11,7 @@
 #include "vk_descriptor_set_group.hpp"
 #include "prosper_pipeline_cache.hpp"
 #include "shader/prosper_shader.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
 #include "image/vk_sampler.hpp"
@@ -38,6 +39,8 @@
 #include <wrappers/framebuffer.h>
 #include <wrappers/semaphore.h>
 #include <wrappers/descriptor_set_group.h>
+#include <wrappers/graphics_pipeline_manager.h>
+#include <wrappers/compute_pipeline_manager.h>
 #include <iglfw/glfw_window.h>
 
 #include <string>
@@ -346,11 +349,11 @@ void VlkContext::ReloadSwapchain()
 			auto bHasStaticViewportOrScissor = false;
 			for(auto i=decltype(numPipelines){0};i<numPipelines;++i)
 			{
-				auto *baseInfo = shader.GetPipelineInfo(i);
+				auto *baseInfo = shader.GetPipelineCreateInfo(i);
 				if(baseInfo == nullptr)
 					continue;
-				auto &info = static_cast<const Anvil::GraphicsPipelineCreateInfo&>(*baseInfo);
-				if(info.get_n_scissor_boxes() == 0u && info.get_n_viewports() == 0u)
+				auto &info = static_cast<const prosper::GraphicsPipelineCreateInfo&>(*baseInfo);
+				if(info.GetScissorBoxesCount() == 0u && info.GetViewportCount() == 0u)
 					continue;
 				bHasStaticViewportOrScissor = true;
 				break;
@@ -730,6 +733,14 @@ bool VlkContext::IsPresentationModeSupported(prosper::PresentModeKHR presentMode
 	return res;
 }
 
+Anvil::PipelineLayout *VlkContext::GetPipelineLayout(bool graphicsShader,Anvil::PipelineID pipelineId)
+{
+	auto &dev = GetDevice();
+	if(graphicsShader)
+		return dev.get_graphics_pipeline_manager()->get_pipeline_layout(pipelineId);
+	return dev.get_compute_pipeline_manager()->get_pipeline_layout(pipelineId);
+}
+
 void VlkContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock,prosper::IFence *fence)
 {
 	switch(queueFamilyType)
@@ -891,9 +902,9 @@ std::shared_ptr<prosper::IImage> prosper::VlkContext::CreateImage(const util::Im
 {
 	return ::create_image(*this,createInfo,&data);
 }
-std::shared_ptr<prosper::IRenderPass> prosper::VlkContext::CreateRenderPass(std::unique_ptr<Anvil::RenderPassCreateInfo> renderPassInfo)
+std::shared_ptr<prosper::IRenderPass> prosper::VlkContext::CreateRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo,std::unique_ptr<Anvil::RenderPassCreateInfo> anvRenderPassInfo)
 {
-	return prosper::VlkRenderPass::Create(*this,Anvil::RenderPass::create(std::move(renderPassInfo),GetSwapchain().get()));
+	return prosper::VlkRenderPass::Create(*this,renderPassInfo,Anvil::RenderPass::create(std::move(anvRenderPassInfo),GetSwapchain().get()));
 }
 static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSetGroup &dsg)
 {

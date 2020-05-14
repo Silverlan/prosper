@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader_blur.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_context.hpp"
 #include "prosper_util_square_shape.hpp"
 #include "prosper_util.hpp"
@@ -54,11 +55,11 @@ void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRende
 	CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<prosper::Format>(g_pipelineFormats.at(pipelineIdx))}}},outRenderPass,pipelineIdx);
 }
 
-void ShaderBlurBase::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
+void ShaderBlurBase::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
 {
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo,pipelineIdx);
 
-	pipelineInfo.toggle_dynamic_states(true,{Anvil::DynamicState::SCISSOR});
+	pipelineInfo.ToggleDynamicStates(true,{prosper::DynamicState::Scissor});
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_POSITION);
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_UV);
 	AddDescriptorSetGroup(pipelineInfo,DESCRIPTOR_SET_TEXTURE);

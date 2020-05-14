@@ -97,8 +97,8 @@ namespace prosper
 			ImageSubresourceLayers srcSubresource = {ImageAspectFlags::ColorBit,0u,0u,1u};
 			ImageSubresourceLayers dstSubresource = {ImageAspectFlags::ColorBit,0u,0u,1u};
 
-			vk::Offset3D srcOffset = vk::Offset3D(0,0,0);
-			vk::Offset3D dstOffset = vk::Offset3D(0,0,0);
+			Offset3D srcOffset = Offset3D(0,0,0);
+			Offset3D dstOffset = Offset3D(0,0,0);
 
 			ImageLayout srcImageLayout = ImageLayout::TransferSrcOptimal;
 			ImageLayout dstImageLayout = ImageLayout::TransferDstOptimal;
@@ -106,7 +106,7 @@ namespace prosper
 
 		struct DLLPROSPER BufferImageCopyInfo
 		{
-			vk::DeviceSize bufferOffset = 0ull;
+			DeviceSize bufferOffset = 0ull;
 			std::optional<uint32_t> width = {};
 			std::optional<uint32_t> height = {};
 			uint32_t mipLevel = 0u;
@@ -210,8 +210,8 @@ namespace prosper
 		{
 			AccessFlags srcAccessMask = {};
 			AccessFlags dstAccessMask = {};
-			vk::DeviceSize offset = 0ull;
-			vk::DeviceSize size = std::numeric_limits<vk::DeviceSize>::max();
+			DeviceSize offset = 0ull;
+			DeviceSize size = std::numeric_limits<DeviceSize>::max();
 		};
 
 		struct DLLPROSPER ImageBarrierInfo
@@ -394,6 +394,7 @@ namespace prosper
 		struct DLLPROSPER Binding
 		{
 			Binding()=default;
+			Binding(const Binding &other)=default;
 			Binding(
 				uint32_t descriptorArraySize,
 				DescriptorType descriptorType,
@@ -429,6 +430,10 @@ namespace prosper
 			}
 			bool operator!=(const Binding &binding) const {return !operator==(binding);}
 		};
+		DescriptorSetCreateInfo(const DescriptorSetCreateInfo &other);
+		DescriptorSetCreateInfo &operator=(const DescriptorSetCreateInfo &other);
+		DescriptorSetCreateInfo(DescriptorSetCreateInfo &&other);
+		DescriptorSetCreateInfo &operator=(DescriptorSetCreateInfo &&other);
 
 		bool GetBindingPropertiesByBindingIndex(
 			uint32_t bindingIndex,
@@ -506,42 +511,8 @@ namespace prosper
 	class DLLPROSPER ShaderModule
 	{
 	public:
-		/** Destructor. Releases internally maintained Vulkan shader module instance. */
-		virtual ~ShaderModule()=default;
-
-		const std::string& get_cs_entrypoint_name() const
-		{
-			return m_csEntrypointName;
-		}
-
-		const std::string& get_fs_entrypoint_name() const
-		{
-			return m_fsEntrypointName;
-		}
-
-		const std::string& get_glsl_source_code() const
-		{
-			return m_glslSourceCode;
-		}
-		const std::string& get_gs_entrypoint_name() const
-		{
-			return m_gsEntrypointName;
-		}
-		const std::string& get_tc_entrypoint_name() const
-		{
-			return m_tcEntrypointName;
-		}
-		const std::string& get_te_entrypoint_name() const
-		{
-			return m_teEntrypointName;
-		}
-		const std::string& get_vs_entrypoint_name() const
-		{
-			return m_vsEntrypointName;
-		}
-
-	private:
 		ShaderModule(
+			const std::vector<uint32_t> &spirvBlob,
 			const std::string&          in_opt_cs_entrypoint_name,
 			const std::string&          in_opt_fs_entrypoint_name,
 			const std::string&          in_opt_gs_entrypoint_name,
@@ -549,7 +520,42 @@ namespace prosper
 			const std::string&          in_opt_te_entrypoint_name,
 			const std::string&          in_opt_vs_entrypoint_name
 		);
+		/** Destructor. Releases internally maintained Vulkan shader module instance. */
+		virtual ~ShaderModule()=default;
 
+		const std::string& GetCSEntrypointName() const
+		{
+			return m_csEntrypointName;
+		}
+
+		const std::string& GetFSEntrypointName() const
+		{
+			return m_fsEntrypointName;
+		}
+
+		const std::string& GetGLSLSourceCode() const
+		{
+			return m_glslSourceCode;
+		}
+		const std::string& GetGSEntrypointName() const
+		{
+			return m_gsEntrypointName;
+		}
+		const std::string& GetTCEntrypointName() const
+		{
+			return m_tcEntrypointName;
+		}
+		const std::string& GetTEEntrypointName() const
+		{
+			return m_teEntrypointName;
+		}
+		const std::string& GetVSEntrypointName() const
+		{
+			return m_vsEntrypointName;
+		}
+		const std::optional<std::vector<uint32_t>> &GetSPIRVData() const;
+
+	private:
 		ShaderModule           (const ShaderModule&);
 		ShaderModule& operator=(const ShaderModule&);
 
@@ -560,6 +566,7 @@ namespace prosper
 		std::string m_teEntrypointName;
 		std::string m_vsEntrypointName;
 		std::string m_glslSourceCode;
+		std::optional<std::vector<uint32_t>> m_spirvData {};
 	};
 
 	struct DLLPROSPER ShaderModuleStageEntryPoint
@@ -599,7 +606,7 @@ namespace prosper
 		{}
 	};
 
-	struct StencilOpState
+	struct DLLPROSPER StencilOpState
 	{
 		StencilOp failOp;
 		StencilOp passOp;

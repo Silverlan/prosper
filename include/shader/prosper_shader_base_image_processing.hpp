@@ -28,8 +28,8 @@ namespace prosper
 		bool Draw(prosper::IDescriptorSet &descSetTexture);
 		virtual bool Draw() override;
 	protected:
-		void AddDefaultVertexAttributes(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
-		virtual void InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
+		void AddDefaultVertexAttributes(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
 		virtual uint32_t GetTextureDescriptorSetIndex() const;
 	};
 };

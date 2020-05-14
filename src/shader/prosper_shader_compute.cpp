@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 #include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "vk_command_buffer.hpp"
@@ -17,24 +18,13 @@ prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context,const std::st
 	: Shader(context,identifier,csShader)
 {}
 
-Anvil::BasePipelineManager *prosper::ShaderCompute::GetPipelineManager() const
+bool prosper::ShaderCompute::AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data)
 {
-	auto &context = const_cast<const ShaderCompute*>(this)->GetContext();
-	auto &dev = static_cast<VlkContext&>(context).GetDevice();
-	return dev.get_compute_pipeline_manager();
+	return pipelineInfo.AddSpecializationConstant(constantId,numBytes,data);
 }
-bool prosper::ShaderCompute::AddSpecializationConstant(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data)
-{
-	return pipelineInfo.add_specialization_constant(constantId,numBytes,data);
-}
-void prosper::ShaderCompute::InitializeComputePipeline(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) {}
+void prosper::ShaderCompute::InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) {}
 void prosper::ShaderCompute::InitializePipeline()
 {
-	auto &context = GetContext();
-	auto &dev = static_cast<VlkContext&>(context).GetDevice();
-	auto swapchain = static_cast<VlkContext&>(context).GetSwapchain();
-	auto *computePipelineManager = dev.get_compute_pipeline_manager();
-
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
 	auto firstPipelineId = std::numeric_limits<Anvil::PipelineID>::max();
@@ -48,28 +38,32 @@ void prosper::ShaderCompute::InitializePipeline()
 		else if(m_basePipeline.expired() == false)
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
 
-		Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
+		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
 		auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
 		if(bIsDerivative)
-			createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
-		auto computePipelineInfo = Anvil::ComputePipelineCreateInfo::create(
+			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
+		auto computePipelineInfo = prosper::ComputePipelineCreateInfo::Create(
 			createFlags,
-			(modCmp != nullptr) ? *modCmp->entryPoint : Anvil::ShaderModuleStageEntryPoint(),
+			(modCmp != nullptr) ? *modCmp->entryPoint : prosper::ShaderModuleStageEntryPoint(),
 			bIsDerivative ? &basePipelineId : nullptr
 		);
 		if(computePipelineInfo == nullptr)
 			continue;
+		m_currentPipelineIdx = pipelineIdx;
 		InitializeComputePipeline(*computePipelineInfo,pipelineIdx);
 		InitializeDescriptorSetGroup(*computePipelineInfo);
-
+		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
+		
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = std::numeric_limits<decltype(pipelineInfo.id)>::max();
-		auto r = computePipelineManager->add_pipeline(std::move(computePipelineInfo),&pipelineInfo.id);
-		if(r == true)
+		auto &context = GetContext();
+		auto result = context.AddPipeline(*computePipelineInfo,*modCmp,basePipelineId);
+		pipelineInfo.createInfo = std::move(computePipelineInfo);
+		if(result.has_value())
 		{
+			pipelineInfo.id = *result;
 			if(firstPipelineId == std::numeric_limits<Anvil::PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
-			computePipelineManager->bake();
 			OnPipelineInitialized(pipelineIdx);
 		}
 	}

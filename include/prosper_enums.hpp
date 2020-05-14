@@ -589,7 +589,7 @@ namespace prosper
 		DerivativeBit = 4
 	};
 
-	enum class DynamicState : uint8_t
+	enum class DynamicState : uint32_t
 	{
 		Viewport = 0,
 		Scissor = 1,
@@ -710,6 +710,18 @@ namespace prosper
 		GBit = 2,
 		BBit = 4,
 		ABit = 8,
+	};
+
+	enum class AttachmentType : uint8_t
+	{
+		Color = 0,
+		DepthStencil,
+		Input,
+		Preserve,
+		Resolve,
+
+		Count,
+		Unknown = Count
 	};
 
 	struct MemoryRequirements

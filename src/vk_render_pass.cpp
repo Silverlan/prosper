@@ -9,21 +9,21 @@
 
 using namespace prosper;
 
-std::shared_ptr<VlkRenderPass> VlkRenderPass::Create(IPrContext &context,Anvil::RenderPassUniquePtr imgView,const std::function<void(IRenderPass&)> &onDestroyedCallback)
+std::shared_ptr<VlkRenderPass> VlkRenderPass::Create(IPrContext &context,const prosper::util::RenderPassCreateInfo &createInfo,Anvil::RenderPassUniquePtr imgView,const std::function<void(IRenderPass&)> &onDestroyedCallback)
 {
 	if(imgView == nullptr)
 		return nullptr;
 	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<VlkRenderPass>(new VlkRenderPass(context,std::move(imgView)));
-	return std::shared_ptr<VlkRenderPass>(new VlkRenderPass(context,std::move(imgView)),[onDestroyedCallback](VlkRenderPass *buf) {
+		return std::shared_ptr<VlkRenderPass>(new VlkRenderPass(context,createInfo,std::move(imgView)));
+	return std::shared_ptr<VlkRenderPass>(new VlkRenderPass(context,createInfo,std::move(imgView)),[onDestroyedCallback](VlkRenderPass *buf) {
 		buf->OnRelease();
 		onDestroyedCallback(*buf);
 		delete buf;
 	});
 }
 
-VlkRenderPass::VlkRenderPass(IPrContext &context,Anvil::RenderPassUniquePtr imgView)
-	: IRenderPass{context},m_renderPass{std::move(imgView)}
+VlkRenderPass::VlkRenderPass(IPrContext &context,const prosper::util::RenderPassCreateInfo &createInfo,Anvil::RenderPassUniquePtr imgView)
+	: IRenderPass{context,createInfo},m_renderPass{std::move(imgView)}
 {
 	prosper::debug::register_debug_object(m_renderPass->get_render_pass(),this,prosper::debug::ObjectType::RenderPass);
 }

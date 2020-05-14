@@ -51,6 +51,28 @@ ShaderModuleStageEntryPoint& ShaderModuleStageEntryPoint::operator=(const Shader
 	return *this;
 }
 
+DescriptorSetCreateInfo::DescriptorSetCreateInfo(const DescriptorSetCreateInfo &other)
+	: m_bindings{other.m_bindings},m_numVariableDescriptorCountBinding{other.m_numVariableDescriptorCountBinding},
+	m_variableDescriptorCountBindingSize{other.m_variableDescriptorCountBindingSize}
+{}
+DescriptorSetCreateInfo::DescriptorSetCreateInfo(DescriptorSetCreateInfo &&other)
+	: m_bindings{std::move(other.m_bindings)},m_numVariableDescriptorCountBinding{other.m_numVariableDescriptorCountBinding},
+	m_variableDescriptorCountBindingSize{other.m_variableDescriptorCountBindingSize}
+{}
+DescriptorSetCreateInfo &DescriptorSetCreateInfo::operator=(const DescriptorSetCreateInfo &other)
+{
+	m_bindings = other.m_bindings;
+	m_numVariableDescriptorCountBinding = other.m_numVariableDescriptorCountBinding;
+	m_variableDescriptorCountBindingSize = other.m_variableDescriptorCountBindingSize;
+	return *this;
+}
+DescriptorSetCreateInfo &DescriptorSetCreateInfo::operator=(DescriptorSetCreateInfo &&other)
+{
+	m_bindings = std::move(other.m_bindings);
+	m_numVariableDescriptorCountBinding = other.m_numVariableDescriptorCountBinding;
+	m_variableDescriptorCountBindingSize = other.m_variableDescriptorCountBindingSize;
+	return *this;
+}
 bool DescriptorSetCreateInfo::GetBindingPropertiesByBindingIndex(
 	uint32_t bindingIndex,
 	DescriptorType *outOptDescriptorType,

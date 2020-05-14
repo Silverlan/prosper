@@ -6,8 +6,10 @@
 #include "prosper_command_buffer.hpp"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
+#include "shader/prosper_shader.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/vk_buffer.hpp"
+#include "vk_context.hpp"
 #include "vk_command_buffer.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
@@ -23,21 +25,23 @@ prosper::ICommandBuffer::~ICommandBuffer() {}
 bool prosper::ICommandBuffer::IsPrimary() const {return false;}
 bool prosper::ICommandBuffer::IsSecondary() const {return false;}
 bool prosper::ICommandBuffer::RecordBindDescriptorSets(
-	PipelineBindPoint bindPoint,Anvil::PipelineLayout &layout,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets
+	PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineIdx,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets
 )
 {
 	std::vector<Anvil::DescriptorSet*> anvDescSets {};
 	anvDescSets.reserve(descSets.size());
 	for(auto *ds : descSets)
 		anvDescSets.push_back(&static_cast<prosper::VlkDescriptorSet&>(*ds).GetAnvilDescriptorSet());
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_descriptor_sets(
-		static_cast<Anvil::PipelineBindPoint>(bindPoint),&layout,firstSet,anvDescSets.size(),anvDescSets.data(),
+	prosper::PipelineID pipelineId;
+	return shader.GetPipelineId(pipelineId,pipelineIdx) && dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_descriptor_sets(
+		static_cast<Anvil::PipelineBindPoint>(bindPoint),static_cast<VlkContext&>(GetContext()).GetPipelineLayout(shader.IsGraphicsShader(),pipelineId),firstSet,anvDescSets.size(),anvDescSets.data(),
 		dynamicOffsets.size(),dynamicOffsets.data()
 	);
 }
-bool prosper::ICommandBuffer::RecordPushConstants(Anvil::PipelineLayout &layout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)
+bool prosper::ICommandBuffer::RecordPushConstants(prosper::Shader &shader,PipelineID pipelineIdx,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_push_constants(&layout,static_cast<Anvil::ShaderStageFlagBits>(stageFlags),offset,size,data);
+	prosper::PipelineID pipelineId;
+	return shader.GetPipelineId(pipelineId,pipelineIdx) && dynamic_cast<VlkCommandBuffer&>(*this)->record_push_constants(static_cast<VlkContext&>(GetContext()).GetPipelineLayout(shader.IsGraphicsShader(),pipelineId),static_cast<Anvil::ShaderStageFlagBits>(stageFlags),offset,size,data);
 }
 bool prosper::ICommandBuffer::RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id)
 {

@@ -100,7 +100,7 @@ namespace prosper
 		std::map<ShaderStage, ShaderModuleStageEntryPoint> m_shaderStages;
 	};
 
-	class GraphicsPipelineCreateInfo
+	class DLLPROSPER GraphicsPipelineCreateInfo
 		: public BasePipelineCreateInfo
 	{
 	public:
@@ -794,7 +794,7 @@ namespace prosper
 		SubPassID m_subpassId;
 	};
 
-	class ComputePipelineCreateInfo
+	class DLLPROSPER ComputePipelineCreateInfo
 		: public BasePipelineCreateInfo
 	{
 	public:
@@ -812,7 +812,7 @@ namespace prosper
 		*
 		*  @return true if successful, false otherwise.
 		**/
-		bool add_specialization_constant(uint32_t    in_constant_id,
+		bool AddSpecializationConstant(uint32_t    in_constant_id,
 			uint32_t    in_n_data_bytes,
 			const void* in_data_ptr)
 		{
@@ -822,10 +822,10 @@ namespace prosper
 				in_data_ptr);
 		}
 
-		~ComputePipelineCreateInfo();
+		~ComputePipelineCreateInfo()=default;
 
 	private:
-		ComputePipelineCreateInfo();
+		using BasePipelineCreateInfo::BasePipelineCreateInfo;
 	};
 };
 

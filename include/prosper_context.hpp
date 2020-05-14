@@ -51,6 +51,7 @@ namespace prosper
 		struct ImageCreateInfo;
 	};
 
+	struct ShaderStageData;
 	class Texture;
 	class RenderTarget;
 	class IBuffer;
@@ -67,6 +68,8 @@ namespace prosper
 	class ISecondaryCommandBuffer;
 	class IFence;
 	class IEvent;
+	class ComputePipelineCreateInfo;
+	class GraphicsPipelineCreateInfo;
 	struct DescriptorSetInfo;
 	class DLLPROSPER IPrContext
 		: public std::enable_shared_from_this<IPrContext>
@@ -222,6 +225,7 @@ namespace prosper
 		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers);
 		std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo);
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
+		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
 		std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments);
 		std::shared_ptr<Texture> CreateTexture(
 			const util::TextureCreateInfo &createInfo,IImage &img,
@@ -230,6 +234,27 @@ namespace prosper
 		);
 		std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<IRenderPass> &rp=nullptr,const util::RenderTargetCreateInfo &rtCreateInfo={});
 		std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture,IImageView &imgView,IRenderPass &rp,const util::RenderTargetCreateInfo &rtCreateInfo={});
+		std::unique_ptr<ShaderModule> CreateShaderModuleFromSPIRVBlob(
+			const std::vector<uint32_t> &spirvBlob,
+			prosper::ShaderStage stage,
+			const std::string &entrypointName="main"
+		);
+		std::optional<PipelineID> AddPipeline(
+			const prosper::ComputePipelineCreateInfo &createInfo,
+			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
+		);
+		std::optional<PipelineID> AddPipeline(
+			const prosper::GraphicsPipelineCreateInfo &createInfo,
+			IRenderPass &rp,
+			prosper::ShaderStageData *shaderStageFs=nullptr,
+			prosper::ShaderStageData *shaderStageVs=nullptr,
+			prosper::ShaderStageData *shaderStageGs=nullptr,
+			prosper::ShaderStageData *shaderStageTc=nullptr,
+			prosper::ShaderStageData *shaderStageTe=nullptr,
+			SubPassID subPassId=0,
+			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
+		);
+		bool ClearPipeline(bool graphicsShader,PipelineID pipelineId);
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 

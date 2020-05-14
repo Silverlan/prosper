@@ -13,7 +13,7 @@ namespace prosper
 		: public IRenderPass
 	{
 	public:
-		static std::shared_ptr<VlkRenderPass> Create(IPrContext &context,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp,const std::function<void(IRenderPass&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<VlkRenderPass> Create(IPrContext &context,const util::RenderPassCreateInfo &createInfo,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp,const std::function<void(IRenderPass&)> &onDestroyedCallback=nullptr);
 		virtual ~VlkRenderPass() override;
 		Anvil::RenderPass &GetAnvilRenderPass() const;
 		Anvil::RenderPass &operator*();
@@ -21,7 +21,7 @@ namespace prosper
 		Anvil::RenderPass *operator->();
 		const Anvil::RenderPass *operator->() const;
 	protected:
-		VlkRenderPass(IPrContext &context,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp);
+		VlkRenderPass(IPrContext &context,const util::RenderPassCreateInfo &createInfo,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp);
 		std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> m_renderPass = nullptr;
 	};
 };

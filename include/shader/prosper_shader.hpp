@@ -12,6 +12,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_enums.hpp"
+#include "prosper_structs.hpp"
 #include <config.h>
 #include <cinttypes>
 #include <vulkan/vulkan.hpp>
@@ -22,11 +23,6 @@
 
 #undef max
 
-namespace Anvil
-{
-	class BasePipelineManager;
-};
-
 #pragma warning(push)
 #pragma warning(disable : 4251)
 namespace prosper
@@ -34,8 +30,8 @@ namespace prosper
 	class DescriptorSetCreateInfo;
 	struct DLLPROSPER ShaderStageData
 	{
-		std::unique_ptr<Anvil::ShaderModule,std::function<void(Anvil::ShaderModule*)>> module = nullptr;
-		std::unique_ptr<Anvil::ShaderModuleStageEntryPoint> entryPoint = nullptr;
+		std::unique_ptr<prosper::ShaderModule,std::function<void(prosper::ShaderModule*)>> module = nullptr;
+		std::unique_ptr<prosper::ShaderModuleStageEntryPoint> entryPoint = nullptr;
 		prosper::ShaderStage stage = prosper::ShaderStage::Fragment;
 		std::string path;
 		std::vector<uint32_t> spirvBlob;
@@ -72,6 +68,22 @@ namespace prosper
 		bool m_bWasBaked = false;
 	};
 
+	class BasePipelineCreateInfo;
+	class IRenderPass;
+	struct DLLPROSPER PipelineInfo
+	{
+		PipelineInfo()=default;
+		prosper::PipelineID id = std::numeric_limits<Anvil::PipelineID>::max();
+		std::shared_ptr<IRenderPass> renderPass = nullptr; // Only used for graphics shader
+		std::string debugName;
+
+		std::vector<PushConstantRange> pushConstantRanges {};
+		// TODO: These should be unique_ptrs, but that results in compiler errors
+		// that I haven't been able to get around
+		std::shared_ptr<prosper::BasePipelineCreateInfo> createInfo = nullptr;
+		std::vector<std::shared_ptr<DescriptorSetCreateInfo>> descSetInfos {};
+	};
+
 	class IDescriptorSetGroup;
 	class IRenderPass;
 	class ICommandBuffer;
@@ -79,6 +91,9 @@ namespace prosper
 	class IPrimaryCommandBuffer;
 	class IDescriptorSet;
 	class ShaderManager;
+	class IPipelineManager;
+	class GraphicsPipelineCreateInfo;
+	class ComputePipelineCreateInfo;
 	namespace util {struct RenderPassCreateInfo;};
 	class DLLPROSPER Shader
 		: public ContextObject,
@@ -112,10 +127,7 @@ namespace prosper
 		bool IsGraphicsShader() const;
 		bool IsComputeShader() const;
 		PipelineBindPoint GetPipelineBindPoint() const;
-		Anvil::PipelineLayout *GetPipelineLayout(uint32_t pipelineIdx=0u) const;
-		const Anvil::BasePipelineCreateInfo *GetPipelineInfo(uint32_t pipelineIdx=0u) const;
-		bool GetShaderStatistics(vk::ShaderStatisticsInfoAMD &stats,prosper::ShaderStage stage,uint32_t pipelineIdx=0u) const;
-		const Anvil::ShaderModuleStageEntryPoint *GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx=0u) const;
+		const prosper::ShaderModuleStageEntryPoint *GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx=0u) const;
 		bool GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx=0u) const;
 
 		// If a base shader is specified, pipelines will be created as derived pipelines
@@ -133,14 +145,17 @@ namespace prosper
 			bool RecordPushConstants(const T &data,uint32_t offset=0u);
 		bool RecordPushConstants(uint32_t size,const void *data,uint32_t offset=0u);
 		bool RecordBindDescriptorSets(const std::vector<prosper::IDescriptorSet*> &descSets,uint32_t firstSet=0u,const std::vector<uint32_t> &dynamicOffsets={});
-		void AddDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo);
-		bool AttachPushConstantRange(Anvil::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages);
+		void AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo);
+		bool AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages);
 		virtual bool RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet=0u,const std::vector<uint32_t> &dynamicOffsets={});
 
-		Anvil::ShaderModule *GetModule(ShaderStage stage);
+		prosper::ShaderModule *GetModule(ShaderStage stage);
 		bool IsValid() const;
 		const std::string &GetIdentifier() const;
 
+		const PipelineInfo *GetPipelineInfo(PipelineID id) const;
+		PipelineInfo *GetPipelineInfo(PipelineID id);
+		BasePipelineCreateInfo *GetPipelineCreateInfo(PipelineID id);
 		bool GetSourceFilePath(ShaderStage stage,std::string &sourceFilePath) const;
 		std::vector<std::string> GetSourceFilePaths() const;
 
@@ -165,30 +180,22 @@ namespace prosper
 		virtual bool ShouldInitializePipeline(uint32_t pipelineIdx);
 		void ClearPipelines();
 
-		struct PipelineInfo
-		{
-			prosper::PipelineID id;
-			std::shared_ptr<IRenderPass> renderPass; // Only used for graphics shader
-			std::string debugName;
-		};
 		ShaderStageData *GetStage(ShaderStage stage);
 		const ShaderStageData *GetStage(ShaderStage stage) const;
-		void InitializeDescriptorSetGroup(Anvil::BasePipelineCreateInfo &pipelineInfo);
-		std::vector<PipelineInfo> m_pipelineInfos;
+		void InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo);
+		std::vector<PipelineInfo> m_pipelineInfos {};
 		// Pipeline this pipeline is derived from
 		std::weak_ptr<Shader> m_basePipeline = {};
+		uint32_t m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
 	private:
 		std::weak_ptr<prosper::IPrimaryCommandBuffer> m_currentCmd = {};
 		static std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> s_logCallback;
 		using std::enable_shared_from_this<Shader>::shared_from_this;
 
-		virtual Anvil::BasePipelineManager *GetPipelineManager() const=0;
 		bool InitializeSources(bool bReload=false);
 		void InitializeStages();
 		
 		std::array<std::shared_ptr<ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> m_stages;
-		std::vector<std::unique_ptr<DescriptorSetCreateInfo>> m_dsInfos = {};
-		uint32_t m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
 		bool m_bValid = false;
 		bool m_bFirstTimeInit = true;
 		std::string m_identifier;
@@ -200,7 +207,7 @@ namespace prosper
 		: public Shader
 	{
 	protected:
-		virtual void PrepareGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
+		virtual void PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 	public:
 		struct DLLPROSPER VertexBinding
 		{
@@ -212,7 +219,7 @@ namespace prosper
 
 			uint32_t GetBindingIndex() const;
 		private:
-			friend void ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
+			friend void ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 			std::function<void()> initializer = nullptr;
 
 			uint32_t bindingIndex = std::numeric_limits<uint32_t>::max();
@@ -232,7 +239,7 @@ namespace prosper
 
 			uint32_t GetLocation() const;
 		private:
-			friend void ShaderGraphics::PrepareGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
+			friend void ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 			std::function<void()> initializer = nullptr;
 
 			uint32_t location = std::numeric_limits<uint32_t>::max();
@@ -254,8 +261,8 @@ namespace prosper
 		bool RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType=prosper::IndexType::UInt16,vk::DeviceSize offset=0ull);
 		bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1u,uint32_t firstVertex=0u,uint32_t firstInstance=0u);
 		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,int32_t vertexOffset=0,uint32_t firstInstance=0u);
-		void AddVertexAttribute(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);
-		bool AddSpecializationConstant(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data);
+		void AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);
+		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data);
 		virtual bool BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		virtual bool Draw();
 		virtual void EndDraw();
@@ -265,10 +272,10 @@ namespace prosper
 			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context,uint32_t pipelineIdx=0u);
 	protected:
 		bool BeginDrawViewport(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
-		void SetGenericAlphaColorBlendAttachmentProperties(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
-		void ToggleDynamicViewportState(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
-		void ToggleDynamicScissorState(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
-		virtual void InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
+		void SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+		void ToggleDynamicViewportState(prosper::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
+		void ToggleDynamicScissorState(prosper::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
+		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
 		virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx);
 
 		void CreateCachedRenderPass(size_t hashCode,const prosper::util::RenderPassCreateInfo &renderPassInfo,std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx,const std::string &debugName="");
@@ -277,7 +284,6 @@ namespace prosper
 		static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context,size_t hashCode,uint32_t pipelineIdx);
 	private:
 		virtual void InitializePipeline() override;
-		virtual Anvil::BasePipelineManager *GetPipelineManager() const override;
 		std::vector<std::reference_wrapper<VertexAttribute>> m_vertexAttributes = {};
 	};
 
@@ -291,21 +297,20 @@ namespace prosper
 		virtual bool BeginCompute(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u);
 		virtual void Compute();
 		virtual void EndCompute();
-		bool AddSpecializationConstant(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data);
+		bool AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data);
 	protected:
-		virtual void InitializeComputePipeline(Anvil::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
+		virtual void InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
 	private:
 		virtual void InitializePipeline() override;
-		virtual Anvil::BasePipelineManager *GetPipelineManager() const override;
 	};
 
 	namespace util
 	{
-		DLLPROSPER void set_graphics_pipeline_polygon_mode(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::PolygonMode polygonMode);
-		DLLPROSPER void set_graphics_pipeline_line_width(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,float lineWidth);
-		DLLPROSPER void set_graphics_pipeline_cull_mode_flags(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::CullModeFlags cullModeFlags);
-		DLLPROSPER void set_graphics_pipeline_front_face(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,Anvil::FrontFace frontFace);
-		DLLPROSPER void set_generic_alpha_color_blend_attachment_properties(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
+		DLLPROSPER void set_graphics_pipeline_polygon_mode(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::PolygonMode polygonMode);
+		DLLPROSPER void set_graphics_pipeline_line_width(prosper::GraphicsPipelineCreateInfo &pipelineInfo,float lineWidth);
+		DLLPROSPER void set_graphics_pipeline_cull_mode_flags(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::CullModeFlags cullModeFlags);
+		DLLPROSPER void set_graphics_pipeline_front_face(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::FrontFace frontFace);
+		DLLPROSPER void set_generic_alpha_color_blend_attachment_properties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 
 		enum class DynamicStateFlags : uint32_t
 		{
@@ -328,9 +333,9 @@ namespace prosper
 			ExclusiveScissorNV = ViewportCoarseSampleOrderNV<<1u
 #endif
 		};
-		DLLPROSPER void set_dynamic_states_enabled(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states,bool enabled=true);
-		DLLPROSPER bool are_dynamic_states_enabled(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states);
-		DLLPROSPER DynamicStateFlags get_enabled_dynamic_states(Anvil::GraphicsPipelineCreateInfo &pipelineInfo);
+		DLLPROSPER void set_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states,bool enabled=true);
+		DLLPROSPER bool are_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo,DynamicStateFlags states);
+		DLLPROSPER DynamicStateFlags get_enabled_dynamic_states(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::util::DynamicStateFlags)

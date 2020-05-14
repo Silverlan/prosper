@@ -18,7 +18,7 @@ namespace prosper
 		ShaderRect(prosper::IPrContext &context,const std::string &identifier);
 		bool Draw(const Mat4 &modelMatrix);
 	protected:
-		virtual void InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
+		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
 	};
 };
 

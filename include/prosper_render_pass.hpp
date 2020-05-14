@@ -21,8 +21,10 @@ namespace prosper
 		IRenderPass(const IRenderPass&)=delete;
 		IRenderPass &operator=(const IRenderPass&)=delete;
 		virtual ~IRenderPass() override;
+		const util::RenderPassCreateInfo &GetCreateInfo() const;
 	protected:
-		IRenderPass(IPrContext &context);
+		IRenderPass(IPrContext &context,const util::RenderPassCreateInfo &createInfo);
+		util::RenderPassCreateInfo m_createInfo {};
 	};
 };
 

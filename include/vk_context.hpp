@@ -34,7 +34,7 @@ namespace prosper
 		using IPrContext::CreateImage;
 		std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data);
 		using IPrContext::CreateRenderPass;
-		std::shared_ptr<IRenderPass> CreateRenderPass(std::unique_ptr<Anvil::RenderPassCreateInfo> renderPassInfo);
+		std::shared_ptr<IRenderPass> CreateRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo,std::unique_ptr<Anvil::RenderPassCreateInfo> anvRenderPassInfo);
 		using IPrContext::CreateDescriptorSetGroup;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 
@@ -53,6 +53,8 @@ namespace prosper
 		virtual bool Submit(ICommandBuffer &cmdBuf,bool shouldBlock=false,IFence *optFence=nullptr) override;
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr) override;
 		using IPrContext::SubmitCommandBuffer;
+
+		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,Anvil::PipelineID pipelineId);
 	protected:
 		VlkContext(const std::string &appName,bool bEnableValidation=false);
 		virtual void Release() override;

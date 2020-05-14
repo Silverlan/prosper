@@ -1260,3 +1260,29 @@ void prosper::GraphicsPipelineCreateInfo::ToggleStencilTest(bool in_should_enabl
 {
 	m_stencilTestEnabled = in_should_enable;
 }
+
+///////
+
+std::unique_ptr<prosper::ComputePipelineCreateInfo> prosper::ComputePipelineCreateInfo::Create(
+	const PipelineCreateFlags&  in_create_flags,
+	const ShaderModuleStageEntryPoint& in_compute_shader_stage_entrypoint_info,
+	const PipelineID*           in_opt_base_pipeline_id_ptr
+)
+{
+	std::unique_ptr<ComputePipelineCreateInfo> result_ptr(nullptr,
+		std::default_delete<ComputePipelineCreateInfo>() );
+
+	result_ptr.reset(
+		new ComputePipelineCreateInfo()
+	);
+
+	if (result_ptr != nullptr)
+	{
+		result_ptr->init(in_create_flags,
+			1, /* in_n_shader_module_stage_entrypoints */
+			&in_compute_shader_stage_entrypoint_info,
+			in_opt_base_pipeline_id_ptr);
+	}
+
+	return result_ptr;
+}

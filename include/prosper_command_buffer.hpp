@@ -98,8 +98,8 @@ namespace prosper
 			IBuffer &buf,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
 			AccessFlags srcAccessMask,AccessFlags dstAccessMask,vk::DeviceSize offset=0ull,vk::DeviceSize size=std::numeric_limits<vk::DeviceSize>::max()
 		);
-		bool RecordBindDescriptorSets(PipelineBindPoint bindPoint,Anvil::PipelineLayout &layout,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={});
-		bool RecordPushConstants(Anvil::PipelineLayout &layout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data);
+		bool RecordBindDescriptorSets(PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={});
+		bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data);
 		bool RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id);
 
 		bool RecordSetLineWidth(float lineWidth);

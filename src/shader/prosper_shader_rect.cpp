@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader_rect.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_util_square_shape.hpp"
 #include <wrappers/graphics_pipeline_manager.h>
 
@@ -15,7 +16,7 @@ ShaderRect::ShaderRect(prosper::IPrContext &context,const std::string &identifie
 ShaderRect::ShaderRect(prosper::IPrContext &context,const std::string &identifier)
 	: ShaderRect(context,identifier,"screen/vs_screen_uv_cheap","screen/fs_screen")
 {}
-void ShaderRect::InitializeGfxPipeline(Anvil::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
+void ShaderRect::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
 {
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo,pipelineIdx);
 	AddDefaultVertexAttributes(pipelineInfo);
