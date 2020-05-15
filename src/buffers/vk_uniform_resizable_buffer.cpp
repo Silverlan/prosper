@@ -2,6 +2,9 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "prosper_includes.hpp"
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "stdafx_prosper.h"
 #include "vk_uniform_resizable_buffer.hpp"
 #include "prosper_util.hpp"

@@ -96,7 +96,7 @@ namespace prosper
 		);
 		bool RecordBufferBarrier(
 			IBuffer &buf,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
-			AccessFlags srcAccessMask,AccessFlags dstAccessMask,vk::DeviceSize offset=0ull,vk::DeviceSize size=std::numeric_limits<vk::DeviceSize>::max()
+			AccessFlags srcAccessMask,AccessFlags dstAccessMask,DeviceSize offset=0ull,DeviceSize size=std::numeric_limits<DeviceSize>::max()
 		);
 		bool RecordBindDescriptorSets(PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={});
 		bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data);
@@ -124,11 +124,11 @@ namespace prosper
 	{
 	public:
 		// If no render pass is specified, the render target's render pass will be used
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const vk::ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<vk::ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const vk::ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<vk::ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<vk::ClearValue> &clearValues={});
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<ClearValue> &clearValues={});
 		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const=0;
 		virtual bool RecordEndRenderPass()=0;
 		virtual bool RecordNextSubPass()=0;

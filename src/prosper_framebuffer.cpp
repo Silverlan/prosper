@@ -8,7 +8,6 @@
 #include "prosper_context.hpp"
 #include "image/prosper_image_view.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
-#include <misc/framebuffer_create_info.h>
 
 using namespace prosper;
 

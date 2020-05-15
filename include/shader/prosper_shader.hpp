@@ -5,26 +5,25 @@
 #ifndef __PROSPER_SHADER_HPP__
 #define __PROSPER_SHADER_HPP__
 
-#include <config.h>
-#include <misc/types.h>
-#include <misc/descriptor_set_create_info.h>
-#include <misc/graphics_pipeline_create_info.h>
 #include "prosper_definitions.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_enums.hpp"
 #include "prosper_structs.hpp"
-#include <config.h>
 #include <cinttypes>
-#include <vulkan/vulkan.hpp>
 #include <sharedutils/util_weak_handle.hpp>
 #include <mathutil/umath.h>
 #include <unordered_map>
 #include <optional>
+#include <functional>
 
 #undef max
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
+namespace Anvil
+{
+	class DescriptorSetCreateInfo;
+};
 namespace prosper
 {
 	class DescriptorSetCreateInfo;
@@ -73,7 +72,7 @@ namespace prosper
 	struct DLLPROSPER PipelineInfo
 	{
 		PipelineInfo()=default;
-		prosper::PipelineID id = std::numeric_limits<Anvil::PipelineID>::max();
+		prosper::PipelineID id = std::numeric_limits<prosper::PipelineID>::max();
 		std::shared_ptr<IRenderPass> renderPass = nullptr; // Only used for graphics shader
 		std::string debugName;
 
@@ -256,9 +255,9 @@ namespace prosper
 		ShaderGraphics(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader="");
 		virtual ~ShaderGraphics() override;
 		virtual bool RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet=0u,const std::vector<uint32_t> &dynamicOffsets={}) override;
-		bool RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<vk::DeviceSize> &offsets={});
-		bool RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding=0u,vk::DeviceSize offset=0ull);
-		bool RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType=prosper::IndexType::UInt16,vk::DeviceSize offset=0ull);
+		bool RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={});
+		bool RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding=0u,DeviceSize offset=0ull);
+		bool RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType=prosper::IndexType::UInt16,DeviceSize offset=0ull);
 		bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1u,uint32_t firstVertex=0u,uint32_t firstInstance=0u);
 		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,int32_t vertexOffset=0,uint32_t firstInstance=0u);
 		void AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);

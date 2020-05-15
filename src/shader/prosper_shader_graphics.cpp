@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
@@ -10,10 +12,10 @@
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"
 #include "image/prosper_image_view.hpp"
-#include "buffers/vk_buffer.hpp"
 #include "prosper_framebuffer.hpp"
-#include "vk_render_pass.hpp"
+#include "prosper_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
+#include "buffers/vk_buffer.hpp"
 #include "vk_command_buffer.hpp"
 #include <wrappers/command_buffer.h>
 #include <wrappers/buffer.h>
@@ -522,7 +524,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 				if((sampleCount &img.GetSampleCount()) == prosper::SampleCountFlags::None)
 				{
 					debug::exec_debug_validation_callback(
-						vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
+						DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
 						"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(img.GetSampleCount())) +") and shader pipeline '" +
 						*GetDebugName(pipelineIdx) +"' (with sample count "+vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
 					);
@@ -533,7 +535,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 					if((sampleCount &rpSampleCount) == prosper::SampleCountFlags::None)
 					{
 						debug::exec_debug_validation_callback(
-							vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
+							DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
 							"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rpSampleCount)) +") and shader pipeline '" +
 							*GetDebugName(pipelineIdx) +"' (with sample count "+vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
 						);
@@ -542,7 +544,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 					if(rpSampleCount != img.GetSampleCount())
 					{
 						debug::exec_debug_validation_callback(
-							vk::DebugReportObjectTypeEXT::ePipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
+							DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
 							"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rpSampleCount)) +") and render target attachment " +std::to_string(i) +" ('" +img.GetDebugName() +"')" +
 							" for image '" +img.GetDebugName() +"', which has sample count of " +vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
 						);

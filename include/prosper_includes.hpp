@@ -5,14 +5,14 @@
 #ifndef __PROSPER_INCLUDES_HPP__
 #define __PROSPER_INCLUDES_HPP__
 
+// TODO: This doesn't belong here, move to prosper_vulkan implementation!
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #else
 #define VK_USE_PLATFORM_XCB_KHR
 #endif
+//
 
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
 #include "prosper_enums.hpp"
 
 namespace prosper

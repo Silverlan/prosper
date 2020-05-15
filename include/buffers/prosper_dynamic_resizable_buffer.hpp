@@ -36,8 +36,8 @@ namespace prosper
 		: public IResizableBuffer
 	{
 	public:
-		std::shared_ptr<IBuffer> AllocateBuffer(vk::DeviceSize size,const void *data=nullptr);
-		std::shared_ptr<IBuffer> AllocateBuffer(vk::DeviceSize size,uint32_t alignment,const void *data);
+		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,const void *data=nullptr);
+		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,uint32_t alignment,const void *data);
 
 		friend std::shared_ptr<VkDynamicResizableBuffer> util::create_dynamic_resizable_buffer(
 			IPrContext &context,util::BufferCreateInfo createInfo,
@@ -51,15 +51,15 @@ namespace prosper
 	protected:
 		struct Range
 		{
-			vk::DeviceSize startOffset;
-			vk::DeviceSize size;
+			DeviceSize startOffset;
+			DeviceSize size;
 		};
 		IDynamicResizableBuffer(
 			IPrContext &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
 		);
-		void InsertFreeMemoryRange(std::list<Range>::iterator itWhere,vk::DeviceSize startOffset,vk::DeviceSize size);
-		void MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size);
-		std::list<Range>::iterator FindFreeRange(vk::DeviceSize size,uint32_t alignment);
+		void InsertFreeMemoryRange(std::list<Range>::iterator itWhere,DeviceSize startOffset,DeviceSize size);
+		void MarkMemoryRangeAsFree(DeviceSize startOffset,DeviceSize size);
+		std::list<Range>::iterator FindFreeRange(DeviceSize size,uint32_t alignment);
 		std::vector<IBuffer*> m_allocatedSubBuffers;
 		std::list<Range> m_freeRanges;
 		uint32_t m_alignment = 0u;

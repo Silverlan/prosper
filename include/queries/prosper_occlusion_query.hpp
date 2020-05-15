@@ -8,6 +8,11 @@
 #include "queries/prosper_query.hpp"
 #include <chrono>
 
+namespace Anvil
+{
+	class CommandBufferBase;
+};
+
 namespace prosper
 {
 	class QueryPool;

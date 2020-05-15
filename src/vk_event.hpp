@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_EVENT_HPP__
 
 #include "prosper_event.hpp"
+#include <wrappers/event.h>
 
 namespace prosper
 {

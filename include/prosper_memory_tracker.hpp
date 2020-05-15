@@ -9,6 +9,11 @@
 #include <vector>
 #include <memory>
 
+namespace Anvil
+{
+	class MemoryBlock;
+};
+
 #pragma warning(push)
 #pragma warning(disable : 4251)
 namespace prosper

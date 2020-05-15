@@ -2,6 +2,9 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "prosper_includes.hpp"
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "stdafx_prosper.h"
 #include "vk_image.hpp"
 #include "buffers/vk_buffer.hpp"
@@ -12,6 +15,8 @@
 #include <misc/image_create_info.h>
 
 using namespace prosper;
+
+static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
 static std::unique_ptr<std::unordered_map<Anvil::Image*,VlkImage*>> s_imageMap = nullptr;
 VlkImage *prosper::debug::get_image_from_anvil_image(Anvil::Image &img)

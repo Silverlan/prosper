@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_RENDER_PASS_HPP__
 
 #include "prosper_render_pass.hpp"
+#include <wrappers/render_pass.h>
 
 namespace prosper
 {

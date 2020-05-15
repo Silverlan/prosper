@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_FENCE_HPP__
 
 #include "prosper_fence.hpp"
+#include <wrappers/fence.h>
 
 namespace prosper
 {

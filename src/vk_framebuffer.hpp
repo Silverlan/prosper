@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_FRAMEBUFFER_HPP__
 
 #include "prosper_framebuffer.hpp"
+#include <wrappers/framebuffer.h>
 
 namespace prosper
 {

@@ -9,7 +9,6 @@
 #include "prosper_context.hpp"
 #include "image/prosper_sampler.hpp"
 #include "image/prosper_image_view.hpp"
-#include <misc/image_create_info.h>
 
 using namespace prosper;
 

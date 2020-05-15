@@ -5,12 +5,10 @@
 #include "stdafx_prosper.h"
 #include "vk_context.hpp"
 #include "shader/prosper_pipeline_manager.hpp"
-#include <wrappers/device.h>
-#include <wrappers/compute_pipeline_manager.h>
-#include <wrappers/graphics_pipeline_manager.h>
 
 using namespace prosper;
 
+// TODO: Remove this file/class
 IPipelineManager::IPipelineManager(IPrContext &context)
 	: ContextObject{context}
 {}

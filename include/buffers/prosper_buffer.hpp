@@ -31,9 +31,9 @@ namespace prosper
 	{
 	public:
 		using SubBufferIndex = uint32_t;
-		using Offset = vk::DeviceSize;
+		using Offset = DeviceSize;
 		using SmallOffset = uint32_t;
-		using Size = vk::DeviceSize;
+		using Size = DeviceSize;
 		static const auto INVALID_INDEX = std::numeric_limits<SubBufferIndex>::max();
 		static const auto INVALID_OFFSET = std::numeric_limits<Offset>::max();
 		static const auto INVALID_SMALL_OFFSET = std::numeric_limits<SmallOffset>::max();

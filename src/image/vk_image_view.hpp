@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_IMAGE_VIEW_HPP__
 
 #include "image/prosper_image_view.hpp"
+#include <wrappers/image_view.h>
 
 namespace prosper
 {

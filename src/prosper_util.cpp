@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "stdafx_prosper.h"
 #include "prosper_context.hpp"
 #include "prosper_util.hpp"
@@ -25,6 +27,7 @@
 #include "vk_event.hpp"
 #include "buffers/vk_uniform_resizable_buffer.hpp"
 #include "buffers/vk_dynamic_resizable_buffer.hpp"
+#include "prosper_memory_tracker.hpp"
 #include <sharedutils/util.h>
 #include <config.h>
 #include <wrappers/image.h>
@@ -34,10 +37,13 @@
 #include <wrappers/memory_block.h>
 #include <wrappers/buffer.h>
 #include <wrappers/device.h>
+#include <wrappers/instance.h>
 #include <wrappers/physical_device.h>
 #include <wrappers/descriptor_set_group.h>
 #include <wrappers/framebuffer.h>
 #include <wrappers/shader_module.h>
+#include <wrappers/queue.h>
+#include <wrappers/swapchain.h>
 #include <wrappers/compute_pipeline_manager.h>
 #include <wrappers/graphics_pipeline_manager.h>
 #include <misc/compute_pipeline_create_info.h>
@@ -517,7 +523,9 @@ std::shared_ptr<prosper::IRenderPass> prosper::IPrContext::CreateRenderPass(cons
 }
 std::shared_ptr<prosper::IDescriptorSetGroup> prosper::IPrContext::CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo)
 {
-	return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(std::move(descSetInfo.ToAnvilDescriptorSetInfo()));
+	auto descSetCreateInfo = descSetInfo.ToProsperDescriptorSetInfo();
+	return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(*descSetCreateInfo);
+	//return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(std::move(descSetInfo.ToAnvilDescriptorSetInfo()));
 }
 static std::unique_ptr<Anvil::DescriptorSetCreateInfo> to_anv_descriptor_set_create_info(prosper::DescriptorSetCreateInfo &descSetInfo)
 {
@@ -546,7 +554,7 @@ static std::unique_ptr<Anvil::DescriptorSetCreateInfo> to_anv_descriptor_set_cre
 }
 std::shared_ptr<prosper::IDescriptorSetGroup> prosper::IPrContext::CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)
 {
-	return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(to_anv_descriptor_set_create_info(descSetInfo));
+	return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(descSetInfo,to_anv_descriptor_set_create_info(descSetInfo));
 }
 std::shared_ptr<prosper::IFramebuffer> prosper::IPrContext::CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)
 {
@@ -793,6 +801,7 @@ bool prosper::IPrContext::ClearPipeline(bool graphicsShader,PipelineID pipelineI
 		return dev.get_graphics_pipeline_manager()->delete_pipeline(pipelineId);
 	return dev.get_compute_pipeline_manager()->delete_pipeline(pipelineId);
 }
+uint32_t prosper::IPrContext::GetLastAcquiredSwapchainImageIndex() const {return static_cast<VlkContext&>(const_cast<IPrContext&>(*this)).GetSwapchain()->get_last_acquired_image_index();}
 std::optional<prosper::PipelineID> prosper::IPrContext::AddPipeline(
 	const prosper::GraphicsPipelineCreateInfo &createInfo,
 	IRenderPass &rp,
@@ -837,28 +846,30 @@ std::optional<prosper::PipelineID> prosper::IPrContext::AddPipeline(
 	createInfo.GetBlendingProperties(&blendConstants,&numBlendAttachments);
 	gfxPipelineInfo->set_blending_properties(blendConstants);
 
-	SubPassAttachmentID attId;
-	bool blendingEnabled;
-	BlendOp blendOpColor;
-	BlendOp blendOpAlpha;
-	BlendFactor srcColorBlendFactor;
-	BlendFactor dstColorBlendFactor;
-	BlendFactor srcAlphaBlendFactor;
-	BlendFactor dstAlphaBlendFactor;
-	ColorComponentFlags channelWriteMask;
-	if(createInfo.GetColorBlendAttachmentProperties(
-		attId,&blendingEnabled,&blendOpColor,&blendOpAlpha,
-		&srcColorBlendFactor,&dstColorBlendFactor,&srcAlphaBlendFactor,&dstAlphaBlendFactor,
-		&channelWriteMask
-	))
+	for(auto attId=decltype(numBlendAttachments){0u};attId<numBlendAttachments;++attId)
 	{
-		gfxPipelineInfo->set_color_blend_attachment_properties(
-			attId,blendingEnabled,
-			static_cast<Anvil::BlendOp>(blendOpColor),static_cast<Anvil::BlendOp>(blendOpAlpha),
-			static_cast<Anvil::BlendFactor>(srcColorBlendFactor),static_cast<Anvil::BlendFactor>(dstColorBlendFactor),
-			static_cast<Anvil::BlendFactor>(srcAlphaBlendFactor),static_cast<Anvil::BlendFactor>(dstAlphaBlendFactor),
-			static_cast<Anvil::ColorComponentFlagBits>(channelWriteMask)
-		);
+		bool blendingEnabled;
+		BlendOp blendOpColor;
+		BlendOp blendOpAlpha;
+		BlendFactor srcColorBlendFactor;
+		BlendFactor dstColorBlendFactor;
+		BlendFactor srcAlphaBlendFactor;
+		BlendFactor dstAlphaBlendFactor;
+		ColorComponentFlags channelWriteMask;
+		if(createInfo.GetColorBlendAttachmentProperties(
+			attId,&blendingEnabled,&blendOpColor,&blendOpAlpha,
+			&srcColorBlendFactor,&dstColorBlendFactor,&srcAlphaBlendFactor,&dstAlphaBlendFactor,
+			&channelWriteMask
+		))
+		{
+			gfxPipelineInfo->set_color_blend_attachment_properties(
+				attId,blendingEnabled,
+				static_cast<Anvil::BlendOp>(blendOpColor),static_cast<Anvil::BlendOp>(blendOpAlpha),
+				static_cast<Anvil::BlendFactor>(srcColorBlendFactor),static_cast<Anvil::BlendFactor>(dstColorBlendFactor),
+				static_cast<Anvil::BlendFactor>(srcAlphaBlendFactor),static_cast<Anvil::BlendFactor>(dstAlphaBlendFactor),
+				static_cast<Anvil::ColorComponentFlagBits>(channelWriteMask)
+			);
+		}
 	}
 
 	bool isDepthBiasStateEnabled;
@@ -1129,9 +1140,9 @@ uint32_t prosper::util::calculate_mipmap_size(uint32_t v,uint32_t level)
 }
 
 uint32_t prosper::util::calculate_mipmap_count(uint32_t w,uint32_t h) {return 1 +static_cast<uint32_t>(floor(log2(fmaxf(static_cast<float>(w),static_cast<float>(h)))));}
-std::string prosper::util::to_string(vk::Result r) {return vk::to_string(r);}
+std::string prosper::util::to_string(Result r) {return vk::to_string(static_cast<vk::Result>(r));}
 
-std::string prosper::util::to_string(vk::DebugReportFlagsEXT flags)
+std::string prosper::util::to_string(DebugReportFlags flags)
 {
 	auto values = umath::get_power_of_2_values(static_cast<uint32_t>(flags));
 	std::string r;
@@ -1139,12 +1150,11 @@ std::string prosper::util::to_string(vk::DebugReportFlagsEXT flags)
 	{
 		if(it != values.begin())
 			r += " | ";
-		r += prosper::util::to_string(static_cast<vk::DebugReportFlagBitsEXT>(*it));
+		r += vk::to_string(static_cast<vk::DebugReportFlagBitsEXT>(*it));
 	}
 	return r;
 }
-std::string prosper::util::to_string(vk::DebugReportObjectTypeEXT type) {return vk::to_string(type);}
-std::string prosper::util::to_string(vk::DebugReportFlagBitsEXT flags) {return vk::to_string(flags);}
+std::string prosper::util::to_string(prosper::DebugReportObjectTypeEXT type) {return vk::to_string(static_cast<vk::DebugReportObjectTypeEXT>(type));}
 std::string prosper::util::to_string(prosper::Format format) {return vk::to_string(static_cast<vk::Format>(format));}
 std::string prosper::util::to_string(prosper::ShaderStageFlags shaderStage) {return vk::to_string(static_cast<vk::ShaderStageFlagBits>(shaderStage));}
 std::string prosper::util::to_string(prosper::ImageUsageFlags usage)
@@ -1189,8 +1199,21 @@ std::string prosper::util::to_string(prosper::ShaderStage stage)
 }
 std::string prosper::util::to_string(prosper::PipelineStageFlags stage) {return vk::to_string(static_cast<vk::PipelineStageFlagBits>(stage));}
 std::string prosper::util::to_string(prosper::ImageTiling tiling) {return vk::to_string(static_cast<vk::ImageTiling>(tiling));}
-std::string prosper::util::to_string(vk::PhysicalDeviceType type) {return vk::to_string(type);}
+std::string prosper::util::to_string(PhysicalDeviceType type) {return vk::to_string(static_cast<vk::PhysicalDeviceType>(type));}
 std::string prosper::util::to_string(ImageLayout layout) {return vk::to_string(static_cast<vk::ImageLayout>(layout));}
+std::string prosper::util::to_string(Vendor vendor)
+{
+	switch(vendor)
+	{
+	case Vendor::AMD:
+		return "AMD";
+	case Vendor::Nvidia:
+		return "NVIDIA";
+	case Vendor::Intel:
+		return "Intel";
+	}
+	return "Unknown";
+}
 
 bool prosper::util::has_alpha(Format format)
 {
@@ -1708,15 +1731,15 @@ uint32_t prosper::util::get_byte_size(Format format)
 	return numBits /8;
 }
 
-Anvil::AccessFlags prosper::util::get_read_access_mask() {return Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::HOST_READ_BIT | Anvil::AccessFlagBits::INDEX_READ_BIT | Anvil::AccessFlagBits::INDIRECT_COMMAND_READ_BIT | Anvil::AccessFlagBits::INPUT_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::MEMORY_READ_BIT | Anvil::AccessFlagBits::SHADER_READ_BIT | Anvil::AccessFlagBits::TRANSFER_READ_BIT | Anvil::AccessFlagBits::UNIFORM_READ_BIT | Anvil::AccessFlagBits::VERTEX_ATTRIBUTE_READ_BIT;}
-Anvil::AccessFlags prosper::util::get_write_access_mask() {return Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | Anvil::AccessFlagBits::HOST_WRITE_BIT | Anvil::AccessFlagBits::MEMORY_WRITE_BIT | Anvil::AccessFlagBits::SHADER_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;}
+prosper::AccessFlags prosper::util::get_read_access_mask() {return prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::DepthStencilAttachmentReadBit | prosper::AccessFlags::HostReadBit | prosper::AccessFlags::IndexReadBit | prosper::AccessFlags::IndirectCommandReadBit | prosper::AccessFlags::InputAttachmentReadBit | prosper::AccessFlags::MemoryReadBit | prosper::AccessFlags::ShaderReadBit | prosper::AccessFlags::TransferReadBit | prosper::AccessFlags::UniformReadBit | prosper::AccessFlags::VertexAttributeReadBit;}
+prosper::AccessFlags prosper::util::get_write_access_mask() {return prosper::AccessFlags::ColorAttachmentWriteBit | prosper::AccessFlags::DepthStencilAttachmentWriteBit | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::MemoryWriteBit | prosper::AccessFlags::ShaderWriteBit | prosper::AccessFlags::TransferWriteBit;}
 
-Anvil::AccessFlags prosper::util::get_image_read_access_mask() {return Anvil::AccessFlagBits::COLOR_ATTACHMENT_READ_BIT | Anvil::AccessFlagBits::HOST_READ_BIT | Anvil::AccessFlagBits::MEMORY_READ_BIT | Anvil::AccessFlagBits::SHADER_READ_BIT | Anvil::AccessFlagBits::TRANSFER_READ_BIT | Anvil::AccessFlagBits::UNIFORM_READ_BIT;}
-Anvil::AccessFlags prosper::util::get_image_write_access_mask() {return Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT | Anvil::AccessFlagBits::HOST_WRITE_BIT | Anvil::AccessFlagBits::MEMORY_WRITE_BIT | Anvil::AccessFlagBits::SHADER_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;}
+prosper::AccessFlags prosper::util::get_image_read_access_mask() {return prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::HostReadBit | prosper::AccessFlags::MemoryReadBit | prosper::AccessFlags::ShaderReadBit | prosper::AccessFlags::TransferReadBit | prosper::AccessFlags::UniformReadBit;}
+prosper::AccessFlags prosper::util::get_image_write_access_mask() {return prosper::AccessFlags::ColorAttachmentWriteBit | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::MemoryWriteBit | prosper::AccessFlags::ShaderWriteBit | prosper::AccessFlags::TransferWriteBit;}
 
-Anvil::PipelineBindPoint prosper::util::get_pipeline_bind_point(Anvil::ShaderStageFlags shaderStages)
+prosper::PipelineBindPoint prosper::util::get_pipeline_bind_point(prosper::ShaderStageFlags shaderStages)
 {
-	return ((shaderStages &Anvil::ShaderStageFlagBits::COMPUTE_BIT) != Anvil::ShaderStageFlagBits(0)) ? Anvil::PipelineBindPoint::COMPUTE : Anvil::PipelineBindPoint::GRAPHICS;
+	return ((shaderStages &prosper::ShaderStageFlags::ComputeBit) != prosper::ShaderStageFlags(0)) ? prosper::PipelineBindPoint::Compute : prosper::PipelineBindPoint::Graphics;
 }
 
 prosper::ImageAspectFlags prosper::util::get_aspect_mask(Format format)
@@ -1725,6 +1748,124 @@ prosper::ImageAspectFlags prosper::util::get_aspect_mask(Format format)
 	if(is_depth_format(format))
 		aspectMask = ImageAspectFlags::DepthBit;
 	return aspectMask;
+}
+
+uint32_t prosper::util::get_universal_queue_family_index(IPrContext &context)
+{
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
+	auto *queuePtr = dev.get_universal_queue(0);
+	return queuePtr->get_queue_family_index();
+}
+
+prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrContext &context)
+{
+	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
+	auto &gpuProperties = dev.get_physical_device_properties();
+	VendorDeviceInfo deviceInfo {};
+	deviceInfo.apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
+	deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(gpuProperties.core_vk1_0_properties_ptr->device_type);
+	deviceInfo.deviceName = gpuProperties.core_vk1_0_properties_ptr->device_name;
+	deviceInfo.driverVersion = gpuProperties.core_vk1_0_properties_ptr->driver_version;
+	deviceInfo.vendor = static_cast<Vendor>(gpuProperties.core_vk1_0_properties_ptr->vendor_id);
+	deviceInfo.deviceId = gpuProperties.core_vk1_0_properties_ptr->device_id;
+	return deviceInfo;
+}
+
+std::vector<prosper::util::VendorDeviceInfo> prosper::util::get_available_vendor_devices(const IPrContext &context)
+{
+	auto &instance = static_cast<const VlkContext&>(context).GetAnvilInstance();
+	auto numDevices = instance.get_n_physical_devices();
+	std::vector<prosper::util::VendorDeviceInfo> devices {};
+	devices.reserve(numDevices);
+	for(auto i=decltype(numDevices){0u};i<numDevices;++i)
+	{
+		auto &dev = *instance.get_physical_device(i);
+		auto &gpuProperties = dev.get_device_properties();
+		VendorDeviceInfo deviceInfo {};
+		deviceInfo.apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
+		deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(gpuProperties.core_vk1_0_properties_ptr->device_type);
+		deviceInfo.deviceName = gpuProperties.core_vk1_0_properties_ptr->device_name;
+		deviceInfo.driverVersion = gpuProperties.core_vk1_0_properties_ptr->driver_version;
+		deviceInfo.vendor = static_cast<Vendor>(gpuProperties.core_vk1_0_properties_ptr->vendor_id);
+		deviceInfo.deviceId = gpuProperties.core_vk1_0_properties_ptr->device_id;
+		devices.push_back(deviceInfo);
+	}
+	return devices;
+}
+
+std::optional<prosper::util::PhysicalDeviceMemoryProperties> prosper::util::get_physical_device_memory_properties(const IPrContext &context)
+{
+	prosper::util::PhysicalDeviceMemoryProperties memProps {};
+	auto &vkMemProps = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice().get_physical_device_memory_properties();
+	auto totalSize = 0ull;
+	auto numHeaps = vkMemProps.n_heaps;
+	for(auto i=decltype(numHeaps){0};i<numHeaps;++i)
+		memProps.heapSizes.push_back(vkMemProps.heaps[i].size);
+	return memProps;
+}
+
+prosper::util::Limits prosper::util::get_physical_device_limits(const IPrContext &context)
+{
+	auto &vkLimits = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits;
+	Limits limits {};
+	limits.maxSamplerAnisotropy = vkLimits.max_sampler_anisotropy;
+	limits.maxStorageBufferRange = vkLimits.max_storage_buffer_range;
+	limits.maxImageArrayLayers = vkLimits.max_image_array_layers;
+
+	Anvil::SurfaceCapabilities surfCapabilities {};
+	if(static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetSurfaceCapabilities(surfCapabilities))
+		limits.maxSurfaceImageCount = surfCapabilities.max_image_count;
+	return limits;
+}
+
+std::optional<prosper::util::PhysicalDeviceImageFormatProperties> prosper::util::get_physical_device_image_format_properties(const IPrContext &context,const ImageFormatPropertiesQuery &query)
+{
+	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
+	Anvil::ImageFormatProperties imgFormatProperties {};
+	if(dev.get_physical_device_image_format_properties(
+		Anvil::ImageFormatPropertiesQuery{
+			static_cast<Anvil::Format>(query.format),static_cast<Anvil::ImageType>(query.imageType),static_cast<Anvil::ImageTiling>(query.tiling),
+			static_cast<Anvil::ImageUsageFlagBits>(query.usageFlags),
+		{}
+		},&imgFormatProperties
+	) == false
+		)
+		return {};
+	PhysicalDeviceImageFormatProperties imageFormatProperties {};
+	imageFormatProperties.sampleCount = static_cast<SampleCountFlags>(imgFormatProperties.sample_counts.get_vk());
+	return imageFormatProperties;
+}
+
+bool prosper::util::get_memory_stats(IPrContext &context,MemoryPropertyFlags memPropFlags,DeviceSize &outAvailableSize,DeviceSize &outAllocatedSize,std::vector<uint32_t> *optOutMemIndices)
+{
+	auto &dev = static_cast<VlkContext&>(context).GetDevice();
+	auto &memProps = dev.get_physical_device_memory_properties();
+	auto allocatedDeviceLocalSize = 0ull;
+	auto &memTracker = prosper::MemoryTracker::GetInstance();
+	std::vector<uint32_t> deviceLocalTypes = {};
+	deviceLocalTypes.reserve(memProps.types.size());
+	for(auto i=decltype(memProps.types.size()){0u};i<memProps.types.size();++i)
+	{
+		auto &type = memProps.types.at(i);
+		if(type.heap_ptr == nullptr || (type.flags &static_cast<Anvil::MemoryPropertyFlagBits>(memPropFlags)) == Anvil::MemoryPropertyFlagBits::NONE)
+			continue;
+		if(deviceLocalTypes.empty() == false)
+			assert(type.heap_trp->size() == memProps.types.at(deviceLocalTypes.front()).heap_ptr->size());
+		deviceLocalTypes.push_back(i);
+		uint64_t allocatedSize = 0ull;
+		uint64_t totalSize = 0ull;
+		memTracker.GetMemoryStats(context,i,allocatedSize,totalSize);
+		allocatedDeviceLocalSize += allocatedSize;
+	}
+	if(deviceLocalTypes.empty())
+		return false;
+	std::stringstream ss;
+	auto totalMemory = memProps.types.at(deviceLocalTypes.front()).heap_ptr->size;
+	outAvailableSize = totalMemory;
+	outAllocatedSize = allocatedDeviceLocalSize;
+	if(optOutMemIndices)
+		*optOutMemIndices = deviceLocalTypes;
+	return true;
 }
 
 uint32_t prosper::util::get_offset_alignment_padding(uint32_t offset,uint32_t alignment)
@@ -1748,7 +1889,7 @@ uint32_t prosper::util::get_aligned_size(uint32_t size,uint32_t alignment)
 
 prosper::ImageAspectFlags prosper::util::get_aspect_mask(IImage &img) {return get_aspect_mask(img.GetFormat());}
 
-void prosper::util::get_image_layout_transition_access_masks(Anvil::ImageLayout oldLayout,Anvil::ImageLayout newLayout,Anvil::AccessFlags &readAccessMask,Anvil::AccessFlags &writeAccessMask)
+void prosper::util::get_image_layout_transition_access_masks(prosper::ImageLayout oldLayout,prosper::ImageLayout newLayout,prosper::AccessFlags &readAccessMask,prosper::AccessFlags &writeAccessMask)
 {
 	// Source Layout
 	switch(oldLayout)
@@ -1756,28 +1897,28 @@ void prosper::util::get_image_layout_transition_access_masks(Anvil::ImageLayout 
 		// Undefined layout
 		// Only allowed as initial layout!
 		// Make sure any writes to the image have been finished
-		case Anvil::ImageLayout::PREINITIALIZED:
-			readAccessMask = Anvil::AccessFlagBits::HOST_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;
+	case prosper::ImageLayout::Preinitialized:
+			readAccessMask = prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::TransferWriteBit;
 			break;
 		// Old layout is color attachment
 		// Make sure any writes to the color buffer have been finished
-		case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-			readAccessMask = Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT;
+	case prosper::ImageLayout::ColorAttachmentOptimal:
+			readAccessMask = prosper::AccessFlags::ColorAttachmentWriteBit;
 			break;
 		// Old layout is depth/stencil attachment
 		// Make sure any writes to the depth/stencil buffer have been finished
-		case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			readAccessMask = Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	case prosper::ImageLayout::DepthStencilAttachmentOptimal:
+			readAccessMask = prosper::AccessFlags::DepthStencilAttachmentWriteBit;
 			break;
 		// Old layout is transfer source
 		// Make sure any reads from the image have been finished
-		case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
-			readAccessMask = Anvil::AccessFlagBits::TRANSFER_READ_BIT;
+	case prosper::ImageLayout::TransferSrcOptimal:
+			readAccessMask = prosper::AccessFlags::TransferReadBit;
 			break;
 		// Old layout is shader read (sampler, input attachment)
 		// Make sure any shader reads from the image have been finished
-		case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-			readAccessMask = Anvil::AccessFlagBits::SHADER_READ_BIT;
+	case prosper::ImageLayout::ShaderReadOnlyOptimal:
+			readAccessMask = prosper::AccessFlags::ShaderReadBit;
 			break;
 	};
 
@@ -1786,35 +1927,35 @@ void prosper::util::get_image_layout_transition_access_masks(Anvil::ImageLayout 
 	{
 		// New layout is transfer destination (copy, blit)
 		// Make sure any copyies to the image have been finished
-		case Anvil::ImageLayout::TRANSFER_DST_OPTIMAL:
-			writeAccessMask = Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;
+	case prosper::ImageLayout::TransferDstOptimal:
+			writeAccessMask = prosper::AccessFlags::TransferWriteBit;
 			break;
 		// New layout is transfer source (copy, blit)
 		// Make sure any reads from and writes to the image have been finished
-		case Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL:
-			readAccessMask = readAccessMask | Anvil::AccessFlagBits::TRANSFER_READ_BIT;
-			writeAccessMask = Anvil::AccessFlagBits::TRANSFER_READ_BIT;
+	case prosper::ImageLayout::TransferSrcOptimal:
+			readAccessMask = readAccessMask | prosper::AccessFlags::TransferReadBit;
+			writeAccessMask = prosper::AccessFlags::TransferReadBit;
 			break;
 		// New layout is color attachment
 		// Make sure any writes to the color buffer hav been finished
-		case Anvil::ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-			writeAccessMask = Anvil::AccessFlagBits::COLOR_ATTACHMENT_WRITE_BIT;
-			readAccessMask = readAccessMask | Anvil::AccessFlagBits::TRANSFER_READ_BIT;
+	case prosper::ImageLayout::ColorAttachmentOptimal:
+			writeAccessMask = prosper::AccessFlags::ColorAttachmentWriteBit;
+			readAccessMask = readAccessMask | prosper::AccessFlags::TransferReadBit;
 			break;
 		// New layout is depth attachment
 		// Make sure any writes to depth/stencil buffer have been finished
-		case Anvil::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			writeAccessMask = writeAccessMask | Anvil::AccessFlagBits::DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	case prosper::ImageLayout::DepthStencilAttachmentOptimal:
+			writeAccessMask = writeAccessMask | prosper::AccessFlags::DepthStencilAttachmentWriteBit;
 			break;
 		// New layout is shader read (sampler, input attachment)
 		// Make sure any writes to the image have been finished
-		case Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-			readAccessMask = readAccessMask | Anvil::AccessFlagBits::HOST_WRITE_BIT | Anvil::AccessFlagBits::TRANSFER_WRITE_BIT;
-			writeAccessMask = Anvil::AccessFlagBits::SHADER_READ_BIT;
+	case prosper::ImageLayout::ShaderReadOnlyOptimal:
+			readAccessMask = readAccessMask | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::TransferWriteBit;
+			writeAccessMask = prosper::AccessFlags::ShaderReadBit;
 			break;
-		case Anvil::ImageLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-			readAccessMask = readAccessMask | Anvil::AccessFlagBits::SHADER_WRITE_BIT;
-			writeAccessMask = Anvil::AccessFlagBits::SHADER_READ_BIT;
+	case prosper::ImageLayout::DepthStencilReadOnlyOptimal:
+			readAccessMask = readAccessMask | prosper::AccessFlags::ShaderWriteBit;
+			writeAccessMask = prosper::AccessFlags::ShaderReadBit;
 			break;
 	};
 }

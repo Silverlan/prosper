@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "shader/prosper_pipeline_create_info.hpp"
+#include <cassert>
 
 void prosper::BasePipelineCreateInfo::CopyStateFrom(const BasePipelineCreateInfo* in_src_pipeline_create_info_ptr)
 {
@@ -136,14 +137,14 @@ bool prosper::BasePipelineCreateInfo::AddSpecializationConstant(ShaderStage in_s
 
 	if (in_n_data_bytes == 0)
 	{
-		anvil_assert(!(in_n_data_bytes == 0) );
+		assert(!(in_n_data_bytes == 0) );
 
 		goto end;
 	}
 
 	if (in_data_ptr == nullptr)
 	{
-		anvil_assert(!(in_data_ptr == nullptr) );
+		assert(!(in_data_ptr == nullptr) );
 
 		goto end;
 	}
@@ -152,7 +153,7 @@ bool prosper::BasePipelineCreateInfo::AddSpecializationConstant(ShaderStage in_s
 	data_buffer_size = static_cast<uint32_t>(m_specializationConstantsDataBuffer.size() );
 
 
-	anvil_assert(m_specializationConstantsMap.find(in_shader_stage) != m_specializationConstantsMap.end() );
+	assert(m_specializationConstantsMap.find(in_shader_stage) != m_specializationConstantsMap.end() );
 
 	m_specializationConstantsMap[in_shader_stage].push_back(
 		SpecializationConstant(
@@ -271,7 +272,7 @@ bool prosper::GraphicsPipelineCreateInfo::CopyGFXStateFrom(const GraphicsPipelin
 
 	if (in_src_pipeline_create_info_ptr == nullptr)
 	{
-		anvil_assert(in_src_pipeline_create_info_ptr != nullptr);
+		assert(in_src_pipeline_create_info_ptr != nullptr);
 
 		goto end;
 	}
@@ -369,7 +370,7 @@ std::unique_ptr<prosper::GraphicsPipelineCreateInfo> prosper::GraphicsPipelineCr
 		{
 			if (!result_ptr->CopyGFXStateFrom(in_opt_reference_pipeline_info_ptr) )
 			{
-				anvil_assert_fail();
+				assert(false);
 
 				result_ptr.reset();
 			}
@@ -426,7 +427,7 @@ bool prosper::GraphicsPipelineCreateInfo::AddVertexBinding(
 
 	memcpy(&new_binding.attributes.at(0),
 		in_attribute_ptrs,
-		in_n_attributes * sizeof(Anvil::VertexInputAttribute) );
+		in_n_attributes * sizeof(prosper::VertexInputAttribute) );
 
 	m_bindings[in_binding] = new_binding;
 
@@ -636,7 +637,7 @@ void prosper::GraphicsPipelineCreateInfo::GetLogicOpState(bool*           out_op
 }
 
 void prosper::GraphicsPipelineCreateInfo::GetMultisamplingProperties(SampleCountFlags* out_opt_sample_count_ptr,
-	const VkSampleMask** out_opt_sample_mask_ptr_ptr) const
+	const SampleMask** out_opt_sample_mask_ptr_ptr) const
 {
 	if (out_opt_sample_count_ptr != nullptr)
 	{
@@ -725,7 +726,7 @@ bool prosper::GraphicsPipelineCreateInfo::GetScissorBoxProperties(uint32_t  in_n
 
 	if (m_scissorBoxes.find(in_n_scissor_box) == m_scissorBoxes.end() )
 	{
-		anvil_assert(!(m_scissorBoxes.find(in_n_scissor_box) == m_scissorBoxes.end()) );
+		assert(!(m_scissorBoxes.find(in_n_scissor_box) == m_scissorBoxes.end()) );
 
 		goto end;
 	}
@@ -935,7 +936,7 @@ bool prosper::GraphicsPipelineCreateInfo::GetViewportProperties(uint32_t in_n_vi
 
 	if (m_viewports.find(in_n_viewport) == m_viewports.end() )
 	{
-		anvil_assert(!(m_viewports.find(in_n_viewport) == m_viewports.end()) );
+		assert(!(m_viewports.find(in_n_viewport) == m_viewports.end()) );
 
 		goto end;
 	}
@@ -1045,7 +1046,7 @@ void prosper::GraphicsPipelineCreateInfo::SetColorBlendAttachmentProperties(SubP
 
 void prosper::GraphicsPipelineCreateInfo::SetMultisamplingProperties(SampleCountFlags in_sample_count,
 	float                      in_min_sample_shading,
-	const VkSampleMask         in_sample_mask)
+	const SampleMask         in_sample_mask)
 {
 	m_minSampleShading = in_min_sample_shading;
 	m_sampleCount       = in_sample_count;

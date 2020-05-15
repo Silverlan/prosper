@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_IMAGE_HPP__
 
 #include "image/prosper_image.hpp"
+#include <wrappers/image.h>
 
 namespace prosper
 {

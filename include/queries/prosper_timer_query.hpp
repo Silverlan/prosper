@@ -6,6 +6,7 @@
 #define __PROSPER_TIMER_QUERY_HPP__
 
 #include "queries/prosper_query.hpp"
+#include <chrono>
 
 namespace prosper
 {

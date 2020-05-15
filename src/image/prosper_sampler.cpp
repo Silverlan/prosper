@@ -6,8 +6,6 @@
 #include "image/prosper_sampler.hpp"
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
-#include <wrappers/sampler.h>
-#include <misc/sampler_create_info.h>
 
 using namespace prosper;
 

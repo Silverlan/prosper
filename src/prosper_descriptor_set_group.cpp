@@ -8,20 +8,21 @@
 #include "prosper_context.hpp"
 #include "image/prosper_image_view.hpp"
 #include "image/prosper_sampler.hpp"
-#include "image/vk_image_view.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/vk_buffer.hpp"
 
 using namespace prosper;
 
 #pragma optimize("",off)
-IDescriptorSetGroup::IDescriptorSetGroup(IPrContext &context)
-	: ContextObject(context),std::enable_shared_from_this<IDescriptorSetGroup>()
+IDescriptorSetGroup::IDescriptorSetGroup(IPrContext &context,const DescriptorSetCreateInfo &createInfo)
+	: ContextObject(context),std::enable_shared_from_this<IDescriptorSetGroup>(),m_createInfo{createInfo}
 {}
 
 IDescriptorSetGroup::~IDescriptorSetGroup() {}
 
 uint32_t IDescriptorSetGroup::GetBindingCount() const {return dynamic_cast<const VlkDescriptorSetGroup&>(*this)->get_descriptor_set_create_info()->at(0)->get_n_bindings();}//m_descriptorSets.front()->GetBindingCount();}
+
+const DescriptorSetCreateInfo &IDescriptorSetGroup::GetDescriptorSetCreateInfo() const {return m_createInfo;}
 
 IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) {return (index < m_descriptorSets.size()) ? m_descriptorSets.at(index).get() : nullptr;}
 const IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) const {return const_cast<IDescriptorSetGroup*>(this)->GetDescriptorSet(index);}

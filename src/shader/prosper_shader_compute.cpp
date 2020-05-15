@@ -8,11 +8,6 @@
 #include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "vk_command_buffer.hpp"
-#include <wrappers/command_buffer.h>
-#include <misc/descriptor_set_create_info.h>
-#include <misc/compute_pipeline_create_info.h>
-#include <wrappers/device.h>
-#include <wrappers/compute_pipeline_manager.h>
 
 prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context,const std::string &identifier,const std::string &csShader)
 	: Shader(context,identifier,csShader)

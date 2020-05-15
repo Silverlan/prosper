@@ -5,7 +5,4 @@
 #include <wrappers/command_buffer.h>
 #include <misc/types.h>
 #include "stdafx_prosper.h"
-#include "vk_command_buffer.hpp"
-#include "buffers/vk_buffer.hpp"
-#include "image/vk_image.hpp"
 #include "prosper_util.hpp"

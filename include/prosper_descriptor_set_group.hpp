@@ -17,7 +17,7 @@ namespace prosper
 {
 	class IDescriptorSet;
 	class IBuffer;
-	class DescriptorSetBinding
+	class DLLPROSPER DescriptorSetBinding
 	{
 	public:
 		enum class Type : uint8_t
@@ -29,6 +29,8 @@ namespace prosper
 			DynamicUniformBuffer,
 			StorageBuffer
 		};
+		DescriptorSetBinding(const DescriptorSetBinding&)=delete;
+		DescriptorSetBinding &operator=(const DescriptorSetBinding&)=delete;
 		virtual ~DescriptorSetBinding()=default;
 		uint32_t GetBindingIndex() const;
 		IDescriptorSet &GetDescriptorSet() const;
@@ -39,7 +41,7 @@ namespace prosper
 		uint32_t m_bindingIndex = 0u;
 	};
 
-	class DescriptorSetBindingStorageImage
+	class DLLPROSPER DescriptorSetBindingStorageImage
 		: public DescriptorSetBinding
 	{
 	public:
@@ -52,7 +54,7 @@ namespace prosper
 		std::optional<uint32_t> m_layerId = {};
 	};
 
-	class DescriptorSetBindingTexture
+	class DLLPROSPER DescriptorSetBindingTexture
 		: public DescriptorSetBinding
 	{
 	public:
@@ -65,7 +67,7 @@ namespace prosper
 		std::optional<uint32_t> m_layerId = {};
 	};
 
-	class DescriptorSetBindingArrayTexture
+	class DLLPROSPER DescriptorSetBindingArrayTexture
 		: public DescriptorSetBinding
 	{
 	public:
@@ -76,7 +78,7 @@ namespace prosper
 		std::vector<std::unique_ptr<DescriptorSetBindingTexture>> m_arrayItems = {};
 	};
 
-	class DescriptorSetBindingUniformBuffer
+	class DLLPROSPER DescriptorSetBindingUniformBuffer
 		: public DescriptorSetBinding
 	{
 	public:
@@ -91,7 +93,7 @@ namespace prosper
 		uint64_t m_size = 0u;
 	};
 
-	class DescriptorSetBindingDynamicUniformBuffer
+	class DLLPROSPER DescriptorSetBindingDynamicUniformBuffer
 		: public DescriptorSetBinding
 	{
 	public:
@@ -106,7 +108,7 @@ namespace prosper
 		uint64_t m_size = 0u;
 	};
 
-	class DescriptorSetBindingStorageBuffer
+	class DLLPROSPER DescriptorSetBindingStorageBuffer
 		: public DescriptorSetBinding
 	{
 	public:
@@ -168,9 +170,12 @@ namespace prosper
 		IDescriptorSet *GetDescriptorSet(uint32_t index=0);
 		const IDescriptorSet *GetDescriptorSet(uint32_t index=0) const;
 		uint32_t GetBindingCount() const;
+
+		const DescriptorSetCreateInfo &GetDescriptorSetCreateInfo() const;
 	protected:
-		IDescriptorSetGroup(IPrContext &context);
+		IDescriptorSetGroup(IPrContext &context,const DescriptorSetCreateInfo &createInfo);
 		std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
+		DescriptorSetCreateInfo m_createInfo;
 	};
 };
 #pragma warning(pop)

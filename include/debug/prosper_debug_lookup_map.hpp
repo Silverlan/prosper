@@ -10,6 +10,20 @@
 #include <memory>
 #include <unordered_map>
 
+// TODO: Move this to prosper_vulkan implementation?
+namespace vk
+{
+	class Image;
+	class ImageView;
+	class Sampler;
+	class Buffer;
+	class CommandBuffer;
+	class RenderPass;
+	class Framebuffer;
+	class DescriptorSet;
+	class Pipeline;
+};
+
 namespace prosper
 {
 	class VlkImage;
@@ -47,15 +61,15 @@ namespace prosper
 		DLLPROSPER void deregister_debug_object(void *vkPtr);
 
 		DLLPROSPER void *get_object(void *vkObj,ObjectType &type);
-		DLLPROSPER VlkImage *get_image(vk::Image vkImage);
-		DLLPROSPER VlkImageView *get_image_view(vk::ImageView vkImageView);
-		DLLPROSPER VlkSampler *get_sampler(vk::Sampler vkSampler);
-		DLLPROSPER VkBuffer *get_buffer(vk::Buffer vkBuffer);
-		DLLPROSPER VlkCommandBuffer *get_command_buffer(vk::CommandBuffer vkBuffer);
-		DLLPROSPER VlkRenderPass *get_render_pass(vk::RenderPass vkBuffer);
-		DLLPROSPER VlkFramebuffer *get_framebuffer(vk::Framebuffer vkBuffer);
-		DLLPROSPER VlkDescriptorSetGroup *get_descriptor_set_group(vk::DescriptorSet vkBuffer);
-		DLLPROSPER ShaderPipelineInfo *get_shader_pipeline(vk::Pipeline vkPipeline);
+		DLLPROSPER VlkImage *get_image(const vk::Image &vkImage);
+		DLLPROSPER VlkImageView *get_image_view(const vk::ImageView &vkImageView);
+		DLLPROSPER VlkSampler *get_sampler(const vk::Sampler &vkSampler);
+		DLLPROSPER VkBuffer *get_buffer(const vk::Buffer &vkBuffer);
+		DLLPROSPER VlkCommandBuffer *get_command_buffer(const vk::CommandBuffer &vkBuffer);
+		DLLPROSPER VlkRenderPass *get_render_pass(const vk::RenderPass &vkBuffer);
+		DLLPROSPER VlkFramebuffer *get_framebuffer(const vk::Framebuffer &vkBuffer);
+		DLLPROSPER VlkDescriptorSetGroup *get_descriptor_set_group(const vk::DescriptorSet &vkBuffer);
+		DLLPROSPER ShaderPipelineInfo *get_shader_pipeline(const vk::Pipeline &vkPipeline);
 	};
 };
 

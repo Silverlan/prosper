@@ -10,7 +10,7 @@
 
 using namespace prosper;
 
-Anvil::Format prosper::util::get_line_vertex_format() {return Anvil::Format::R32G32_SFLOAT;}
+prosper::Format prosper::util::get_line_vertex_format() {return prosper::Format::R32G32_SFloat;}
 
 std::shared_ptr<IBuffer> prosper::util::get_line_vertex_buffer(prosper::IPrContext &context)
 {

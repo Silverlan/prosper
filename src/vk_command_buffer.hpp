@@ -5,10 +5,14 @@
 #ifndef __PR_PROSPER_VK_COMMAND_BUFFER_HPP__
 #define __PR_PROSPER_VK_COMMAND_BUFFER_HPP__
 
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_command_buffer.hpp"
+#include <wrappers/command_buffer.h>
+#include <misc/types_enums.h>
 
 namespace prosper
 {
@@ -88,7 +92,7 @@ namespace prosper
 
 		bool StartRecording(
 			bool oneTimeSubmit,bool simultaneousUseAllowed,bool renderPassUsageOnly,
-			const IFramebuffer &framebuffer,const IRenderPass &rp,Anvil::SubPassID subPassId,
+			const IFramebuffer &framebuffer,const IRenderPass &rp,prosper::SubPassID subPassId,
 			Anvil::OcclusionQuerySupportScope occlusionQuerySupportScope,bool occlusionQueryUsedByPrimaryCommandBuffer,
 			Anvil::QueryPipelineStatisticFlags statisticsFlags
 		) const;

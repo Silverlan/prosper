@@ -11,21 +11,21 @@
 
 using namespace prosper;
 
-std::shared_ptr<VlkDescriptorSetGroup> VlkDescriptorSetGroup::Create(IPrContext &context,Anvil::DescriptorSetGroupUniquePtr imgView,const std::function<void(IDescriptorSetGroup&)> &onDestroyedCallback)
+std::shared_ptr<VlkDescriptorSetGroup> VlkDescriptorSetGroup::Create(IPrContext &context,const DescriptorSetCreateInfo &createInfo,Anvil::DescriptorSetGroupUniquePtr imgView,const std::function<void(IDescriptorSetGroup&)> &onDestroyedCallback)
 {
 	if(imgView == nullptr)
 		return nullptr;
 	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<VlkDescriptorSetGroup>(new VlkDescriptorSetGroup(context,std::move(imgView)));
-	return std::shared_ptr<VlkDescriptorSetGroup>(new VlkDescriptorSetGroup(context,std::move(imgView)),[onDestroyedCallback](VlkDescriptorSetGroup *buf) {
+		return std::shared_ptr<VlkDescriptorSetGroup>(new VlkDescriptorSetGroup(context,createInfo,std::move(imgView)));
+	return std::shared_ptr<VlkDescriptorSetGroup>(new VlkDescriptorSetGroup(context,createInfo,std::move(imgView)),[onDestroyedCallback](VlkDescriptorSetGroup *buf) {
 		buf->OnRelease();
 		onDestroyedCallback(*buf);
 		delete buf;
 		});
 }
 
-VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context,Anvil::DescriptorSetGroupUniquePtr imgView)
-	: IDescriptorSetGroup{context},m_descriptorSetGroup(std::move(imgView))
+VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context,const DescriptorSetCreateInfo &createInfo,Anvil::DescriptorSetGroupUniquePtr imgView)
+	: IDescriptorSetGroup{context,createInfo},m_descriptorSetGroup(std::move(imgView))
 {
 	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
 	for(auto i=decltype(numSets){0};i<numSets;++i)

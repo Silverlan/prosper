@@ -5,6 +5,7 @@
 #ifndef __PROSPER_ENUMS_HPP__
 #define __PROSPER_ENUMS_HPP__
 
+#include "prosper_definitions.hpp"
 #include <mathutil/umath.h>
 
 namespace prosper
@@ -731,6 +732,143 @@ namespace prosper
 		uint32_t memoryTypeBits = 0;
 	};
 
+	enum class DebugMessageSeverityFlags : uint32_t
+	{
+		None = 0,
+		VerboseBit = 0x00000001,
+		InfoBit = 0x00000010,
+		WarningBit = 0x00000100,
+		ErrorBit = 0x00001000
+	};
+
+	enum class MemoryPropertyFlags : uint32_t
+	{
+		DeviceLocalBit = 0x00000001,
+		HostVisibleBit = 0x00000002,
+		HostCoherentBit = 0x00000004,
+		HostCachedBit = 0x00000008,
+		LazilyAllocatedBit = 0x00000010,
+		ProtectedBit = 0x00000020
+	};
+
+	enum class PhysicalDeviceType : uint8_t
+	{
+		Other = 0,
+		IntegratedGPU = 1,
+		DiscreteGPU = 2,
+		VirtualGPU = 3,
+		CPU = 4
+	};
+
+	enum class QueryPipelineStatisticFlags : uint32_t
+	{
+		None = 0,
+		ClippingInvocationsBit = 0x00000020,
+		ClippingPrimitivesBit = 0x00000040,
+		ComputeShaderInvocationsBit = 0x00000400,
+		FragmentShaderInvocationsBit = 0x00000080,
+		GeometryShaderInvocationsBit = 0x00000008,
+		GeometryShaderPrimitivesBit = 0x00000010,
+		InputAssemblyVerticesBit = 0x00000001,
+		InputAssemblyPrimitivesBit = 0x00000002,
+		TessellationControlShaderPatchesBit = 0x00000100,
+		TessellationEvaluationShaderInvocationsBit = 0x00000200,
+		VertexShaderInvocationsBit = 0x00000004
+	};
+
+	enum class QueryType : uint32_t
+	{
+		Occlusion = 0,
+		PipelineStatistics = 1,
+		Timestamp = 2
+	};
+
+	enum class Result : int32_t
+	{
+		Success = 0,
+		NotReady = 1,
+		Timeout = 2,
+		EventSet = 3,
+		EventReset = 4,
+		Incomplete = 5,
+		ErrorOutOfHostMemory = -1,
+		ErrorOutOfDeviceMemory = -2,
+		ErrorInitializationFailed = -3,
+		ErrorDeviceLost = -4,
+		ErrorMemoryMapFailed = -5,
+		ErrorLayerNotPresent = -6,
+		ErrorExtensionNotPresent = -7,
+		ErrorFeatureNotPresent = -8,
+		ErrorIncompatibleDriver = -9,
+		ErrorTooManyObjects = -10,
+		ErrorFormatNotSupported = -11,
+		ErrorFragmentedPool = -12,
+		ErrorOutOfPoolMemory = -1000069000,
+		ErrorInvalidExternalHandle = -1000072003,
+		ErrorSurfaceLostKHR = -1000000000,
+		ErrorNativeWindowInUseKHR = -1000000001,
+		SuboptimalKHR = 1000001003,
+		ErrorOutOfDateKHR = -1000001004,
+		ErrorIncompatibleDisplayKHR = -1000003001,
+		ErrorValidationFailedEXT = -1000011001,
+		ErrorInvalidShaderNV = -1000012000,
+		ErrorInvalidDrmFormatModifierPlaneLayoutEXT = -1000158000,
+		ErrorFragmentationEXT = -1000161000,
+		ErrorNotPermittedEXT = -1000174001,
+		ErrorInvalidDeviceAddressEXT = -1000244000,
+		ErrorFullScreenExclusiveModeLostEXT = -1000255000
+	};
+
+	enum class DebugReportObjectTypeEXT : uint32_t
+	{
+		Unknown = 0,
+		Instance = 1,
+		PhysicalDevice = 2,
+		Device = 3,
+		Queue = 4,
+		Semaphore = 5,
+		CommandBuffer = 6,
+		Fence = 7,
+		DeviceMemory = 8,
+		Buffer = 9,
+		Image = 10,
+		Event = 11,
+		QueryPool = 12,
+		BufferView = 13,
+		ImageView = 14,
+		ShaderModule = 15,
+		PipelineCache = 16,
+		PipelineLayout = 17,
+		RenderPass = 18,
+		Pipeline = 19,
+		DescriptorSetLayout = 20,
+		Sampler = 21,
+		DescriptorPool = 22,
+		DescriptorSet = 23,
+		Framebuffer = 24,
+		CommandPool = 25,
+		SurfaceKHR = 26,
+		SwapchainKHR = 27,
+		DebugReportCallbackEXT = 28,
+		DisplayKHR = 29,
+		DisplayModeKHR = 30,
+		ObjectTableNVX = 31,
+		IndirectCommandsLayoutNVX = 32,
+		ValidationCacheEXT = 33,
+		SamplerYcbcrConversion = 1000156000,
+		DescriptorUpdateTemplate = 1000085000,
+		AccelerationStructureNV = 1000165000
+	};
+
+	enum class DebugReportFlags : uint32_t
+	{
+		InformationBit = 0x00000001,
+		WarningBit = 0x00000002,
+		PerformanceWarningBit = 0x00000004,
+		ErrorBit = 0x00000008,
+		DebugBit = 0x00000010
+	};
+
 	using PipelineID = uint32_t;
 	using BindingIndex = uint32_t;
 	using SampleMask = uint32_t;
@@ -751,5 +889,9 @@ REGISTER_BASIC_BITWISE_OPERATORS(prosper::DescriptorBindingFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::PipelineCreateFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::CullModeFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::ColorComponentFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::DebugMessageSeverityFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryPropertyFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueryPipelineStatisticFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::DebugReportFlags)
 
 #endif

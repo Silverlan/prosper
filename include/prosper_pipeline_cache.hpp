@@ -5,9 +5,12 @@
 #ifndef __PROSPER_PIPELINE_CACHE_HPP__
 #define __PROSPER_PIPELINE_CACHE_HPP__
 
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
+#include <wrappers/pipeline_cache.h>
 
 #undef max
 

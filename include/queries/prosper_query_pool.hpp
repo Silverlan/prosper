@@ -11,13 +11,18 @@
 #include <functional>
 #include <queue>
 
+namespace Anvil
+{
+	class QueryPool;
+};
+
 namespace prosper
 {
 	class QueryPool;
 	namespace util
 	{
-		DLLPROSPER std::shared_ptr<QueryPool> create_query_pool(IPrContext &context,vk::QueryType queryType,uint32_t maxConcurrentQueries);
-		DLLPROSPER std::shared_ptr<QueryPool> create_query_pool(IPrContext &context,Anvil::QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries);
+		DLLPROSPER std::shared_ptr<QueryPool> create_query_pool(IPrContext &context,QueryType queryType,uint32_t maxConcurrentQueries);
+		DLLPROSPER std::shared_ptr<QueryPool> create_query_pool(IPrContext &context,QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries);
 	};
 	class DLLPROSPER QueryPool
 		: public ContextObject,
@@ -28,16 +33,16 @@ namespace prosper
 		bool RequestQuery(uint32_t &queryId);
 		void FreeQuery(uint32_t queryId);
 	protected:
-		QueryPool(IPrContext &context,std::unique_ptr<Anvil::QueryPool,std::function<void(Anvil::QueryPool*)>> queryPool,vk::QueryType type);
+		QueryPool(IPrContext &context,std::unique_ptr<Anvil::QueryPool,std::function<void(Anvil::QueryPool*)>> queryPool,QueryType type);
 		std::unique_ptr<Anvil::QueryPool,std::function<void(Anvil::QueryPool*)>> m_queryPool = nullptr;
 
-		vk::QueryType m_type = {};
+		QueryType m_type = {};
 		uint32_t m_queryCount = 0u;
 		uint32_t m_nextQueryId = 0u;
 		std::queue<uint32_t> m_freeQueries;
 	private:
-		friend std::shared_ptr<QueryPool> util::create_query_pool(IPrContext &context,vk::QueryType queryType,uint32_t maxConcurrentQueries);
-		friend std::shared_ptr<QueryPool> util::create_query_pool(IPrContext &context,Anvil::QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries);
+		friend std::shared_ptr<QueryPool> util::create_query_pool(IPrContext &context,QueryType queryType,uint32_t maxConcurrentQueries);
+		friend std::shared_ptr<QueryPool> util::create_query_pool(IPrContext &context,QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries);
 	};
 };
 

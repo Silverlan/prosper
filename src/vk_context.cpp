@@ -71,19 +71,19 @@ VlkContext::VlkContext(const std::string &appName,bool bEnableValidation)
 	: IPrContext{appName,bEnableValidation}
 {}
 
-vk::Result VlkContext::WaitForFence(const IFence &fence,uint64_t timeout) const
+prosper::Result VlkContext::WaitForFence(const IFence &fence,uint64_t timeout) const
 {
 	auto vkFence = static_cast<const VlkFence&>(fence).GetAnvilFence().get_fence();
-	return static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,&vkFence,true,timeout));
+	return static_cast<prosper::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,&vkFence,true,timeout));
 }
 
-vk::Result VlkContext::WaitForFences(const std::vector<IFence*> &fences,bool waitAll,uint64_t timeout) const
+prosper::Result VlkContext::WaitForFences(const std::vector<IFence*> &fences,bool waitAll,uint64_t timeout) const
 {
 	std::vector<VkFence> vkFences {};
 	vkFences.reserve(fences.size());
 	for(auto &fence : fences)
 		vkFences.push_back(static_cast<VlkFence&>(*fence).GetAnvilFence().get_fence());
-	return static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),vkFences.size(),vkFences.data(),waitAll,timeout));
+	return static_cast<prosper::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),vkFences.size(),vkFences.data(),waitAll,timeout));
 }
 
 void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
@@ -112,8 +112,8 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	std::string errMsg;
 	if(success)
 	{
-		auto waitResult = static_cast<vk::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
-		if(waitResult == vk::Result::eSuccess)
+		auto waitResult = static_cast<prosper::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
+		if(waitResult == prosper::Result::Success)
 		{
 			if(m_cmdFences[m_n_swapchain_image]->reset() == false)
 				errMsg = "Unable to reset swapchain fence!";
@@ -226,11 +226,18 @@ VkBool32 VlkContext::ValidationCallback(
 	const char *message
 )
 {
+	if(m_callbacks.validationCallback)
+		m_callbacks.validationCallback(static_cast<prosper::DebugMessageSeverityFlags>(severityFlags.get_vk()),message);
 	return false;
 }
 
 const Anvil::Instance &VlkContext::GetAnvilInstance() const {return const_cast<VlkContext*>(this)->GetAnvilInstance();}
 Anvil::Instance &VlkContext::GetAnvilInstance() {return *m_instancePtr;}
+
+std::shared_ptr<VlkContext> VlkContext::Create(const std::string &appName,bool bEnableValidation)
+{
+	return std::shared_ptr<VlkContext>{new VlkContext{appName,bEnableValidation}};
+}
 
 IPrContext &VlkContext::GetContext(Anvil::BaseDevice &dev)
 {
@@ -784,7 +791,7 @@ void VlkContext::InitAPI(const CreateInfo &createInfo)
 void VlkContext::InitMainRenderPass()
 {
 	Anvil::RenderPassAttachmentID render_pass_color_attachment_id;
-	VkRect2D scissors[4];
+	prosper::Rect2D scissors[4];
 
 	GetScissorViewportInfo(scissors,nullptr); /* viewports */
 
@@ -974,11 +981,11 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSe
 		}
 	}
 }
-std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo)
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo)
 {
 	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> descSetInfos = {};
 	descSetInfos.push_back(std::move(descSetInfo));
 	auto dsg = Anvil::DescriptorSetGroup::create(&static_cast<VlkContext&>(*this).GetDevice(),descSetInfos,Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
 	init_default_dsg_bindings(static_cast<VlkContext&>(*this).GetDevice(),*dsg);
-	return prosper::VlkDescriptorSetGroup::Create(*this,std::move(dsg));
+	return prosper::VlkDescriptorSetGroup::Create(*this,descSetCreateInfo,std::move(dsg));
 }

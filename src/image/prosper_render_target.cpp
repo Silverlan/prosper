@@ -9,7 +9,6 @@
 #include "prosper_framebuffer.hpp"
 #include "image/prosper_image_view.hpp"
 #include "prosper_render_pass.hpp"
-#include <misc/image_create_info.h>
 
 using namespace prosper;
 

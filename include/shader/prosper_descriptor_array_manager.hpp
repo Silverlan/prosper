@@ -11,9 +11,8 @@
 #include <optional>
 #include <functional>
 #include <unordered_map>
-#include <misc/types.h>
 #include <sharedutils/functioncallback.h>
-#include <vk_descriptor_set_group.hpp>
+#include <prosper_descriptor_set_group.hpp>
 
 #undef max
 
@@ -55,11 +54,11 @@ namespace prosper
 template<class TDescriptorArrayManager>
 	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context,prosper::ShaderStageFlags shaderStages)
 {
-	auto &dev = context.GetDevice();
-	auto maxArrayLayers = dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.max_image_array_layers;
+	auto limits = prosper::util::get_physical_device_limits(context);
+	auto maxArrayLayers = limits.maxImageArrayLayers;
 	auto matArrayDsg = context.CreateDescriptorSetGroup({
 		{
-			prosper::Shader::DescriptorSetInfo::Binding {
+			prosper::DescriptorSetInfo::Binding {
 				prosper::DescriptorType::CombinedImageSampler,
 				shaderStages,
 				maxArrayLayers,
@@ -67,15 +66,15 @@ template<class TDescriptorArrayManager>
 			}
 		}
 	});
-	return Create(matArrayDsg,0);
+	return Create(matArrayDsg,0u);
 }
 
 template<class TDescriptorArrayManager>
 	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg,uint32_t bindingIndex)
 {
 	uint32_t arraySize;
-	auto *dsInfo = dynamic_cast<prosper::VlkDescriptorSetGroup&>(*matArrayDsg).GetAnvilDescriptorSetGroup().get_descriptor_set_create_info(0);
-	if(dsInfo == nullptr || dsInfo->get_binding_properties_by_binding_index(bindingIndex,nullptr,&arraySize) == false)
+	auto &createInfo = matArrayDsg->GetDescriptorSetCreateInfo();
+	if(createInfo.GetBindingPropertiesByBindingIndex(bindingIndex,nullptr,&arraySize) == false)
 		return nullptr;
 	auto arrayManager =  std::shared_ptr<TDescriptorArrayManager>{new TDescriptorArrayManager{matArrayDsg,arraySize}};
 	arrayManager->Initialize(matArrayDsg->GetContext());

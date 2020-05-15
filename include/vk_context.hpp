@@ -14,6 +14,7 @@ namespace prosper
 		: public IPrContext
 	{
 	public:
+		static std::shared_ptr<VlkContext> Create(const std::string &appName,bool bEnableValidation);
 		static IPrContext &GetContext(Anvil::BaseDevice &dev);
 
 		Anvil::SGPUDevice &GetDevice();
@@ -36,7 +37,7 @@ namespace prosper
 		using IPrContext::CreateRenderPass;
 		std::shared_ptr<IRenderPass> CreateRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo,std::unique_ptr<Anvil::RenderPassCreateInfo> anvRenderPassInfo);
 		using IPrContext::CreateDescriptorSetGroup;
-		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
+		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 
 		virtual bool IsImageFormatSupported(
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
@@ -47,8 +48,8 @@ namespace prosper
 		virtual std::shared_ptr<prosper::ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
 		virtual bool SavePipelineCache() override;
 
-		virtual vk::Result WaitForFence(const IFence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const override;
-		virtual vk::Result WaitForFences(const std::vector<IFence*> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const override;
+		virtual Result WaitForFence(const IFence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const override;
+		virtual Result WaitForFences(const std::vector<IFence*> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const override;
 		virtual void DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame) override;
 		virtual bool Submit(ICommandBuffer &cmdBuf,bool shouldBlock=false,IFence *optFence=nullptr) override;
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr) override;
@@ -86,6 +87,7 @@ namespace prosper
 		Anvil::WindowUniquePtr m_windowPtr = nullptr;
 		std::shared_ptr<Anvil::RenderPass> m_renderPass;
 		Anvil::SubPassID m_mainSubPass = std::numeric_limits<Anvil::SubPassID>::max();
+		VkSurfaceKHR m_surface = nullptr;
 
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
 		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;

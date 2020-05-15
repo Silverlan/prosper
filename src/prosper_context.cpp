@@ -17,7 +17,6 @@
 #include "buffers/vk_dynamic_resizable_buffer.hpp"
 #include "vk_command_buffer.hpp"
 #include "image/prosper_sampler.hpp"
-#include "image/vk_image.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
 #include "prosper_pipeline_cache.hpp"
@@ -85,6 +84,8 @@ void IPrContext::Close()
 }
 void IPrContext::OnClose()
 {
+	if(m_callbacks.onClose)
+		m_callbacks.onClose();
 	Release();
 }
 void IPrContext::Release()
@@ -212,8 +213,16 @@ void IPrContext::ChangeResolution(uint32_t width,uint32_t height)
 	OnResolutionChanged(width,height);
 }
 
-void IPrContext::OnResolutionChanged(uint32_t width,uint32_t height) {}
-void IPrContext::OnWindowInitialized() {}
+void IPrContext::OnResolutionChanged(uint32_t width,uint32_t height)
+{
+	if(m_callbacks.onResolutionChanged)
+		m_callbacks.onResolutionChanged(width,height);
+}
+void IPrContext::OnWindowInitialized()
+{
+	if(m_callbacks.onWindowInitialized)
+		m_callbacks.onWindowInitialized();
+}
 void IPrContext::OnSwapchainInitialized() {}
 
 void IPrContext::SetPresentMode(prosper::PresentModeKHR presentMode)
@@ -242,7 +251,7 @@ void IPrContext::ChangePresentMode(prosper::PresentModeKHR presentMode)
 	ReloadSwapchain();
 }
 
-void IPrContext::GetScissorViewportInfo(VkRect2D *out_scissors,VkViewport *out_viewports)
+void IPrContext::GetScissorViewportInfo(Rect2D *out_scissors,Viewport *out_viewports)
 {
 	auto width = GetWindowWidth();
 	auto height = GetWindowHeight();
@@ -383,7 +392,11 @@ void IPrContext::Initialize(const CreateInfo &createInfo)
 
 void IPrContext::InitBuffers() {}
 
-void IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image) {}
+void IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image)
+{
+	if(m_callbacks.drawFrame)
+		m_callbacks.drawFrame(cmd_buffer_ptr,n_current_swapchain_image);
+}
 
 ShaderManager &IPrContext::GetShaderManager() const {return *m_shaderManager;}
 
@@ -625,6 +638,8 @@ void IPrContext::InitGfxPipelines() {}
 
 const GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() const {return const_cast<IPrContext*>(this)->GetWindowCreationInfo();}
 GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() {return *m_windowCreationInfo;}
+
+void IPrContext::SetCallbacks(const Callbacks &callbacks) {m_callbacks = callbacks;}
 
 void IPrContext::Run()
 {

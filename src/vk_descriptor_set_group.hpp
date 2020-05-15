@@ -5,6 +5,7 @@
 #ifndef __PR_PROSPER_VK_DESCRIPTOR_SET_GROUP_HPP__
 #define __PR_PROSPER_VK_DESCRIPTOR_SET_GROUP_HPP__
 
+#include "prosper_definitions.hpp"
 #include "prosper_descriptor_set_group.hpp"
 #include <wrappers/descriptor_set_group.h>
 
@@ -14,7 +15,7 @@ namespace prosper
 		: public IDescriptorSetGroup
 	{
 	public:
-		static std::shared_ptr<VlkDescriptorSetGroup> Create(IPrContext &context,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg,const std::function<void(IDescriptorSetGroup&)> &onDestroyedCallback=nullptr);
+		static std::shared_ptr<VlkDescriptorSetGroup> Create(IPrContext &context,const DescriptorSetCreateInfo &createInfo,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg,const std::function<void(IDescriptorSetGroup&)> &onDestroyedCallback=nullptr);
 		virtual ~VlkDescriptorSetGroup() override;
 
 		Anvil::DescriptorSetGroup &GetAnvilDescriptorSetGroup() const;
@@ -23,7 +24,7 @@ namespace prosper
 		Anvil::DescriptorSetGroup *operator->();
 		const Anvil::DescriptorSetGroup *operator->() const;
 	protected:
-		VlkDescriptorSetGroup(IPrContext &context,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg);
+		VlkDescriptorSetGroup(IPrContext &context,const DescriptorSetCreateInfo &createInfo,std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> dsg);
 		std::unique_ptr<Anvil::DescriptorSetGroup,std::function<void(Anvil::DescriptorSetGroup*)>> m_descriptorSetGroup = nullptr;
 	};
 

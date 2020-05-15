@@ -2,6 +2,8 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <sstream>
 #include "prosper_context.hpp"
 #include "prosper_command_buffer.hpp"
@@ -101,7 +103,7 @@ bool prosper::ICommandBuffer::RecordBlitImage(const util::BlitInfo &blitInfo,IIm
 			if(prosper::debug::get_last_recorded_image_layout(*this,imgSrc,lastImgLayout,i,blitInfo.srcSubresourceLayer.mipLevel) && lastImgLayout != ImageLayout::TransferSrcOptimal)
 			{
 				debug::exec_debug_validation_callback(
-					vk::DebugReportObjectTypeEXT::eImage,"Blit: Source image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) +
+					prosper::DebugReportObjectTypeEXT::Image,"Blit: Source image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) +
 					" for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " +
 					prosper::util::to_string(lastImgLayout) +"!"
 				);
@@ -112,7 +114,7 @@ bool prosper::ICommandBuffer::RecordBlitImage(const util::BlitInfo &blitInfo,IIm
 			if(prosper::debug::get_last_recorded_image_layout(*this,imgDst,lastImgLayout,i,blitInfo.dstSubresourceLayer.mipLevel) && lastImgLayout != ImageLayout::TransferDstOptimal)
 			{
 				debug::exec_debug_validation_callback(
-					vk::DebugReportObjectTypeEXT::eImage,"Blit: Destination image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) +
+					prosper::DebugReportObjectTypeEXT::Image,"Blit: Destination image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) +
 					" for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, but is in layout " +
 					to_string(static_cast<vk::ImageLayout>(lastImgLayout)) +"!"
 				);
@@ -159,7 +161,7 @@ bool prosper::ICommandBuffer::RecordResolveImage(IImage &imgSrc,IImage &imgDst)
 		if(prosper::debug::get_last_recorded_image_layout(*this,imgSrc,lastImgLayout) && lastImgLayout != ImageLayout::TransferSrcOptimal)
 		{
 			debug::exec_debug_validation_callback(
-				vk::DebugReportObjectTypeEXT::eImage,"Resolve: Source image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) +
+				prosper::DebugReportObjectTypeEXT::Image,"Resolve: Source image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) +
 				" for resolve has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " +
 				to_string(static_cast<vk::ImageLayout>(lastImgLayout)) +"!"
 			);
@@ -167,7 +169,7 @@ bool prosper::ICommandBuffer::RecordResolveImage(IImage &imgSrc,IImage &imgDst)
 		if(prosper::debug::get_last_recorded_image_layout(*this,imgDst,lastImgLayout) && lastImgLayout != ImageLayout::TransferDstOptimal)
 		{
 			debug::exec_debug_validation_callback(
-				vk::DebugReportObjectTypeEXT::eImage,"Resolve: Destination image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) +
+				prosper::DebugReportObjectTypeEXT::Image,"Resolve: Destination image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) +
 				" for resolve has to be in layout VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, but is in layout " +
 				to_string(static_cast<vk::ImageLayout>(lastImgLayout)) +"!"
 			);

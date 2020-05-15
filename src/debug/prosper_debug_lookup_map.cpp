@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "stdafx_prosper.h"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "debug/prosper_debug.hpp"
@@ -92,39 +94,39 @@ void *prosper::debug::get_object(void *vkObj,ObjectType &type)
 		return nullptr;
 	return s_lookupHandler->GetObject(vkObj,&type);
 }
-prosper::VlkImage *prosper::debug::get_image(vk::Image vkImage)
+prosper::VlkImage *prosper::debug::get_image(const vk::Image &vkImage)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImage>(vkImage) : nullptr;
 }
-prosper::VlkImageView *prosper::debug::get_image_view(vk::ImageView vkImageView)
+prosper::VlkImageView *prosper::debug::get_image_view(const vk::ImageView &vkImageView)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImageView>(vkImageView) : nullptr;
 }
-prosper::VlkSampler *prosper::debug::get_sampler(vk::Sampler vkSampler)
+prosper::VlkSampler *prosper::debug::get_sampler(const vk::Sampler &vkSampler)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkSampler>(vkSampler) : nullptr;
 }
-prosper::VkBuffer *prosper::debug::get_buffer(vk::Buffer vkBuffer)
+prosper::VkBuffer *prosper::debug::get_buffer(const vk::Buffer &vkBuffer)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VkBuffer>(vkBuffer) : nullptr;
 }
-prosper::VlkCommandBuffer *prosper::debug::get_command_buffer(vk::CommandBuffer vkBuffer)
+prosper::VlkCommandBuffer *prosper::debug::get_command_buffer(const vk::CommandBuffer &vkBuffer)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkCommandBuffer>(vkBuffer) : nullptr;
 }
-prosper::VlkRenderPass *prosper::debug::get_render_pass(vk::RenderPass vkBuffer)
+prosper::VlkRenderPass *prosper::debug::get_render_pass(const vk::RenderPass &vkBuffer)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkRenderPass>(vkBuffer) : nullptr;
 }
-prosper::VlkFramebuffer *prosper::debug::get_framebuffer(vk::Framebuffer vkBuffer)
+prosper::VlkFramebuffer *prosper::debug::get_framebuffer(const vk::Framebuffer &vkBuffer)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkFramebuffer>(vkBuffer) : nullptr;
 }
-prosper::VlkDescriptorSetGroup *prosper::debug::get_descriptor_set_group(vk::DescriptorSet vkBuffer)
+prosper::VlkDescriptorSetGroup *prosper::debug::get_descriptor_set_group(const vk::DescriptorSet &vkBuffer)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkDescriptorSetGroup>(vkBuffer) : nullptr;
 }
-prosper::debug::ShaderPipelineInfo *prosper::debug::get_shader_pipeline(vk::Pipeline vkPipeline)
+prosper::debug::ShaderPipelineInfo *prosper::debug::get_shader_pipeline(const vk::Pipeline &vkPipeline)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<prosper::debug::ShaderPipelineInfo>(vkPipeline) : nullptr;
 }

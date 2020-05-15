@@ -7,7 +7,6 @@
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
-#include <misc/fence_create_info.h>
 
 using namespace prosper;
 

@@ -71,6 +71,16 @@ namespace prosper
 	class ComputePipelineCreateInfo;
 	class GraphicsPipelineCreateInfo;
 	struct DescriptorSetInfo;
+
+	struct DLLPROSPER Callbacks
+	{
+		std::function<void(prosper::DebugMessageSeverityFlags,const char*)> validationCallback = nullptr;
+		std::function<void()> onWindowInitialized = nullptr;
+		std::function<void()> onClose = nullptr;
+		std::function<void(uint32_t,uint32_t)> onResolutionChanged = nullptr;
+		std::function<void(prosper::IPrimaryCommandBuffer&,uint32_t)> drawFrame = nullptr;
+	};
+
 	class DLLPROSPER IPrContext
 		: public std::enable_shared_from_this<IPrContext>
 	{
@@ -148,7 +158,7 @@ namespace prosper
 		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
 		::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
 
-		void GetScissorViewportInfo(VkRect2D *out_scissors,VkViewport *out_viewports); // TODO: Deprecated?
+		void GetScissorViewportInfo(Rect2D *out_scissors,Viewport *out_viewports); // TODO: Deprecated?
 		virtual bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const=0;
 		virtual Vendor GetPhysicalDeviceVendor() const=0;
 		virtual MemoryRequirements GetMemoryRequirements(IImage &img)=0;
@@ -175,10 +185,10 @@ namespace prosper
 		const std::shared_ptr<IDynamicResizableBuffer> &GetTemporaryBuffer() const;
 		const std::vector<std::shared_ptr<IDynamicResizableBuffer>> &GetDeviceImageBuffers() const;
 
-		std::shared_ptr<IBuffer> AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
+		std::shared_ptr<IBuffer> AllocateTemporaryBuffer(DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
 		void AllocateTemporaryBuffer(prosper::IImage &img,const void *data=nullptr);
 
-		std::shared_ptr<IBuffer> AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
+		std::shared_ptr<IBuffer> AllocateDeviceImageBuffer(DeviceSize size,uint32_t alignment=0,const void *data=nullptr);
 		void AllocateDeviceImageBuffer(prosper::IImage &img,const void *data=nullptr);
 
 		virtual std::shared_ptr<prosper::IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)=0;
@@ -199,8 +209,8 @@ namespace prosper
 			);
 
 		void WaitIdle();
-		virtual vk::Result WaitForFence(const IFence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const=0;
-		virtual vk::Result WaitForFences(const std::vector<IFence*> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const=0;
+		virtual Result WaitForFence(const IFence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const=0;
+		virtual Result WaitForFences(const std::vector<IFence*> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const=0;
 		virtual void DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)=0;
 		virtual bool Submit(ICommandBuffer &cmdBuf,bool shouldBlock=false,IFence *optFence=nullptr)=0;
 
@@ -255,6 +265,12 @@ namespace prosper
 			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		);
 		bool ClearPipeline(bool graphicsShader,PipelineID pipelineId);
+		uint32_t GetLastAcquiredSwapchainImageIndex() const;
+
+		void SetCallbacks(const Callbacks &callbacks);
+		virtual void DrawFrame();
+		virtual void EndFrame();
+		void SetPresentMode(prosper::PresentModeKHR presentMode);
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 
@@ -281,10 +297,6 @@ namespace prosper
 		void InitDummyBuffer();
 		void InitTemporaryBuffer();
 		virtual void InitAPI(const CreateInfo &createInfo)=0;
-		void SetPresentMode(prosper::PresentModeKHR presentMode);
-
-		virtual void DrawFrame();
-		virtual void EndFrame();
 
 		prosper::PresentModeKHR m_presentMode = prosper::PresentModeKHR::Immediate;
 		StateFlags m_stateFlags = StateFlags::Idle;
@@ -292,13 +304,13 @@ namespace prosper
 		std::string m_appName;
 		std::shared_ptr<prosper::IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 
+		Callbacks m_callbacks {};
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;
 		std::unique_ptr<ShaderManager> m_shaderManager = nullptr;
 		std::unique_ptr<GLFW::Window> m_glfwWindow = nullptr;
 		std::shared_ptr<IDynamicResizableBuffer> m_tmpBuffer = nullptr;
 		std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};
 		std::vector<std::shared_ptr<prosper::IImage>> m_swapchainImages {};
-		VkSurfaceKHR m_surface = nullptr;
 		uint32_t m_numSwapchainImages = 0u;
 
 		std::queue<std::function<void(prosper::IPrimaryCommandBuffer&)>> m_scheduledBufferUpdates;

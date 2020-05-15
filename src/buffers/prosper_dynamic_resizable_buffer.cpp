@@ -16,6 +16,7 @@
 #include <wrappers/device.h>
 #include <wrappers/memory_block.h>
 #include <sstream>
+#include <cassert>
 
 using namespace prosper;
 
@@ -146,7 +147,7 @@ void IDynamicResizableBuffer::InsertFreeMemoryRange(std::list<Range>::iterator i
 	}
 	m_freeRanges.push_front({startOffset,size});
 }
-void IDynamicResizableBuffer::MarkMemoryRangeAsFree(vk::DeviceSize startOffset,vk::DeviceSize size)
+void IDynamicResizableBuffer::MarkMemoryRangeAsFree(DeviceSize startOffset,DeviceSize size)
 {
 	if(size == 0ull)
 		return;
@@ -155,11 +156,11 @@ void IDynamicResizableBuffer::MarkMemoryRangeAsFree(vk::DeviceSize startOffset,v
 	});
 	InsertFreeMemoryRange(it,startOffset,size);
 }
-std::list<IDynamicResizableBuffer::Range>::iterator IDynamicResizableBuffer::FindFreeRange(vk::DeviceSize size,uint32_t alignment)
+std::list<IDynamicResizableBuffer::Range>::iterator IDynamicResizableBuffer::FindFreeRange(DeviceSize size,uint32_t alignment)
 {
 	// Find the smallest available space that can fit the requested size (including alignment padding)
 	auto itMin = m_freeRanges.end();
-	auto minSize = std::numeric_limits<vk::DeviceSize>::max();
+	auto minSize = std::numeric_limits<DeviceSize>::max();
 	for(auto it=m_freeRanges.begin();it!=m_freeRanges.end();++it)
 	{
 		auto &range = *it;
@@ -240,8 +241,8 @@ void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::s
 		(*bufferData)<<+v;
 }
 
-std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(vk::DeviceSize size,const void *data) {return AllocateBuffer(size,m_alignment,data);}
-std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(vk::DeviceSize requestSize,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize size,const void *data) {return AllocateBuffer(size,m_alignment,data);}
+std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requestSize,uint32_t alignment,const void *data)
 {
 	if(requestSize == 0ull)
 		return nullptr;

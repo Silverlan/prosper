@@ -8,6 +8,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_enums.hpp"
 #include <limits>
+#include <array>
 #include <cinttypes>
 #include <optional>
 #include <map>
@@ -18,8 +19,52 @@ namespace prosper
 {
 	struct DLLPROSPER Extent2D
 	{
-		uint32_t width = 0;
-		uint32_t height = 0;
+		Extent2D( uint32_t width_ = 0,
+			uint32_t height_ = 0 )
+			: width( width_ )
+			, height( height_ )
+		{}
+
+		Extent2D( Extent2D const & rhs )
+		{
+			*reinterpret_cast<Extent2D*>(this) = rhs;
+		}
+
+		Extent2D & setWidth( uint32_t width_ )
+		{
+			width = width_;
+			return *this;
+		}
+
+		Extent2D & setHeight( uint32_t height_ )
+		{
+			height = height_;
+			return *this;
+		}
+
+		operator Extent2D const&() const
+		{
+			return *reinterpret_cast<const Extent2D*>( this );
+		}
+
+		operator Extent2D &()
+		{
+			return *reinterpret_cast<Extent2D*>( this );
+		}
+
+		bool operator==( Extent2D const& rhs ) const
+		{
+			return ( width == rhs.width )
+				&& ( height == rhs.height );
+		}
+
+		bool operator!=( Extent2D const& rhs ) const
+		{
+			return !operator==( rhs );
+		}
+
+		uint32_t width;
+		uint32_t height;
 	};
 
 	struct DLLPROSPER Extent3D
@@ -615,6 +660,271 @@ namespace prosper
 		uint32_t compareMask;
 		uint32_t writeMask;
 		uint32_t reference;
+	};
+	
+	struct DLLPROSPER ImageFormatPropertiesQuery
+	{
+		ImageCreateFlags createFlags;
+		Format format;
+		ImageType imageType;
+		ImageTiling tiling;
+		ImageUsageFlags usageFlags;
+	};
+
+	struct DLLPROSPER Offset2D
+	{
+		Offset2D( int32_t x_ = 0,
+			int32_t y_ = 0 )
+			: x( x_ )
+			, y( y_ )
+		{}
+
+		Offset2D( Offset2D const & rhs )
+		{
+			*reinterpret_cast<Offset2D*>(this) = rhs;
+		}
+
+		Offset2D & setX( int32_t x_ )
+		{
+			x = x_;
+			return *this;
+		}
+
+		Offset2D & setY( int32_t y_ )
+		{
+			y = y_;
+			return *this;
+		}
+
+		operator Offset2D const&() const
+		{
+			return *reinterpret_cast<const Offset2D*>( this );
+		}
+
+		operator Offset2D &()
+		{
+			return *reinterpret_cast<Offset2D*>( this );
+		}
+
+		bool operator==( Offset2D const& rhs ) const
+		{
+			return ( x == rhs.x )
+				&& ( y == rhs.y );
+		}
+
+		bool operator!=( Offset2D const& rhs ) const
+		{
+			return !operator==( rhs );
+		}
+
+		int32_t x;
+		int32_t y;
+	};
+
+	struct DLLPROSPER Rect2D
+	{
+		Rect2D( Offset2D offset_ = Offset2D(),
+			Extent2D extent_ = Extent2D() )
+			: offset( offset_ )
+			, extent( extent_ )
+		{}
+
+		Rect2D( Rect2D const & rhs )
+		{
+			*reinterpret_cast<Rect2D*>(this) = rhs;
+		}
+
+		Rect2D & setOffset( Offset2D offset_ )
+		{
+			offset = offset_;
+			return *this;
+		}
+
+		Rect2D & setExtent( Extent2D extent_ )
+		{
+			extent = extent_;
+			return *this;
+		}
+
+		operator Rect2D const&() const
+		{
+			return *reinterpret_cast<const Rect2D*>( this );
+		}
+
+		operator Rect2D &()
+		{
+			return *reinterpret_cast<Rect2D*>( this );
+		}
+
+		bool operator==( Rect2D const& rhs ) const
+		{
+			return ( offset == rhs.offset )
+				&& ( extent == rhs.extent );
+		}
+
+		bool operator!=( Rect2D const& rhs ) const
+		{
+			return !operator==( rhs );
+		}
+
+		Offset2D offset;
+		Extent2D extent;
+	};
+
+	struct DLLPROSPER Viewport
+	{
+		float x;
+		float y;
+		float width;
+		float height;
+		float minDepth;
+		float maxDepth;
+	};
+
+	union DLLPROSPER ClearColorValue
+	{
+		ClearColorValue( const std::array<float,4>& float32_ = { { 0 } } )
+		{
+			memcpy( float32, float32_.data(), 4 * sizeof( float ) );
+		}
+
+		ClearColorValue( const std::array<int32_t,4>& int32_ )
+		{
+			memcpy( int32, int32_.data(), 4 * sizeof( int32_t ) );
+		}
+
+		ClearColorValue( const std::array<uint32_t,4>& uint32_ )
+		{
+			memcpy( uint32, uint32_.data(), 4 * sizeof( uint32_t ) );
+		}
+
+
+		ClearColorValue & setFloat32( std::array<float,4> float32_ )
+		{
+			memcpy( float32, float32_.data(), 4 * sizeof( float ) );
+			return *this;
+		}
+
+		ClearColorValue & setInt32( std::array<int32_t,4> int32_ )
+		{
+			memcpy( int32, int32_.data(), 4 * sizeof( int32_t ) );
+			return *this;
+		}
+
+		ClearColorValue & setUint32( std::array<uint32_t,4> uint32_ )
+		{
+			memcpy( uint32, uint32_.data(), 4 * sizeof( uint32_t ) );
+			return *this;
+		}
+		operator ClearColorValue const&() const
+		{
+			return *reinterpret_cast<const ClearColorValue*>(this);
+		}
+
+		operator ClearColorValue &()
+		{
+			return *reinterpret_cast<ClearColorValue*>(this);
+		}
+
+		float float32[4];
+		int32_t int32[4];
+		uint32_t uint32[4];
+	};
+
+	struct DLLPROSPER ClearDepthStencilValue
+	{
+		ClearDepthStencilValue( float depth_ = 0,
+			uint32_t stencil_ = 0 )
+			: depth( depth_ )
+			, stencil( stencil_ )
+		{}
+
+		ClearDepthStencilValue( ClearDepthStencilValue const & rhs )
+		{
+			*reinterpret_cast<ClearDepthStencilValue*>(this) = rhs;
+		}
+
+		ClearDepthStencilValue & setDepth( float depth_ )
+		{
+			depth = depth_;
+			return *this;
+		}
+
+		ClearDepthStencilValue & setStencil( uint32_t stencil_ )
+		{
+			stencil = stencil_;
+			return *this;
+		}
+
+		operator ClearDepthStencilValue const&() const
+		{
+			return *reinterpret_cast<const ClearDepthStencilValue*>( this );
+		}
+
+		operator ClearDepthStencilValue &()
+		{
+			return *reinterpret_cast<ClearDepthStencilValue*>( this );
+		}
+
+		bool operator==( ClearDepthStencilValue const& rhs ) const
+		{
+			return ( depth == rhs.depth )
+				&& ( stencil == rhs.stencil );
+		}
+
+		bool operator!=( ClearDepthStencilValue const& rhs ) const
+		{
+			return !operator==( rhs );
+		}
+
+		float depth;
+		uint32_t stencil;
+	};
+
+	union DLLPROSPER ClearValue
+	{
+		ClearValue( ClearColorValue color_ = ClearColorValue() )
+		{
+			color = color_;
+		}
+
+		ClearValue( ClearDepthStencilValue depthStencil_ )
+		{
+			depthStencil = depthStencil_;
+		}
+		ClearValue(const ClearValue &cv)
+			: color{cv.color},depthStencil{cv.depthStencil}
+		{}
+		ClearValue &operator=(const ClearValue &other)
+		{
+			color = other.color;
+			depthStencil = other.depthStencil;
+			return *this;
+		}
+
+		ClearValue & setColor( ClearColorValue color_ )
+		{
+			color = color_;
+			return *this;
+		}
+
+		ClearValue & setDepthStencil( ClearDepthStencilValue depthStencil_ )
+		{
+			depthStencil = depthStencil_;
+			return *this;
+		}
+		operator ClearValue const&() const
+		{
+			return *reinterpret_cast<const ClearValue*>(this);
+		}
+
+		operator ClearValue &()
+		{
+			return *reinterpret_cast<ClearValue*>(this);
+		}
+
+		ClearColorValue color;
+		ClearDepthStencilValue depthStencil;
 	};
 
 	using PipelineID = uint32_t;

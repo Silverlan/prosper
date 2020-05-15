@@ -6,7 +6,6 @@
 #define __PROSPER_UTIL_SQUARE_SHAPE_HPP__
 
 #include "prosper_definitions.hpp"
-#include <vulkan/vulkan.hpp>
 #include <memory>
 #include <vector>
 #include <mathutil/uvec.h>

@@ -5,11 +5,8 @@
 #include "stdafx_prosper.h"
 #include "image/prosper_msaa_texture.hpp"
 #include "image/prosper_texture.hpp"
-#include "image/vk_image.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_util.hpp"
-#include <wrappers/command_buffer.h>
-#include <misc/image_create_info.h>
 
 using namespace prosper;
 

@@ -6,7 +6,6 @@
 #define __PROSPER_UTIL_LINE_SHAPE_HPP__
 
 #include "prosper_definitions.hpp"
-#include <vulkan/vulkan.hpp>
 #include <memory>
 #include <vector>
 #include <mathutil/uvec.h>
@@ -20,7 +19,7 @@ namespace prosper
 		DLLPROSPER const std::vector<Vector2> &get_line_vertices();
 		DLLPROSPER uint32_t get_line_vertex_count();
 
-		DLLPROSPER Anvil::Format get_line_vertex_format();
+		DLLPROSPER prosper::Format get_line_vertex_format();
 	};
 };
 

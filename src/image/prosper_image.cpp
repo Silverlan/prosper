@@ -8,14 +8,10 @@
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "debug/prosper_debug.hpp"
-#include "vk_image.hpp"
 #include "prosper_memory_tracker.hpp"
 #include "prosper_command_buffer.hpp"
-#include "buffers/vk_buffer.hpp"
 
 using namespace prosper;
-
-static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
 IImage::IImage(IPrContext &context,const prosper::util::ImageCreateInfo &createInfo)
 	: ContextObject(context),std::enable_shared_from_this<IImage>(),m_createInfo{createInfo}

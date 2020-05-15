@@ -6,6 +6,7 @@
 #define __PR_PROSPER_VK_SAMPLER_HPP__
 
 #include "image/prosper_sampler.hpp"
+#include <wrappers/sampler.h>
 
 namespace prosper
 {
