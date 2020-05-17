@@ -368,6 +368,19 @@ void IPrContext::WaitIdle()
 	ClearKeepAliveResources();
 }
 
+
+bool IPrContext::ValidationCallback(
+	DebugMessageSeverityFlags severityFlags,
+	const std::string &message
+)
+{
+	if(IsValidationEnabled() == false)
+		return false;
+	if(m_callbacks.validationCallback)
+		m_callbacks.validationCallback(severityFlags,message);
+	return true;
+}
+
 void IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	// TODO: Check if resolution is supported

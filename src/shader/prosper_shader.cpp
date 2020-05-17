@@ -335,6 +335,10 @@ prosper::PipelineInfo *prosper::Shader::GetPipelineInfo(PipelineID id)
 {
 	return (id < m_pipelineInfos.size()) ? &m_pipelineInfos.at(id) : nullptr;
 }
+const prosper::BasePipelineCreateInfo *prosper::Shader::GetPipelineCreateInfo(PipelineID id) const
+{
+	return const_cast<Shader*>(this)->GetPipelineCreateInfo(id);
+}
 prosper::BasePipelineCreateInfo *prosper::Shader::GetPipelineCreateInfo(PipelineID id)
 {
 	auto *info = GetPipelineInfo(id);

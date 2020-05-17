@@ -9,6 +9,7 @@
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_enums.hpp"
+#include "prosper_structs.hpp"
 #include <functional>
 
 #undef max
@@ -39,7 +40,7 @@ namespace prosper
 		void SetMinLod(float minLod);
 		void SetMaxLod(float maxLod);
 		void SetBorderColor(BorderColor borderColor);
-		void SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates);
+		// void SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates);
 
 		Filter GetMinFilter() const;
 		Filter GetMagFilter() const;
@@ -54,7 +55,7 @@ namespace prosper
 		float GetMinLod() const;
 		float GetMaxLod() const;
 		BorderColor GetBorderColor() const;
-		bool GetUseUnnormalizedCoordinates() const;
+		// bool GetUseUnnormalizedCoordinates() const;
 
 		bool Update();
 	protected:

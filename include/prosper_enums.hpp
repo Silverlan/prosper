@@ -44,9 +44,17 @@ namespace prosper
 		LazilyAllocated = HostCoherent<<1u,
 		HostAccessable = LazilyAllocated<<1u,
 
-		GPUBulk = DeviceLocal, // Usage: GPU memory that is rarely (if ever) updated by the CPU
-		CPUToGPU = DeviceLocal | HostAccessable, // Usage: Memory that has to be frequently (e.g. every frame) updated by the CPU
-		GPUToCPU = HostAccessable | HostCoherent | HostCached // Usage: Memory written to by the GPU, which needs to be readable by the CPU
+		Stream = HostAccessable<<1u, // Data is modified once and only used rarely
+		Static = Stream<<1u, // Data is modified once and used frequently
+		Dynamic = Static<<1u, // Data is modified repeatedly and used frequently
+
+		WriteOnly = Dynamic<<1u,
+		ReadOnly = WriteOnly<<1u,
+		CopyOnly = ReadOnly<<1u,
+
+		GPUBulk = DeviceLocal | Static | WriteOnly, // Usage: GPU memory that is rarely (if ever) updated by the CPU
+		CPUToGPU = DeviceLocal | HostAccessable | Dynamic, // Usage: Memory that has to be frequently (e.g. every frame) updated by the CPU
+		GPUToCPU = HostAccessable | HostCoherent | HostCached | Dynamic // Usage: Memory written to by the GPU, which needs to be readable by the CPU
 	};
 
 	enum class Filter : uint32_t

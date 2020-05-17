@@ -225,8 +225,7 @@ std::shared_ptr<prosper::IFence> prosper::IPrContext::CreateFence(bool createSig
 {
 	return VlkFence::Create(*this,createSignalled,nullptr);
 }
-
-std::shared_ptr<prosper::IImageView> prosper::IPrContext::CreateImageView(const prosper::util::ImageViewCreateInfo &createInfo,prosper::IImage &img)
+std::shared_ptr<prosper::IImageView> prosper::IPrContext::CreateImageView(const util::ImageViewCreateInfo &createInfo,IImage &img)
 {
 	auto format = createInfo.format;
 	if(format == Format::Unknown)
@@ -253,6 +252,12 @@ std::shared_ptr<prosper::IImageView> prosper::IPrContext::CreateImageView(const 
 			break;
 		}
 	}
+	return DoCreateImageView(createInfo,img,format,type,aspectMask,numLayers);
+}
+std::shared_ptr<prosper::IImageView> prosper::IPrContext::DoCreateImageView(
+	const prosper::util::ImageViewCreateInfo &createInfo,prosper::IImage &img,Format format,ImageViewType type,prosper::ImageAspectFlags aspectMask,uint32_t numLayers
+)
+{
 	switch(type)
 	{
 	case ImageViewType::e2D:

@@ -6,8 +6,34 @@
 #define __PR_PROSPER_VK_CONTEXT_HPP__
 
 #include "prosper_context.hpp"
-#include <misc/types.h>
 
+namespace Anvil
+{
+	class BaseDevice;
+	class SGPUDevice;
+	class RenderPass;
+	class Swapchain;
+	class Instance;
+	struct SurfaceCapabilities;
+	struct MipmapRawData;
+	class RenderPassCreateInfo;
+	class DescriptorSetCreateInfo;
+	class PipelineLayout;
+	class PhysicalDevice;
+	class Queue;
+	class RenderingSurface;
+	class Window;
+	class Fence;
+	class Framebuffer;
+	class Semaphore;
+
+	typedef std::unique_ptr<BaseDevice,std::function<void(BaseDevice*)>> BaseDeviceUniquePtr;
+	typedef std::unique_ptr<Instance,std::function<void(Instance*)>> InstanceUniquePtr;
+	typedef std::unique_ptr<Window,std::function<void(Window*)>> WindowUniquePtr;
+	typedef std::unique_ptr<Semaphore,std::function<void(Semaphore*)>> SemaphoreUniquePtr;
+};
+
+struct VkSurfaceKHR_T;
 namespace prosper
 {
 	class DLLPROSPER VlkContext
@@ -19,7 +45,7 @@ namespace prosper
 
 		Anvil::SGPUDevice &GetDevice();
 		const std::shared_ptr<Anvil::RenderPass> &GetMainRenderPass() const;
-		Anvil::SubPassID GetMainSubPassID() const;
+		SubPassID GetMainSubPassID() const;
 		std::shared_ptr<Anvil::Swapchain> GetSwapchain();
 
 		const Anvil::Instance &GetAnvilInstance() const;
@@ -55,14 +81,10 @@ namespace prosper
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr) override;
 		using IPrContext::SubmitCommandBuffer;
 
-		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,Anvil::PipelineID pipelineId);
+		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,PipelineID pipelineId);
 	protected:
 		VlkContext(const std::string &appName,bool bEnableValidation=false);
 		virtual void Release() override;
-		virtual VkBool32 ValidationCallback(
-			Anvil::DebugMessageSeverityFlags severityFlags,
-			const char *message
-		);
 
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) override;
 		virtual void DoWaitIdle() override;
@@ -86,8 +108,8 @@ namespace prosper
 		std::shared_ptr<Anvil::Swapchain> m_swapchainPtr;
 		Anvil::WindowUniquePtr m_windowPtr = nullptr;
 		std::shared_ptr<Anvil::RenderPass> m_renderPass;
-		Anvil::SubPassID m_mainSubPass = std::numeric_limits<Anvil::SubPassID>::max();
-		VkSurfaceKHR m_surface = nullptr;
+		SubPassID m_mainSubPass = std::numeric_limits<SubPassID>::max();
+		VkSurfaceKHR_T *m_surface = nullptr;
 
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
 		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;

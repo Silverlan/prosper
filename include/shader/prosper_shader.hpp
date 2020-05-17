@@ -154,6 +154,7 @@ namespace prosper
 
 		const PipelineInfo *GetPipelineInfo(PipelineID id) const;
 		PipelineInfo *GetPipelineInfo(PipelineID id);
+		const BasePipelineCreateInfo *GetPipelineCreateInfo(PipelineID id) const;
 		BasePipelineCreateInfo *GetPipelineCreateInfo(PipelineID id);
 		bool GetSourceFilePath(ShaderStage stage,std::string &sourceFilePath) const;
 		std::vector<std::string> GetSourceFilePaths() const;

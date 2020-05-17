@@ -55,7 +55,9 @@ bool prosper::ICommandBuffer::RecordBindIndexBuffer(IBuffer &buf,IndexType index
 {
 	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_index_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,static_cast<Anvil::IndexType>(indexType));
 }
-bool prosper::ICommandBuffer::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets)
+bool prosper::ICommandBuffer::RecordBindVertexBuffers(
+	const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets
+)
 {
 	std::vector<Anvil::Buffer*> anvBuffers {};
 	anvBuffers.reserve(buffers.size());

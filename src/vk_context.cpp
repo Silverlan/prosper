@@ -4,6 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "vk_context.hpp"
+#include <misc/types.h>
 #include "vk_fence.hpp"
 #include "vk_command_buffer.hpp"
 #include "vk_render_pass.hpp"
@@ -219,16 +220,6 @@ void VlkContext::ReloadWindow()
 	ReleaseSwapchain();
 	InitWindow();
 	ReloadSwapchain();
-}
-
-VkBool32 VlkContext::ValidationCallback(
-	Anvil::DebugMessageSeverityFlags severityFlags,
-	const char *message
-)
-{
-	if(m_callbacks.validationCallback)
-		m_callbacks.validationCallback(static_cast<prosper::DebugMessageSeverityFlags>(severityFlags.get_vk()),message);
-	return false;
 }
 
 const Anvil::Instance &VlkContext::GetAnvilInstance() const {return const_cast<VlkContext*>(this)->GetAnvilInstance();}
@@ -646,7 +637,9 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			Anvil::DebugMessageSeverityFlags severityFlags,
 			const char *message
 			) -> VkBool32 {
-				return this->ValidationCallback(severityFlags,message);
+				if(m_callbacks.validationCallback)
+					m_callbacks.validationCallback(static_cast<prosper::DebugMessageSeverityFlags>(severityFlags.get_vk()),message);
+				return true;
 		} :  Anvil::DebugCallbackFunction(),
 			false
 			)); /* in_mt_safe */

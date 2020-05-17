@@ -8,6 +8,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
+#include "prosper_structs.hpp"
 
 #undef max
 
@@ -15,6 +16,7 @@
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class Texture;
 	class IDescriptorSet;
 	class IBuffer;
 	class DLLPROSPER DescriptorSetBinding

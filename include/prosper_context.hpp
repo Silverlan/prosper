@@ -74,7 +74,7 @@ namespace prosper
 
 	struct DLLPROSPER Callbacks
 	{
-		std::function<void(prosper::DebugMessageSeverityFlags,const char*)> validationCallback = nullptr;
+		std::function<void(prosper::DebugMessageSeverityFlags,const std::string&)> validationCallback = nullptr;
 		std::function<void()> onWindowInitialized = nullptr;
 		std::function<void()> onClose = nullptr;
 		std::function<void(uint32_t,uint32_t)> onResolutionChanged = nullptr;
@@ -85,6 +85,9 @@ namespace prosper
 		: public std::enable_shared_from_this<IPrContext>
 	{
 	public:
+		// Max push constant size supported by most vendors / GPUs
+		static constexpr uint32_t MAX_COMMON_PUSH_CONSTANT_SIZE = 128;
+
 		enum class StateFlags : uint32_t
 		{
 			None = 0u,
@@ -217,7 +220,7 @@ namespace prosper
 		void RegisterResource(const std::shared_ptr<void> &resource);
 		void ReleaseResource(void *resource);
 
-		std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data=nullptr);
+		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data=nullptr);
 		std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(
 			util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
@@ -226,17 +229,17 @@ namespace prosper
 			util::BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
 		);
-		std::shared_ptr<IEvent> CreateEvent();
-		std::shared_ptr<IFence> CreateFence(bool createSignalled=false);
-		std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo);
+		virtual std::shared_ptr<IEvent> CreateEvent();
+		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled=false);
+		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo);
 		std::shared_ptr<IImageView> CreateImageView(const util::ImageViewCreateInfo &createInfo,IImage &img);
-		std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
+		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
 		std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer);
 		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers);
-		std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo);
+		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo);
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
-		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
-		std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments);
+		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
+		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments);
 		std::shared_ptr<Texture> CreateTexture(
 			const util::TextureCreateInfo &createInfo,IImage &img,
 			const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo=util::ImageViewCreateInfo{},
@@ -271,9 +274,17 @@ namespace prosper
 		virtual void DrawFrame();
 		virtual void EndFrame();
 		void SetPresentMode(prosper::PresentModeKHR presentMode);
+
+		bool ValidationCallback(
+			DebugMessageSeverityFlags severityFlags,
+			const std::string &message
+		);
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 
+		virtual std::shared_ptr<IImageView> DoCreateImageView(
+			const util::ImageViewCreateInfo &createInfo,IImage &img,Format format,ImageViewType imgViewType,prosper::ImageAspectFlags aspectMask,uint32_t numLayers
+		);
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)=0;
 		virtual void DoWaitIdle()=0;
 		virtual void DoFlushSetupCommandBuffer()=0;

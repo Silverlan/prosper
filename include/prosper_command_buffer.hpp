@@ -23,6 +23,7 @@ namespace prosper
 	class RenderTarget;
 	class IFramebuffer;
 	class IRenderPass;
+	class ShaderGraphics;
 	class DLLPROSPER ICommandBuffer
 		: public ContextObject,
 		public std::enable_shared_from_this<ICommandBuffer>
@@ -37,21 +38,23 @@ namespace prosper
 		virtual bool Reset(bool shouldReleaseResources) const=0;
 		virtual bool StopRecording() const=0;
 
-		bool RecordBindIndexBuffer(IBuffer &buf,IndexType indexType=IndexType::UInt16,DeviceSize offset=0);
-		bool RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={});
-		bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size);
-		bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0);
-		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,int32_t vertexOffset=0,uint32_t firstInstance=0);
-		bool RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride);
-		bool RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride);
-		bool RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data);
+		virtual bool RecordBindIndexBuffer(IBuffer &buf,IndexType indexType=IndexType::UInt16,DeviceSize offset=0);
+		virtual bool RecordBindVertexBuffers(
+			const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={}
+		);
+		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size);
+		virtual bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0);
+		virtual bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,int32_t vertexOffset=0,uint32_t firstInstance=0);
+		virtual bool RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride);
+		virtual bool RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride);
+		virtual bool RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data);
 		// bool RecordResetEvent(Event &ev,PipelineStateFlags stageMask);
-		bool RecordSetBlendConstants(const std::array<float,4> &blendConstants);
-		bool RecordSetDepthBounds(float minDepthBounds,float maxDepthBounds);
+		virtual bool RecordSetBlendConstants(const std::array<float,4> &blendConstants);
+		virtual bool RecordSetDepthBounds(float minDepthBounds,float maxDepthBounds);
 		// bool RecordSetEvent(Event &ev,PipelineStageFlags stageMask);
-		bool RecordSetStencilCompareMask(StencilFaceFlags faceMask,uint32_t stencilCompareMask);
-		bool RecordSetStencilReference(StencilFaceFlags faceMask,uint32_t stencilReference);
-		bool RecordSetStencilWriteMask(StencilFaceFlags faceMask,uint32_t stencilWriteMask);
+		virtual bool RecordSetStencilCompareMask(StencilFaceFlags faceMask,uint32_t stencilCompareMask);
+		virtual bool RecordSetStencilReference(StencilFaceFlags faceMask,uint32_t stencilReference);
+		virtual bool RecordSetStencilWriteMask(StencilFaceFlags faceMask,uint32_t stencilWriteMask);
 
 		prosper::QueueFamilyType GetQueueFamilyType() const;
 		bool RecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst);
@@ -98,11 +101,11 @@ namespace prosper
 			IBuffer &buf,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
 			AccessFlags srcAccessMask,AccessFlags dstAccessMask,DeviceSize offset=0ull,DeviceSize size=std::numeric_limits<DeviceSize>::max()
 		);
-		bool RecordBindDescriptorSets(PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={});
-		bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data);
-		bool RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id);
+		virtual bool RecordBindDescriptorSets(PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={});
+		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data);
+		virtual bool RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id);
 
-		bool RecordSetLineWidth(float lineWidth);
+		virtual bool RecordSetLineWidth(float lineWidth);
 		virtual bool RecordSetViewport(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u,float minDepth=0.f,float maxDepth=0.f)=0;
 		virtual bool RecordSetScissor(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u)=0;
 	protected:
@@ -133,6 +136,8 @@ namespace prosper
 		virtual bool RecordEndRenderPass()=0;
 		virtual bool RecordNextSubPass()=0;
 	protected:
+		bool DoRecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp);
+		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues);
 	};
 
 	///////////////////

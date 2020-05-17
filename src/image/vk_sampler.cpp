@@ -46,7 +46,7 @@ bool VlkSampler::DoUpdate()
 			static_cast<Anvil::SamplerMipmapMode>(createInfo.mipmapMode),static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeU),
 			static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeV),static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeW),
 			createInfo.mipLodBias,anisotropy,createInfo.compareEnable,static_cast<Anvil::CompareOp>(createInfo.compareOp),
-			createInfo.minLod,createInfo.maxLod,static_cast<Anvil::BorderColor>(createInfo.borderColor),createInfo.useUnnormalizedCoordinates
+			createInfo.minLod,createInfo.maxLod,static_cast<Anvil::BorderColor>(createInfo.borderColor),false//,createInfo.useUnnormalizedCoordinates
 		)
 	);
 	if(newSampler != nullptr)

@@ -394,7 +394,10 @@ bool prosper::util::get_current_render_pass_target(prosper::IPrimaryCommandBuffe
 	return true;
 }
 
-static bool record_begin_render_pass(prosper::IPrimaryCommandBuffer &cmdBuffer,prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(
+	prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,
+	uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues
+)
 {
 #ifdef DEBUG_VERBOSE
 	auto numAttachments = rt.GetAttachmentCount();
@@ -406,15 +409,14 @@ static bool record_begin_render_pass(prosper::IPrimaryCommandBuffer &cmdBuffer,p
 		std::cout<<"\t"<<((img != nullptr) ? img->GetAnvilImage().get_image() : nullptr)<<std::endl;
 	}
 #endif
-	auto *fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : &rt.GetFramebuffer();
-	auto &context = rt.GetContext();
+	auto &context = GetContext();
 	if(context.IsValidationEnabled())
 	{
-		auto &rpCreateInfo = *static_cast<prosper::VlkRenderPass&>(rt.GetRenderPass()).GetAnvilRenderPass().get_render_pass_create_info();
-		auto numAttachments = fb->GetAttachmentCount();
+		auto &rpCreateInfo = *static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass().get_render_pass_create_info();
+		auto numAttachments = fb.GetAttachmentCount();
 		for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
 		{
-			auto *imgView = fb->GetAttachment(i);
+			auto *imgView = fb.GetAttachment(i);
 			if(imgView == nullptr)
 				continue;
 			auto &img = imgView->GetImage();
@@ -435,7 +437,7 @@ static bool record_begin_render_pass(prosper::IPrimaryCommandBuffer &cmdBuffer,p
 			if(bValid == false)
 				continue;
 			prosper::ImageLayout imgLayout;
-			if(prosper::debug::get_last_recorded_image_layout(cmdBuffer,img,imgLayout,(layerId != nullptr) ? *layerId : 0u) == false)
+			if(prosper::debug::get_last_recorded_image_layout(*this,img,imgLayout,(layerId != nullptr) ? *layerId : 0u) == false)
 				continue;
 			if(imgLayout != static_cast<prosper::ImageLayout>(initialLayout))
 			{
@@ -447,54 +449,50 @@ static bool record_begin_render_pass(prosper::IPrimaryCommandBuffer &cmdBuffer,p
 			}
 		}
 	}
-	auto it = s_wpCurrentRenderTargets.find(&cmdBuffer);
+	auto it = s_wpCurrentRenderTargets.find(&*this);
 	if(it != s_wpCurrentRenderTargets.end())
 		s_wpCurrentRenderTargets.erase(it);
+	auto extents = img.GetExtents();
+	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
+	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
+	s_wpCurrentRenderTargets[&*this] = {rp.shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),img.shared_from_this(),fb.shared_from_this(),std::weak_ptr<prosper::RenderTarget>{}};
+	return static_cast<prosper::VlkPrimaryCommandBuffer&>(*this)->record_begin_render_pass(
+		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
+		&static_cast<prosper::VlkFramebuffer&>(fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
+	);
+}
+bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
+{
+	auto *fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : &rt.GetFramebuffer();
 	if(rp == nullptr)
 		rp = &rt.GetRenderPass();
-	auto &tex = rt.GetTexture();
 	if(fb == nullptr)
 		throw std::runtime_error("Attempted to begin render pass with NULL framebuffer object!");
 	if(rp == nullptr)
 		throw std::runtime_error("Attempted to begin render pass with NULL render pass object!");
+	auto &tex = rt.GetTexture();
 	auto &img = tex.GetImage();
-	auto extents = img.GetExtents();
-	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
-	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
-	s_wpCurrentRenderTargets[&cmdBuffer] = {rp->shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),img.shared_from_this(),fb ? fb->shared_from_this() : nullptr,rt.shared_from_this()};
-	return static_cast<prosper::VlkPrimaryCommandBuffer&>(cmdBuffer)->record_begin_render_pass(
-		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
-		&static_cast<prosper::VlkFramebuffer&>(*fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::VlkRenderPass&>(*rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
-	);
+	return DoRecordBeginRenderPass(img,*rp,*fb,layerId,clearValues);
 }
 bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)
 {
-	return ::record_begin_render_pass(*this,rt,&layerId,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp);
+	return DoRecordBeginRenderPass(rt,&layerId,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp);
 }
 bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
 {
-	return ::record_begin_render_pass(*this,rt,&layerId,clearValues,rp);
+	return DoRecordBeginRenderPass(rt,&layerId,clearValues,rp);
 }
 bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)
 {
-	return ::record_begin_render_pass(*this,rt,nullptr,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp);
+	return DoRecordBeginRenderPass(rt,nullptr,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp);
 }
 bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
 {
-	return ::record_begin_render_pass(*this,rt,nullptr,clearValues,rp);
+	return DoRecordBeginRenderPass(rt,nullptr,clearValues,rp);
 }
 bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<prosper::ClearValue> &clearValues)
 {
-	s_wpCurrentRenderTargets[this] = {rp.shared_from_this(),0u,img.shared_from_this(),fb.shared_from_this(),std::weak_ptr<prosper::RenderTarget>{}};
-
-	auto extents = img.GetExtents();
-	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
-	auto renderArea = prosper::Rect2D(prosper::Offset2D(),reinterpret_cast<prosper::Extent2D&>(extents));
-	static_assert(sizeof(prosper::Rect2D) == sizeof(VkRect2D));
-	return static_cast<VlkPrimaryCommandBuffer&>(*this).GetAnvilCommandBuffer().record_begin_render_pass(
-		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
-		&static_cast<VlkFramebuffer&>(fb).GetAnvilFramebuffer(),reinterpret_cast<VkRect2D&>(renderArea),&static_cast<VlkRenderPass&>(rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
-	);
+	return DoRecordBeginRenderPass(img,rp,fb,0u,clearValues);
 }
 
 bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,const std::array<float,4> &clearColor,const util::ClearImageInfo &clearImageInfo)

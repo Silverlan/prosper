@@ -363,7 +363,7 @@ namespace prosper
 			float minLod = 0.f;
 			float maxLod = std::numeric_limits<float>::max();
 			BorderColor borderColor = BorderColor::FloatTransparentBlack;
-			bool useUnnormalizedCoordinates = false;
+			// bool useUnnormalizedCoordinates = false;
 		};
 
 		struct DLLPROSPER RenderTargetCreateInfo

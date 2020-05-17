@@ -31,7 +31,7 @@ void ISampler::SetCompareOp(CompareOp compareOp) {m_createInfo.compareOp = compa
 void ISampler::SetMinLod(float minLod) {m_createInfo.minLod = minLod;}
 void ISampler::SetMaxLod(float maxLod) {m_createInfo.maxLod = maxLod;}
 void ISampler::SetBorderColor(BorderColor borderColor) {m_createInfo.borderColor = borderColor;}
-void ISampler::SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates) {m_createInfo.useUnnormalizedCoordinates = bUseUnnormalizedCoordinates;}
+// void ISampler::SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates) {m_createInfo.useUnnormalizedCoordinates = bUseUnnormalizedCoordinates;}
 
 Filter ISampler::GetMinFilter() const {return m_createInfo.minFilter;}
 Filter ISampler::GetMagFilter() const {return m_createInfo.magFilter;}
@@ -46,4 +46,4 @@ CompareOp ISampler::GetCompareOp() const {return m_createInfo.compareOp;}
 float ISampler::GetMinLod() const {return m_createInfo.minLod;}
 float ISampler::GetMaxLod() const {return m_createInfo.maxLod;}
 BorderColor ISampler::GetBorderColor() const {return m_createInfo.borderColor;}
-bool ISampler::GetUseUnnormalizedCoordinates() const {return m_createInfo.useUnnormalizedCoordinates;}
+// bool ISampler::GetUseUnnormalizedCoordinates() const {return m_createInfo.useUnnormalizedCoordinates;}

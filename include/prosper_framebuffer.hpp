@@ -13,6 +13,7 @@
 
 namespace prosper
 {
+	class IImageView;
 	class DLLPROSPER IFramebuffer
 		: public ContextObject,
 		public std::enable_shared_from_this<IFramebuffer>
