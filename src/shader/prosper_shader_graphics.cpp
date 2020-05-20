@@ -176,6 +176,10 @@ void prosper::ShaderGraphics::InitializeGfxPipeline(prosper::GraphicsPipelineCre
 }
 void prosper::ShaderGraphics::InitializePipeline()
 {
+	// Reset pipeline infos (in case the shader is being reloaded)
+	for(auto &pipelineInfo : m_pipelineInfos)
+		pipelineInfo = {};
+
 	/* Configure the graphics pipeline */
 	auto *modFs = GetStage(ShaderStage::Fragment);
 	auto *modVs = GetStage(ShaderStage::Vertex);
@@ -236,6 +240,11 @@ void prosper::ShaderGraphics::InitializePipeline()
 		m_currentPipelineIdx = pipelineIdx;
 		InitializeGfxPipeline(*gfxPipelineInfo,pipelineIdx);
 		InitializeDescriptorSetGroup(*gfxPipelineInfo);
+
+		auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
+		for(auto &range : pipelineInitInfo.pushConstantRanges)
+			gfxPipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
+
 		PrepareGfxPipeline(*gfxPipelineInfo);
 		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 

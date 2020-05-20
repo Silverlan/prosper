@@ -532,8 +532,23 @@ void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pip
 bool prosper::Shader::AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages)
 {
 	auto &pipelineInitInfo = m_pipelineInfos.at(m_currentPipelineIdx);
+	for(auto &range : pipelineInitInfo.pushConstantRanges)
+	{
+		if(range.stages != stages)
+			continue;
+		if((range.offset +range.size) == offset)
+		{
+			range.size += size;
+			break;
+		}
+		else if((offset +size) == range.offset)
+		{
+			range.offset = offset;
+			break;
+		}
+	}
 	pipelineInitInfo.pushConstantRanges.push_back({offset,size,stages});
-	return pipelineInfo.AttachPushConstantRange(offset,size,stages);
+	return true; // pipelineInfo.AttachPushConstantRange(offset,size,stages);
 }
 
 ///////////////////////////

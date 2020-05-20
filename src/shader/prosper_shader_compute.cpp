@@ -47,6 +47,11 @@ void prosper::ShaderCompute::InitializePipeline()
 		m_currentPipelineIdx = pipelineIdx;
 		InitializeComputePipeline(*computePipelineInfo,pipelineIdx);
 		InitializeDescriptorSetGroup(*computePipelineInfo);
+
+		auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
+		for(auto &range : pipelineInitInfo.pushConstantRanges)
+			computePipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
+
 		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 		
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
