@@ -20,10 +20,6 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
-namespace Anvil
-{
-	class DescriptorSetCreateInfo;
-};
 namespace prosper
 {
 	class DescriptorSetCreateInfo;
@@ -60,7 +56,6 @@ namespace prosper
 		uint32_t setIndex = 0u; // This value will be set after the shader has been baked
 
 		std::unique_ptr<prosper::DescriptorSetCreateInfo> ToProsperDescriptorSetInfo() const;
-		std::unique_ptr<Anvil::DescriptorSetCreateInfo> ToAnvilDescriptorSetInfo() const;
 	private:
 		friend Shader;
 		std::unique_ptr<prosper::DescriptorSetCreateInfo> Bake();

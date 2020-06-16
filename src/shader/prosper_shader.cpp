@@ -11,17 +11,6 @@
 #include "prosper_glstospv.hpp"
 #include "prosper_command_buffer.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
-#include <misc/glsl_to_spirv.h>
-#include <misc/graphics_pipeline_create_info.h>
-#include <wrappers/device.h>
-#include <wrappers/render_pass.h>
-#include <wrappers/graphics_pipeline_manager.h>
-#include <wrappers/compute_pipeline_manager.h>
-#include <wrappers/pipeline_cache.h>
-#include <wrappers/shader_module.h>
-#include <misc/descriptor_set_create_info.h>
-#include <misc/render_pass_create_info.h>
-#include <misc/image_view_create_info.h>
 #include <iostream>
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
@@ -268,11 +257,11 @@ void prosper::Shader::ClearPipelines()
 	GetContext().WaitIdle();
 	for(auto &pipelineInfo : m_pipelineInfos)
 	{
-		if(pipelineInfo.id == std::numeric_limits<Anvil::PipelineID>::max())
+		if(pipelineInfo.id == std::numeric_limits<prosper::PipelineID>::max())
 			continue;
 		// prosper::debug::deregister_debug_object(pipelineManager->GetPipelineInfo(pipelineInfo.id));
 		GetContext().ClearPipeline(IsGraphicsShader(),pipelineInfo.id);
-		pipelineInfo.id = std::numeric_limits<Anvil::PipelineID>::max();
+		pipelineInfo.id = std::numeric_limits<prosper::PipelineID>::max();
 	}
 }
 bool prosper::Shader::GetSourceFilePath(ShaderStage stage,std::string &sourceFilePath) const
@@ -305,7 +294,7 @@ const prosper::ShaderModuleStageEntryPoint *prosper::Shader::GetModuleStageEntry
 		return nullptr;
 	return stageData->entryPoint.get();
 }
-bool prosper::Shader::GetPipelineId(Anvil::PipelineID &pipelineId,uint32_t pipelineIdx) const
+bool prosper::Shader::GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx) const
 {
 	if(pipelineIdx >= m_pipelineInfos.size())
 		return false;
@@ -439,7 +428,7 @@ bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pi
 		return false;
 	m_currentPipelineIdx = pipelineIdx;
 	auto pipelineId = m_pipelineInfos.at(m_currentPipelineIdx).id;
-	auto r = pipelineId != std::numeric_limits<Anvil::PipelineID>::max() && cmdBuffer.RecordBindPipeline(m_pipelineBindPoint,static_cast<Anvil::PipelineID>(pipelineId));
+	auto r = pipelineId != std::numeric_limits<prosper::PipelineID>::max() && cmdBuffer.RecordBindPipeline(m_pipelineBindPoint,static_cast<prosper::PipelineID>(pipelineId));
 	if(r == true)
 		OnPipelineBound();
 	return r;
@@ -452,18 +441,6 @@ std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::To
 		dsInfo->AddBinding(
 			binding.bindingIndex,binding.type,binding.descriptorArraySize,
 			binding.shaderStages
-		);
-	}
-	return dsInfo;
-}
-std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::ToAnvilDescriptorSetInfo() const
-{
-	auto dsInfo = Anvil::DescriptorSetCreateInfo::create();
-	for(auto &binding : bindings)
-	{
-		dsInfo->add_binding(
-			binding.bindingIndex,static_cast<Anvil::DescriptorType>(binding.type),binding.descriptorArraySize,
-			static_cast<Anvil::ShaderStageFlagBits>(binding.shaderStages)
 		);
 	}
 	return dsInfo;

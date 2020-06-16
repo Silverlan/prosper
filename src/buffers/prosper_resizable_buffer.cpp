@@ -5,7 +5,6 @@
 #include "stdafx_prosper.h"
 #include "buffers/prosper_resizable_buffer.hpp"
 #include "buffers/prosper_buffer.hpp"
-#include <wrappers/image.h>
 
 using namespace prosper;
 

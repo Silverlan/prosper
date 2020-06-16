@@ -4,18 +4,21 @@
 
 #include "stdafx_prosper.h"
 #include "queries/prosper_query_pool.hpp"
+#include "queries/prosper_occlusion_query.hpp"
+#include "queries/prosper_timer_query.hpp"
+#include "queries/prosper_timestamp_query.hpp"
+#include "queries/prosper_pipeline_statistics_query.hpp"
 #include "vk_context.hpp"
 #include <wrappers/query_pool.h>
 #include <wrappers/device.h>
 
 using namespace prosper;
 
-QueryPool::QueryPool(IPrContext &context,Anvil::QueryPoolUniquePtr queryPool,QueryType type)
-	: ContextObject(context),std::enable_shared_from_this<QueryPool>(),m_queryPool(std::move(queryPool)),
-	m_type(type),m_queryCount(m_queryPool->get_capacity())
+IQueryPool::IQueryPool(IPrContext &context,QueryType type,uint32_t queryCount)
+	: ContextObject(context),std::enable_shared_from_this<IQueryPool>(),
+	m_type(type),m_queryCount{queryCount}
 {}
-Anvil::QueryPool &QueryPool::GetAnvilQueryPool() const {return *m_queryPool;}
-bool QueryPool::RequestQuery(uint32_t &queryId)
+bool IQueryPool::RequestQuery(uint32_t &queryId)
 {
 	if(m_freeQueries.empty() == false)
 	{
@@ -28,20 +31,39 @@ bool QueryPool::RequestQuery(uint32_t &queryId)
 	queryId = m_nextQueryId++;
 	return true;
 }
-void QueryPool::FreeQuery(uint32_t queryId) {m_freeQueries.push(queryId);}
-std::shared_ptr<QueryPool> prosper::util::create_query_pool(IPrContext &context,QueryType queryType,uint32_t maxConcurrentQueries)
+void IQueryPool::FreeQuery(uint32_t queryId) {m_freeQueries.push(queryId);}
+std::shared_ptr<OcclusionQuery> IQueryPool::CreateOcclusionQuery()
 {
-	if(queryType == QueryType::PipelineStatistics)
-		throw std::logic_error("Cannot create pipeline statistics query pool using this overload!");
-	auto pool = Anvil::QueryPool::create_non_ps_query_pool(&static_cast<VlkContext&>(context).GetDevice(),static_cast<VkQueryType>(queryType),maxConcurrentQueries);
-	if(pool == nullptr)
+	if(static_cast<VlkContext&>(GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
 		return nullptr;
-	return std::shared_ptr<QueryPool>(new QueryPool(context,std::move(pool),queryType));
+	uint32_t query = 0;
+	if(RequestQuery(query) == false)
+		return nullptr;
+	return std::shared_ptr<OcclusionQuery>(new OcclusionQuery(*this,query));
 }
-std::shared_ptr<QueryPool> prosper::util::create_query_pool(IPrContext &context,QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries)
+std::shared_ptr<PipelineStatisticsQuery> IQueryPool::CreatePipelineStatisticsQuery()
 {
-	auto pool = Anvil::QueryPool::create_ps_query_pool(&static_cast<VlkContext&>(context).GetDevice(),static_cast<Anvil::QueryPipelineStatisticFlagBits>(statsFlags),maxConcurrentQueries);
-	if(pool == nullptr)
+	if(static_cast<VlkContext&>(GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
 		return nullptr;
-	return std::shared_ptr<QueryPool>(new QueryPool(context,std::move(pool),QueryType::PipelineStatistics));
+	uint32_t query = 0;
+	if(RequestQuery(query) == false)
+		return nullptr;
+	return std::shared_ptr<PipelineStatisticsQuery>(new PipelineStatisticsQuery(*this,query));
+}
+std::shared_ptr<TimestampQuery> IQueryPool::CreateTimestampQuery(PipelineStageFlags pipelineStage)
+{
+	uint32_t query = 0;
+	if(RequestQuery(query) == false)
+		return nullptr;
+	return std::shared_ptr<TimestampQuery>(new TimestampQuery(*this,query,pipelineStage));
+}
+std::shared_ptr<TimerQuery> IQueryPool::CreateTimerQuery(PipelineStageFlags pipelineStage)
+{
+	auto tsQuery0 = CreateTimestampQuery(pipelineStage);
+	if(tsQuery0 == nullptr)
+		return nullptr;
+	auto tsQuery1 = CreateTimestampQuery(pipelineStage);
+	if(tsQuery1 == nullptr)
+		return nullptr;
+	return std::shared_ptr<TimerQuery>(new TimerQuery(tsQuery0,tsQuery1));
 }

@@ -9,7 +9,6 @@
 #include "image/prosper_image_view.hpp"
 #include "image/prosper_sampler.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
-#include "buffers/vk_buffer.hpp"
 
 using namespace prosper;
 
@@ -20,7 +19,7 @@ IDescriptorSetGroup::IDescriptorSetGroup(IPrContext &context,const DescriptorSet
 
 IDescriptorSetGroup::~IDescriptorSetGroup() {}
 
-uint32_t IDescriptorSetGroup::GetBindingCount() const {return dynamic_cast<const VlkDescriptorSetGroup&>(*this)->get_descriptor_set_create_info()->at(0)->get_n_bindings();}//m_descriptorSets.front()->GetBindingCount();}
+uint32_t IDescriptorSetGroup::GetBindingCount() const {return GetDescriptorSetCreateInfo().GetBindingCount();}
 
 const DescriptorSetCreateInfo &IDescriptorSetGroup::GetDescriptorSetCreateInfo() const {return m_createInfo;}
 

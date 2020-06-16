@@ -10,9 +10,7 @@
 #include "vk_buffer.hpp"
 #include "prosper_context.hpp"
 #include <wrappers/buffer.h>
-#include <misc/memory_allocator.h>
 #include <misc/buffer_create_info.h>
-#include <wrappers/memory_block.h>
 #include <cassert>
 
 using namespace prosper;

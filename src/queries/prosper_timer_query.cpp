@@ -31,14 +31,3 @@ bool TimerQuery::QueryResult(std::chrono::nanoseconds &outDuration) const
 
 bool TimerQuery::IsResultAvailable() const {return (m_tsQuery0->IsResultAvailable() && m_tsQuery1->IsResultAvailable()) ? true : false;}
 prosper::PipelineStageFlags TimerQuery::GetPipelineStage() const {return m_tsQuery0->GetPipelineStage();}
-
-std::shared_ptr<TimerQuery> prosper::util::create_timer_query(QueryPool &queryPool,prosper::PipelineStageFlags pipelineStage)
-{
-	auto tsQuery0 = prosper::util::create_timestamp_query(queryPool,pipelineStage);
-	if(tsQuery0 == nullptr)
-		return nullptr;
-	auto tsQuery1 = prosper::util::create_timestamp_query(queryPool,pipelineStage);
-	if(tsQuery1 == nullptr)
-		return nullptr;
-	return std::shared_ptr<TimerQuery>(new TimerQuery(tsQuery0,tsQuery1));
-}

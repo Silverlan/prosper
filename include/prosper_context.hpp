@@ -9,6 +9,7 @@
 #include <array>
 #include <queue>
 #include <memory>
+#include <chrono>
 #include <optional>
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
@@ -64,13 +65,18 @@ namespace prosper
 	class IFramebuffer;
 	class IDescriptorSetGroup;
 	class ICommandBuffer;
+	class IQueryPool;
 	class IPrimaryCommandBuffer;
 	class ISecondaryCommandBuffer;
 	class IFence;
 	class IEvent;
+	class TimestampQuery;
+	class Query;
+	class PipelineStatisticsQuery;
 	class ComputePipelineCreateInfo;
 	class GraphicsPipelineCreateInfo;
 	struct DescriptorSetInfo;
+	struct PipelineStatistics;
 
 	struct DLLPROSPER Callbacks
 	{
@@ -234,8 +240,8 @@ namespace prosper
 		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo);
 		std::shared_ptr<IImageView> CreateImageView(const util::ImageViewCreateInfo &createInfo,IImage &img);
 		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
-		std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer);
-		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers);
+		std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
+		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo);
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
@@ -270,6 +276,13 @@ namespace prosper
 		bool ClearPipeline(bool graphicsShader,PipelineID pipelineId);
 		uint32_t GetLastAcquiredSwapchainImageIndex() const;
 
+		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries)=0;
+		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries)=0;
+		virtual bool QueryResult(const TimestampQuery &query,std::chrono::nanoseconds &outTimestampValue) const=0;
+		virtual bool QueryResult(const PipelineStatisticsQuery &query,PipelineStatistics &outStatistics) const=0;
+		virtual bool QueryResult(const Query &query,uint32_t &r) const=0;
+		virtual bool QueryResult(const Query &query,uint64_t &r) const=0;
+
 		void SetCallbacks(const Callbacks &callbacks);
 		virtual void DrawFrame();
 		virtual void EndFrame();
@@ -282,6 +295,7 @@ namespace prosper
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 
+		std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer,const std::optional<util::ImageCreateInfo> &createInfo={});
 		virtual std::shared_ptr<IImageView> DoCreateImageView(
 			const util::ImageViewCreateInfo &createInfo,IImage &img,Format format,ImageViewType imgViewType,prosper::ImageAspectFlags aspectMask,uint32_t numLayers
 		);

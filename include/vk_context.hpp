@@ -81,10 +81,20 @@ namespace prosper
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr) override;
 		using IPrContext::SubmitCommandBuffer;
 
+		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries) override;
+		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries) override;
+		virtual bool QueryResult(const TimestampQuery &query,std::chrono::nanoseconds &outTimestampValue) const override;
+		virtual bool QueryResult(const PipelineStatisticsQuery &query,PipelineStatistics &outStatistics) const override;
+		virtual bool QueryResult(const Query &query,uint32_t &r) const override;
+		virtual bool QueryResult(const Query &query,uint64_t &r) const override;
+
 		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,PipelineID pipelineId);
 	protected:
 		VlkContext(const std::string &appName,bool bEnableValidation=false);
 		virtual void Release() override;
+
+		template<class T,typename TBaseType=T>
+			bool QueryResult(const Query &query,T &outResult,QueryResultFlags resultFlags) const;
 
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) override;
 		virtual void DoWaitIdle() override;

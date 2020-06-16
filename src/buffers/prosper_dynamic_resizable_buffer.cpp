@@ -4,17 +4,12 @@
 
 #include "stdafx_prosper.h"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
-#include "vk_dynamic_resizable_buffer.hpp"
-#include "vk_buffer.hpp"
-#include "vk_context.hpp"
 #include "prosper_util.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "prosper_context.hpp"
+#include "buffers/vk_buffer.hpp"
 #include <wrappers/buffer.h>
-#include <misc/memory_allocator.h>
 #include <misc/buffer_create_info.h>
-#include <wrappers/device.h>
-#include <wrappers/memory_block.h>
 #include <sstream>
 #include <cassert>
 

@@ -352,9 +352,10 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::CreateBuffer(const util::
 	),createInfo,0ull,createInfo.size);
 }
 
-std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> *data)
+std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &pCreateInfo,const std::vector<Anvil::MipmapRawData> *data)
 {
-	auto layers = createInfo.layers;
+	auto createInfo = pCreateInfo;
+	auto &layers = createInfo.layers;
 	auto imageCreateFlags = Anvil::ImageCreateFlags{};
 	if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::Cubemap) != prosper::util::ImageCreateInfo::Flags::None)
 	{
@@ -362,7 +363,7 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const
 		layers = 6u;
 	}
 
-	auto postCreateLayout = createInfo.postCreateLayout;
+	auto &postCreateLayout = createInfo.postCreateLayout;
 	if(postCreateLayout == prosper::ImageLayout::ColorAttachmentOptimal && prosper::util::is_depth_format(createInfo.format))
 		postCreateLayout = prosper::ImageLayout::DepthStencilAttachmentOptimal;
 
@@ -433,18 +434,66 @@ std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const util::Im
 		)
 	});
 }
-extern std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap);
-std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(uimg::ImageBuffer &imgBuffer)
+extern std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &imgCreateInfo,const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap);
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(uimg::ImageBuffer &imgBuffer,const std::optional<util::ImageCreateInfo> &optCreateInfo)
 {
-	return ::create_image(*this,std::vector<std::shared_ptr<uimg::ImageBuffer>>{imgBuffer.shared_from_this()},false);
+	auto createInfo = optCreateInfo.has_value() ? *optCreateInfo : util::get_image_create_info(imgBuffer,false);
+	return ::create_image(*this,createInfo,std::vector<std::shared_ptr<uimg::ImageBuffer>>{imgBuffer.shared_from_this()},false);
 }
-std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers)
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer,const std::optional<util::ImageCreateInfo> &optCreateInfo)
+{
+	auto createInfo = optCreateInfo.has_value() ? *optCreateInfo : util::get_image_create_info(*imgBuffer.front(),false);
+	return ::create_image(*this,createInfo,imgBuffer,false);
+}
+prosper::Format prosper::util::get_prosper_format(const uimg::ImageBuffer &imgBuffer)
+{
+	auto format = imgBuffer.GetFormat();
+	prosper::Format prosperFormat;
+	switch(format)
+	{
+	case uimg::ImageBuffer::Format::RGB8:
+		prosperFormat = prosper::Format::R8G8B8_UNorm_PoorCoverage;
+		break;
+	case uimg::ImageBuffer::Format::RGB16:
+		prosperFormat = prosper::Format::R16G16B16_SFloat_PoorCoverage;
+		break;
+	case uimg::ImageBuffer::Format::RGB32:
+		prosperFormat = prosper::Format::R32G32B32_SFloat;
+		break;
+	case uimg::ImageBuffer::Format::RGBA8:
+		prosperFormat = prosper::Format::R8G8B8A8_UNorm;
+		break;
+	case uimg::ImageBuffer::Format::RGBA16:
+		prosperFormat = prosper::Format::R16G16B16A16_SFloat;
+		break;
+	case uimg::ImageBuffer::Format::RGBA32:
+		prosperFormat = prosper::Format::R32G32B32A32_SFloat;
+		break;
+	}
+	return prosperFormat;
+}
+prosper::util::ImageCreateInfo prosper::util::get_image_create_info(const uimg::ImageBuffer &imgBuffer,bool cubemap)
+{
+	prosper::util::ImageCreateInfo imgCreateInfo {};
+	imgCreateInfo.format = get_prosper_format(imgBuffer);
+	imgCreateInfo.width = imgBuffer.GetWidth();
+	imgCreateInfo.height = imgBuffer.GetHeight();
+	imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+	imgCreateInfo.postCreateLayout = prosper::ImageLayout::ShaderReadOnlyOptimal;
+	imgCreateInfo.tiling = prosper::ImageTiling::Optimal;
+	imgCreateInfo.usage = prosper::ImageUsageFlags::SampledBit;
+	imgCreateInfo.layers = cubemap ? 6 : 1;
+	if(cubemap)
+		imgCreateInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
+	return imgCreateInfo;
+}
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers,const std::optional<util::ImageCreateInfo> &createInfo)
 {
 	std::vector<std::shared_ptr<uimg::ImageBuffer>> vImgBuffers {};
 	vImgBuffers.reserve(imgBuffers.size());
 	for(auto &imgBuf : imgBuffers)
 		vImgBuffers.push_back(imgBuf);
-	return ::create_image(*this,vImgBuffers,true);
+	return ::create_image(*this,util::get_image_create_info(*imgBuffers.front(),true),vImgBuffers,true);
 }
 std::shared_ptr<prosper::IRenderPass> prosper::IPrContext::CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)
 {
@@ -1039,9 +1088,9 @@ prosper::Format prosper::util::get_vk_format(uimg::ImageBuffer::Format format)
 	case uimg::ImageBuffer::Format::RGBA8:
 		return prosper::Format::R8G8B8A8_UNorm;
 	case uimg::ImageBuffer::Format::RGB16:
-		return prosper::Format::R16G16B16_UNorm_PoorCoverage;
+		return prosper::Format::R16G16B16_SFloat_PoorCoverage;
 	case uimg::ImageBuffer::Format::RGBA16:
-		return prosper::Format::R16G16B16A16_UNorm;
+		return prosper::Format::R16G16B16A16_SFloat;
 	case uimg::ImageBuffer::Format::RGB32:
 		return prosper::Format::R32G32B32_SFloat;
 	case uimg::ImageBuffer::Format::RGBA32:

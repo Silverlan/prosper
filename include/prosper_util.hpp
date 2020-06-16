@@ -54,6 +54,8 @@ namespace prosper
 	};
 	namespace util
 	{
+		DLLPROSPER Format get_prosper_format(const uimg::ImageBuffer &imgBuffer);
+		DLLPROSPER prosper::util::ImageCreateInfo get_image_create_info(const uimg::ImageBuffer &imgBuffer,bool cubemap=false);
 		DLLPROSPER bool get_current_render_pass_target(prosper::IPrimaryCommandBuffer &cmdBuffer,prosper::IRenderPass **outRp=nullptr,prosper::IImage **outImg=nullptr,prosper::IFramebuffer **outFb=nullptr,prosper::RenderTarget **outRt=nullptr);
 
 		DLLPROSPER BufferBarrier create_buffer_barrier(const util::BufferBarrierInfo &barrierInfo,IBuffer &buffer);

@@ -10,27 +10,24 @@
 
 namespace prosper
 {
-	class QueryPool;
+	class IQueryPool;
 	class TimestampQuery;
 	class ICommandBuffer;
-	namespace util
-	{
-		DLLPROSPER std::shared_ptr<TimestampQuery> create_timestamp_query(QueryPool &queryPool,PipelineStageFlags pipelineStage);
-	};
 	class DLLPROSPER TimestampQuery
 		: public Query
 	{
 	public:
 		PipelineStageFlags GetPipelineStage() const;
-		virtual bool Reset(ICommandBuffer &cmdBuffer) override;
 		bool Write(ICommandBuffer &cmdBuffer);
 		bool QueryResult(std::chrono::nanoseconds &outTimestampValue) const;
+		bool IsReset() const;
 	private:
-		TimestampQuery(QueryPool &queryPool,uint32_t queryId,PipelineStageFlags pipelineStage);
+		TimestampQuery(IQueryPool &queryPool,uint32_t queryId,PipelineStageFlags pipelineStage);
+		virtual void OnReset(ICommandBuffer &cmdBuffer) override;
 		bool m_bReset = true;
 		PipelineStageFlags m_pipelineStage;
 	private:
-		friend std::shared_ptr<TimestampQuery> util::create_timestamp_query(QueryPool &queryPool,PipelineStageFlags pipelineStage);
+		friend IQueryPool;
 	};
 };
 

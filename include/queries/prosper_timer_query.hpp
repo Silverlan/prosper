@@ -10,14 +10,10 @@
 
 namespace prosper
 {
-	class QueryPool;
+	class IQueryPool;
 	class TimerQuery;
 	class TimestampQuery;
 	class CommandBuffer;
-	namespace util
-	{
-		DLLPROSPER std::shared_ptr<TimerQuery> create_timer_query(QueryPool &queryPool,PipelineStageFlags pipelineStage);
-	};
 	class DLLPROSPER TimerQuery
 		: public ContextObject,public std::enable_shared_from_this<TimerQuery>
 	{
@@ -32,8 +28,7 @@ namespace prosper
 		TimerQuery(const std::shared_ptr<TimestampQuery> &tsQuery0,const std::shared_ptr<TimestampQuery> &tsQuery1);
 		std::shared_ptr<TimestampQuery> m_tsQuery0 = nullptr;
 		std::shared_ptr<TimestampQuery> m_tsQuery1 = nullptr;
-	private:
-		friend std::shared_ptr<TimerQuery> util::create_timer_query(QueryPool &queryPool,PipelineStageFlags pipelineStage);
+		friend IQueryPool;
 	};
 };
 

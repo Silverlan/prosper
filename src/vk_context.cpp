@@ -16,6 +16,10 @@
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
 #include "image/vk_sampler.hpp"
+#include "queries/prosper_query_pool.hpp"
+#include "queries/prosper_pipeline_statistics_query.hpp"
+#include "queries/prosper_timestamp_query.hpp"
+#include "queries/vk_query_pool.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include <util_image_buffer.hpp>
 #include <misc/buffer_create_info.h>
@@ -42,6 +46,7 @@
 #include <wrappers/descriptor_set_group.h>
 #include <wrappers/graphics_pipeline_manager.h>
 #include <wrappers/compute_pipeline_manager.h>
+#include <wrappers/query_pool.h>
 #include <iglfw/glfw_window.h>
 
 #include <string>
@@ -813,7 +818,7 @@ void VlkContext::InitMainRenderPass()
 	m_renderPass->set_name("Main renderpass");
 }
 
-std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap)
+std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &pImgCreateInfo,const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap)
 {
 	if(imgBuffers.empty() || imgBuffers.size() != (cubemap ? 6 : 1))
 		return nullptr;
@@ -826,30 +831,21 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,std::
 		if(img->GetFormat() != format || img->GetWidth() != w || img->GetHeight() != h)
 			return nullptr;
 	}
-
+	auto imgCreateInfo = pImgCreateInfo;
 	std::optional<uimg::ImageBuffer::Format> conversionFormatRequired = {};
-	prosper::Format prosperFormat;
-	switch(format)
+	auto &imgBuf = imgBuffers.front();
+	switch(imgBuf->GetFormat())
 	{
 	case uimg::ImageBuffer::Format::RGB8:
 		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA8;
+		imgCreateInfo.format = prosper::Format::R8G8B8A8_UNorm;
 		break;
 	case uimg::ImageBuffer::Format::RGB16:
 		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA16;
-		break;
-	case uimg::ImageBuffer::Format::RGB32:
-		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA32;
-		break;
-	case uimg::ImageBuffer::Format::RGBA8:
-		prosperFormat = prosper::Format::R8G8B8A8_UNorm;
-		break;
-	case uimg::ImageBuffer::Format::RGBA16:
-		prosperFormat = prosper::Format::R16G16B16A16_UNorm;
-		break;
-	case uimg::ImageBuffer::Format::RGBA32:
-		prosperFormat = prosper::Format::R32G32B32A32_SFloat;
+		imgCreateInfo.format = prosper::Format::R16G16B16A16_SFloat;
 		break;
 	}
+	
 	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 7);
 	if(conversionFormatRequired.has_value())
 	{
@@ -860,19 +856,8 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,std::
 			auto copy = img->Copy(*conversionFormatRequired);
 			converted.push_back(copy);
 		}
-		return create_image(context,converted,cubemap);
+		return create_image(context,imgCreateInfo,converted,cubemap);
 	}
-	prosper::util::ImageCreateInfo imgCreateInfo {};
-	imgCreateInfo.format = prosperFormat;
-	imgCreateInfo.width = w;
-	imgCreateInfo.height = h;
-	imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
-	imgCreateInfo.postCreateLayout = prosper::ImageLayout::ShaderReadOnlyOptimal;
-	imgCreateInfo.tiling = prosper::ImageTiling::Optimal;
-	imgCreateInfo.usage = prosper::ImageUsageFlags::SampledBit;
-	imgCreateInfo.layers = imgBuffers.size();
-	if(cubemap)
-		imgCreateInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
 
 	auto byteSize = prosper::util::get_byte_size(imgCreateInfo.format);
 	std::vector<Anvil::MipmapRawData> layers {};
@@ -981,4 +966,59 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescrip
 	auto dsg = Anvil::DescriptorSetGroup::create(&static_cast<VlkContext&>(*this).GetDevice(),descSetInfos,Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
 	init_default_dsg_bindings(static_cast<VlkContext&>(*this).GetDevice(),*dsg);
 	return prosper::VlkDescriptorSetGroup::Create(*this,descSetCreateInfo,std::move(dsg));
+}
+
+std::shared_ptr<IQueryPool> VlkContext::CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries)
+{
+	if(queryType == QueryType::PipelineStatistics)
+		throw std::logic_error("Cannot create pipeline statistics query pool using this overload!");
+	auto pool = Anvil::QueryPool::create_non_ps_query_pool(&static_cast<VlkContext&>(*this).GetDevice(),static_cast<VkQueryType>(queryType),maxConcurrentQueries);
+	if(pool == nullptr)
+		return nullptr;
+	return std::shared_ptr<IQueryPool>(new VlkQueryPool(*this,std::move(pool),queryType));
+}
+std::shared_ptr<IQueryPool> VlkContext::CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries)
+{
+	auto pool = Anvil::QueryPool::create_ps_query_pool(&static_cast<VlkContext&>(*this).GetDevice(),static_cast<Anvil::QueryPipelineStatisticFlagBits>(statsFlags),maxConcurrentQueries);
+	if(pool == nullptr)
+		return nullptr;
+	return std::shared_ptr<IQueryPool>(new VlkQueryPool(*this,std::move(pool),QueryType::PipelineStatistics));
+}
+
+bool VlkContext::QueryResult(const TimestampQuery &query,std::chrono::nanoseconds &outTimestampValue) const
+{
+	uint64_t result;
+	if(QueryResult(query,result) == false)
+		return false;
+	auto ns = result *static_cast<double>(const_cast<VlkContext&>(*this).GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period);
+	outTimestampValue = static_cast<std::chrono::nanoseconds>(static_cast<uint64_t>(ns));
+	return true;
+}
+
+template<class T,typename TBaseType>
+	bool VlkContext::QueryResult(const Query &query,T &outResult,QueryResultFlags resultFlags) const
+{
+	auto *pool = static_cast<VlkQueryPool*>(query.GetPool());
+	if(pool == nullptr)
+		return false;
+#pragma pack(push,1)
+	struct ResultData
+	{
+		T data;
+		TBaseType availability;
+	};
+#pragma pack(pop)
+	auto bAllQueryResultsRetrieved = false;
+	ResultData resultData;
+	auto bSuccess = pool->GetAnvilQueryPool().get_query_pool_results(query.GetQueryId(),1u,static_cast<Anvil::QueryResultFlagBits>(resultFlags | prosper::QueryResultFlags::WithAvailabilityBit),reinterpret_cast<TBaseType*>(&resultData),&bAllQueryResultsRetrieved);
+	if(bSuccess == false || bAllQueryResultsRetrieved == false || resultData.availability == 0)
+		return false;
+	outResult = resultData.data;
+	return true;
+}
+bool VlkContext::QueryResult(const Query &query,uint32_t &r) const {return QueryResult<uint32_t>(query,r,prosper::QueryResultFlags{});}
+bool VlkContext::QueryResult(const Query &query,uint64_t &r) const {return QueryResult<uint64_t>(query,r,prosper::QueryResultFlags::e64Bit);}
+bool VlkContext::QueryResult(const PipelineStatisticsQuery &query,PipelineStatistics &outStatistics) const
+{
+	return QueryResult<PipelineStatistics,uint64_t>(query,outStatistics,prosper::QueryResultFlags::e64Bit);
 }

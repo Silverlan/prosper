@@ -39,6 +39,38 @@ namespace prosper
 		virtual bool RecordSetViewport(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u,float minDepth=0.f,float maxDepth=0.f) override;
 		virtual bool RecordSetScissor(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u) override;
 		virtual bool RecordUpdateBuffer(IBuffer &buffer,uint64_t offset,uint64_t size,const void *data) override;
+		virtual bool RecordBindDescriptorSets(
+			PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,
+			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
+		) override;
+		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data) override;
+		virtual bool RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id) override;
+
+		virtual bool RecordSetLineWidth(float lineWidth) override;
+		virtual bool RecordBindIndexBuffer(IBuffer &buf,IndexType indexType=IndexType::UInt16,DeviceSize offset=0) override;
+		virtual bool RecordBindVertexBuffers(
+			const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={}
+		) override;
+		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size) override;
+		virtual bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0) override;
+		virtual bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,int32_t vertexOffset=0,uint32_t firstInstance=0) override;
+		virtual bool RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride) override;
+		virtual bool RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride) override;
+		virtual bool RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data) override;
+		// bool RecordResetEvent(Event &ev,PipelineStateFlags stageMask);
+		virtual bool RecordSetBlendConstants(const std::array<float,4> &blendConstants) override;
+		virtual bool RecordSetDepthBounds(float minDepthBounds,float maxDepthBounds) override;
+		// bool RecordSetEvent(Event &ev,PipelineStageFlags stageMask);
+		virtual bool RecordSetStencilCompareMask(StencilFaceFlags faceMask,uint32_t stencilCompareMask) override;
+		virtual bool RecordSetStencilReference(StencilFaceFlags faceMask,uint32_t stencilReference) override;
+		virtual bool RecordSetStencilWriteMask(StencilFaceFlags faceMask,uint32_t stencilWriteMask) override;
+
+		virtual bool RecordBeginPipelineStatisticsQuery(const PipelineStatisticsQuery &query) const override;
+		virtual bool RecordEndPipelineStatisticsQuery(const PipelineStatisticsQuery &query) const override;
+		virtual bool RecordBeginOcclusionQuery(const OcclusionQuery &query) const override;
+		virtual bool RecordEndOcclusionQuery(const OcclusionQuery &query) const override;
+		virtual bool WriteTimestampQuery(const TimestampQuery &query) const override;
+		virtual bool ResetQuery(const Query &query) const override;
 	protected:
 		VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst) override;

@@ -8,29 +8,20 @@
 #include "queries/prosper_query.hpp"
 #include <chrono>
 
-namespace Anvil
-{
-	class CommandBufferBase;
-};
-
 namespace prosper
 {
-	class QueryPool;
+	class IQueryPool;
 	class OcclusionQuery;
-	namespace util
-	{
-		DLLPROSPER std::shared_ptr<OcclusionQuery> create_occlusion_query(QueryPool &queryPool);
-	};
+	class ICommandBuffer;
 	class DLLPROSPER OcclusionQuery
 		: public Query
 	{
 	public:
-		bool RecordBegin(Anvil::CommandBufferBase &cmdBuffer) const;
-		bool RecordEnd(Anvil::CommandBufferBase &cmdBuffer) const;
+		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer) const;
+		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
 	private:
-		OcclusionQuery(QueryPool &queryPool,uint32_t queryId);
-	private:
-		friend std::shared_ptr<OcclusionQuery> util::create_occlusion_query(QueryPool &queryPool);
+		OcclusionQuery(IQueryPool &queryPool,uint32_t queryId);
+		friend IQueryPool;
 	};
 };
 

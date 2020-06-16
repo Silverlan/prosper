@@ -10,42 +10,38 @@
 
 namespace prosper
 {
-	class QueryPool;
+	class IQueryPool;
 	class PipelineStatisticsQuery;
-	namespace util
+#pragma pack(push,1)
+	struct DLLPROSPER PipelineStatistics
 	{
-		DLLPROSPER std::shared_ptr<PipelineStatisticsQuery> create_pipeline_statistics_query(QueryPool &queryPool);
+		uint64_t inputAssemblyVertices;
+		uint64_t inputAssemblyPrimitives;
+		uint64_t vertexShaderInvocations;
+		uint64_t geometryShaderInvocations;
+		uint64_t geometryShaderPrimitives;
+		uint64_t clippingInvocations;
+		uint64_t clippingPrimitives;
+		uint64_t fragmentShaderInvocations;
+		uint64_t tessellationControlShaderPatches;
+		uint64_t tessellationEvaluationShaderInvocations;
+		uint64_t computeShaderInvocations;
 	};
+#pragma pack(pop)
 	class DLLPROSPER PipelineStatisticsQuery
 		: public Query
 	{
 	public:
-#pragma pack(push,1)
-		struct Statistics
-		{
-			uint64_t inputAssemblyVertices;
-			uint64_t inputAssemblyPrimitives;
-			uint64_t vertexShaderInvocations;
-			uint64_t geometryShaderInvocations;
-			uint64_t geometryShaderPrimitives;
-			uint64_t clippingInvocations;
-			uint64_t clippingPrimitives;
-			uint64_t fragmentShaderInvocations;
-			uint64_t tessellationControlShaderPatches;
-			uint64_t tessellationEvaluationShaderInvocations;
-			uint64_t computeShaderInvocations;
-		};
-#pragma pack(pop)
-
-		bool Reset(prosper::ICommandBuffer &cmdBuffer);
 		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer);
 		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
-		bool QueryResult(Statistics &outStatistics) const;
+		bool QueryResult(PipelineStatistics &outStatistics) const;
+		bool IsReset() const;
 	private:
-		PipelineStatisticsQuery(QueryPool &queryPool,uint32_t queryId);
+		PipelineStatisticsQuery(IQueryPool &queryPool,uint32_t queryId);
+		virtual void OnReset(prosper::ICommandBuffer &cmdBuffer) override;
 		bool m_bReset = true;
 	private:
-		friend std::shared_ptr<PipelineStatisticsQuery> util::create_pipeline_statistics_query(QueryPool &queryPool);
+		friend IQueryPool;
 	};
 };
 

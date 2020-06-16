@@ -13,9 +13,7 @@
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
-#include "buffers/vk_buffer.hpp"
-#include "buffers/vk_dynamic_resizable_buffer.hpp"
-#include "vk_command_buffer.hpp"
+#include "queries/prosper_timestamp_query.hpp"
 #include "image/prosper_sampler.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
@@ -166,8 +164,8 @@ std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(vk::DeviceSize si
 	createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 	createInfo.size = bufferSize;
 	createInfo.usageFlags = BufferUsageFlags::None;
-	auto deviceImgBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,bufferSize,maxTotalPercent);
-	assert(m_deviceImgBuffer);
+	auto deviceImgBuffer = CreateDynamicResizableBuffer(createInfo,bufferSize,maxTotalPercent);
+	assert(deviceImgBuffer);
 	std::cout<<"Device image buffer size: "<<bufferSize<<std::endl;
 	if(deviceImgBuffer == nullptr)
 		return nullptr;
@@ -577,7 +575,7 @@ void IPrContext::InitTemporaryBuffer()
 	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | 
 		BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit |
 		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
-	m_tmpBuffer = prosper::util::create_dynamic_resizable_buffer(*this,createInfo,maxBufferSize);
+	m_tmpBuffer = CreateDynamicResizableBuffer(createInfo,maxBufferSize);
 	assert(m_tmpBuffer);
 	m_tmpBuffer->SetPermanentlyMapped(true);
 }
