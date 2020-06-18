@@ -20,6 +20,10 @@ bool prosper::ShaderCompute::AddSpecializationConstant(prosper::ComputePipelineC
 void prosper::ShaderCompute::InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) {}
 void prosper::ShaderCompute::InitializePipeline()
 {
+	// Reset pipeline infos (in case the shader is being reloaded)
+	for(auto &pipelineInfo : m_pipelineInfos)
+		pipelineInfo = {};
+
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
 	auto firstPipelineId = std::numeric_limits<Anvil::PipelineID>::max();
