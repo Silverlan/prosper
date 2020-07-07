@@ -62,7 +62,6 @@ namespace prosper
 		DLLPROSPER ImageBarrier create_image_barrier(IImage &img,const util::ImageBarrierInfo &barrierInfo);
 		DLLPROSPER ImageBarrier create_image_barrier(IImage &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange={});
 
-		DLLPROSPER uint32_t calculate_buffer_alignment(Anvil::BaseDevice &dev,BufferUsageFlags usageFlags);
 		DLLPROSPER void calculate_mipmap_size(uint32_t w,uint32_t h,uint32_t *wMipmap,uint32_t *hMipmap,uint32_t level);
 		DLLPROSPER uint32_t calculate_mipmap_size(uint32_t v,uint32_t level);
 		DLLPROSPER uint32_t calculate_mipmap_count(uint32_t w,uint32_t h);
@@ -90,6 +89,7 @@ namespace prosper
 		DLLPROSPER bool is_64bit_format(Format format);
 		DLLPROSPER uint32_t get_bit_size(Format format);
 		DLLPROSPER uint32_t get_byte_size(Format format);
+		DLLPROSPER uint32_t get_block_size(Format format);
 		DLLPROSPER prosper::AccessFlags get_read_access_mask();
 		DLLPROSPER prosper::AccessFlags get_write_access_mask();
 		DLLPROSPER prosper::AccessFlags get_image_read_access_mask();
@@ -98,13 +98,8 @@ namespace prosper
 		DLLPROSPER ImageAspectFlags get_aspect_mask(IImage &img);
 		DLLPROSPER ImageAspectFlags get_aspect_mask(Format format);
 		DLLPROSPER bool get_memory_stats(IPrContext &context,MemoryPropertyFlags memPropFlags,DeviceSize &outAvailableSize,DeviceSize &outAllocatedSize,std::vector<uint32_t> *optOutMemIndices=nullptr);
-		DLLPROSPER uint32_t get_universal_queue_family_index(IPrContext &context);
 		//get_queue_family_index
-		DLLPROSPER std::pair<const Anvil::MemoryType*,MemoryFeatureFlags> find_compatible_memory_type(Anvil::BaseDevice &dev,MemoryFeatureFlags featureFlags);
 		DLLPROSPER bool save_texture(const std::string &fileName,prosper::IImage &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler=nullptr);
-
-		// Clamps the specified size in bytes to a percentage of the total available GPU memory
-		DLLPROSPER uint64_t clamp_gpu_memory_size(Anvil::BaseDevice &dev,uint64_t size,float percentageOfGPUMemory,MemoryFeatureFlags featureFlags);
 
 		// Returns the padding required to align the offset with the specified alignment
 		DLLPROSPER uint32_t get_offset_alignment_padding(uint32_t offset,uint32_t alignment);
@@ -132,13 +127,11 @@ namespace prosper
 			uint32_t maxImageArrayLayers = 0;
 			DeviceSize maxStorageBufferRange = 0;
 		};
-		DLLPROSPER Limits get_physical_device_limits(const IPrContext &context);
 
 		struct DLLPROSPER PhysicalDeviceImageFormatProperties
 		{
 			SampleCountFlags sampleCount;
 		};
-		DLLPROSPER std::optional<PhysicalDeviceImageFormatProperties> get_physical_device_image_format_properties(const IPrContext &context,const ImageFormatPropertiesQuery &query);
 
 		struct DLLPROSPER PhysicalDeviceMemoryProperties
 		{

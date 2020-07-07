@@ -21,16 +21,6 @@ namespace Anvil
 #pragma warning(disable : 4251)
 namespace prosper
 {
-	class VkUniformResizableBuffer;
-	namespace util
-	{
-		struct BufferCreateInfo;
-		DLLPROSPER std::shared_ptr<VkUniformResizableBuffer> create_uniform_resizable_buffer(
-			IPrContext &context,BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
-			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
-		);
-	};
-
 	class DLLPROSPER IUniformResizableBuffer
 		: public IResizableBuffer
 	{
@@ -38,11 +28,6 @@ namespace prosper
 		std::shared_ptr<IBuffer> AllocateBuffer(const void *data=nullptr);
 
 		uint64_t GetInstanceSize() const;
-		friend std::shared_ptr<VkUniformResizableBuffer> util::create_uniform_resizable_buffer(
-			IPrContext &context,util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
-			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
-		);
-
 		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;
 		uint64_t GetAssignedMemory() const;
 		uint32_t GetTotalInstanceCount() const;

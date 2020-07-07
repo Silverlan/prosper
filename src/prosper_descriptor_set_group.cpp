@@ -270,6 +270,79 @@ DescriptorSetBinding &IDescriptorSet::SetBinding(uint32_t bindingIndex,std::uniq
 	return *m_bindings.at(bindingIndex);
 }
 
+bool IDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+{
+	auto *imgView = texture.GetImageView(layerId);
+	if(imgView == nullptr)
+		return false;
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(*this,bindingIdx,texture,layerId));
+	return DoSetBindingStorageImage(texture,bindingIdx,layerId);
+}
+bool IDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx)
+{
+	auto *imgView = texture.GetImageView();
+	if(imgView == nullptr)
+		return false;
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(*this,bindingIdx,texture));
+	return DoSetBindingStorageImage(texture,bindingIdx,{});
+}
+bool IDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+{
+	auto *imgView = texture.GetImageView(layerId);
+	if(imgView == nullptr && texture.GetImage().GetLayerCount() == 1)
+		imgView = texture.GetImageView();
+	auto *sampler = texture.GetSampler();
+	if(imgView == nullptr || sampler == nullptr)
+		return false;
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture,layerId));
+	return DoSetBindingTexture(texture,bindingIdx,layerId);
+}
+bool IDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx)
+{
+	auto *imgView = texture.GetImageView();
+	auto *sampler = texture.GetSampler();
+	if(imgView == nullptr || sampler == nullptr)
+		return false;
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture));
+	return DoSetBindingTexture(texture,bindingIdx,{});
+}
+bool IDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)
+{
+	auto *binding = GetBinding(bindingIdx);
+	if(binding == nullptr)
+		binding = &SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(*this,bindingIdx));
+	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
+		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture,layerId));
+	return DoSetBindingArrayTexture(texture,bindingIdx,arrayIndex,layerId);
+}
+bool IDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)
+{
+	auto *binding = GetBinding(bindingIdx);
+	if(binding == nullptr)
+		binding = &SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(*this,bindingIdx));
+	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
+		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture));
+	return DoSetBindingArrayTexture(texture,bindingIdx,arrayIndex,{});
+}
+bool IDescriptorSet::SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingUniformBuffer>(*this,bindingIdx,buffer,startOffset,size));
+	return DoSetBindingUniformBuffer(buffer,bindingIdx,startOffset,size);
+}
+bool IDescriptorSet::SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingDynamicUniformBuffer>(*this,bindingIdx,buffer,startOffset,size));
+	return DoSetBindingDynamicUniformBuffer(buffer,bindingIdx,startOffset,size);
+}
+bool IDescriptorSet::SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageBuffer>(*this,bindingIdx,buffer,startOffset,size));
+	return DoSetBindingStorageBuffer(buffer,bindingIdx,startOffset,size);
+}
+
 prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t *outStartOffset,uint64_t *outSize)
 {
 	if(bindingIndex >= m_bindings.size() || m_bindings.at(bindingIndex) == nullptr)

@@ -54,7 +54,7 @@ const Anvil::Buffer *prosper::VlkBuffer::operator->() const {return const_cast<V
 
 bool prosper::VlkBuffer::DoWrite(Offset offset,Size size,const void *data) const {return m_buffer->get_memory_block(0u)->write(offset,size,data);}
 bool prosper::VlkBuffer::DoRead(Offset offset,Size size,void *data) const {return m_buffer->get_memory_block(0u)->read(offset,size,data);}
-bool prosper::VlkBuffer::DoMap(Offset offset,Size size) const {return m_buffer->get_memory_block(0u)->map(offset,size);}
+bool prosper::VlkBuffer::DoMap(Offset offset,Size size,MapFlags mapFlags) const {return m_buffer->get_memory_block(0u)->map(offset,size);}
 bool prosper::VlkBuffer::DoUnmap() const {return m_buffer->get_memory_block(0u)->unmap();}
 
 void prosper::VlkBuffer::SetBuffer(Anvil::BufferUniquePtr buf)

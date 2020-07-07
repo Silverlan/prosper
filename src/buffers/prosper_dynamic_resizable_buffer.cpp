@@ -41,7 +41,7 @@ static void test_dynamic_resizable_buffer()
 		Con::cout<<Con::endl;
 	};
 	fPrint();
-	//void DynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::stringstream strFreeData) const
+	//void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::stringstream strFreeData) const
 	buffers.at(4) = nullptr; fPrint();
 	buffers.at(4) = buf->AllocateBuffer(10,0); fPrint();
 	buffers.at(4) = nullptr; fPrint();
@@ -98,7 +98,7 @@ IDynamicResizableBuffer::IDynamicResizableBuffer(
 	: IResizableBuffer{buffer,maxTotalSize}
 {
 	m_freeRanges.push_back({0ull,createInfo.size});
-	m_alignment = context.GetBufferAlignment(createInfo.usageFlags);
+	m_alignment = context.CalcBufferAlignment(createInfo.usageFlags);
 }
 
 void IDynamicResizableBuffer::InsertFreeMemoryRange(std::list<Range>::iterator itWhere,DeviceSize startOffset,DeviceSize size)

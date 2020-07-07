@@ -21,15 +21,19 @@
 namespace prosper
 {
 	class IUniformResizableBuffer;
-	class VkUniformResizableBuffer;
 	class IDynamicResizableBuffer;
-	class VkDynamicResizableBuffer;
 
 	class DLLPROSPER IBuffer
 		: public ContextObject,
 		public std::enable_shared_from_this<IBuffer>
 	{
 	public:
+		enum class MapFlags : uint8_t
+		{
+			None = 0,
+			PersistentBit = 1
+		};
+
 		using SubBufferIndex = uint32_t;
 		using Offset = DeviceSize;
 		using SmallOffset = uint32_t;
@@ -56,7 +60,7 @@ namespace prosper
 			bool Read(Offset offset,T &tOut) const;
 
 		void SetPermanentlyMapped(bool b);
-		bool Map(Offset offset,Size size) const;
+		bool Map(Offset offset,Size size,MapFlags mapFlags=MapFlags::None) const;
 		bool Unmap() const;
 
 		virtual std::shared_ptr<IBuffer> CreateSubBuffer(DeviceSize offset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback=nullptr)=0;
@@ -64,19 +68,21 @@ namespace prosper
 		const util::BufferCreateInfo &GetCreateInfo() const;
 		SubBufferIndex GetBaseIndex() const;
 		BufferUsageFlags GetUsageFlags() const;
+
+		// For internal use only!
+		virtual void Initialize();
 	protected:
 		friend IUniformResizableBuffer;
 		friend IDynamicResizableBuffer;
-		virtual void Initialize();
 		virtual void OnRelease() override;
 
 		virtual bool DoWrite(Offset offset,Size size,const void *data) const=0;
 		virtual bool DoRead(Offset offset,Size size,void *data) const=0;
-		virtual bool DoMap(Offset offset,Size size) const=0;
+		virtual bool DoMap(Offset offset,Size size,MapFlags mapFlags) const=0;
 		virtual bool DoUnmap() const=0;
 
 		IBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size);
-		bool Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags) const;
+		bool Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags,MapFlags mapFlags) const;
 		void SetParent(IBuffer &parent,SubBufferIndex baseIndex=INVALID_INDEX);
 
 		struct MappedBuffer
@@ -96,6 +102,7 @@ namespace prosper
 		SubBufferIndex m_baseIndex = INVALID_INDEX;
 	};
 };
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::IBuffer::MapFlags)
 #pragma warning(pop)
 
 template<typename T>

@@ -23,13 +23,16 @@
 namespace prosper
 {
 	class DescriptorSetCreateInfo;
+
+	class ShaderStageProgram;
 	struct DLLPROSPER ShaderStageData
 	{
 		std::unique_ptr<prosper::ShaderModule,std::function<void(prosper::ShaderModule*)>> module = nullptr;
 		std::unique_ptr<prosper::ShaderModuleStageEntryPoint> entryPoint = nullptr;
 		prosper::ShaderStage stage = prosper::ShaderStage::Fragment;
 		std::string path;
-		std::vector<uint32_t> spirvBlob;
+
+		std::shared_ptr<ShaderStageProgram> program = nullptr;
 	};
 
 	class Shader;
@@ -158,6 +161,7 @@ namespace prosper
 
 		// Has to be called before the pipeline is initialized!
 		void SetStageSourceFilePath(ShaderStage stage,const std::string &filePath);
+		std::optional<std::string> GetStageSourceFilePath(ShaderStage stage) const;
 	protected:
 		virtual void OnPipelineBound() {};
 		virtual void OnPipelineUnbound() {};
@@ -255,7 +259,7 @@ namespace prosper
 		bool RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding=0u,DeviceSize offset=0ull);
 		bool RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType=prosper::IndexType::UInt16,DeviceSize offset=0ull);
 		bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1u,uint32_t firstVertex=0u,uint32_t firstInstance=0u);
-		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,int32_t vertexOffset=0,uint32_t firstInstance=0u);
+		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,uint32_t firstInstance=0u);
 		void AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);
 		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data);
 		virtual bool BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);

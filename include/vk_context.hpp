@@ -26,6 +26,7 @@ namespace Anvil
 	class Fence;
 	class Framebuffer;
 	class Semaphore;
+	struct MemoryType;
 
 	typedef std::unique_ptr<BaseDevice,std::function<void(BaseDevice*)>> BaseDeviceUniquePtr;
 	typedef std::unique_ptr<Instance,std::function<void(Instance*)>> InstanceUniquePtr;
@@ -36,6 +37,16 @@ namespace Anvil
 struct VkSurfaceKHR_T;
 namespace prosper
 {
+	class DLLPROSPER VlkShaderStageProgram
+		: public prosper::ShaderStageProgram
+	{
+	public:
+		VlkShaderStageProgram(std::vector<unsigned int> &&spirvBlob);
+		const std::vector<unsigned int> &GetSPIRVBlob() const;
+	private:
+		std::vector<unsigned int> m_spirvBlob;
+	};
+
 	class DLLPROSPER VlkContext
 		: public IPrContext
 	{
@@ -44,6 +55,7 @@ namespace prosper
 		static IPrContext &GetContext(Anvil::BaseDevice &dev);
 
 		Anvil::SGPUDevice &GetDevice();
+		const Anvil::SGPUDevice &GetDevice() const;
 		const std::shared_ptr<Anvil::RenderPass> &GetMainRenderPass() const;
 		SubPassID GetMainSubPassID() const;
 		std::shared_ptr<Anvil::Swapchain> GetSwapchain();
@@ -56,7 +68,10 @@ namespace prosper
 		virtual Vendor GetPhysicalDeviceVendor() const override;
 		virtual bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const override;
 		virtual MemoryRequirements GetMemoryRequirements(IImage &img) override;
-		virtual DeviceSize GetBufferAlignment(BufferUsageFlags usageFlags) override;
+		virtual uint64_t ClampDeviceMemorySize(uint64_t size,float percentageOfGPUMemory,MemoryFeatureFlags featureFlags) const override;
+		virtual DeviceSize CalcBufferAlignment(BufferUsageFlags usageFlags) override;
+
+		virtual void GetGLSLDefinitions(GLSLDefinitions &outDef) const override;
 
 		using IPrContext::CreateImage;
 		std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const std::vector<Anvil::MipmapRawData> &data);
@@ -69,6 +84,9 @@ namespace prosper
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
 			prosper::ImageTiling tiling=prosper::ImageTiling::Optimal
 		) const override;
+		virtual uint32_t GetUniversalQueueFamilyIndex() const override;
+		virtual util::Limits GetPhysicalDeviceLimits() const override;
+		virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query) override;
 
 		virtual std::shared_ptr<prosper::IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
 		virtual std::shared_ptr<prosper::ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
@@ -81,12 +99,43 @@ namespace prosper
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr) override;
 		using IPrContext::SubmitCommandBuffer;
 
+		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data=nullptr) override;
+		virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(
+			util::BufferCreateInfo createInfo,
+			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
+		) override;
+		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr) override;
+		virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(
+			const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
+			prosper::ShaderStage stage,
+			const std::string &entrypointName="main"
+		) override;
+		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false) override;
+		virtual std::optional<PipelineID> AddPipeline(
+			const prosper::ComputePipelineCreateInfo &createInfo,
+			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
+		) override;
+		virtual std::optional<PipelineID> AddPipeline(
+			const prosper::GraphicsPipelineCreateInfo &createInfo,
+			IRenderPass &rp,
+			prosper::ShaderStageData *shaderStageFs=nullptr,
+			prosper::ShaderStageData *shaderStageVs=nullptr,
+			prosper::ShaderStageData *shaderStageGs=nullptr,
+			prosper::ShaderStageData *shaderStageTc=nullptr,
+			prosper::ShaderStageData *shaderStageTe=nullptr,
+			SubPassID subPassId=0,
+			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
+		) override;
+		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId) override;
+
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries) override;
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries) override;
 		virtual bool QueryResult(const TimestampQuery &query,std::chrono::nanoseconds &outTimestampValue) const override;
 		virtual bool QueryResult(const PipelineStatisticsQuery &query,PipelineStatistics &outStatistics) const override;
 		virtual bool QueryResult(const Query &query,uint32_t &r) const override;
 		virtual bool QueryResult(const Query &query,uint64_t &r) const override;
+
+		std::pair<const Anvil::MemoryType*,prosper::MemoryFeatureFlags> FindCompatibleMemoryType(MemoryFeatureFlags featureFlags) const;
 
 		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,PipelineID pipelineId);
 	protected:
@@ -99,6 +148,11 @@ namespace prosper
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) override;
 		virtual void DoWaitIdle() override;
 		virtual void DoFlushSetupCommandBuffer() override;
+		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(
+			const util::BufferCreateInfo &createInfo,uint64_t bufferInstanceSize,
+			uint64_t maxTotalSize,const void *data,
+			prosper::DeviceSize bufferBaseSize,uint32_t alignment
+		) override;
 		void InitCommandBuffers();
 		void InitFrameBuffers();
 		void InitSemaphores();

@@ -18,7 +18,6 @@
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
 #include "prosper_pipeline_cache.hpp"
-#include <wrappers/command_buffer.h>
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
 #include <thread>
@@ -379,6 +378,31 @@ bool IPrContext::ValidationCallback(
 	return true;
 }
 
+void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags)
+{
+	alignment = CalcBufferAlignment(usageFlags);
+	auto alignedInstanceSize = prosper::util::get_aligned_size(instanceSize,alignment);
+	auto alignedBufferBaseSize = static_cast<uint64_t>(umath::floor(bufferBaseSize /static_cast<long double>(alignedInstanceSize))) *alignedInstanceSize;
+	auto alignedMaxTotalSize = static_cast<uint64_t>(umath::floor(maxTotalSize /static_cast<long double>(alignedInstanceSize))) *alignedInstanceSize;
+
+	bufferBaseSize = alignedBufferBaseSize;
+	maxTotalSize = alignedMaxTotalSize;
+}
+
+std::shared_ptr<IUniformResizableBuffer> IPrContext::CreateUniformResizableBuffer(
+	prosper::util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
+	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
+)
+{
+	createInfo.size = ClampDeviceMemorySize(createInfo.size,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
+	maxTotalSize = ClampDeviceMemorySize(maxTotalSize,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
+
+	auto bufferBaseSize = createInfo.size;
+	auto alignment = 0u;
+	CalcAlignedSizes(bufferInstanceSize,bufferBaseSize,maxTotalSize,alignment,createInfo.usageFlags);
+	return DoCreateUniformResizableBuffer(createInfo,bufferInstanceSize,maxTotalSize,data,bufferBaseSize,alignment);
+}
+
 void IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	// TODO: Check if resolution is supported
@@ -572,6 +596,7 @@ void IPrContext::InitTemporaryBuffer()
 	util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = MemoryFeatureFlags::CPUToGPU;
 	createInfo.size = bufferSize;
+	createInfo.flags |= util::BufferCreateInfo::Flags::Persistent;
 	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | 
 		BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit |
 		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;

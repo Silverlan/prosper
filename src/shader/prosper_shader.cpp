@@ -78,6 +78,14 @@ void prosper::Shader::SetStageSourceFilePath(ShaderStage stage,const std::string
 	}
 }
 
+std::optional<std::string> prosper::Shader::GetStageSourceFilePath(ShaderStage stage) const
+{
+	auto &stageData = m_stages.at(umath::to_integral(stage));
+	if(stageData == nullptr)
+		return {};
+	return stageData->path;
+}
+
 const std::string &prosper::Shader::GetIdentifier() const {return m_identifier;}
 
 void prosper::Shader::SetPipelineCount(uint32_t count) {m_pipelineInfos.resize(count,{});}
@@ -119,13 +127,8 @@ bool prosper::Shader::InitializeSources(bool bReload)
 			continue;
 		std::string infoLog;
 		std::string debugInfoLog;
-		stage->spirvBlob.clear();
-
-		auto shaderLocation = g_shaderLocation;
-		if(shaderLocation.empty() == false)
-			shaderLocation += '\\';
-		auto bSuccess = prosper::glsl_to_spv(context,i,shaderLocation +stage->path,stage->spirvBlob,&infoLog,&debugInfoLog,bReload);
-		if(bSuccess == false)
+		stage->program = context.CompileShader(static_cast<prosper::ShaderStage>(i),stage->path,infoLog,debugInfoLog,bReload);
+		if(stage->program == nullptr)
 		{
 			if(s_logCallback != nullptr)
 				s_logCallback(*this,static_cast<ShaderStage>(i),infoLog,debugInfoLog);
@@ -195,10 +198,9 @@ void prosper::Shader::InitializeStages()
 			stage->stage
 		);
 		stage->module = Anvil::ShaderModule::create_from_spirv_generator(dev,shaderPtr);*/
-		auto &spirvBlob = stage->spirvBlob;
 		const std::string entryPointName = "main";
-		stage->module = context.CreateShaderModuleFromSPIRVBlob(
-			spirvBlob,
+		stage->module = context.CreateShaderModuleFromStageData(
+			stage->program,
 			stage->stage,
 			entryPointName
 		);
@@ -219,7 +221,7 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorS
 		return nullptr;
 	if(setIdx >= pipeline->descSetInfos.size())
 		return nullptr;
-	return static_cast<VlkContext&>(GetContext()).CreateDescriptorSetGroup(*pipeline->descSetInfos.at(setIdx));
+	return GetContext().CreateDescriptorSetGroup(*pipeline->descSetInfos.at(setIdx));
 }
 
 void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo)
@@ -420,6 +422,7 @@ void prosper::Shader::UnbindPipeline()
 	if(it != s_boundShaderPipeline.end())
 		s_boundShaderPipeline.erase(it);
 	m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
+	cmdBuffer->ClearBoundPipeline();
 	OnPipelineUnbound();
 }
 bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pipelineIdx)
@@ -427,8 +430,7 @@ bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pi
 	if(pipelineIdx >= m_pipelineInfos.size())
 		return false;
 	m_currentPipelineIdx = pipelineIdx;
-	auto pipelineId = m_pipelineInfos.at(m_currentPipelineIdx).id;
-	auto r = pipelineId != std::numeric_limits<prosper::PipelineID>::max() && cmdBuffer.RecordBindPipeline(m_pipelineBindPoint,static_cast<prosper::PipelineID>(pipelineId));
+	auto r = cmdBuffer.RecordBindShaderPipeline(*this,m_currentPipelineIdx);
 	if(r == true)
 		OnPipelineBound();
 	return r;
@@ -464,7 +466,7 @@ std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Ba
 }
 
 prosper::ShaderModule::ShaderModule(
-	const std::vector<uint32_t> &spirvBlob,
+	const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
 	const std::string&          in_opt_cs_entrypoint_name,
 	const std::string&          in_opt_fs_entrypoint_name,
 	const std::string&          in_opt_gs_entrypoint_name,
@@ -478,10 +480,8 @@ prosper::ShaderModule::ShaderModule(
 	m_tcEntrypointName      (in_opt_tc_entrypoint_name),
 	m_teEntrypointName      (in_opt_te_entrypoint_name),
 	m_vsEntrypointName      (in_opt_vs_entrypoint_name),
-	m_spirvData{spirvBlob}
+	m_shaderStageProgram{shaderStageProgram}
 {}
-
-const std::optional<std::vector<uint32_t>> &prosper::ShaderModule::GetSPIRVData() const {return m_spirvData;}
 
 void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)
 {

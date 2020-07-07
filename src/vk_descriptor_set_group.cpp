@@ -58,20 +58,9 @@ Anvil::DescriptorSet *VlkDescriptorSet::operator->() {return &m_descSet;}
 const Anvil::DescriptorSet *VlkDescriptorSet::operator->() const {return const_cast<VlkDescriptorSet*>(this)->operator->();}
 
 bool VlkDescriptorSet::Update() {return m_descSet.update();}
-bool VlkDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+bool VlkDescriptorSet::DoSetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)
 {
-	auto *imgView = texture.GetImageView(layerId);
-	if(imgView == nullptr)
-		return false;
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(*this,bindingIdx,texture,layerId));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageImageBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView()
-		});
-}
-bool VlkDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx)
-{
-	auto *imgView = texture.GetImageView();
+	auto *imgView = layerId.has_value() ? texture.GetImageView(*layerId) : texture.GetImageView();
 	if(imgView == nullptr)
 		return false;
 	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageImage>(*this,bindingIdx,texture));
@@ -80,23 +69,9 @@ bool VlkDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t
 		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView()
 		});
 }
-bool VlkDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+bool VlkDescriptorSet::DoSetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)
 {
-	auto *imgView = texture.GetImageView(layerId);
-	if(imgView == nullptr && texture.GetImage().GetLayerCount() == 1)
-		imgView = texture.GetImageView();
-	auto *sampler = texture.GetSampler();
-	if(imgView == nullptr || sampler == nullptr)
-		return false;
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture,layerId));
-	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView(),&static_cast<VlkSampler*>(sampler)->GetAnvilSampler()
-		});
-}
-bool VlkDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx)
-{
-	auto *imgView = texture.GetImageView();
+	auto *imgView = layerId.has_value() ? texture.GetImageView(*layerId) : texture.GetImageView();
 	auto *sampler = texture.GetSampler();
 	if(imgView == nullptr || sampler == nullptr)
 		return false;
@@ -104,13 +79,13 @@ bool VlkDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bind
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
 		&static_cast<VlkImageView*>(imgView)->GetAnvilImageView(),&static_cast<VlkSampler*>(sampler)->GetAnvilSampler()
-		});
+	});
 }
-bool VlkDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)
+bool VlkDescriptorSet::DoSetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,const std::optional<uint32_t> &layerId)
 {
 	std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(1u,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
 		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(texture.GetImageView(layerId))->GetAnvilImageView(),&static_cast<VlkSampler*>(texture.GetSampler())->GetAnvilSampler()
+		&static_cast<VlkImageView*>(layerId.has_value() ? texture.GetImageView(*layerId) : texture.GetImageView())->GetAnvilImageView(),&static_cast<VlkSampler*>(texture.GetSampler())->GetAnvilSampler()
 		});
 	auto *binding = GetBinding(bindingIdx);
 	if(binding == nullptr)
@@ -119,42 +94,23 @@ bool VlkDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t
 		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture,layerId));
 	return GetAnvilDescriptorSet().set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
 }
-bool VlkDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)
+bool VlkDescriptorSet::DoSetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
-	std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(1u,Anvil::DescriptorSet::CombinedImageSamplerBindingElement{
-		Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-		&static_cast<VlkImageView*>(texture.GetImageView())->GetAnvilImageView(),&static_cast<VlkSampler*>(texture.GetSampler())->GetAnvilSampler()
-		});
-	auto *binding = GetBinding(bindingIdx);
-	if(binding == nullptr)
-		binding = &SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingArrayTexture>(*this,bindingIdx));
-	if(binding && binding->GetType() == prosper::DescriptorSetBinding::Type::ArrayTexture)
-		static_cast<prosper::DescriptorSetBindingArrayTexture*>(binding)->SetArrayBinding(arrayIndex,std::make_unique<DescriptorSetBindingTexture>(*this,bindingIdx,texture));
-	return GetAnvilDescriptorSet().set_binding_array_items(bindingIdx,{arrayIndex,1u},bindingElements.data());
-}
-bool VlkDescriptorSet::SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
-{
-	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingUniformBuffer>(*this,bindingIdx,buffer,startOffset,size));
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::UniformBufferBindingElement{
 		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
-		});
+	});
 }
-bool VlkDescriptorSet::SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+bool VlkDescriptorSet::DoSetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
-	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingDynamicUniformBuffer>(*this,bindingIdx,buffer,startOffset,size));
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
 		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
-		});
+	});
 }
-bool VlkDescriptorSet::SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+bool VlkDescriptorSet::DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
-	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
-	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageBuffer>(*this,bindingIdx,buffer,startOffset,size));
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageBufferBindingElement{
 		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
-		});
+	});
 }
 
 Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::GetAnvilDescriptorSetGroup() const {return *m_descriptorSetGroup;}

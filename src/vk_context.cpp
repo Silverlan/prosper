@@ -16,11 +16,14 @@
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
 #include "image/vk_sampler.hpp"
+#include "buffers/vk_uniform_resizable_buffer.hpp"
+#include "buffers/vk_dynamic_resizable_buffer.hpp"
 #include "queries/prosper_query_pool.hpp"
 #include "queries/prosper_pipeline_statistics_query.hpp"
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/vk_query_pool.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
+#include "prosper_glstospv.hpp"
 #include <util_image_buffer.hpp>
 #include <misc/buffer_create_info.h>
 #include <misc/fence_create_info.h>
@@ -28,6 +31,7 @@
 #include <misc/framebuffer_create_info.h>
 #include <misc/swapchain_create_info.h>
 #include <misc/rendering_surface_create_info.h>
+#include <misc/compute_pipeline_create_info.h>
 #include <misc/graphics_pipeline_create_info.h>
 #include <misc/render_pass_create_info.h>
 #include <misc/image_create_info.h>
@@ -47,6 +51,7 @@
 #include <wrappers/graphics_pipeline_manager.h>
 #include <wrappers/compute_pipeline_manager.h>
 #include <wrappers/query_pool.h>
+#include <wrappers/shader_module.h>
 #include <iglfw/glfw_window.h>
 
 #include <string>
@@ -70,6 +75,14 @@
 #endif
 
 using namespace prosper;
+
+VlkShaderStageProgram::VlkShaderStageProgram(std::vector<unsigned int> &&spirvBlob)
+	: m_spirvBlob{std::move(spirvBlob)}
+{}
+
+const std::vector<unsigned int> &VlkShaderStageProgram::GetSPIRVBlob() const {return m_spirvBlob;}
+
+/////////////
 
 decltype(VlkContext::s_devToContext) VlkContext::s_devToContext = {};
 
@@ -263,6 +276,7 @@ void VlkContext::Release()
 }
 
 Anvil::SGPUDevice &VlkContext::GetDevice() {return *m_pGpuDevice;}
+const Anvil::SGPUDevice &VlkContext::GetDevice() const {return const_cast<VlkContext*>(this)->GetDevice();}
 const std::shared_ptr<Anvil::RenderPass> &VlkContext::GetMainRenderPass() const {return m_renderPass;}
 Anvil::SubPassID VlkContext::GetMainSubPassID() const {return m_mainSubPass;}
 std::shared_ptr<Anvil::Swapchain> VlkContext::GetSwapchain() {return m_swapchainPtr;}
@@ -292,6 +306,54 @@ bool VlkContext::IsImageFormatSupported(prosper::Format format,prosper::ImageUsa
 			static_cast<Anvil::ImageUsageFlagBits>(usageFlags),{}
 		}
 	);
+}
+
+
+uint32_t VlkContext::GetUniversalQueueFamilyIndex() const
+{
+	auto &dev = GetDevice();
+	auto *queuePtr = dev.get_universal_queue(0);
+	return queuePtr->get_queue_family_index();
+}
+
+prosper::util::Limits VlkContext::GetPhysicalDeviceLimits() const
+{
+	auto &vkLimits = GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits;
+	util::Limits limits {};
+	limits.maxSamplerAnisotropy = vkLimits.max_sampler_anisotropy;
+	limits.maxStorageBufferRange = vkLimits.max_storage_buffer_range;
+	limits.maxImageArrayLayers = vkLimits.max_image_array_layers;
+
+	Anvil::SurfaceCapabilities surfCapabilities {};
+	if(GetSurfaceCapabilities(surfCapabilities))
+		limits.maxSurfaceImageCount = surfCapabilities.max_image_count;
+	return limits;
+}
+
+bool VlkContext::ClearPipeline(bool graphicsShader,PipelineID pipelineId)
+{
+	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
+	if(graphicsShader)
+		return dev.get_graphics_pipeline_manager()->delete_pipeline(pipelineId);
+	return dev.get_compute_pipeline_manager()->delete_pipeline(pipelineId);
+}
+
+std::optional<prosper::util::PhysicalDeviceImageFormatProperties> VlkContext::GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)
+{
+	auto &dev = GetDevice();
+	Anvil::ImageFormatProperties imgFormatProperties {};
+	if(dev.get_physical_device_image_format_properties(
+		Anvil::ImageFormatPropertiesQuery{
+			static_cast<Anvil::Format>(query.format),static_cast<Anvil::ImageType>(query.imageType),static_cast<Anvil::ImageTiling>(query.tiling),
+			static_cast<Anvil::ImageUsageFlagBits>(query.usageFlags),
+		{}
+		},&imgFormatProperties
+	) == false
+		)
+		return {};
+	util::PhysicalDeviceImageFormatProperties imageFormatProperties {};
+	imageFormatProperties.sampleCount = static_cast<SampleCountFlags>(imgFormatProperties.sample_counts.get_vk());
+	return imageFormatProperties;
 }
 
 const std::string PIPELINE_CACHE_PATH = "cache/shader.cache";
@@ -717,9 +779,51 @@ MemoryRequirements VlkContext::GetMemoryRequirements(IImage &img)
 	return req;
 }
 
-DeviceSize VlkContext::GetBufferAlignment(BufferUsageFlags usageFlags)
+std::unique_ptr<prosper::ShaderModule> VlkContext::CreateShaderModuleFromStageData(
+	const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
+	prosper::ShaderStage stage,
+	const std::string &entryPointName
+)
 {
-	return prosper::util::calculate_buffer_alignment(GetDevice(),usageFlags);
+	return std::make_unique<prosper::ShaderModule>(
+		shaderStageProgram,
+		(stage == prosper::ShaderStage::Compute) ? entryPointName : "",
+		(stage == prosper::ShaderStage::Fragment) ? entryPointName : "",
+		(stage == prosper::ShaderStage::Geometry) ? entryPointName : "",
+		(stage == prosper::ShaderStage::TessellationControl) ? entryPointName : "",
+		(stage == prosper::ShaderStage::TessellationEvaluation) ? entryPointName : "",
+		(stage == prosper::ShaderStage::Vertex) ? entryPointName : ""
+	);
+}
+uint64_t VlkContext::ClampDeviceMemorySize(uint64_t size,float percentageOfGPUMemory,MemoryFeatureFlags featureFlags) const
+{
+	auto r = FindCompatibleMemoryType(featureFlags);
+	if(r.first == nullptr || r.first->heap_ptr == nullptr)
+		throw std::runtime_error("Incompatible memory feature flags");
+	auto maxMem = std::floorl(r.first->heap_ptr->size *static_cast<long double>(percentageOfGPUMemory));
+	return umath::min(size,static_cast<uint64_t>(maxMem));
+}
+DeviceSize VlkContext::CalcBufferAlignment(BufferUsageFlags usageFlags)
+{
+	auto &dev = GetDevice();
+	auto alignment = 0u;
+	if((usageFlags &BufferUsageFlags::UniformBufferBit) != BufferUsageFlags::None)
+		alignment = dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.min_uniform_buffer_offset_alignment;
+	if((usageFlags &BufferUsageFlags::StorageBufferBit) != BufferUsageFlags::None)
+	{
+		alignment = umath::get_least_common_multiple(
+			static_cast<vk::DeviceSize>(alignment),
+			dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.min_storage_buffer_offset_alignment
+		);
+	}
+	return alignment;
+}
+void VlkContext::GetGLSLDefinitions(GLSLDefinitions &outDef) const
+{
+	outDef.layoutIdBuffer = "set = setIndex,binding = bindingIndex";
+	outDef.layoutIdImage = "set = setIndex,binding = bindingIndex";
+	outDef.layoutPushConstants = "push_constant";
+	outDef.vertexIndex = "gl_VertexIndex";
 }
 
 void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
@@ -736,6 +840,230 @@ bool VlkContext::IsPresentationModeSupported(prosper::PresentModeKHR presentMode
 	auto res = false;
 	m_renderingSurfacePtr->supports_presentation_mode(m_physicalDevicePtr,static_cast<Anvil::PresentModeKHR>(presentMode),&res);
 	return res;
+}
+
+static Anvil::QueueFamilyFlags queue_family_flags_to_anvil_queue_family(prosper::QueueFamilyFlags flags)
+{
+	Anvil::QueueFamilyFlags queueFamilies {};
+	if((flags &prosper::QueueFamilyFlags::GraphicsBit) != prosper::QueueFamilyFlags::None)
+		queueFamilies = queueFamilies | Anvil::QueueFamilyFlagBits::GRAPHICS_BIT;
+	if((flags &prosper::QueueFamilyFlags::ComputeBit) != prosper::QueueFamilyFlags::None)
+		queueFamilies = queueFamilies | Anvil::QueueFamilyFlagBits::COMPUTE_BIT;
+	if((flags &prosper::QueueFamilyFlags::DMABit) != prosper::QueueFamilyFlags::None)
+		queueFamilies = queueFamilies | Anvil::QueueFamilyFlagBits::DMA_BIT;
+	return queueFamilies;
+}
+
+static Anvil::MemoryFeatureFlags memory_feature_flags_to_anvil_flags(prosper::MemoryFeatureFlags flags)
+{
+	auto memoryFeatureFlags = Anvil::MemoryFeatureFlags{};
+	if((flags &prosper::MemoryFeatureFlags::DeviceLocal) != prosper::MemoryFeatureFlags::None)
+		memoryFeatureFlags |= Anvil::MemoryFeatureFlagBits::DEVICE_LOCAL_BIT;
+	if((flags &prosper::MemoryFeatureFlags::HostCached) != prosper::MemoryFeatureFlags::None)
+		memoryFeatureFlags |= Anvil::MemoryFeatureFlagBits::HOST_CACHED_BIT;
+	if((flags &prosper::MemoryFeatureFlags::HostCoherent) != prosper::MemoryFeatureFlags::None)
+		memoryFeatureFlags |= Anvil::MemoryFeatureFlagBits::HOST_COHERENT_BIT;
+	if((flags &prosper::MemoryFeatureFlags::LazilyAllocated) != prosper::MemoryFeatureFlags::None)
+		memoryFeatureFlags |= Anvil::MemoryFeatureFlagBits::LAZILY_ALLOCATED_BIT;
+	if((flags &prosper::MemoryFeatureFlags::HostAccessable) != prosper::MemoryFeatureFlags::None)
+		memoryFeatureFlags |= Anvil::MemoryFeatureFlagBits::MAPPABLE_BIT;
+	return memoryFeatureFlags;
+}
+
+static void find_compatible_memory_feature_flags(prosper::IPrContext &context,prosper::MemoryFeatureFlags &featureFlags)
+{
+	auto r = static_cast<prosper::VlkContext&>(context).FindCompatibleMemoryType(featureFlags);
+	if(r.first == nullptr)
+		throw std::runtime_error("Incompatible memory feature flags");
+	featureFlags = r.second;
+}
+
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::VlkContext::DoCreateUniformResizableBuffer(
+	const util::BufferCreateInfo &createInfo,uint64_t bufferInstanceSize,
+	uint64_t maxTotalSize,const void *data,
+	prosper::DeviceSize bufferBaseSize,uint32_t alignment
+)
+{
+	auto buf = CreateBuffer(createInfo,data);
+	if(buf == nullptr)
+		return nullptr;
+	auto r = std::shared_ptr<VkUniformResizableBuffer>(new VkUniformResizableBuffer{*this,*buf,bufferInstanceSize,bufferBaseSize,maxTotalSize,alignment});
+	r->Initialize();
+	return r;
+}
+std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::VlkContext::CreateDynamicResizableBuffer(
+	util::BufferCreateInfo createInfo,
+	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
+)
+{
+	createInfo.size = ClampDeviceMemorySize(createInfo.size,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
+	maxTotalSize = ClampDeviceMemorySize(maxTotalSize,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
+	auto buf = CreateBuffer(createInfo,data);
+	if(buf == nullptr)
+		return nullptr;
+	auto r = std::shared_ptr<VkDynamicResizableBuffer>(new VkDynamicResizableBuffer{*this,*buf,createInfo,maxTotalSize});
+	r->Initialize();
+	return r;
+}
+
+std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::BufferCreateInfo &createInfo,const void *data)
+{
+	if(createInfo.size == 0ull)
+		return nullptr;
+	auto sharingMode = Anvil::SharingMode::EXCLUSIVE;
+	if((createInfo.flags &prosper::util::BufferCreateInfo::Flags::ConcurrentSharing) != prosper::util::BufferCreateInfo::Flags::None)
+		sharingMode = Anvil::SharingMode::CONCURRENT;
+
+	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
+	if((createInfo.flags &prosper::util::BufferCreateInfo::Flags::Sparse) != prosper::util::BufferCreateInfo::Flags::None)
+	{
+		Anvil::BufferCreateFlags createFlags {Anvil::BufferCreateFlagBits::NONE};
+		if((createInfo.flags &prosper::util::BufferCreateInfo::Flags::SparseAliasedResidency) != prosper::util::BufferCreateInfo::Flags::None)
+			createFlags |= Anvil::BufferCreateFlagBits::SPARSE_ALIASED_BIT | Anvil::BufferCreateFlagBits::SPARSE_RESIDENCY_BIT;
+
+		return VlkBuffer::Create(*this,Anvil::Buffer::create(
+			Anvil::BufferCreateInfo::create_no_alloc(
+				&dev,static_cast<VkDeviceSize>(createInfo.size),queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask),
+				sharingMode,createFlags,static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags)
+			)
+		),createInfo,0ull,createInfo.size);
+	}
+	Anvil::BufferCreateFlags createFlags {Anvil::BufferCreateFlagBits::NONE};
+	if((createInfo.flags &prosper::util::BufferCreateInfo::Flags::DontAllocateMemory) == prosper::util::BufferCreateInfo::Flags::None)
+	{
+		auto memoryFeatures = createInfo.memoryFeatures;
+		FindCompatibleMemoryType(memoryFeatures);
+		auto bufferCreateInfo = Anvil::BufferCreateInfo::create_alloc(
+			&dev,static_cast<VkDeviceSize>(createInfo.size),queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask),
+			sharingMode,createFlags,static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags),memory_feature_flags_to_anvil_flags(memoryFeatures)
+		);
+		bufferCreateInfo->set_client_data(data);
+		auto r = VlkBuffer::Create(*this,Anvil::Buffer::create(
+			std::move(bufferCreateInfo)
+		),createInfo,0ull,createInfo.size);
+		return r;
+	}
+	return VlkBuffer::Create(*this,Anvil::Buffer::create(
+		Anvil::BufferCreateInfo::create_no_alloc(
+			&dev,static_cast<VkDeviceSize>(createInfo.size),queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask),
+			sharingMode,createFlags,static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags)
+		)
+	),createInfo,0ull,createInfo.size);
+}
+
+std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &pCreateInfo,const std::vector<Anvil::MipmapRawData> *data)
+{
+	auto createInfo = pCreateInfo;
+	auto &layers = createInfo.layers;
+	auto imageCreateFlags = Anvil::ImageCreateFlags{};
+	if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::Cubemap) != prosper::util::ImageCreateInfo::Flags::None)
+	{
+		imageCreateFlags |= Anvil::ImageCreateFlagBits::CUBE_COMPATIBLE_BIT;
+		layers = 6u;
+	}
+
+	auto &postCreateLayout = createInfo.postCreateLayout;
+	if(postCreateLayout == prosper::ImageLayout::ColorAttachmentOptimal && prosper::util::is_depth_format(createInfo.format))
+		postCreateLayout = prosper::ImageLayout::DepthStencilAttachmentOptimal;
+
+	auto memoryFeatures = createInfo.memoryFeatures;
+	find_compatible_memory_feature_flags(static_cast<prosper::VlkContext&>(context),memoryFeatures);
+	auto memoryFeatureFlags = memory_feature_flags_to_anvil_flags(memoryFeatures);
+	auto queueFamilies = queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask);
+	auto sharingMode = Anvil::SharingMode::EXCLUSIVE;
+	if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::ConcurrentSharing) != prosper::util::ImageCreateInfo::Flags::None)
+		sharingMode = Anvil::SharingMode::CONCURRENT;
+
+	auto useDiscreteMemory = umath::is_flag_set(createInfo.flags,prosper::util::ImageCreateInfo::Flags::AllocateDiscreteMemory);
+	if(
+		useDiscreteMemory == false &&
+		((createInfo.memoryFeatures &prosper::MemoryFeatureFlags::HostAccessable) != prosper::MemoryFeatureFlags::None ||
+		(createInfo.memoryFeatures &prosper::MemoryFeatureFlags::DeviceLocal) == prosper::MemoryFeatureFlags::None)
+		)
+		useDiscreteMemory = true; // Pre-allocated memory currently only supported for device local memory
+
+	auto sparse = (createInfo.flags &prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None;
+	auto dontAllocateMemory = umath::is_flag_set(createInfo.flags,prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
+
+	auto bUseFullMipmapChain = (createInfo.flags &prosper::util::ImageCreateInfo::Flags::FullMipmapChain) != prosper::util::ImageCreateInfo::Flags::None;
+	if(useDiscreteMemory == false || sparse || dontAllocateMemory)
+	{
+		if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::SparseAliasedResidency) != prosper::util::ImageCreateInfo::Flags::None)
+			imageCreateFlags |= Anvil::ImageCreateFlagBits::SPARSE_ALIASED_BIT | Anvil::ImageCreateFlagBits::SPARSE_RESIDENCY_BIT;
+		;
+		auto img = prosper::VlkImage::Create(context,Anvil::Image::create(
+			Anvil::ImageCreateInfo::create_no_alloc(
+				&static_cast<prosper::VlkContext&>(context).GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
+				static_cast<Anvil::ImageTiling>(createInfo.tiling),static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage),
+				createInfo.width,createInfo.height,1u,layers,
+				static_cast<Anvil::SampleCountFlagBits>(createInfo.samples),queueFamilies,
+				sharingMode,bUseFullMipmapChain,imageCreateFlags,
+				static_cast<Anvil::ImageLayout>(postCreateLayout),data
+			)
+		),createInfo,false);
+		if(sparse == false && dontAllocateMemory == false)
+			context.AllocateDeviceImageBuffer(*img);
+		return img;
+	}
+
+	auto result = prosper::VlkImage::Create(context,Anvil::Image::create(
+		Anvil::ImageCreateInfo::create_alloc(
+			&static_cast<prosper::VlkContext&>(context).GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
+			static_cast<Anvil::ImageTiling>(createInfo.tiling),static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage),
+			createInfo.width,createInfo.height,1u,layers,
+			static_cast<Anvil::SampleCountFlagBits>(createInfo.samples),queueFamilies,
+			sharingMode,bUseFullMipmapChain,memoryFeatureFlags,imageCreateFlags,
+			static_cast<Anvil::ImageLayout>(postCreateLayout),data
+		)
+	),createInfo,false);
+	return result;
+}
+
+std::shared_ptr<prosper::IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data)
+{
+	if(data == nullptr)
+		return ::create_image(*this,createInfo,nullptr);
+	auto byteSize = util::get_byte_size(createInfo.format);
+	return static_cast<VlkContext*>(this)->CreateImage(createInfo,std::vector<Anvil::MipmapRawData>{
+		Anvil::MipmapRawData::create_2D_from_uchar_ptr(
+			Anvil::ImageAspectFlagBits::COLOR_BIT,0u,
+			data,createInfo.width *createInfo.height *byteSize,createInfo.width *byteSize
+		)
+	});
+}
+
+std::pair<const Anvil::MemoryType*,prosper::MemoryFeatureFlags> VlkContext::FindCompatibleMemoryType(MemoryFeatureFlags featureFlags) const
+{
+	auto r = std::pair<const Anvil::MemoryType*,prosper::MemoryFeatureFlags>{nullptr,featureFlags};
+	if(umath::to_integral(featureFlags) == 0u)
+		return r;
+	prosper::MemoryFeatureFlags requiredFeatures {};
+
+	// Convert usage to requiredFlags and preferredFlags.
+	switch(featureFlags)
+	{
+	case prosper::MemoryFeatureFlags::CPUToGPU:
+	case prosper::MemoryFeatureFlags::GPUToCPU:
+		requiredFeatures |= prosper::MemoryFeatureFlags::HostAccessable;
+	}
+
+	auto anvFlags = memory_feature_flags_to_anvil_flags(featureFlags);
+	auto anvRequiredFlags = memory_feature_flags_to_anvil_flags(requiredFeatures);
+	auto &dev = GetDevice();
+	auto &memProps = dev.get_physical_device_memory_properties();
+	for(auto &type : memProps.types)
+	{
+		if((type.features &anvFlags) == anvFlags)
+		{
+			// Found preferred flags
+			r.first = &type;
+			return r;
+		}
+		if((type.features &anvRequiredFlags) != Anvil::MemoryFeatureFlagBits::NONE)
+			r.first = &type; // Found required flags
+	}
+	r.second = requiredFeatures;
+	return r;
 }
 
 Anvil::PipelineLayout *VlkContext::GetPipelineLayout(bool graphicsShader,Anvil::PipelineID pipelineId)
@@ -816,6 +1144,372 @@ void VlkContext::InitMainRenderPass()
 	m_renderPass = Anvil::RenderPass::create(std::move(render_pass_info_ptr),m_swapchainPtr.get()); // TODO: Deprecated? Remove main render pass entirely
 
 	m_renderPass->set_name("Main renderpass");
+}
+
+static std::unique_ptr<Anvil::DescriptorSetCreateInfo> to_anv_descriptor_set_create_info(prosper::DescriptorSetCreateInfo &descSetInfo)
+{
+	auto dsInfo = Anvil::DescriptorSetCreateInfo::create();
+	auto numBindings = descSetInfo.GetBindingCount();
+	for(auto i=decltype(numBindings){0u};i<numBindings;++i)
+	{
+		uint32_t bindingIndex;
+		prosper::DescriptorType descType;
+		uint32_t descArraySize;
+		prosper::ShaderStageFlags stageFlags;
+		bool immutableSamplersEnabled;
+		prosper::DescriptorBindingFlags flags;
+		auto result = descSetInfo.GetBindingPropertiesByIndexNumber(
+			i,&bindingIndex,&descType,&descArraySize,
+			&stageFlags,&immutableSamplersEnabled,
+			&flags
+		);
+		assert(result && !immutableSamplersEnabled);
+		dsInfo->add_binding(
+			bindingIndex,static_cast<Anvil::DescriptorType>(descType),descArraySize,static_cast<Anvil::ShaderStageFlagBits>(stageFlags),
+			static_cast<Anvil::DescriptorBindingFlagBits>(flags),nullptr
+		);
+	}
+	return dsInfo;
+}
+
+static Anvil::ShaderModuleUniquePtr to_anv_shader_module(Anvil::BaseDevice &dev,const prosper::ShaderModule &module)
+{
+	auto *shaderStageProgram = static_cast<const prosper::VlkShaderStageProgram*>(module.GetShaderStageProgram());
+	if(shaderStageProgram == nullptr)
+		return nullptr;
+	auto &spirvBlob = shaderStageProgram->GetSPIRVBlob();
+	return Anvil::ShaderModule::create_from_spirv_blob(
+		&dev,
+		spirvBlob.data(),spirvBlob.size(),
+		module.GetCSEntrypointName(),
+		module.GetFSEntrypointName(),
+		module.GetGSEntrypointName(),
+		module.GetTCEntrypointName(),
+		module.GetTEEntrypointName(),
+		module.GetVSEntrypointName()
+	);
+}
+
+static Anvil::ShaderModuleStageEntryPoint to_anv_entrypoint(Anvil::BaseDevice &dev,prosper::ShaderModuleStageEntryPoint &entrypoint)
+{
+	auto module = to_anv_shader_module(dev,*entrypoint.shader_module_ptr);
+	return Anvil::ShaderModuleStageEntryPoint {entrypoint.name,std::move(module),static_cast<Anvil::ShaderStage>(entrypoint.stage)};
+}
+
+static void init_base_pipeline_create_info(const prosper::BasePipelineCreateInfo &pipelineCreateInfo,Anvil::BasePipelineCreateInfo &anvPipelineCreateInfo,bool computePipeline)
+{
+	anvPipelineCreateInfo.set_name(pipelineCreateInfo.GetName());
+	for(auto i=decltype(umath::to_integral(prosper::ShaderStage::Count)){0u};i<umath::to_integral(prosper::ShaderStage::Count);++i)
+	{
+		auto stage = static_cast<prosper::ShaderStage>(i);
+		const std::vector<prosper::SpecializationConstant> *specializationConstants;
+		const uint8_t *dataBuffer;
+		auto success = pipelineCreateInfo.GetSpecializationConstants(stage,&specializationConstants,&dataBuffer);
+		assert(success);
+		if(success)
+		{
+			if(computePipeline == false || stage == prosper::ShaderStage::Compute)
+			{
+				for(auto j=decltype(specializationConstants->size()){0u};j<specializationConstants->size();++j)
+				{
+					auto &specializationConstant = specializationConstants->at(j);
+					if(computePipeline == false)
+					{
+						static_cast<Anvil::GraphicsPipelineCreateInfo&>(anvPipelineCreateInfo).add_specialization_constant(
+							static_cast<Anvil::ShaderStage>(stage),specializationConstant.constantId,specializationConstant.numBytes,dataBuffer +specializationConstant.startOffset
+						);
+						continue;
+					}
+					static_cast<Anvil::ComputePipelineCreateInfo&>(anvPipelineCreateInfo).add_specialization_constant(
+						specializationConstant.constantId,specializationConstant.numBytes,dataBuffer +specializationConstant.startOffset
+					);
+				}
+			}
+		}
+	}
+
+	auto &pushConstantRanges = pipelineCreateInfo.GetPushConstantRanges();
+	for(auto &pushConstantRange : pushConstantRanges)
+		anvPipelineCreateInfo.attach_push_constant_range(pushConstantRange.offset,pushConstantRange.size,static_cast<Anvil::ShaderStageFlagBits>(pushConstantRange.stages));
+
+	auto *dsInfos = pipelineCreateInfo.GetDsCreateInfoItems();
+	std::vector<const Anvil::DescriptorSetCreateInfo*> anvDsInfos;
+	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> anvDsInfosOwned;
+	anvDsInfos.reserve(dsInfos->size());
+	anvDsInfos.reserve(anvDsInfosOwned.size());
+	for(auto &dsCreateInfo : *dsInfos)
+	{
+		anvDsInfosOwned.push_back(to_anv_descriptor_set_create_info(*dsCreateInfo));
+		anvDsInfos.push_back(anvDsInfosOwned.back().get());
+	}
+	anvPipelineCreateInfo.set_descriptor_set_create_info(&anvDsInfos);
+}
+
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::IPrContext::CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)
+{
+	return static_cast<VlkContext*>(this)->CreateDescriptorSetGroup(descSetInfo,to_anv_descriptor_set_create_info(descSetInfo));
+}
+
+std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload)
+{
+	auto shaderLocation = prosper::Shader::GetRootShaderLocation();
+	if(shaderLocation.empty() == false)
+		shaderLocation += '\\';
+	std::vector<unsigned int> spirvBlob {};
+	auto success = prosper::glsl_to_spv(*this,stage,shaderLocation +shaderPath,spirvBlob,&outInfoLog,&outDebugInfoLog,reload);
+	if(success == false)
+		return nullptr;
+	return std::make_shared<VlkShaderStageProgram>(std::move(spirvBlob));
+}
+
+std::optional<prosper::PipelineID> VlkContext::AddPipeline(
+	const prosper::ComputePipelineCreateInfo &createInfo,
+	prosper::ShaderStageData &stage,PipelineID basePipelineId
+)
+{
+	Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
+	auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
+	if(bIsDerivative)
+		createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
+	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
+	auto computePipelineInfo = Anvil::ComputePipelineCreateInfo::create(
+		createFlags,
+		to_anv_entrypoint(dev,*stage.entryPoint),
+		bIsDerivative ? &basePipelineId : nullptr
+	);
+	if(computePipelineInfo == nullptr)
+		return {};
+	init_base_pipeline_create_info(createInfo,*computePipelineInfo,true);
+	auto *computePipelineManager = dev.get_compute_pipeline_manager();
+	Anvil::PipelineID pipelineId;
+	auto r = computePipelineManager->add_pipeline(std::move(computePipelineInfo),&pipelineId);
+	if(r == false)
+		return {};
+	computePipelineManager->bake();
+	return pipelineId;
+}
+
+std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
+	const prosper::GraphicsPipelineCreateInfo &createInfo,
+	IRenderPass &rp,
+	prosper::ShaderStageData *shaderStageFs,
+	prosper::ShaderStageData *shaderStageVs,
+	prosper::ShaderStageData *shaderStageGs,
+	prosper::ShaderStageData *shaderStageTc,
+	prosper::ShaderStageData *shaderStageTe,
+	SubPassID subPassId,
+	PipelineID basePipelineId
+)
+{
+	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
+	Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
+	auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
+	if(bIsDerivative)
+		createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
+	auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(
+		createFlags,
+		&static_cast<VlkRenderPass&>(rp).GetAnvilRenderPass(),
+		subPassId,
+		shaderStageFs ? to_anv_entrypoint(dev,*shaderStageFs->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
+		shaderStageGs ? to_anv_entrypoint(dev,*shaderStageGs->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
+		shaderStageTc ? to_anv_entrypoint(dev,*shaderStageTc->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
+		shaderStageTe ? to_anv_entrypoint(dev,*shaderStageTe->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
+		shaderStageVs ? to_anv_entrypoint(dev,*shaderStageVs->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
+		nullptr,bIsDerivative ? &basePipelineId : nullptr
+	);
+	if(gfxPipelineInfo == nullptr)
+		return {};
+	gfxPipelineInfo->toggle_depth_writes(createInfo.AreDepthWritesEnabled());
+	gfxPipelineInfo->toggle_alpha_to_coverage(createInfo.IsAlphaToCoverageEnabled());
+	gfxPipelineInfo->toggle_alpha_to_one(createInfo.IsAlphaToOneEnabled());
+	gfxPipelineInfo->toggle_depth_clamp(createInfo.IsDepthClampEnabled());
+	gfxPipelineInfo->toggle_depth_clip(createInfo.IsDepthClipEnabled());
+	gfxPipelineInfo->toggle_primitive_restart(createInfo.IsPrimitiveRestartEnabled());
+	gfxPipelineInfo->toggle_rasterizer_discard(createInfo.IsRasterizerDiscardEnabled());
+	gfxPipelineInfo->toggle_sample_mask(createInfo.IsSampleMaskEnabled());
+
+	const float *blendConstants;
+	uint32_t numBlendAttachments;
+	createInfo.GetBlendingProperties(&blendConstants,&numBlendAttachments);
+	gfxPipelineInfo->set_blending_properties(blendConstants);
+
+	for(auto attId=decltype(numBlendAttachments){0u};attId<numBlendAttachments;++attId)
+	{
+		bool blendingEnabled;
+		BlendOp blendOpColor;
+		BlendOp blendOpAlpha;
+		BlendFactor srcColorBlendFactor;
+		BlendFactor dstColorBlendFactor;
+		BlendFactor srcAlphaBlendFactor;
+		BlendFactor dstAlphaBlendFactor;
+		ColorComponentFlags channelWriteMask;
+		if(createInfo.GetColorBlendAttachmentProperties(
+			attId,&blendingEnabled,&blendOpColor,&blendOpAlpha,
+			&srcColorBlendFactor,&dstColorBlendFactor,&srcAlphaBlendFactor,&dstAlphaBlendFactor,
+			&channelWriteMask
+		))
+		{
+			gfxPipelineInfo->set_color_blend_attachment_properties(
+				attId,blendingEnabled,
+				static_cast<Anvil::BlendOp>(blendOpColor),static_cast<Anvil::BlendOp>(blendOpAlpha),
+				static_cast<Anvil::BlendFactor>(srcColorBlendFactor),static_cast<Anvil::BlendFactor>(dstColorBlendFactor),
+				static_cast<Anvil::BlendFactor>(srcAlphaBlendFactor),static_cast<Anvil::BlendFactor>(dstAlphaBlendFactor),
+				static_cast<Anvil::ColorComponentFlagBits>(channelWriteMask)
+			);
+		}
+	}
+
+	bool isDepthBiasStateEnabled;
+	float depthBiasConstantFactor;
+	float depthBiasClamp;
+	float depthBiasSlopeFactor;
+	createInfo.GetDepthBiasState(
+		&isDepthBiasStateEnabled,
+		&depthBiasConstantFactor,&depthBiasClamp,&depthBiasSlopeFactor
+	);
+	gfxPipelineInfo->toggle_depth_bias(isDepthBiasStateEnabled,depthBiasConstantFactor,depthBiasClamp,depthBiasSlopeFactor);
+
+	bool isDepthBoundsStateEnabled;
+	float minDepthBounds;
+	float maxDepthBounds;
+	createInfo.GetDepthBoundsState(&isDepthBoundsStateEnabled,&minDepthBounds,&maxDepthBounds);
+	gfxPipelineInfo->toggle_depth_bounds_test(isDepthBoundsStateEnabled,minDepthBounds,maxDepthBounds);
+
+	bool isDepthTestEnabled;
+	CompareOp depthCompareOp;
+	createInfo.GetDepthTestState(&isDepthTestEnabled,&depthCompareOp);
+	gfxPipelineInfo->toggle_depth_test(isDepthTestEnabled,static_cast<Anvil::CompareOp>(depthCompareOp));
+
+	const DynamicState *dynamicStates;
+	uint32_t numDynamicStates;
+	createInfo.GetEnabledDynamicStates(&dynamicStates,&numDynamicStates);
+	static_assert(sizeof(prosper::DynamicState) == sizeof(Anvil::DynamicState));
+	gfxPipelineInfo->toggle_dynamic_states(true,reinterpret_cast<const Anvil::DynamicState*>(dynamicStates),numDynamicStates);
+
+	uint32_t numScissors;
+	uint32_t numViewports;
+	uint32_t numVertexBindings;
+	const IRenderPass *renderPass;
+	createInfo.GetGraphicsPipelineProperties(
+		&numScissors,&numViewports,&numVertexBindings,
+		&renderPass,&subPassId
+	);
+	for(auto i=decltype(numScissors){0u};i<numScissors;++i)
+	{
+		int32_t x,y;
+		uint32_t w,h;
+		if(createInfo.GetScissorBoxProperties(i,&x,&y,&w,&h))
+			gfxPipelineInfo->set_scissor_box_properties(i,x,y,w,h);
+	}
+	for(auto i=decltype(numViewports){0u};i<numViewports;++i)
+	{
+		float x,y;
+		float w,h;
+		float minDepth;
+		float maxDepth;
+		if(createInfo.GetViewportProperties(i,&x,&y,&w,&h,&minDepth,&maxDepth))
+			gfxPipelineInfo->set_viewport_properties(i,x,y,w,h,minDepth,maxDepth);
+	}
+	for(auto i=decltype(numVertexBindings){0u};i<numVertexBindings;++i)
+	{
+		uint32_t bindingIndex;
+		uint32_t stride;
+		prosper::VertexInputRate rate;
+		uint32_t numAttributes;
+		const prosper::VertexInputAttribute *attributes;
+		uint32_t divisor;
+		if(createInfo.GetVertexBindingProperties(i,&bindingIndex,&stride,&rate,&numAttributes,&attributes,&divisor) == false)
+			continue;
+		static_assert(sizeof(prosper::VertexInputAttribute) == sizeof(Anvil::VertexInputAttribute));
+		gfxPipelineInfo->add_vertex_binding(i,static_cast<Anvil::VertexInputRate>(rate),stride,numAttributes,reinterpret_cast<const Anvil::VertexInputAttribute*>(attributes),divisor);
+	}
+
+	bool isLogicOpEnabled;
+	LogicOp logicOp;
+	createInfo.GetLogicOpState(
+		&isLogicOpEnabled,&logicOp
+	);
+	gfxPipelineInfo->toggle_logic_op(isLogicOpEnabled,static_cast<Anvil::LogicOp>(logicOp));
+
+	bool isSampleShadingEnabled;
+	float minSampleShading;
+	createInfo.GetSampleShadingState(&isSampleShadingEnabled,&minSampleShading);
+	gfxPipelineInfo->toggle_sample_shading(isSampleShadingEnabled);
+
+	SampleCountFlags sampleCount;
+	const SampleMask *sampleMask;
+	createInfo.GetMultisamplingProperties(&sampleCount,&sampleMask);
+	gfxPipelineInfo->set_multisampling_properties(static_cast<Anvil::SampleCountFlagBits>(sampleCount),minSampleShading,*sampleMask);
+
+	auto numDynamicScissors = createInfo.GetDynamicScissorBoxesCount();
+	gfxPipelineInfo->set_n_dynamic_scissor_boxes(numDynamicScissors);
+
+	auto numDynamicViewports = createInfo.GetDynamicViewportsCount();
+	gfxPipelineInfo->set_n_dynamic_viewports(numDynamicViewports);
+
+	auto primitiveTopology = createInfo.GetPrimitiveTopology();
+	gfxPipelineInfo->set_primitive_topology(static_cast<Anvil::PrimitiveTopology>(primitiveTopology));
+
+	PolygonMode polygonMode;
+	CullModeFlags cullMode;
+	FrontFace frontFace;
+	float lineWidth;
+	createInfo.GetRasterizationProperties(&polygonMode,&cullMode,&frontFace,&lineWidth);
+	gfxPipelineInfo->set_rasterization_properties(
+		static_cast<Anvil::PolygonMode>(polygonMode),static_cast<Anvil::CullModeFlagBits>(cullMode),
+		static_cast<Anvil::FrontFace>(frontFace),lineWidth
+	);
+
+	bool isStencilTestEnabled;
+	StencilOp frontStencilFailOp;
+	StencilOp frontStencilPassOp;
+	StencilOp frontStencilDepthFailOp;
+	CompareOp frontStencilCompareOp;
+	uint32_t frontStencilCompareMask;
+	uint32_t frontStencilWriteMask;
+	uint32_t frontStencilReference;
+	StencilOp backStencilFailOp;
+	StencilOp backStencilPassOp;
+	StencilOp backStencilDepthFailOp;
+	CompareOp backStencilCompareOp;
+	uint32_t backStencilCompareMask;
+	uint32_t backStencilWriteMask;
+	uint32_t backStencilReference;
+	createInfo.GetStencilTestProperties(
+		&isStencilTestEnabled,
+		&frontStencilFailOp,
+		&frontStencilPassOp,
+		&frontStencilDepthFailOp,
+		&frontStencilCompareOp,
+		&frontStencilCompareMask,
+		&frontStencilWriteMask,
+		&frontStencilReference,
+		&backStencilFailOp,
+		&backStencilPassOp,
+		&backStencilDepthFailOp,
+		&backStencilCompareOp,
+		&backStencilCompareMask,
+		&backStencilWriteMask,
+		&backStencilReference
+	);
+	gfxPipelineInfo->set_stencil_test_properties(
+		true,
+		static_cast<Anvil::StencilOp>(frontStencilFailOp),static_cast<Anvil::StencilOp>(frontStencilPassOp),static_cast<Anvil::StencilOp>(frontStencilDepthFailOp),static_cast<Anvil::CompareOp>(frontStencilCompareOp),
+		frontStencilCompareMask,frontStencilWriteMask,frontStencilReference
+	);
+	gfxPipelineInfo->set_stencil_test_properties(
+		false,
+		static_cast<Anvil::StencilOp>(backStencilFailOp),static_cast<Anvil::StencilOp>(backStencilPassOp),static_cast<Anvil::StencilOp>(backStencilDepthFailOp),static_cast<Anvil::CompareOp>(backStencilCompareOp),
+		backStencilCompareMask,backStencilWriteMask,backStencilReference
+	);
+	init_base_pipeline_create_info(createInfo,*gfxPipelineInfo,false);
+
+	auto *gfxPipelineManager = dev.get_graphics_pipeline_manager();
+	Anvil::PipelineID pipelineId;
+	auto r = gfxPipelineManager->add_pipeline(std::move(gfxPipelineInfo),&pipelineId);
+	if(r == false)
+		return {};
+	return pipelineId;
 }
 
 std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &pImgCreateInfo,const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers,bool cubemap)

@@ -12,6 +12,14 @@
 
 namespace prosper
 {
+	namespace util
+	{
+		struct BufferCreateInfo;
+		DLLPROSPER std::shared_ptr<VkDynamicResizableBuffer> create_dynamic_resizable_buffer(
+			IPrContext &context,BufferCreateInfo createInfo,
+			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
+		);
+	};
 	class DLLPROSPER VkDynamicResizableBuffer
 		: public IDynamicResizableBuffer,
 		virtual public VlkBuffer

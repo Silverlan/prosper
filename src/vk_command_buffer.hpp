@@ -30,6 +30,7 @@ namespace prosper
 		virtual bool Reset(bool shouldReleaseResources) const override;
 		virtual bool StopRecording() const override;
 
+		virtual bool RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo) override;
 		virtual bool RecordSetDepthBias(float depthBiasConstantFactor=0.f,float depthBiasClamp=0.f,float depthBiasSlopeFactor=0.f) override;
 		virtual bool RecordClearImage(IImage &img,ImageLayout layout,const std::array<float,4> &clearColor,const util::ClearImageInfo &clearImageInfo={}) override;
 		virtual bool RecordClearImage(IImage &img,ImageLayout layout,float clearDepth,const util::ClearImageInfo &clearImageInfo={}) override;
@@ -44,7 +45,6 @@ namespace prosper
 			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
 		) override;
 		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data) override;
-		virtual bool RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id) override;
 
 		virtual bool RecordSetLineWidth(float lineWidth) override;
 		virtual bool RecordBindIndexBuffer(IBuffer &buf,IndexType indexType=IndexType::UInt16,DeviceSize offset=0) override;
@@ -53,7 +53,7 @@ namespace prosper
 		) override;
 		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size) override;
 		virtual bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0) override;
-		virtual bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,int32_t vertexOffset=0,uint32_t firstInstance=0) override;
+		virtual bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,uint32_t firstInstance=0) override;
 		virtual bool RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride) override;
 		virtual bool RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride) override;
 		virtual bool RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data) override;
@@ -73,6 +73,7 @@ namespace prosper
 		virtual bool ResetQuery(const Query &query) const override;
 	protected:
 		VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType);
+		virtual bool DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId) override;
 		virtual bool DoRecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst) override;
 		virtual bool DoRecordCopyImage(const util::CopyInfo &copyInfo,IImage &imgSrc,IImage &imgDst,uint32_t w,uint32_t h) override;
 		virtual bool DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h) override;

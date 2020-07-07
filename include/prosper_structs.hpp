@@ -553,11 +553,12 @@ namespace prosper
 		bool operator!=(const PushConstantRange& in) const {return !operator==(in);}
 	};
 
+	class ShaderStageProgram;
 	class DLLPROSPER ShaderModule
 	{
 	public:
 		ShaderModule(
-			const std::vector<uint32_t> &spirvBlob,
+			const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
 			const std::string&          in_opt_cs_entrypoint_name,
 			const std::string&          in_opt_fs_entrypoint_name,
 			const std::string&          in_opt_gs_entrypoint_name,
@@ -598,7 +599,7 @@ namespace prosper
 		{
 			return m_vsEntrypointName;
 		}
-		const std::optional<std::vector<uint32_t>> &GetSPIRVData() const;
+		const ShaderStageProgram *GetShaderStageProgram() const {return m_shaderStageProgram.get();}
 
 	private:
 		ShaderModule           (const ShaderModule&);
@@ -611,7 +612,7 @@ namespace prosper
 		std::string m_teEntrypointName;
 		std::string m_vsEntrypointName;
 		std::string m_glslSourceCode;
-		std::optional<std::vector<uint32_t>> m_spirvData {};
+		std::shared_ptr<ShaderStageProgram> m_shaderStageProgram {};
 	};
 
 	struct DLLPROSPER ShaderModuleStageEntryPoint

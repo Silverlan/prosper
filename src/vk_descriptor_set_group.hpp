@@ -41,15 +41,13 @@ namespace prosper
 		const Anvil::DescriptorSet *operator->() const;
 
 		virtual bool Update() override;
-		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId) override;
-		virtual bool SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx) override;
-		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId) override;
-		virtual bool SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx) override;
-		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId) override;
-		virtual bool SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex) override;
-		virtual bool SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
-		virtual bool SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
-		virtual bool SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max()) override;
+	protected:
+		virtual bool DoSetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId) override;
+		virtual bool DoSetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId) override;
+		virtual bool DoSetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,const std::optional<uint32_t> &layerId) override;
+		virtual bool DoSetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size) override;
+		virtual bool DoSetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size) override;
+		virtual bool DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size) override;
 	private:
 		Anvil::DescriptorSet &m_descSet;
 	};

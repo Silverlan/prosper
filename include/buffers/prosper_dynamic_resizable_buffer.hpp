@@ -23,27 +23,12 @@ namespace prosper
 {
 	class IPrContext;
 	class IBuffer;
-	namespace util
-	{
-		struct BufferCreateInfo;
-		DLLPROSPER std::shared_ptr<VkDynamicResizableBuffer> create_dynamic_resizable_buffer(
-			IPrContext &context,BufferCreateInfo createInfo,
-			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
-		);
-	};
-
 	class DLLPROSPER IDynamicResizableBuffer
 		: public IResizableBuffer
 	{
 	public:
 		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,const void *data=nullptr);
 		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,uint32_t alignment,const void *data);
-
-		friend std::shared_ptr<VkDynamicResizableBuffer> util::create_dynamic_resizable_buffer(
-			IPrContext &context,util::BufferCreateInfo createInfo,
-			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
-		);
-
 		void DebugPrint(std::stringstream &strFilledData,std::stringstream &strFreeData,std::stringstream *bufferData=nullptr) const;
 		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;
 		uint64_t GetFreeSize() const;

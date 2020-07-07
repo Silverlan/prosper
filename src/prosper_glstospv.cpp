@@ -10,6 +10,7 @@
 #include "prosper_glstospv.hpp"
 #include "vk_context.hpp"
 #include "shader/prosper_shader.hpp"
+#include <vulkan/vulkan.hpp>
 #include <fsys/filesystem.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
@@ -17,7 +18,8 @@
 #include <wrappers/shader_module.h>
 #include <misc/glsl_to_spirv.h>
 #include <sstream>
-
+#include <cassert>
+#pragma optimize("",off)
 static unsigned int get_line_break(std::string &str,int pos=0)
 {
 	auto len = str.length();
@@ -107,7 +109,10 @@ static bool glsl_preprocessing(const std::string &path,std::string &shader,std::
 	return true;
 }
 
-static bool glsl_preprocessing(prosper::IPrContext &context,Anvil::ShaderStage stage,const std::string &path,std::string &shader,std::string *err,std::vector<IncludeLine> &includeLines,unsigned int &lineId,bool bHlsl=false)
+static bool glsl_preprocessing(
+	prosper::IPrContext &context,Anvil::ShaderStage stage,const std::string &path,std::string &shader,
+	std::string *err,std::vector<IncludeLine> &includeLines,unsigned int &lineId,bool bHlsl=false
+)
 {
 	lineId = 0;
 	auto r = glsl_preprocessing(path,shader,err,includeLines,lineId,0,true);
@@ -115,6 +120,11 @@ static bool glsl_preprocessing(prosper::IPrContext &context,Anvil::ShaderStage s
 		return false;
 	// Custom definitions
 	std::unordered_map<std::string,std::string> definitions;
+	prosper::GLSLDefinitions glslDefinitions {};
+	context.GetGLSLDefinitions(glslDefinitions);
+	definitions["LAYOUT_ID(setIndex,bindingIndex)"] = glslDefinitions.layoutId;
+	definitions["LAYOUT_PUSH_CONSTANTS()"] = glslDefinitions.layoutPushConstants;
+	definitions["SH_VERTEX_INDEX"] = glslDefinitions.vertexIndex;
 	//definitions["__MAX_VERTEX_TEXTURE_IMAGE_UNITS__"] = std::to_string(maxTextureUnits);
 	std::string prefix = (bHlsl == false) ? "GLS_" : "HLS_";
 	switch(stage)
@@ -133,16 +143,16 @@ static bool glsl_preprocessing(prosper::IPrContext &context,Anvil::ShaderStage s
 			break;
 	}
 
-	auto &properties = static_cast<prosper::VlkContext&>(context).GetDevice().get_physical_device_properties();
-	switch(properties.core_vk1_0_properties_ptr->vendor_id)
+	auto vendor = context.GetPhysicalDeviceVendor();
+	switch(vendor)
 	{
-		case umath::to_integral(prosper::Vendor::AMD):
+		case prosper::Vendor::AMD:
 			definitions[prefix +"VENDOR_AMD"] = "1";
 			break;
-		case umath::to_integral(prosper::Vendor::Nvidia):
+		case prosper::Vendor::Nvidia:
 			definitions[prefix +"VENDOR_NVIDIA"] = "1";
 			break;
-		case umath::to_integral(prosper::Vendor::Intel):
+		case prosper::Vendor::Intel:
 			definitions[prefix +"VENDOR_INTEL"] = "1";
 			break;
 	}
@@ -265,17 +275,11 @@ static void glsl_translate_error(const std::string &shaderCode,const std::string
 	}
 }
 
-static bool glsl_to_spv(prosper::IPrContext &context,Anvil::ShaderStage stage,const char *pshader,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,const std::string &fileName,bool bHlsl=false)
+static bool glsl_to_spv(
+	prosper::IPrContext &context,Anvil::ShaderStage stage,const std::string &shaderCode,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,const std::string &fileName,
+	const std::vector<IncludeLine> &includeLines,unsigned int lineOffset,bool bHlsl=false
+)
 {
-	std::string shaderCode{pshader};
-	std::vector<IncludeLine> includeLines;
-	unsigned int lineOffset = 0;
-	if(glsl_preprocessing(context,stage,fileName,shaderCode,infoLog,includeLines,lineOffset,bHlsl) == false)
-	{
-		if(infoLog != nullptr)
-			*infoLog = std::string("Module: \"") +fileName +"\"\n" +(*infoLog);
-		return false;
-	}
 	auto &dev = static_cast<prosper::VlkContext&>(context).GetDevice();
 	auto shaderPtr = Anvil::GLSLShaderToSPIRVGenerator::create(
 		&dev,
@@ -320,7 +324,6 @@ static bool glsl_to_spv(prosper::IPrContext &context,Anvil::ShaderStage stage,co
 	spirv = shaderMod->get_spirv_blob();
 	return true;
 }
-
 void prosper::dump_parsed_shader(IPrContext &context,uint32_t stage,const std::string &shaderFile,const std::string &fileName)
 {
 	auto f = FileManager::OpenFile(shaderFile.c_str(),"r");
@@ -337,7 +340,28 @@ void prosper::dump_parsed_shader(IPrContext &context,uint32_t stage,const std::s
 	fOut->WriteString(shaderCode);
 }
 
-bool prosper::glsl_to_spv(IPrContext &context,uint32_t stage,const std::string &fileName,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,bool bReload)
+static std::optional<std::string> find_shader_file(const std::string &fileName,std::string *optOutExt=nullptr)
+{
+	std::string ext;
+	if(ufile::get_extension(fileName,&ext) == false)
+	{
+		auto fileNameGls = fileName +".gls";
+		if(FileManager::Exists(fileNameGls))
+			return fileNameGls;
+		auto fileNameHls = fileName +".hls";
+		if(FileManager::Exists(fileNameHls))
+			return fileNameHls;
+		return {};
+	}
+	else
+	{
+		if(optOutExt)
+			*optOutExt = ext;
+	}
+	return FileManager::Exists(fileName) ? fileName : std::optional<std::string>{};
+}
+
+bool prosper::glsl_to_spv(IPrContext &context,prosper::ShaderStage stage,const std::string &fileName,std::vector<unsigned int> &spirv,std::string *infoLog,std::string *debugInfoLog,bool bReload)
 {
 	auto fName = fileName;
 	std::string ext;
@@ -390,15 +414,12 @@ bool prosper::glsl_to_spv(IPrContext &context,uint32_t stage,const std::string &
 		f->Read(spirv.data() +origSize,sz);
 		return true;
 	}
-	auto f = FileManager::OpenFile(fName.c_str(),"r");
-	if(f == nullptr)
-	{
-		if(infoLog != nullptr)
-			*infoLog = std::string("Unable to open file '") +fName +std::string("'!");
+	std::vector<IncludeLine> includeLines;
+	unsigned int lineOffset = 0;
+	auto shaderCode = load_glsl(context,stage,fName,infoLog,debugInfoLog,includeLines,lineOffset);
+	if(shaderCode.has_value() == false)
 		return false;
-	}
-	auto content = f->ReadString();
-	auto r = ::glsl_to_spv(context,static_cast<Anvil::ShaderStage>(stage),content.c_str(),spirv,infoLog,debugInfoLog,fName,(ext == "hls") ? true : false);
+	auto r = ::glsl_to_spv(context,static_cast<Anvil::ShaderStage>(stage),*shaderCode,spirv,infoLog,debugInfoLog,fName,includeLines,lineOffset,(ext == "hls") ? true : false);
 	if(r == false)
 		return r;
 	auto spirvName = "cache/" +fName.substr(0,fName.length() -ext.length()) +"spv";
@@ -410,4 +431,50 @@ bool prosper::glsl_to_spv(IPrContext &context,uint32_t stage,const std::string &
 	return r;
 }
 
+std::optional<std::string> prosper::load_glsl(
+	IPrContext &context,prosper::ShaderStage stage,const std::string &fileName,std::string *infoLog,std::string *debugInfoLog
+)
+{
+	std::vector<IncludeLine> includeLines;
+	uint32_t lineOffset;
+	return load_glsl(context,stage,fileName,infoLog,debugInfoLog,includeLines,lineOffset);
+}
+
+std::optional<std::string> prosper::load_glsl(
+	IPrContext &context,prosper::ShaderStage stage,const std::string &fileName,std::string *infoLog,std::string *debugInfoLog,
+	std::vector<IncludeLine> &outIncludeLines,uint32_t &outLineOffset
+)
+{
+	std::string ext;
+	auto optFileName = find_shader_file("shaders/" +fileName,&ext);
+	if(optFileName.has_value() == false)
+	{
+		if(infoLog)
+			*infoLog = "File not found: " +fileName;
+		return {};
+	}
+	auto f = FileManager::OpenFile(optFileName->c_str(),"r");
+	if(f == nullptr)
+	{
+		if(infoLog != nullptr)
+			*infoLog = std::string("Unable to open file '") +fileName +std::string("'!");
+		return {};
+	}
+	auto hlsl = false;
+	if(ustring::compare(ext,"hls",false))
+		hlsl = true;
+	auto shaderCode = f->ReadString();
+	std::vector<IncludeLine> includeLines;
+	unsigned int lineOffset = 0;
+	std::string err;
+	if(glsl_preprocessing(context,static_cast<Anvil::ShaderStage>(stage),*optFileName,shaderCode,&err,includeLines,lineOffset,hlsl) == false)
+	{
+		if(infoLog != nullptr)
+			*infoLog = std::string("Module: \"") +fileName +"\"\n" +err;
+		return {};
+	}
+	return shaderCode;
+}
+
 #endif
+#pragma optimize("",on)

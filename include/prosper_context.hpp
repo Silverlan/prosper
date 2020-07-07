@@ -38,11 +38,17 @@ namespace uimg
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class ShaderStageProgram
+	{
+	public:
+		ShaderStageProgram()=default;
+	};
 	enum class Vendor : uint32_t
 	{
 		AMD = 4098,
 		Nvidia = 4318,
-		Intel = 32902
+		Intel = 32902,
+		Unknown = std::numeric_limits<uint32_t>::max()
 	};
 	namespace util
 	{
@@ -50,6 +56,8 @@ namespace prosper
 		struct SamplerCreateInfo;
 		struct ImageViewCreateInfo;
 		struct ImageCreateInfo;
+		struct Limits;
+		struct PhysicalDeviceImageFormatProperties;
 	};
 
 	struct ShaderStageData;
@@ -77,6 +85,8 @@ namespace prosper
 	class GraphicsPipelineCreateInfo;
 	struct DescriptorSetInfo;
 	struct PipelineStatistics;
+	struct GLSLDefinitions;
+	struct ImageFormatPropertiesQuery;
 
 	struct DLLPROSPER Callbacks
 	{
@@ -153,6 +163,9 @@ namespace prosper
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
 			prosper::ImageTiling tiling=prosper::ImageTiling::Optimal
 		) const=0;
+		virtual uint32_t GetUniversalQueueFamilyIndex() const=0;
+		virtual util::Limits GetPhysicalDeviceLimits() const=0;
+		virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)=0;
 
 		void ChangeResolution(uint32_t width,uint32_t height);
 		void ChangePresentMode(prosper::PresentModeKHR presentMode);
@@ -171,7 +184,11 @@ namespace prosper
 		virtual bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const=0;
 		virtual Vendor GetPhysicalDeviceVendor() const=0;
 		virtual MemoryRequirements GetMemoryRequirements(IImage &img)=0;
-		virtual DeviceSize GetBufferAlignment(BufferUsageFlags usageFlags)=0;
+		// Clamps the specified size in bytes to a percentage of the total available GPU memory
+		virtual uint64_t ClampDeviceMemorySize(uint64_t size,float percentageOfGPUMemory,MemoryFeatureFlags featureFlags) const=0;
+		virtual DeviceSize CalcBufferAlignment(BufferUsageFlags usageFlags)=0;
+
+		virtual void GetGLSLDefinitions(GLSLDefinitions &outDef) const=0;
 
 		uint64_t GetLastFrameId() const;
 		void Draw(uint32_t n_swapchain_image);
@@ -226,20 +243,20 @@ namespace prosper
 		void RegisterResource(const std::shared_ptr<void> &resource);
 		void ReleaseResource(void *resource);
 
-		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data=nullptr);
+		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data=nullptr)=0;
 		std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(
 			util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
 		);
-		std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(
+		virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(
 			util::BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
-		);
+		)=0;
 		virtual std::shared_ptr<IEvent> CreateEvent();
 		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled=false);
 		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo);
 		std::shared_ptr<IImageView> CreateImageView(const util::ImageViewCreateInfo &createInfo,IImage &img);
-		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr);
+		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr)=0;
 		std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
 		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo);
@@ -253,16 +270,17 @@ namespace prosper
 		);
 		std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<IRenderPass> &rp=nullptr,const util::RenderTargetCreateInfo &rtCreateInfo={});
 		std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture,IImageView &imgView,IRenderPass &rp,const util::RenderTargetCreateInfo &rtCreateInfo={});
-		std::unique_ptr<ShaderModule> CreateShaderModuleFromSPIRVBlob(
-			const std::vector<uint32_t> &spirvBlob,
+		virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(
+			const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
 			prosper::ShaderStage stage,
 			const std::string &entrypointName="main"
-		);
-		std::optional<PipelineID> AddPipeline(
+		)=0;
+		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false)=0;
+		virtual std::optional<PipelineID> AddPipeline(
 			const prosper::ComputePipelineCreateInfo &createInfo,
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
-		);
-		std::optional<PipelineID> AddPipeline(
+		)=0;
+		virtual std::optional<PipelineID> AddPipeline(
 			const prosper::GraphicsPipelineCreateInfo &createInfo,
 			IRenderPass &rp,
 			prosper::ShaderStageData *shaderStageFs=nullptr,
@@ -272,8 +290,8 @@ namespace prosper
 			prosper::ShaderStageData *shaderStageTe=nullptr,
 			SubPassID subPassId=0,
 			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
-		);
-		bool ClearPipeline(bool graphicsShader,PipelineID pipelineId);
+		)=0;
+		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId)=0;
 		uint32_t GetLastAcquiredSwapchainImageIndex() const;
 
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries)=0;
@@ -294,6 +312,7 @@ namespace prosper
 		);
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
+		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
 
 		std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer,const std::optional<util::ImageCreateInfo> &createInfo={});
 		virtual std::shared_ptr<IImageView> DoCreateImageView(
@@ -302,6 +321,11 @@ namespace prosper
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)=0;
 		virtual void DoWaitIdle()=0;
 		virtual void DoFlushSetupCommandBuffer()=0;
+		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(
+			const util::BufferCreateInfo &createInfo,uint64_t bufferInstanceSize,
+			uint64_t maxTotalSize,const void *data,
+			prosper::DeviceSize bufferBaseSize,uint32_t alignment
+		)=0;
 		virtual void OnClose();
 		virtual void Release();
 		virtual void InitBuffers();

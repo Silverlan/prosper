@@ -396,52 +396,30 @@ static std::vector<vk::DeviceSize> s_vOffsets;
 bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<vk::DeviceSize> &offsets)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	if(offsets.empty() == false)
-	{
-		if(offsets.size() > s_vOffsets.size())
-			s_vOffsets.resize(offsets.size(),0ull);
-		for(auto i=decltype(offsets.size()){0};i<offsets.size();++i)
-			s_vOffsets.at(i) = buffers.at(i)->GetStartOffset() +offsets.at(i);
-	}
-	else
-	{
-		if(buffers.size() > s_vOffsets.size())
-			s_vOffsets.resize(buffers.size(),0ull);
-		for(auto i=decltype(buffers.size()){0};i<buffers.size();++i)
-			s_vOffsets.at(i) = buffers.at(i)->GetStartOffset();
-	}
-	std::vector<Anvil::Buffer*> anvBuffers;
-	anvBuffers.reserve(buffers.size());
-	for(auto *buf : buffers)
-		anvBuffers.push_back(&dynamic_cast<VlkBuffer*>(buf)->GetAnvilBuffer());
-	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_bind_vertex_buffers(startBinding,buffers.size(),const_cast<Anvil::Buffer**>(anvBuffers.data()),s_vOffsets.data());
+	return cmdBuffer ? cmdBuffer->RecordBindVertexBuffers(*this,buffers,startBinding,offsets) : false;
 }
 
 bool prosper::ShaderGraphics::RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding,DeviceSize offset)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	if(s_vOffsets.empty())
-		s_vOffsets.resize(1u);
-	s_vOffsets.at(0) = buffer.GetStartOffset() +offset;
-	auto *ptrBuffer = &dynamic_cast<prosper::VlkBuffer&>(buffer).GetAnvilBuffer();
-	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_bind_vertex_buffers(startBinding,1u,&ptrBuffer,s_vOffsets.data());
+	return cmdBuffer ? cmdBuffer->RecordBindVertexBuffers(*this,{&buffer},startBinding,{offset}) : false;
 }
 bool prosper::ShaderGraphics::RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType,DeviceSize offset)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_bind_index_buffer(&dynamic_cast<prosper::VlkBuffer&>(indexBuffer).GetAnvilBuffer(),indexBuffer.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
+	return cmdBuffer != nullptr && cmdBuffer->RecordBindIndexBuffer(indexBuffer,indexType,offset);
 }
 
 bool prosper::ShaderGraphics::RecordDraw(uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
+	return cmdBuffer != nullptr && cmdBuffer->RecordDraw(vertCount,instanceCount,firstVertex,firstInstance);
 }
 
-bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,int32_t vertexOffset,uint32_t firstInstance)
+bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,uint32_t firstInstance)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && dynamic_cast<prosper::VlkCommandBuffer&>(*cmdBuffer)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
+	return cmdBuffer != nullptr && cmdBuffer->RecordDrawIndexed(indexCount,instanceCount,firstIndex,firstInstance);
 }
 bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
 {

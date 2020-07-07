@@ -48,7 +48,7 @@ namespace prosper
 		)=0;
 		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)=0;
 		virtual bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0)=0;
-		virtual bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,int32_t vertexOffset=0,uint32_t firstInstance=0)=0;
+		virtual bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1,uint32_t firstIndex=0,uint32_t firstInstance=0)=0;
 		virtual bool RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride)=0;
 		virtual bool RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride)=0;
 		virtual bool RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data)=0;
@@ -82,7 +82,7 @@ namespace prosper
 		// The source texture image will be copied to the destination image using a resolve (if it's a MSAA texture) or a blit
 		bool RecordBlitTexture(prosper::Texture &texSrc,IImage &imgDst);
 		bool RecordGenerateMipmaps(IImage &img,ImageLayout currentLayout,AccessFlags srcAccessMask,PipelineStageFlags srcStage);
-		bool RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo);
+		virtual bool RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo)=0;
 		// Records an image barrier. If no layer is specified, ALL layers of the image will be included in the barrier.
 		bool RecordImageBarrier(
 			IImage &img,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
@@ -110,7 +110,7 @@ namespace prosper
 			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
 		)=0;
 		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)=0;
-		virtual bool RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id)=0;
+		bool RecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId);
 
 		virtual bool RecordSetLineWidth(float lineWidth)=0;
 		virtual bool RecordSetViewport(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u,float minDepth=0.f,float maxDepth=0.f)=0;
@@ -124,6 +124,9 @@ namespace prosper
 		virtual bool ResetQuery(const Query &query) const=0;
 	protected:
 		ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType);
+		friend Shader;
+		virtual void ClearBoundPipeline();
+		virtual bool DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId)=0;
 		virtual bool DoRecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst)=0;
 		virtual bool DoRecordCopyImage(const util::CopyInfo &copyInfo,IImage &imgSrc,IImage &imgDst,uint32_t w,uint32_t h)=0;
 		virtual bool DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h)=0;

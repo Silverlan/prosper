@@ -47,9 +47,9 @@ bool prosper::VlkCommandBuffer::RecordPushConstants(prosper::Shader &shader,Pipe
 	prosper::PipelineID pipelineId;
 	return shader.GetPipelineId(pipelineId,pipelineIdx) && (*this)->record_push_constants(static_cast<VlkContext&>(GetContext()).GetPipelineLayout(shader.IsGraphicsShader(),pipelineId),static_cast<Anvil::ShaderStageFlagBits>(stageFlags),offset,size,data);
 }
-bool prosper::VlkCommandBuffer::RecordBindPipeline(PipelineBindPoint in_pipeline_bind_point,PipelineID in_pipeline_id)
+bool prosper::VlkCommandBuffer::DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId)
 {
-	return (*this)->record_bind_pipeline(static_cast<Anvil::PipelineBindPoint>(in_pipeline_bind_point),static_cast<Anvil::PipelineID>(in_pipeline_id));
+	return (*this)->record_bind_pipeline(static_cast<Anvil::PipelineBindPoint>(shader.GetPipelineBindPoint()),static_cast<Anvil::PipelineID>(pipelineId));
 }
 bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 {
@@ -57,7 +57,7 @@ bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 }
 bool prosper::VlkCommandBuffer::RecordBindIndexBuffer(IBuffer &buf,IndexType indexType,DeviceSize offset)
 {
-	return (*this)->record_bind_index_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,static_cast<Anvil::IndexType>(indexType));
+	return (*this)->record_bind_index_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),buf.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
 }
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets
@@ -70,6 +70,10 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	std::vector<DeviceSize> anvOffsets;
 	if(offsets.empty())
 		anvOffsets.resize(buffers.size(),0);
+	else
+		anvOffsets = offsets;
+	for(auto i=decltype(buffers.size()){0u};i<buffers.size();++i)
+		anvOffsets.at(i) += buffers.at(i)->GetStartOffset();
 	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
 }
 bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)
@@ -80,9 +84,9 @@ bool prosper::VlkCommandBuffer::RecordDraw(uint32_t vertCount,uint32_t instanceC
 {
 	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
 }
-bool prosper::VlkCommandBuffer::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,int32_t vertexOffset,uint32_t firstInstance)
+bool prosper::VlkCommandBuffer::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,uint32_t firstInstance)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,0 /* vertexOffset */,firstInstance);
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride)
 {

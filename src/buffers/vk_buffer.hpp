@@ -23,8 +23,8 @@ namespace Anvil
 
 namespace prosper
 {
-	class VkUniformResizableBuffer;
 	class VkDynamicResizableBuffer;
+	class VkUniformResizableBuffer;
 	class DLLPROSPER VlkBuffer
 		: virtual public IBuffer
 	{
@@ -51,7 +51,7 @@ namespace prosper
 		VlkBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
 		virtual bool DoWrite(Offset offset,Size size,const void *data) const override;
 		virtual bool DoRead(Offset offset,Size size,void *data) const override;
-		virtual bool DoMap(Offset offset,Size size) const override;
+		virtual bool DoMap(Offset offset,Size size,MapFlags mapFlags) const override;
 		virtual bool DoUnmap() const override;
 
 		std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> m_buffer = nullptr;

@@ -11,6 +11,8 @@
 #include "image/prosper_render_target.hpp"
 #include "image/vk_image_view.hpp"
 #include "image/vk_image.hpp"
+#include "prosper_render_pass.hpp"
+#include "shader/prosper_shader.hpp"
 #include "vk_command_buffer.hpp"
 #include "vk_context.hpp"
 #include "buffers/vk_buffer.hpp"
@@ -116,7 +118,7 @@ static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::ut
 	anvRange.aspect_mask = static_cast<Anvil::ImageAspectFlagBits>(prosper::util::get_aspect_mask(img));
 	return anvRange;
 }
-bool prosper::ICommandBuffer::RecordPipelineBarrier(const prosper::util::PipelineBarrierInfo &barrierInfo)
+bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo)
 {
 	if(s_lastRecordedImageLayouts != nullptr)
 	{
@@ -345,6 +347,15 @@ bool prosper::ICommandBuffer::RecordPostRenderPassImageBarrier(
 {
 	return ::record_image_barrier(*this,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange);
 }
+void prosper::ICommandBuffer::ClearBoundPipeline() {}
+bool prosper::ICommandBuffer::RecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId)
+{
+	auto *pipelineInfo = shader.GetPipelineInfo(shaderPipelineId);
+	if(pipelineInfo == nullptr)
+		return false;
+	auto pipelineId = pipelineInfo->id;
+	return pipelineId != std::numeric_limits<prosper::PipelineID>::max() && DoRecordBindShaderPipeline(shader,shaderPipelineId,pipelineId);
+}
 bool prosper::ICommandBuffer::RecordBufferBarrier(
 	IBuffer &buf,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
 	AccessFlags srcAccessMask,AccessFlags dstAccessMask,DeviceSize offset,DeviceSize size
@@ -449,13 +460,8 @@ bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(
 			}
 		}
 	}
-	auto it = s_wpCurrentRenderTargets.find(&*this);
-	if(it != s_wpCurrentRenderTargets.end())
-		s_wpCurrentRenderTargets.erase(it);
 	auto extents = img.GetExtents();
-	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
-	s_wpCurrentRenderTargets[&*this] = {rp.shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),img.shared_from_this(),fb.shared_from_this(),std::weak_ptr<prosper::RenderTarget>{}};
 	return static_cast<prosper::VlkPrimaryCommandBuffer&>(*this)->record_begin_render_pass(
 		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
 		&static_cast<prosper::VlkFramebuffer&>(fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
@@ -472,6 +478,12 @@ bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarg
 		throw std::runtime_error("Attempted to begin render pass with NULL render pass object!");
 	auto &tex = rt.GetTexture();
 	auto &img = tex.GetImage();
+
+	auto it = s_wpCurrentRenderTargets.find(&*this);
+	if(it != s_wpCurrentRenderTargets.end())
+		s_wpCurrentRenderTargets.erase(it);
+	static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
+	s_wpCurrentRenderTargets[&*this] = {rp->shared_from_this(),(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),img.shared_from_this(),fb->shared_from_this(),std::weak_ptr<prosper::RenderTarget>{}};
 	return DoRecordBeginRenderPass(img,*rp,*fb,layerId,clearValues);
 }
 bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)

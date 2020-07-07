@@ -21,7 +21,10 @@ namespace prosper::util
 			DontAllocateMemory = ConcurrentSharing<<1u,
 
 			Sparse = DontAllocateMemory<<1u,
-			SparseAliasedResidency = Sparse<<1u // Only has an effect if Sparse-flag is set
+			SparseAliasedResidency = Sparse<<1u, // Only has an effect if Sparse-flag is set
+
+			// The client may request that the server read from or write to the buffer while it is mapped. The client's pointer to the data store remains valid so long as the data store is mapped, even during execution of drawing or dispatch commands.
+			Persistent = SparseAliasedResidency<<1u
 		};
 		Flags flags = Flags::None;
 		BufferUsageFlags usageFlags = BufferUsageFlags::UniformBufferBit;
