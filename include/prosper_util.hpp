@@ -43,20 +43,10 @@ namespace prosper
 	class IDescriptorSet;
 	enum class Vendor : uint32_t;
 	enum class PhysicalDeviceType : uint8_t;
-	namespace debug
-	{
-		DLLPROSPER void enable_debug_recorded_image_layout(bool b);
-		DLLPROSPER bool is_debug_recorded_image_layout_enabled();
-		DLLPROSPER void set_debug_validation_callback(const std::function<void(DebugReportObjectTypeEXT,const std::string&)> &callback);
-		DLLPROSPER void exec_debug_validation_callback(DebugReportObjectTypeEXT objType,const std::string &msg);
-		DLLPROSPER bool get_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer,IImage &img,ImageLayout &layout,uint32_t baseLayer=0u,uint32_t baseMipmap=0u);
-		DLLPROSPER void set_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer,IImage &img,ImageLayout layout,uint32_t baseLayer=0u,uint32_t layerCount=std::numeric_limits<uint32_t>::max(),uint32_t baseMipmap=0u,uint32_t mipmapLevels=std::numeric_limits<uint32_t>::max());
-	};
 	namespace util
 	{
 		DLLPROSPER Format get_prosper_format(const uimg::ImageBuffer &imgBuffer);
 		DLLPROSPER prosper::util::ImageCreateInfo get_image_create_info(const uimg::ImageBuffer &imgBuffer,bool cubemap=false);
-		DLLPROSPER bool get_current_render_pass_target(prosper::IPrimaryCommandBuffer &cmdBuffer,prosper::IRenderPass **outRp=nullptr,prosper::IImage **outImg=nullptr,prosper::IFramebuffer **outFb=nullptr,prosper::RenderTarget **outRt=nullptr);
 
 		DLLPROSPER BufferBarrier create_buffer_barrier(const util::BufferBarrierInfo &barrierInfo,IBuffer &buffer);
 		DLLPROSPER ImageBarrier create_image_barrier(IImage &img,const util::ImageBarrierInfo &barrierInfo);
@@ -79,6 +69,7 @@ namespace prosper
 		DLLPROSPER std::string to_string(ImageLayout layout);
 		DLLPROSPER std::string to_string(PhysicalDeviceType type);
 		DLLPROSPER std::string to_string(Vendor type);
+		DLLPROSPER std::string to_string(SampleCountFlags samples);
 		DLLPROSPER bool has_alpha(Format format);
 		DLLPROSPER bool is_depth_format(Format format);
 		DLLPROSPER bool is_compressed_format(Format format);
@@ -97,7 +88,7 @@ namespace prosper
 		DLLPROSPER prosper::PipelineBindPoint get_pipeline_bind_point(prosper::ShaderStageFlags shaderStages);
 		DLLPROSPER ImageAspectFlags get_aspect_mask(IImage &img);
 		DLLPROSPER ImageAspectFlags get_aspect_mask(Format format);
-		DLLPROSPER bool get_memory_stats(IPrContext &context,MemoryPropertyFlags memPropFlags,DeviceSize &outAvailableSize,DeviceSize &outAllocatedSize,std::vector<uint32_t> *optOutMemIndices=nullptr);
+		DLLPROSPER void apply_image_subresource_range(const prosper::util::ImageSubresourceRange &srcRange,prosper::util::ImageSubresourceRange &vkRange,prosper::IImage &img);
 		//get_queue_family_index
 		DLLPROSPER bool save_texture(const std::string &fileName,prosper::IImage &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler=nullptr);
 
@@ -117,8 +108,6 @@ namespace prosper
 			uint32_t driverVersion;
 			Vendor vendor;
 		};
-		DLLPROSPER VendorDeviceInfo get_vendor_device_info(const IPrContext &context);
-		DLLPROSPER std::vector<VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);
 
 		struct DLLPROSPER Limits
 		{
@@ -137,7 +126,6 @@ namespace prosper
 		{
 			std::vector<DeviceSize> heapSizes;
 		};
-		DLLPROSPER std::optional<PhysicalDeviceMemoryProperties> get_physical_device_memory_properties(const IPrContext &context);
 
 		template<class T>
 			std::shared_ptr<T> unique_ptr_to_shared_ptr(std::unique_ptr<T,std::function<void(T*)>> v);

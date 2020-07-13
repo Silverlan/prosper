@@ -14,6 +14,7 @@
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
 #include "shader/prosper_shader_manager.hpp"
+#include "prosper_common_buffer_cache.hpp"
 
 #ifdef __linux__
 #include <iglfw/glfw_window.h>
@@ -85,8 +86,9 @@ namespace prosper
 	class GraphicsPipelineCreateInfo;
 	struct DescriptorSetInfo;
 	struct PipelineStatistics;
-	struct GLSLDefinitions;
 	struct ImageFormatPropertiesQuery;
+
+	namespace glsl {struct Definitions;};
 
 	struct DLLPROSPER Callbacks
 	{
@@ -139,11 +141,19 @@ namespace prosper
 			std::optional<AccessFlags> postUpdateBarrierAccessMask = {};
 		};
 
+		using ImageMipmapData = const uint8_t*;
+		using ImageLayerData = std::vector<ImageMipmapData>;
+		using ImageData = std::vector<ImageLayerData>;
+
 		template<class TContext>
 			static std::shared_ptr<TContext> Create(const std::string &appName,uint32_t width,uint32_t height,bool bEnableValidation=false);
 		virtual ~IPrContext();
 
 		virtual void Initialize(const CreateInfo &createInfo);
+		virtual bool ApplyGLSLPostProcessing(std::string &inOutGlslCode,std::string &outErrMsg) const {return true;}
+		virtual bool InitializeShaderSources(prosper::Shader &shader,bool bReload,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const;
+		virtual std::string GetAPIIdentifier() const=0;
+
 		void Run();
 		void Close();
 
@@ -188,7 +198,7 @@ namespace prosper
 		virtual uint64_t ClampDeviceMemorySize(uint64_t size,float percentageOfGPUMemory,MemoryFeatureFlags featureFlags) const=0;
 		virtual DeviceSize CalcBufferAlignment(BufferUsageFlags usageFlags)=0;
 
-		virtual void GetGLSLDefinitions(GLSLDefinitions &outDef) const=0;
+		virtual void GetGLSLDefinitions(glsl::Definitions &outDef) const=0;
 
 		uint64_t GetLastFrameId() const;
 		void Draw(uint32_t n_swapchain_image);
@@ -252,17 +262,18 @@ namespace prosper
 			util::BufferCreateInfo createInfo,
 			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
 		)=0;
-		virtual std::shared_ptr<IEvent> CreateEvent();
-		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled=false);
-		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo);
+		virtual std::shared_ptr<IEvent> CreateEvent()=0;
+		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled=false)=0;
+		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo)=0;
 		std::shared_ptr<IImageView> CreateImageView(const util::ImageViewCreateInfo &createInfo,IImage &img);
-		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data=nullptr)=0;
+		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const ImageData &imgData={})=0;
+		std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data);
 		std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
 		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
-		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo);
+		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)=0;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
-		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
-		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments);
+		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)=0;
+		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)=0;
 		std::shared_ptr<Texture> CreateTexture(
 			const util::TextureCreateInfo &createInfo,IImage &img,
 			const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo=util::ImageViewCreateInfo{},
@@ -277,12 +288,12 @@ namespace prosper
 		)=0;
 		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false)=0;
 		virtual std::optional<PipelineID> AddPipeline(
-			const prosper::ComputePipelineCreateInfo &createInfo,
+			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		)=0;
 		virtual std::optional<PipelineID> AddPipeline(
-			const prosper::GraphicsPipelineCreateInfo &createInfo,
-			IRenderPass &rp,
+			prosper::Shader &shader,PipelineID shaderPipelineId,
+			const prosper::GraphicsPipelineCreateInfo &createInfo,IRenderPass &rp,
 			prosper::ShaderStageData *shaderStageFs=nullptr,
 			prosper::ShaderStageData *shaderStageVs=nullptr,
 			prosper::ShaderStageData *shaderStageGs=nullptr,
@@ -292,7 +303,7 @@ namespace prosper
 			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		)=0;
 		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId)=0;
-		uint32_t GetLastAcquiredSwapchainImageIndex() const;
+		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const=0;
 
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries)=0;
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries)=0;
@@ -306,10 +317,19 @@ namespace prosper
 		virtual void EndFrame();
 		void SetPresentMode(prosper::PresentModeKHR presentMode);
 
+		virtual void AddDebugObjectInformation(std::string &msgValidation) {}
 		bool ValidationCallback(
 			DebugMessageSeverityFlags severityFlags,
 			const std::string &message
 		);
+		CommonBufferCache &GetCommonBufferCache() const;
+
+		virtual void *GetInternalDevice() const {return nullptr;}
+		virtual void *GetInternalPhysicalDevice() const {return nullptr;}
+		virtual void *GetInternalInstance() const {return nullptr;}
+		virtual void *GetInternalUniversalQueue() const {return nullptr;}
+		virtual bool IsDeviceExtensionEnabled(const std::string &ext) const {return false;}
+		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const {return false;}
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
@@ -317,7 +337,7 @@ namespace prosper
 		std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer,const std::optional<util::ImageCreateInfo> &createInfo={});
 		virtual std::shared_ptr<IImageView> DoCreateImageView(
 			const util::ImageViewCreateInfo &createInfo,IImage &img,Format format,ImageViewType imgViewType,prosper::ImageAspectFlags aspectMask,uint32_t numLayers
-		);
+		)=0;
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)=0;
 		virtual void DoWaitIdle()=0;
 		virtual void DoFlushSetupCommandBuffer()=0;
@@ -375,6 +395,7 @@ namespace prosper
 		std::unique_ptr<GLFW::WindowCreationInfo> m_windowCreationInfo = nullptr;
 	private:
 		mutable uint64_t m_frameId = 0ull;
+		mutable CommonBufferCache m_commonBufferCache;
 	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::IPrContext::StateFlags)

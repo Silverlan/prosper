@@ -6,11 +6,7 @@
 #include "buffers/prosper_uniform_resizable_buffer.hpp"
 #include "prosper_util.hpp"
 #include "buffers/prosper_buffer.hpp"
-#include "vk_uniform_resizable_buffer.hpp"
-#include "vk_buffer.hpp"
 #include "prosper_context.hpp"
-#include <wrappers/buffer.h>
-#include <misc/buffer_create_info.h>
 #include <cassert>
 
 using namespace prosper;
@@ -65,10 +61,10 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 			{
 				if(subBuffer == nullptr)
 					continue;
-				dynamic_cast<VlkBuffer*>(subBuffer)->SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&dynamic_cast<VlkBuffer*>(newBuffer.get())->GetAnvilBuffer(),subBuffer->GetStartOffset(),subBuffer->GetSize())));
+				subBuffer->RecreateInternalSubBuffer(*newBuffer);
 			}
 			newBuffer->Write(0ull,data.size(),data.data());
-			dynamic_cast<VlkBuffer*>(this)->SetBuffer(std::move(dynamic_cast<VlkBuffer*>(newBuffer.get())->m_buffer));
+			MoveInternalBuffer(*newBuffer);
 			newBuffer = nullptr;
 			auto numMaxBuffers = createInfo.size /baseAlignedInstanceSize;
 			m_allocatedSubBuffers.resize(numMaxBuffers,nullptr);
@@ -80,7 +76,7 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 	}
 
 	auto idx = offset /baseAlignedInstanceSize;
-	auto pThis = std::dynamic_pointer_cast<VkUniformResizableBuffer>(shared_from_this());
+	auto pThis = std::dynamic_pointer_cast<IUniformResizableBuffer>(shared_from_this());
 	auto subBuffer = CreateSubBuffer(offset,m_bufferInstanceSize,[pThis,idx](IBuffer &subBuffer) {
 		pThis->m_freeOffsets.push(subBuffer.GetStartOffset());
 		pThis->m_allocatedSubBuffers.at(idx) = nullptr;

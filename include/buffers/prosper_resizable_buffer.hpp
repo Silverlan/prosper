@@ -16,6 +16,8 @@ namespace prosper
 
 		void AddReallocationCallback(const std::function<void()> &fCallback);
 	protected:
+		virtual void MoveInternalBuffer(IBuffer &other)=0;
+
 		uint64_t m_baseSize = 0ull; // Un-aligned size of m_buffer
 		uint64_t m_maxTotalSize = 0ull;
 

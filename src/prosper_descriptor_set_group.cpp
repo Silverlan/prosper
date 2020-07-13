@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "stdafx_prosper.h"
-#include "vk_descriptor_set_group.hpp"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
+#include "prosper_descriptor_set_group.hpp"
 #include "image/prosper_image_view.hpp"
 #include "image/prosper_sampler.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
@@ -195,7 +195,7 @@ bool DescriptorSetCreateInfo::AddBinding(uint32_t                             in
 	/* Make sure the binding is not already defined */
 	if (m_bindings.find(in_binding_index) != m_bindings.end() )
 	{
-		anvil_assert_fail();
+		assert(false);
 
 		goto end;
 	}
@@ -206,7 +206,7 @@ bool DescriptorSetCreateInfo::AddBinding(uint32_t                             in
 		if (in_descriptor_type != DescriptorType::CombinedImageSampler &&
 			in_descriptor_type != DescriptorType::Sampler)
 		{
-			anvil_assert_fail();
+			assert(false);
 
 			goto end;
 		}
@@ -214,17 +214,16 @@ bool DescriptorSetCreateInfo::AddBinding(uint32_t                             in
 
 	if (in_descriptor_type == DescriptorType::InlineUniformBlock)
 	{
-		anvil_assert((in_descriptor_array_size % 4) == 0);
+		assert((in_descriptor_array_size % 4) == 0);
 	}
 
 	if ((in_flags & DescriptorBindingFlags::VariableDescriptorCountBit) != DescriptorBindingFlags::None)
 	{
-		Anvil::DescriptorSetCreateInfo;
 		if (m_numVariableDescriptorCountBinding != UINT32_MAX)
 		{
 			/* If this assertion check fails, you're attempting to add more than 1 variable descriptor count binding
 			* which is illegal! */
-			anvil_assert(m_numVariableDescriptorCountBinding == UINT32_MAX);
+			assert(m_numVariableDescriptorCountBinding == UINT32_MAX);
 
 			goto end;
 		}

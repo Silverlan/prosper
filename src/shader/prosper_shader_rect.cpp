@@ -5,8 +5,6 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader_rect.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
-#include "prosper_util_square_shape.hpp"
-#include <wrappers/graphics_pipeline_manager.h>
 
 using namespace prosper;
 

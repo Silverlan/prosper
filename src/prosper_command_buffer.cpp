@@ -14,13 +14,8 @@
 #include "queries/prosper_timer_query.hpp"
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "buffers/vk_buffer.hpp"
-#include "vk_context.hpp"
-#include "vk_command_buffer.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
-#include "vk_descriptor_set_group.hpp"
-#include <wrappers/command_buffer.h>
 
 prosper::ICommandBuffer::ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType)
 	: ContextObject(context),std::enable_shared_from_this<ICommandBuffer>(),m_queueFamilyType{queueFamilyType}

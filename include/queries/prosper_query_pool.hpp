@@ -23,7 +23,7 @@ namespace prosper
 		public std::enable_shared_from_this<IQueryPool>
 	{
 	public:
-		bool RequestQuery(uint32_t &queryId);
+		virtual bool RequestQuery(uint32_t &queryId,QueryType type);
 		void FreeQuery(uint32_t queryId);
 
 		std::shared_ptr<OcclusionQuery> CreateOcclusionQuery();

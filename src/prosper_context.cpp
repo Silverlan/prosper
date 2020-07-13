@@ -9,7 +9,6 @@
 #include "prosper_util.hpp"
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
-#include "prosper_util_square_shape.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
@@ -17,7 +16,6 @@
 #include "image/prosper_sampler.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
-#include "prosper_pipeline_cache.hpp"
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
 #include <thread>
@@ -25,26 +23,13 @@
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
 
-/* Sanity checks */
-#if defined(_WIN32)
-	#if !defined(ANVIL_INCLUDE_WIN3264_WINDOW_SYSTEM_SUPPORT) && !defined(ENABLE_OFFSCREEN_RENDERING)
-		#error Anvil has not been built with Win32/64 window system support. The application can only be built in offscreen rendering mode.
-	#endif
-#else
-	#if !defined(ANVIL_INCLUDE_XCB_WINDOW_SYSTEM_SUPPORT) && !defined(ENABLE_OFFSCREEN_RENDERING)
-		#error Anvil has not been built with XCB window system support. The application can only be built in offscreen rendering mode.
-	#endif
-#endif
-
 using namespace prosper;
 
 #pragma optimize("",off)
-static std::shared_ptr<prosper::IBuffer> s_vertexBuffer = nullptr;
-static std::shared_ptr<prosper::IBuffer> s_uvBuffer = nullptr;
-static std::shared_ptr<prosper::IBuffer> s_vertexUvBuffer = nullptr;
 IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
-	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>())
+	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>()),
+	m_commonBufferCache{*this}
 {
 	umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,bEnableValidation);
 	m_windowCreationInfo->title = appName;
@@ -87,10 +72,7 @@ void IPrContext::OnClose()
 }
 void IPrContext::Release()
 {
-	s_vertexBuffer = nullptr;
-	s_uvBuffer = nullptr;
-	s_vertexUvBuffer = nullptr;
-
+	m_commonBufferCache.Release();
 	m_shaderManager = nullptr;
 	m_dummyTexture = nullptr;
 	m_dummyCubemapTexture = nullptr;
@@ -127,7 +109,7 @@ void IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data
 	auto buf = AllocateDeviceImageBuffer(req.size,req.alignment,data);
 	img.SetMemoryBuffer(*buf);
 }
-std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
 {
 	static uint64_t totalAllocated = 0;
 	totalAllocated += size;
@@ -173,7 +155,7 @@ std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(vk::DeviceSize si
 	return buf;
 }
 
-std::shared_ptr<IBuffer> IPrContext::AllocateTemporaryBuffer(vk::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IPrContext::AllocateTemporaryBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
 {
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
@@ -365,6 +347,7 @@ void IPrContext::WaitIdle()
 	ClearKeepAliveResources();
 }
 
+CommonBufferCache &IPrContext::GetCommonBufferCache() const {return m_commonBufferCache;}
 
 bool IPrContext::ValidationCallback(
 	DebugMessageSeverityFlags severityFlags,
@@ -415,9 +398,6 @@ void IPrContext::Initialize(const CreateInfo &createInfo)
 	InitDummyTextures();
 	InitDummyBuffer();
 	umath::set_flag(m_stateFlags,StateFlags::Initialized);
-	s_vertexBuffer = prosper::util::get_square_vertex_buffer(*this);
-	s_uvBuffer = prosper::util::get_square_uv_buffer(*this);
-	s_vertexUvBuffer = prosper::util::get_square_vertex_uv_buffer(*this);
 
 	auto &shaderManager = GetShaderManager();
 	shaderManager.RegisterShader("copy_image",[](prosper::IPrContext &context,const std::string &identifier) {return new ShaderCopyImage(context,identifier);});
@@ -552,7 +532,7 @@ bool IPrContext::ScheduleRecordUpdateBuffer(
 	if(IsRecording())
 	{
 		auto &drawCmd = GetDrawCommandBuffer();
-		if(prosper::util::get_current_render_pass_target(*drawCmd) == false) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
+		if(drawCmd->GetActiveRenderPassTargetInfo() == nullptr) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);
 			if(fUpdateBuffer(*drawCmd,*buffer,static_cast<const uint8_t*>(data),offset,size) == false)
@@ -695,14 +675,21 @@ void IPrContext::Run()
 	}
 }
 
-static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range,prosper::IImage &img)
+bool IPrContext::InitializeShaderSources(prosper::Shader &shader,bool bReload,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const
 {
-	Anvil::ImageSubresourceRange anvRange {};
-	anvRange.base_array_layer = range.baseArrayLayer;
-	anvRange.base_mip_level = range.baseMipLevel;
-	anvRange.layer_count = range.layerCount;
-	anvRange.level_count = range.levelCount;
-	anvRange.aspect_mask = static_cast<Anvil::ImageAspectFlagBits>(prosper::util::get_aspect_mask(img));
-	return anvRange;
+	auto &stages = shader.GetStages();
+	for(auto i=decltype(stages.size()){0};i<stages.size();++i)
+	{
+		auto &stage = stages.at(i);
+		if(stage == nullptr || stage->path.empty())
+			continue;
+		stage->program = const_cast<IPrContext*>(this)->CompileShader(static_cast<prosper::ShaderStage>(i),stage->path,outInfoLog,outDebugInfoLog,bReload);
+		if(stage->program == nullptr)
+		{
+			outErrStage = stage->stage;
+			return false;
+		}
+	}
+	return true;
 }
 #pragma optimize("",on)

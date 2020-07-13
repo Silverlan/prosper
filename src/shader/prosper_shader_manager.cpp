@@ -6,7 +6,6 @@
 #include "shader/prosper_shader_manager.hpp"
 #include "prosper_context.hpp"
 #include "shader/prosper_shader.hpp"
-#include "prosper_pipeline_cache.hpp"
 #include <sharedutils/util_shaderinfo.hpp>
 #include <sharedutils/util_string.h>
 #include <iostream>
@@ -29,7 +28,7 @@ util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(c
 ::util::WeakHandle<prosper::Shader> prosper::ShaderManager::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&,bool&)> &fFactory)
 {
 	if(GetContext().IsValidationEnabled())
-		std::cout<<"[VK] Registering shader '"<<identifier<<"'..."<<std::endl;
+		std::cout<<"[PR] Registering shader '"<<identifier<<"'..."<<std::endl;
 	auto wpShaderInfo = PreRegisterShader(identifier);
 	auto lidentifier = identifier;
 	ustring::to_lower(lidentifier);

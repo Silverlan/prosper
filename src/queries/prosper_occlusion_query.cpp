@@ -6,10 +6,6 @@
 #include "prosper_command_buffer.hpp"
 #include "queries/prosper_occlusion_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "vk_context.hpp"
-#include <wrappers/command_buffer.h>
-#include <wrappers/device.h>
-#include <wrappers/physical_device.h>
 
 using namespace prosper;
 

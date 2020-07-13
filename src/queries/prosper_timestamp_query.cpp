@@ -5,12 +5,7 @@
 #include "stdafx_prosper.h"
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
-#include "vk_command_buffer.hpp"
-#include <wrappers/device.h>
-#include <wrappers/physical_device.h>
-#include <wrappers/command_buffer.h>
 
 using namespace prosper;
 

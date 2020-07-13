@@ -233,8 +233,8 @@ namespace prosper
 
 		struct DLLPROSPER PipelineBarrierInfo
 		{
-			PipelineStageFlags srcStageMask = PipelineStageFlags::AllCommandsBit;
-			PipelineStageFlags dstStageMask = PipelineStageFlags::AllCommandsBit;
+			PipelineStageFlags srcStageMask = PipelineStageFlags::AllCommands;
+			PipelineStageFlags dstStageMask = PipelineStageFlags::AllCommands;
 			std::vector<BufferBarrier> bufferBarriers;
 			std::vector<ImageBarrier> imageBarriers;
 

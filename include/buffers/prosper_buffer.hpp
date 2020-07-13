@@ -60,7 +60,7 @@ namespace prosper
 			bool Read(Offset offset,T &tOut) const;
 
 		void SetPermanentlyMapped(bool b);
-		bool Map(Offset offset,Size size,MapFlags mapFlags=MapFlags::None) const;
+		bool Map(Offset offset,Size size,MapFlags mapFlags=MapFlags::None,void **optOutMappedPtr=nullptr) const;
 		bool Unmap() const;
 
 		virtual std::shared_ptr<IBuffer> CreateSubBuffer(DeviceSize offset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback=nullptr)=0;
@@ -74,15 +74,16 @@ namespace prosper
 	protected:
 		friend IUniformResizableBuffer;
 		friend IDynamicResizableBuffer;
+		virtual void RecreateInternalSubBuffer(IBuffer &newParentBuffer) {}
 		virtual void OnRelease() override;
 
 		virtual bool DoWrite(Offset offset,Size size,const void *data) const=0;
 		virtual bool DoRead(Offset offset,Size size,void *data) const=0;
-		virtual bool DoMap(Offset offset,Size size,MapFlags mapFlags) const=0;
+		virtual bool DoMap(Offset offset,Size size,MapFlags mapFlags,void **optOutMappedPtr) const=0;
 		virtual bool DoUnmap() const=0;
 
 		IBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size);
-		bool Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags,MapFlags mapFlags) const;
+		bool Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags,MapFlags mapFlags,void **optOutMappedPtr) const;
 		void SetParent(IBuffer &parent,SubBufferIndex baseIndex=INVALID_INDEX);
 
 		struct MappedBuffer

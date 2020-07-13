@@ -5,9 +5,7 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
-#include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
-#include "vk_command_buffer.hpp"
 
 prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context,const std::string &identifier,const std::string &csShader)
 	: Shader(context,identifier,csShader)
@@ -26,19 +24,19 @@ void prosper::ShaderCompute::InitializePipeline()
 
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
-	auto firstPipelineId = std::numeric_limits<Anvil::PipelineID>::max();
+	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
 	for(auto pipelineIdx=decltype(m_pipelineInfos.size()){0};pipelineIdx<m_pipelineInfos.size();++pipelineIdx)
 	{
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
-		auto basePipelineId = std::numeric_limits<Anvil::PipelineID>::max();
-		if(firstPipelineId != std::numeric_limits<Anvil::PipelineID>::max())
+		auto basePipelineId = std::numeric_limits<prosper::PipelineID>::max();
+		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false)
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
 
 		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
-		auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
+		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
 		if(bIsDerivative)
 			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
 		auto computePipelineInfo = prosper::ComputePipelineCreateInfo::Create(
@@ -61,12 +59,12 @@ void prosper::ShaderCompute::InitializePipeline()
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = std::numeric_limits<decltype(pipelineInfo.id)>::max();
 		auto &context = GetContext();
-		auto result = context.AddPipeline(*computePipelineInfo,*modCmp,basePipelineId);
+		auto result = context.AddPipeline(*this,pipelineIdx,*computePipelineInfo,*modCmp,basePipelineId);
 		pipelineInfo.createInfo = std::move(computePipelineInfo);
 		if(result.has_value())
 		{
 			pipelineInfo.id = *result;
-			if(firstPipelineId == std::numeric_limits<Anvil::PipelineID>::max())
+			if(firstPipelineId == std::numeric_limits<prosper::PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			OnPipelineInitialized(pipelineIdx);
 		}
@@ -85,5 +83,5 @@ void prosper::ShaderCompute::EndCompute() {UnbindPipeline(); SetCurrentDrawComma
 bool prosper::ShaderCompute::RecordDispatch(uint32_t x,uint32_t y,uint32_t z)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && (dynamic_cast<VlkPrimaryCommandBuffer&>(*cmdBuffer))->record_dispatch(x,y,z);
+	return cmdBuffer != nullptr && cmdBuffer->RecordDispatch(x,y,z);
 }

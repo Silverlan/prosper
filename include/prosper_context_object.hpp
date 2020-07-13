@@ -9,11 +9,6 @@
 #include <memory>
 #include <string>
 
-namespace Anvil
-{
-	class BaseDevice;
-};
-
 #pragma warning(push)
 #pragma warning(disable : 4251)
 namespace prosper
@@ -26,7 +21,6 @@ namespace prosper
 		virtual ~ContextObject()=default;
 
 		IPrContext &GetContext() const;
-		Anvil::BaseDevice &GetDevice() const;
 
 		virtual void SetDebugName(const std::string &name);
 		const std::string &GetDebugName() const;

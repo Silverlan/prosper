@@ -12,14 +12,12 @@
 #include "prosper_command_buffer.hpp"
 
 using namespace prosper;
-
+#pragma optimize("",off)
 IImage::IImage(IPrContext &context,const prosper::util::ImageCreateInfo &createInfo)
 	: ContextObject(context),std::enable_shared_from_this<IImage>(),m_createInfo{createInfo}
-{
-	MemoryTracker::GetInstance().AddResource(*this);
-}
+{}
 
-IImage::~IImage() {MemoryTracker::GetInstance().RemoveResource(*this);}
+IImage::~IImage() {}
 
 ImageType IImage::GetType() const {return m_createInfo.type;}
 bool IImage::IsCubemap() const
@@ -90,3 +88,4 @@ std::shared_ptr<IImage> IImage::Copy(prosper::ICommandBuffer &cmd,const prosper:
 	cmd.RecordImageBarrier(*imgCopy,ImageLayout::TransferDstOptimal,finalLayout);
 	return imgCopy;
 }
+#pragma optimize("",on)

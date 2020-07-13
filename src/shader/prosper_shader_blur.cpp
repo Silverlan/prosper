@@ -6,25 +6,19 @@
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_context.hpp"
-#include "prosper_util_square_shape.hpp"
 #include "prosper_util.hpp"
 #include "image/prosper_render_target.hpp"
 #include "prosper_descriptor_set_group.hpp"
 #include "buffers/prosper_buffer.hpp"
-#include "buffers/vk_buffer.hpp"
 #include "image/prosper_sampler.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
-#include <vulkan/vulkan.hpp>
-#include <wrappers/descriptor_set_group.h>
-#include <wrappers/graphics_pipeline_manager.h>
-#include <misc/image_create_info.h>
 
 using namespace prosper;
-
+#pragma optimize("",off)
 decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
-decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION) ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,prosper::util::get_square_vertex_format()};
-decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_VERTEX,prosper::util::get_square_uv_format()};
+decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION) ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,CommonBufferCache::GetSquareVertexFormat()};
+decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_VERTEX,CommonBufferCache::GetSquareUvFormat()};
 
 decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {
 	{
@@ -35,13 +29,13 @@ decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_
 	}
 };
 
-static constexpr std::array<vk::Format,umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
-	vk::Format::eR8G8B8A8Unorm,
-	vk::Format::eR8Unorm,
-	vk::Format::eR16G16B16A16Sfloat,
-	vk::Format::eBc1RgbaUnormBlock,
-	vk::Format::eBc2UnormBlock,
-	vk::Format::eBc3UnormBlock
+static constexpr std::array<prosper::Format,umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
+	prosper::Format::R8G8B8A8_UNorm,
+	prosper::Format::R8_UNorm,
+	prosper::Format::R16G16B16A16_SFloat,
+	prosper::Format::BC1_RGBA_UNorm_Block,
+	prosper::Format::BC2_UNorm_Block,
+	prosper::Format::BC3_UNorm_Block
 };
 
 ShaderBlurBase::ShaderBlurBase(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader)
@@ -73,10 +67,10 @@ bool ShaderBlurBase::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuf
 bool ShaderBlurBase::Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants)
 {
 	if(
-		RecordBindVertexBuffer(dynamic_cast<VlkBuffer&>(*prosper::util::get_square_vertex_uv_buffer(GetContext()))) == false ||
+		RecordBindVertexBuffer(*GetContext().GetCommonBufferCache().GetSquareVertexUvBuffer()) == false ||
 		RecordBindDescriptorSet(static_cast<IDescriptorSet&>(descSetTexture)) == false ||
 		RecordPushConstants(pushConstants) == false ||
-		RecordDraw(prosper::util::get_square_vertex_count()) == false
+		RecordDraw(GetContext().GetCommonBufferCache().GetSquareVertexCount()) == false
 	)
 		return false;
 	return true;
@@ -118,26 +112,26 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 
 	if(cmdBuffer->RecordBeginRenderPass(stagingRt) == false)
 		return false;
-	auto imgFormat = static_cast<vk::Format>(stagingImg.GetFormat());
+	auto imgFormat = stagingImg.GetFormat();
 	auto pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
 	switch(imgFormat)
 	{
-		case vk::Format::eR8G8B8A8Unorm:
+		case prosper::Format::R8G8B8A8_UNorm:
 			pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
 			break;
-		case vk::Format::eR8Unorm:
+		case prosper::Format::R8_UNorm:
 			pipelineId = ShaderBlurBase::Pipeline::R8Unorm;
 			break;
-		case vk::Format::eR16G16B16A16Sfloat:
+		case prosper::Format::R16G16B16A16_SFloat:
 			pipelineId = ShaderBlurBase::Pipeline::R16G16B16A16Sfloat;
 			break;
-		case vk::Format::eBc1RgbaUnormBlock:
+		case prosper::Format::BC1_RGBA_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC1;
 			break;
-		case vk::Format::eBc2UnormBlock:
+		case prosper::Format::BC2_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC2;
 			break;
-		case vk::Format::eBc3UnormBlock:
+		case prosper::Format::BC3_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC3;
 			break;
 		default:
@@ -230,3 +224,4 @@ const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetFinalRenderTarget() co
 prosper::IDescriptorSet &BlurSet::GetFinalDescriptorSet() const {return *m_outDescSetGroup->GetDescriptorSet();}
 const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetStagingRenderTarget() const {return m_stagingRenderTarget;}
 prosper::IDescriptorSet &BlurSet::GetStagingDescriptorSet() const {return *m_stagingDescSetGroup->GetDescriptorSet();}
+#pragma optimize("",on)

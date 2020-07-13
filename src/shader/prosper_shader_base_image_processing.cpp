@@ -8,15 +8,14 @@
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "buffers/prosper_buffer.hpp"
-#include "prosper_util_square_shape.hpp"
 
 using namespace prosper;
 
 decltype(ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX) ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
-decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,prosper::util::get_square_vertex_format()};
+decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,CommonBufferCache::GetSquareVertexFormat()};
 
 decltype(ShaderBaseImageProcessing::VERTEX_BINDING_UV) ShaderBaseImageProcessing::VERTEX_BINDING_UV = {prosper::VertexInputRate::Vertex};
-decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_UV,prosper::util::get_square_uv_format()};
+decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_UV,CommonBufferCache::GetSquareUvFormat()};
 
 decltype(ShaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE) ShaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE = {
 	{
@@ -52,11 +51,11 @@ uint32_t ShaderBaseImageProcessing::GetTextureDescriptorSetIndex() const {return
 
 bool ShaderBaseImageProcessing::Draw()
 {
-	auto vertBuffer = prosper::util::get_square_vertex_buffer(GetContext());
-	auto uvBuffer = prosper::util::get_square_uv_buffer(GetContext());
+	auto vertBuffer = GetContext().GetCommonBufferCache().GetSquareVertexBuffer();
+	auto uvBuffer = GetContext().GetCommonBufferCache().GetSquareUvBuffer();
 	if(
 		RecordBindVertexBuffers({vertBuffer.get(),uvBuffer.get()}) == false ||
-		RecordDraw(prosper::util::get_square_vertex_count()) == false
+		RecordDraw(GetContext().GetCommonBufferCache().GetSquareVertexCount()) == false
 	)
 		return false;
 	return true;

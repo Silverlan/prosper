@@ -98,6 +98,7 @@ namespace prosper
 	{
 	public:
 		static void SetLogCallback(const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &fLogCallback);
+		static const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &GetLogCallback();
 		static Shader *GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer,uint32_t &outPipelineIdx);
 		static const std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> &GetBoundPipelines();
 		static void SetRootShaderLocation(const std::string &location);
@@ -158,6 +159,8 @@ namespace prosper
 		std::vector<std::string> GetSourceFilePaths() const;
 
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(uint32_t setIdx,uint32_t pipelineIdx=0u) const;
+
+		std::array<std::shared_ptr<ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> &GetStages();
 
 		// Has to be called before the pipeline is initialized!
 		void SetStageSourceFilePath(ShaderStage stage,const std::string &filePath);

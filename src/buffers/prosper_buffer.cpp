@@ -16,10 +16,7 @@ prosper::IBuffer::IBuffer(IPrContext &context,const prosper::util::BufferCreateI
 	m_size{size}
 {}
 
-prosper::IBuffer::~IBuffer()
-{
-	MemoryTracker::GetInstance().RemoveResource(*this);
-}
+prosper::IBuffer::~IBuffer() {}
 
 void prosper::IBuffer::OnRelease()
 {
@@ -31,11 +28,11 @@ void prosper::IBuffer::SetPermanentlyMapped(bool b)
 {
 	if(m_bPermanentlyMapped == b)
 		return;
-	m_bPermanentlyMapped = b;
 	if(b == true)
 		Map(0ull,GetSize(),prosper::IBuffer::MapFlags::PersistentBit);
 	else
 		Unmap();
+	m_bPermanentlyMapped = b;
 }
 void prosper::IBuffer::SetParent(IBuffer &parent,SubBufferIndex baseIndex)
 {
@@ -48,7 +45,7 @@ prosper::IBuffer::Size prosper::IBuffer::GetSize() const {return m_size;}
 std::shared_ptr<prosper::IBuffer> prosper::IBuffer::GetParent() {return m_parent;}
 const std::shared_ptr<prosper::IBuffer> prosper::IBuffer::GetParent() const {return const_cast<IBuffer*>(this)->GetParent();}
 
-bool prosper::IBuffer::Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags,MapFlags mapFlags) const
+bool prosper::IBuffer::Map(Offset offset,Size size,BufferUsageFlags deviceUsageFlags,BufferUsageFlags hostUsageFlags,MapFlags mapFlags,void **optOutMappedPtr) const
 {
 	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
@@ -71,9 +68,10 @@ bool prosper::IBuffer::Map(Offset offset,Size size,BufferUsageFlags deviceUsageF
 		m_mappedTmpBuffer = std::unique_ptr<MappedBuffer>(new MappedBuffer());
 		m_mappedTmpBuffer->buffer = buf;
 		m_mappedTmpBuffer->offset = GetStartOffset() +offset;
+		// TODO: Assign optOutMappedPtr?
 		return true;
 	}
-	return DoMap(offset,size,mapFlags);
+	return DoMap(offset,size,mapFlags,optOutMappedPtr);
 }
 
 bool prosper::IBuffer::Write(Offset offset,Size size,const void *data) const
@@ -98,7 +96,7 @@ bool prosper::IBuffer::Write(Offset offset,Size size,const void *data) const
 	}
 	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
-		if(Map(offset,size,BufferUsageFlags::TransferDstBit,BufferUsageFlags::TransferSrcBit,prosper::IBuffer::MapFlags::None) == false)
+		if(Map(offset,size,BufferUsageFlags::TransferDstBit,BufferUsageFlags::TransferSrcBit,prosper::IBuffer::MapFlags::None,nullptr) == false)
 			return false;
 		Write(offset,size,data);
 		return Unmap();
@@ -127,21 +125,21 @@ bool prosper::IBuffer::Read(Offset offset,Size size,void *data) const
 	}
 	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
-		if(Map(offset,size,BufferUsageFlags::TransferSrcBit,BufferUsageFlags::TransferDstBit,prosper::IBuffer::MapFlags::None) == false)
+		if(Map(offset,size,BufferUsageFlags::TransferSrcBit,BufferUsageFlags::TransferDstBit,prosper::IBuffer::MapFlags::None,nullptr) == false)
 			return false;
 		Read(offset,size,data);
 		return Unmap();
 	}
 	return DoRead(offset,size,data);
 }
-void prosper::IBuffer::Initialize() {MemoryTracker::GetInstance().AddResource(*this);}
-bool prosper::IBuffer::Map(Offset offset,Size size,MapFlags mapFlags) const
+void prosper::IBuffer::Initialize() {}
+bool prosper::IBuffer::Map(Offset offset,Size size,MapFlags mapFlags,void **optOutMappedPtr) const
 {
 	auto parent = GetParent();
 	if(parent != nullptr)
-		return parent->Map(GetStartOffset() +offset,size,mapFlags);
+		return parent->Map(GetStartOffset() +offset,size,mapFlags,optOutMappedPtr);
 	const auto usageFlags = BufferUsageFlags::TransferSrcBit | BufferUsageFlags::TransferDstBit;
-	return Map(offset,size,usageFlags,usageFlags,mapFlags);
+	return Map(offset,size,usageFlags,usageFlags,mapFlags,optOutMappedPtr);
 }
 bool prosper::IBuffer::Unmap() const
 {

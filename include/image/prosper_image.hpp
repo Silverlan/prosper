@@ -49,8 +49,10 @@ namespace prosper
 		prosper::IBuffer *GetMemoryBuffer();
 		bool SetMemoryBuffer(IBuffer &buffer);
 		virtual DeviceSize GetAlignment() const=0;
+		virtual const void *GetInternalHandle() const=0;
 
 		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr)=0;
+		virtual bool Unmap()=0;
 		std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 	protected:
 		IImage(IPrContext &context,const util::ImageCreateInfo &createInfo);

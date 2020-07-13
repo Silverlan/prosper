@@ -20,7 +20,6 @@ namespace Anvil
 
 namespace prosper::util
 {
-	DLLPROSPER void initialize_image(Anvil::BaseDevice &dev,const uimg::ImageBuffer &imgSrc,IImage &img);
 	DLLPROSPER prosper::Format get_vk_format(uimg::ImageBuffer::Format format);
 };
 

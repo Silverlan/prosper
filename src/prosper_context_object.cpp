@@ -4,8 +4,7 @@
 
 #include "stdafx_prosper.h"
 #include "prosper_context_object.hpp"
-#include "vk_context.hpp"
-#include <wrappers/device.h>
+#include "prosper_context.hpp"
 
 using namespace prosper;
 
@@ -14,4 +13,13 @@ ContextObject::ContextObject(IPrContext &context)
 {}
 
 IPrContext &ContextObject::GetContext() const {return *(m_wpContext.lock());}
-Anvil::BaseDevice &ContextObject::GetDevice() const {return const_cast<VlkContext&>(static_cast<const VlkContext&>(GetContext())).GetDevice();}
+
+void prosper::ContextObject::SetDebugName(const std::string &name)
+{
+	// if(s_lookupHandler == nullptr)
+	// 	return;
+	if(m_dbgName.empty() == false)
+		m_dbgName += ",";
+	m_dbgName += name;
+}
+const std::string &prosper::ContextObject::GetDebugName() const {return m_dbgName;}

@@ -7,9 +7,6 @@
 #include "prosper_util.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "prosper_context.hpp"
-#include "buffers/vk_buffer.hpp"
-#include <wrappers/buffer.h>
-#include <misc/buffer_create_info.h>
 #include <sstream>
 #include <cassert>
 
@@ -275,9 +272,9 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 		Read(0ull,oldData.size(),oldData.data());
 		
 		for(auto *subBuffer : m_allocatedSubBuffers)
-			dynamic_cast<VlkBuffer*>(subBuffer)->m_buffer = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&dynamic_cast<VlkBuffer&>(*newBuffer).GetAnvilBuffer(),subBuffer->GetStartOffset(),subBuffer->GetSize()));
+			subBuffer->RecreateInternalSubBuffer(*newBuffer);
 		newBuffer->Write(0ull,oldData.size(),oldData.data());
-		dynamic_cast<VlkBuffer*>(this)->SetBuffer(std::move(dynamic_cast<VlkBuffer*>(newBuffer.get())->m_buffer));
+		MoveInternalBuffer(*newBuffer);
 		newBuffer = nullptr;
 
 		// Update free range

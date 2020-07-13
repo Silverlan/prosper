@@ -2,36 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef __PROSPER_DEBUG_HPP__
-#define __PROSPER_DEBUG_HPP__
-
 #include "prosper_definitions.hpp"
-#include "prosper_includes.hpp"
-#include <sstream>
+#include "prosper_enums.hpp"
 
-namespace Anvil {class Image;};
 namespace prosper
 {
 	class IPrContext;
-	class VlkImage;
-	namespace debug
-	{
-		DLLPROSPER void dump_layers(IPrContext &context,std::stringstream &out);
-		DLLPROSPER void dump_extensions(IPrContext &context,std::stringstream &out);
-		DLLPROSPER void dump_limits(IPrContext &context,std::stringstream &out);
-		DLLPROSPER void dump_features(IPrContext &context,std::stringstream &out);
-		DLLPROSPER void dump_image_format_properties(IPrContext &context,std::stringstream &out,prosper::ImageCreateFlags createFlags=prosper::ImageCreateFlags{});
-		DLLPROSPER void dump_format_properties(IPrContext &context,std::stringstream &out);
-		DLLPROSPER void dump_layers(IPrContext &context,const std::string &fileName);
-		DLLPROSPER void dump_extensions(IPrContext &context,const std::string &fileName);
-		DLLPROSPER void dump_limits(IPrContext &context,const std::string &fileName);
-		DLLPROSPER void dump_features(IPrContext &context,const std::string &fileName);
-		DLLPROSPER void dump_image_format_properties(IPrContext &context,const std::string &fileName,prosper::ImageCreateFlags createFlags=prosper::ImageCreateFlags{});
-		DLLPROSPER void dump_format_properties(IPrContext &context,const std::string &fileName);
-
-		DLLPROSPER void add_debug_object_information(std::string &msgValidation);
-		DLLPROSPER VlkImage *get_image_from_anvil_image(Anvil::Image &img);
-	};
+	class ICommandBuffer;
 };
 
-#endif
+namespace prosper::debug
+{
+	struct DLLPROSPER ImageLayouts
+	{
+		std::vector<prosper::ImageLayout> mipmapLayouts;
+	};
+	struct DLLPROSPER ImageLayoutInfo
+	{
+		std::vector<ImageLayouts> layerLayouts;
+	};
+	DLLPROSPER void enable_debug_recorded_image_layout(bool b);
+	DLLPROSPER bool is_debug_recorded_image_layout_enabled();
+	DLLPROSPER void set_debug_validation_callback(const std::function<void(DebugReportObjectTypeEXT,const std::string&)> &callback);
+	DLLPROSPER void exec_debug_validation_callback(IPrContext &context,DebugReportObjectTypeEXT objType,const std::string &msg);
+	DLLPROSPER bool get_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer,IImage &img,ImageLayout &layout,uint32_t baseLayer=0u,uint32_t baseMipmap=0u);
+	DLLPROSPER void set_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer,IImage &img,ImageLayout layout,uint32_t baseLayer=0u,uint32_t layerCount=std::numeric_limits<uint32_t>::max(),uint32_t baseMipmap=0u,uint32_t mipmapLevels=std::numeric_limits<uint32_t>::max());
+};

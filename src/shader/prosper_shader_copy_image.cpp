@@ -7,7 +7,6 @@
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "buffers/prosper_buffer.hpp"
-#include "prosper_util_square_shape.hpp"
 
 using namespace prosper;
 

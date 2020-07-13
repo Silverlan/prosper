@@ -8,9 +8,6 @@
 #include "queries/prosper_timer_query.hpp"
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_pipeline_statistics_query.hpp"
-#include "vk_context.hpp"
-#include <wrappers/query_pool.h>
-#include <wrappers/device.h>
 
 using namespace prosper;
 
@@ -18,7 +15,7 @@ IQueryPool::IQueryPool(IPrContext &context,QueryType type,uint32_t queryCount)
 	: ContextObject(context),std::enable_shared_from_this<IQueryPool>(),
 	m_type(type),m_queryCount{queryCount}
 {}
-bool IQueryPool::RequestQuery(uint32_t &queryId)
+bool IQueryPool::RequestQuery(uint32_t &queryId,QueryType type)
 {
 	if(m_freeQueries.empty() == false)
 	{
@@ -34,26 +31,22 @@ bool IQueryPool::RequestQuery(uint32_t &queryId)
 void IQueryPool::FreeQuery(uint32_t queryId) {m_freeQueries.push(queryId);}
 std::shared_ptr<OcclusionQuery> IQueryPool::CreateOcclusionQuery()
 {
-	if(static_cast<VlkContext&>(GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
-		return nullptr;
 	uint32_t query = 0;
-	if(RequestQuery(query) == false)
+	if(RequestQuery(query,QueryType::Occlusion) == false)
 		return nullptr;
 	return std::shared_ptr<OcclusionQuery>(new OcclusionQuery(*this,query));
 }
 std::shared_ptr<PipelineStatisticsQuery> IQueryPool::CreatePipelineStatisticsQuery()
 {
-	if(static_cast<VlkContext&>(GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr->pipeline_statistics_query == false)
-		return nullptr;
 	uint32_t query = 0;
-	if(RequestQuery(query) == false)
+	if(RequestQuery(query,QueryType::PipelineStatistics) == false)
 		return nullptr;
 	return std::shared_ptr<PipelineStatisticsQuery>(new PipelineStatisticsQuery(*this,query));
 }
 std::shared_ptr<TimestampQuery> IQueryPool::CreateTimestampQuery(PipelineStageFlags pipelineStage)
 {
 	uint32_t query = 0;
-	if(RequestQuery(query) == false)
+	if(RequestQuery(query,QueryType::Timestamp) == false)
 		return nullptr;
 	return std::shared_ptr<TimestampQuery>(new TimestampQuery(*this,query,pipelineStage));
 }

@@ -3,7 +3,6 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "stdafx_prosper.h"
-#include "vk_context.hpp"
 #include "shader/prosper_pipeline_manager.hpp"
 
 using namespace prosper;

@@ -7,9 +7,6 @@
 #include "prosper_context.hpp"
 #include "prosper_command_buffer.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "vk_command_buffer.hpp"
-#include <wrappers/query_pool.h>
-#include <wrappers/command_buffer.h>
 
 using namespace prosper;
 

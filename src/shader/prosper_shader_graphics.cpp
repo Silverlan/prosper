@@ -2,30 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_util.hpp"
-#include "vk_context.hpp"
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"
 #include "image/prosper_image_view.hpp"
+#include "debug/prosper_debug.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_command_buffer.hpp"
-#include "buffers/vk_buffer.hpp"
-#include "vk_command_buffer.hpp"
-#include <wrappers/command_buffer.h>
-#include <wrappers/buffer.h>
-#include <wrappers/graphics_pipeline_manager.h>
-#include <wrappers/device.h>
-#include <misc/descriptor_set_create_info.h>
-#include <misc/buffer_create_info.h>
-#include <misc/image_create_info.h>
-#include <misc/image_view_create_info.h>
-#include <misc/render_pass_create_info.h>
 #include <sharedutils/util.h>
 #include <queue>
 #include <unordered_map>
@@ -186,7 +173,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 	auto *modGs = GetStage(ShaderStage::Geometry);
 	auto *modTessControl = GetStage(ShaderStage::TessellationControl);
 	auto *modTessEval = GetStage(ShaderStage::TessellationEvaluation);
-	auto firstPipelineId = std::numeric_limits<Anvil::PipelineID>::max();
+	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
 	for(auto pipelineIdx=decltype(m_pipelineInfos.size()){0};pipelineIdx<m_pipelineInfos.size();++pipelineIdx)
 	{
 		if(ShouldInitializePipeline(pipelineIdx) == false)
@@ -195,16 +182,16 @@ void prosper::ShaderGraphics::InitializePipeline()
 		InitializeRenderPass(renderPass,pipelineIdx);
 		if(renderPass == nullptr)
 			continue;
-		Anvil::SubPassID subPassId {0};
+		prosper::SubPassID subPassId {0};
 
-		auto basePipelineId = std::numeric_limits<Anvil::PipelineID>::max();
-		if(firstPipelineId != std::numeric_limits<Anvil::PipelineID>::max())
+		auto basePipelineId = std::numeric_limits<prosper::PipelineID>::max();
+		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false)
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
 
 		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
-		auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
+		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
 		if(bIsDerivative)
 			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
 		auto gfxPipelineInfo = prosper::GraphicsPipelineCreateInfo::Create(
@@ -235,7 +222,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 		auto numAttachments = rpInfo.attachments.size();
 		auto samples = (numAttachments > 0) ? rpInfo.attachments.front().sampleCount : prosper::SampleCountFlags::e1Bit;
 		if(samples != prosper::SampleCountFlags::e1Bit)
-			gfxPipelineInfo->SetMultisamplingProperties(samples,0.f,std::numeric_limits<VkSampleMask>::max());
+			gfxPipelineInfo->SetMultisamplingProperties(samples,0.f,std::numeric_limits<SampleMask>::max());
 
 		m_currentPipelineIdx = pipelineIdx;
 		InitializeGfxPipeline(*gfxPipelineInfo,pipelineIdx);
@@ -255,12 +242,12 @@ void prosper::ShaderGraphics::InitializePipeline()
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = std::numeric_limits<decltype(pipelineInfo.id)>::max();
 		auto &context = GetContext();
-		auto result = context.AddPipeline(*gfxPipelineInfo,*renderPass,modFs,modVs,modGs,modTessControl,modTessEval,subPassId,basePipelineId);
+		auto result = context.AddPipeline(*this,pipelineIdx,*gfxPipelineInfo,*renderPass,modFs,modVs,modGs,modTessControl,modTessEval,subPassId,basePipelineId);
 		pipelineInfo.createInfo = std::move(gfxPipelineInfo);
 		if(result.has_value())
 		{
 			pipelineInfo.id = *result;
-			if(firstPipelineId == std::numeric_limits<Anvil::PipelineID>::max())
+			if(firstPipelineId == std::numeric_limits<prosper::PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			pipelineInfo.renderPass = renderPass;
 			OnPipelineInitialized(pipelineIdx);
@@ -392,8 +379,8 @@ const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderP
 	auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 	return pipelineInfo.renderPass;
 }
-static std::vector<vk::DeviceSize> s_vOffsets;
-bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<vk::DeviceSize> &offsets)
+static std::vector<prosper::DeviceSize> s_vOffsets;
+bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<prosper::DeviceSize> &offsets)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	return cmdBuffer ? cmdBuffer->RecordBindVertexBuffers(*this,buffers,startBinding,offsets) : false;
@@ -490,7 +477,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 		prosper::IImage *img;
 		prosper::RenderTarget *rt;
 		prosper::IFramebuffer *fb;
-		if(prosper::util::get_current_render_pass_target(*cmdBuffer,&rp,&img,&fb,&rt) && fb && rp)
+		if(cmdBuffer->GetActiveRenderPassTarget(&rp,&img,&fb,&rt) && fb && rp)
 		{
 			auto &rpCreateInfo = rp->GetCreateInfo();
 			prosper::SampleCountFlags sampleCount;
@@ -511,9 +498,9 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 				if((sampleCount &img.GetSampleCount()) == prosper::SampleCountFlags::None)
 				{
 					debug::exec_debug_validation_callback(
-						DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
-						"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(img.GetSampleCount())) +") and shader pipeline '" +
-						*GetDebugName(pipelineIdx) +"' (with sample count "+vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
+						GetContext(),DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
+						"' (with sample count " +util::to_string(img.GetSampleCount()) +") and shader pipeline '" +
+						*GetDebugName(pipelineIdx) +"' (with sample count "+util::to_string(sampleCount) +")!"
 					);
 					return false;
 				}
@@ -522,18 +509,18 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 					if((sampleCount &rpSampleCount) == prosper::SampleCountFlags::None)
 					{
 						debug::exec_debug_validation_callback(
-							DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
-							"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rpSampleCount)) +") and shader pipeline '" +
-							*GetDebugName(pipelineIdx) +"' (with sample count "+vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
+							GetContext(),DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
+							"' (with sample count " +util::to_string(rpSampleCount) +") and shader pipeline '" +
+							*GetDebugName(pipelineIdx) +"' (with sample count "+util::to_string(sampleCount) +")!"
 						);
 						return false;
 					}
 					if(rpSampleCount != img.GetSampleCount())
 					{
 						debug::exec_debug_validation_callback(
-							DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
-							"' (with sample count " +vk::to_string(static_cast<vk::SampleCountFlagBits>(rpSampleCount)) +") and render target attachment " +std::to_string(i) +" ('" +img.GetDebugName() +"')" +
-							" for image '" +img.GetDebugName() +"', which has sample count of " +vk::to_string(static_cast<vk::SampleCountFlagBits>(sampleCount)) +")!"
+							GetContext(),DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
+							"' (with sample count " +util::to_string(rpSampleCount) +") and render target attachment " +std::to_string(i) +" ('" +img.GetDebugName() +"')" +
+							" for image '" +img.GetDebugName() +"', which has sample count of " +util::to_string(sampleCount) +")!"
 						);
 						return false;
 					}
@@ -549,7 +536,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 		auto bViewport = (nDynamicViewports > 0u && (recordFlags &RecordFlags::RenderPassTargetAsViewport) != RecordFlags::None) ? true : false;
 		if(bScissor || bViewport)
 		{
-			vk::Extent2D extents {width,height};
+			prosper::Extent2D extents {width,height};
 			if(bScissor)
 			{
 				if(cmdBuffer->RecordSetScissor(extents.width,extents.height) == false)
@@ -568,7 +555,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
 	prosper::IImage *img;
-	if(prosper::util::get_current_render_pass_target(*cmdBuffer,nullptr,&img) == false || img == nullptr)
+	if(cmdBuffer->GetActiveRenderPassTarget(nullptr,&img) == false || img == nullptr)
 		return false;
 	auto extents = img->GetExtents();
 	return BeginDrawViewport(cmdBuffer,extents.width,extents.height,pipelineIdx,recordFlags);

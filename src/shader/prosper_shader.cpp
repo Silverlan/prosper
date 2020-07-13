@@ -6,9 +6,8 @@
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "shader/prosper_pipeline_manager.hpp"
-#include "vk_context.hpp"
 #include "prosper_util.hpp"
-#include "prosper_glstospv.hpp"
+#include "prosper_glsl.hpp"
 #include "prosper_command_buffer.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include <iostream>
@@ -31,6 +30,7 @@ prosper::DescriptorSetInfo::Binding::Binding(DescriptorType type,ShaderStageFlag
 
 decltype(prosper::Shader::s_logCallback) prosper::Shader::s_logCallback = nullptr;
 void prosper::Shader::SetLogCallback(const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &fLogCallback) {s_logCallback = fLogCallback;}
+const std::function<void(prosper::Shader&,prosper::ShaderStage,const std::string&,const std::string&)> &prosper::Shader::GetLogCallback() {return s_logCallback;}
 
 prosper::Shader::Shader(IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader)
 	: std::enable_shared_from_this<Shader>(),
@@ -59,6 +59,7 @@ void prosper::Shader::Release(bool bDelete)
 	if(bDelete == true)
 		delete this;
 }
+std::array<std::shared_ptr<prosper::ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> &prosper::Shader::GetStages() {return m_stages;}
 void prosper::Shader::SetStageSourceFilePath(ShaderStage stage,const std::string &filePath)
 {
 	if(filePath.empty())
@@ -120,20 +121,14 @@ const std::string &prosper::Shader::GetRootShaderLocation() {return g_shaderLoca
 bool prosper::Shader::InitializeSources(bool bReload)
 {
 	auto &context = GetContext();
-	for(auto i=decltype(m_stages.size()){0};i<m_stages.size();++i)
+	std::string infoLog;
+	std::string debugInfoLog;
+	prosper::ShaderStage stage;
+	if(context.InitializeShaderSources(*this,bReload,infoLog,debugInfoLog,stage) == false)
 	{
-		auto &stage = m_stages.at(i);
-		if(stage == nullptr || stage->path.empty())
-			continue;
-		std::string infoLog;
-		std::string debugInfoLog;
-		stage->program = context.CompileShader(static_cast<prosper::ShaderStage>(i),stage->path,infoLog,debugInfoLog,bReload);
-		if(stage->program == nullptr)
-		{
-			if(s_logCallback != nullptr)
-				s_logCallback(*this,static_cast<ShaderStage>(i),infoLog,debugInfoLog);
-			return false;
-		}
+		if(s_logCallback != nullptr)
+			s_logCallback(*this,stage,infoLog,debugInfoLog);
+		return false;
 	}
 	return true;
 }
@@ -150,18 +145,18 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 {
 	auto bValidation = GetContext().IsValidationEnabled();
 	if(bValidation)
-		std::cout<<"[VK] Initializing shader '"<<GetIdentifier()<<"'"<<std::endl;
+		std::cout<<"[PR] Initializing shader '"<<GetIdentifier()<<"'"<<std::endl;
 	m_bValid = false;
 	ClearPipelines();
 	if(bValidation)
-		std::cout<<"[VK] Initializing shader sources..."<<std::endl;
+		std::cout<<"[PR] Initializing shader sources..."<<std::endl;
 	if(InitializeSources(bReloadSourceCode) == false)
 		return;
 	if(bValidation)
-		std::cout<<"[VK] Initializing shader stages..."<<std::endl;
+		std::cout<<"[PR] Initializing shader stages..."<<std::endl;
 	InitializeStages();
 	if(bValidation)
-		std::cout<<"[VK] Initializing shader pipeline..."<<std::endl;
+		std::cout<<"[PR] Initializing shader pipeline..."<<std::endl;
 	InitializePipeline();
 	m_bValid = true;
 
@@ -172,7 +167,7 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 		m_bFirstTimeInit = false;
 	}
 	if(bValidation)
-		std::cout<<"[VK] Shader successfully initialized!"<<std::endl;
+		std::cout<<"[PR] Shader successfully initialized!"<<std::endl;
 }
 
 void prosper::Shader::OnInitialized() {}
@@ -184,7 +179,6 @@ void prosper::Shader::InitializePipeline() {}
 void prosper::Shader::InitializeStages()
 {
 	auto &context = GetContext();
-	auto &dev = static_cast<VlkContext&>(context).GetDevice();
 	for(auto i=decltype(m_stages.size()){0};i<m_stages.size();++i)
 	{
 		auto &stage = m_stages.at(i);
@@ -237,13 +231,13 @@ void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateIn
 }
 void prosper::Shader::SetDebugName(uint32_t pipelineIdx,const std::string &name)
 {
-	if(prosper::debug::is_debug_mode_enabled() == false || pipelineIdx >= m_pipelineInfos.size())
+	if(/*prosper::debug::is_debug_mode_enabled() == false || */pipelineIdx >= m_pipelineInfos.size())
 		return;
 	m_pipelineInfos.at(pipelineIdx).debugName = name;
 }
 const std::string *prosper::Shader::GetDebugName(uint32_t pipelineIdx) const
 {
-	if(prosper::debug::is_debug_mode_enabled() == false || pipelineIdx >= m_pipelineInfos.size())
+	if(/*prosper::debug::is_debug_mode_enabled() == false || */pipelineIdx >= m_pipelineInfos.size())
 		return nullptr;
 	return &m_pipelineInfos.at(pipelineIdx).debugName;
 }

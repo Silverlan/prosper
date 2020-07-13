@@ -5,13 +5,7 @@
 #include "stdafx_prosper.h"
 #include "queries/prosper_pipeline_statistics_query.hpp"
 #include "queries/prosper_query_pool.hpp"
-#include "vk_context.hpp"
 #include "prosper_command_buffer.hpp"
-#include "vk_command_buffer.hpp"
-#include <wrappers/command_buffer.h>
-#include <wrappers/device.h>
-#include <wrappers/physical_device.h>
-#include <wrappers/query_pool.h>
 
 using namespace prosper;
 
