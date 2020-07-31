@@ -1554,6 +1554,11 @@ uint32_t prosper::util::get_block_size(Format format)
 	return gli::block_size(static_cast<gli::texture::format_type>(format));
 }
 
+uint32_t prosper::util::get_component_count(Format format)
+{
+	return gli::component_count(static_cast<gli::texture::format_type>(format));
+}
+
 prosper::AccessFlags prosper::util::get_read_access_mask() {return prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::DepthStencilAttachmentReadBit | prosper::AccessFlags::HostReadBit | prosper::AccessFlags::IndexReadBit | prosper::AccessFlags::IndirectCommandReadBit | prosper::AccessFlags::InputAttachmentReadBit | prosper::AccessFlags::MemoryReadBit | prosper::AccessFlags::ShaderReadBit | prosper::AccessFlags::TransferReadBit | prosper::AccessFlags::UniformReadBit | prosper::AccessFlags::VertexAttributeReadBit;}
 prosper::AccessFlags prosper::util::get_write_access_mask() {return prosper::AccessFlags::ColorAttachmentWriteBit | prosper::AccessFlags::DepthStencilAttachmentWriteBit | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::MemoryWriteBit | prosper::AccessFlags::ShaderWriteBit | prosper::AccessFlags::TransferWriteBit;}
 

@@ -81,6 +81,7 @@ namespace prosper
 		DLLPROSPER uint32_t get_bit_size(Format format);
 		DLLPROSPER uint32_t get_byte_size(Format format);
 		DLLPROSPER uint32_t get_block_size(Format format);
+		DLLPROSPER uint32_t get_component_count(Format format);
 		DLLPROSPER prosper::AccessFlags get_read_access_mask();
 		DLLPROSPER prosper::AccessFlags get_write_access_mask();
 		DLLPROSPER prosper::AccessFlags get_image_read_access_mask();

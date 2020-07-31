@@ -38,7 +38,9 @@ namespace prosper
 			std::string layoutId; // Arguments: set, binding
 			std::string vertexIndex;
 			std::string instanceIndex;
-			std::string apiCoordTransform; // Arguments: T (mat4)
+			std::string apiCoordTransform = "T"; // Arguments: T (mat4)
+			std::string apiScreenSpaceTransform = "T"; // Arguments: T (mat4)
+			std::string apiDepthTransform = "T"; // Arguments: T (mat4)
 		};
 		DLLPROSPER void dump_parsed_shader(IPrContext &context,uint32_t stage,const std::string &shaderFile,const std::string &fileName);
 		DLLPROSPER std::optional<std::string> load_glsl(

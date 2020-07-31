@@ -108,6 +108,8 @@ static bool glsl_preprocessing(
 	definitions["SH_VERTEX_INDEX"] = glslDefinitions.vertexIndex;
 	definitions["SH_INSTANCE_INDEX"] = glslDefinitions.instanceIndex;
 	definitions["API_COORD_TRANSFORM(T)"] = '(' +glslDefinitions.apiCoordTransform +')';
+	definitions["API_SCREEN_SPACE_TRANSFORM(T)"] = '(' +glslDefinitions.apiScreenSpaceTransform +')';
+	definitions["API_DEPTH_TRANSFORM(T)"] = '(' +glslDefinitions.apiDepthTransform +')';
 	//definitions["__MAX_VERTEX_TEXTURE_IMAGE_UNITS__"] = std::to_string(maxTextureUnits);
 	std::string prefix = (bHlsl == false) ? "GLS_" : "HLS_";
 	switch(stage)

@@ -30,6 +30,7 @@ namespace prosper
 		uint32_t GetWidth() const;
 		uint32_t GetHeight() const;
 		uint32_t GetLayerCount() const;
+		virtual const void *GetInternalHandle() const=0;
 	protected:
 		IFramebuffer(
 			IPrContext &context,const std::vector<std::shared_ptr<IImageView>> &attachments,

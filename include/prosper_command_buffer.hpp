@@ -124,6 +124,8 @@ namespace prosper
 		virtual bool RecordEndOcclusionQuery(const OcclusionQuery &query) const=0;
 		virtual bool WriteTimestampQuery(const TimestampQuery &query) const=0;
 		virtual bool ResetQuery(const Query &query) const=0;
+
+		virtual bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex)=0;
 	protected:
 		ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType);
 		friend Shader;
