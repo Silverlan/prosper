@@ -574,7 +574,7 @@ void IPrContext::InitTemporaryBuffer()
 	auto bufferSize = 512ull *1'024ull *1'024ull; // 512 MiB
 	auto maxBufferSize = 1ull *1'024ull *1'024ull *1'024ull; // 1 GiB
 	util::BufferCreateInfo createInfo {};
-	createInfo.memoryFeatures = MemoryFeatureFlags::CPUToGPU;
+	createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::Dynamic;
 	createInfo.size = bufferSize;
 	createInfo.flags |= util::BufferCreateInfo::Flags::Persistent;
 	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | 

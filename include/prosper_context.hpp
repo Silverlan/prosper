@@ -153,6 +153,7 @@ namespace prosper
 		virtual bool ApplyGLSLPostProcessing(std::string &inOutGlslCode,std::string &outErrMsg) const {return true;}
 		virtual bool InitializeShaderSources(prosper::Shader &shader,bool bReload,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const;
 		virtual std::string GetAPIIdentifier() const=0;
+		virtual std::string GetAPIAbbreviation() const=0;
 
 		void Run();
 		void Close();
