@@ -11,6 +11,7 @@
 #include <array>
 #include <cinttypes>
 #include <optional>
+#include <string>
 #include <map>
 
 #undef max
