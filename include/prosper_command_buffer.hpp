@@ -29,6 +29,7 @@ namespace prosper
 	class PipelineStatisticsQuery;
 	class Query;
 	class Shader;
+	class IRenderBuffer;
 	class DLLPROSPER ICommandBuffer
 		: public ContextObject,
 		public std::enable_shared_from_this<ICommandBuffer>
@@ -47,6 +48,7 @@ namespace prosper
 		virtual bool RecordBindVertexBuffers(
 			const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={}
 		)=0;
+		virtual bool RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)=0;
 		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)=0;
 		virtual bool RecordDispatch(uint32_t x,uint32_t y,uint32_t z)=0;
 		virtual bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0)=0;

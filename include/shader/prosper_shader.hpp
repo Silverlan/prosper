@@ -205,6 +205,7 @@ namespace prosper
 		PipelineBindPoint m_pipelineBindPoint = static_cast<PipelineBindPoint>(-1);
 	};
 
+	class IRenderBuffer;
 	class DLLPROSPER ShaderGraphics
 		: public Shader
 	{
@@ -258,6 +259,7 @@ namespace prosper
 		ShaderGraphics(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader,const std::string &gsShader="");
 		virtual ~ShaderGraphics() override;
 		virtual bool RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet=0u,const std::vector<uint32_t> &dynamicOffsets={}) override;
+		bool RecordBindRenderBuffer(const IRenderBuffer &renderBuffer);
 		bool RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={});
 		bool RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding=0u,DeviceSize offset=0ull);
 		bool RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType=prosper::IndexType::UInt16,DeviceSize offset=0ull);

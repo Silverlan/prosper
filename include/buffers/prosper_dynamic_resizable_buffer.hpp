@@ -13,12 +13,6 @@
 #include <functional>
 #include <list>
 
-namespace Anvil
-{
-	class BaseDevice;
-	class Buffer;
-};
-
 namespace prosper
 {
 	class IPrContext;

@@ -84,6 +84,7 @@ namespace prosper
 	class PipelineStatisticsQuery;
 	class ComputePipelineCreateInfo;
 	class GraphicsPipelineCreateInfo;
+	class IRenderBuffer;
 	struct DescriptorSetInfo;
 	struct PipelineStatistics;
 	struct ImageFormatPropertiesQuery;
@@ -283,6 +284,10 @@ namespace prosper
 		);
 		std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures,const std::shared_ptr<IRenderPass> &rp=nullptr,const util::RenderTargetCreateInfo &rtCreateInfo={});
 		std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture,IImageView &imgView,IRenderPass &rp,const util::RenderTargetCreateInfo &rtCreateInfo={});
+		virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(
+			const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
+			const std::vector<prosper::DeviceSize> &offsets={},const std::optional<IndexBufferInfo> &indexBufferInfo={}
+		)=0;
 		virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(
 			const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
 			prosper::ShaderStage stage,

@@ -10,12 +10,14 @@
 
 namespace prosper
 {
+	class IRenderBuffer;
 	class IPrContext;
 	class DLLPROSPER CommonBufferCache
 	{
 	public:
 		CommonBufferCache(IPrContext &context);
 
+		std::shared_ptr<IRenderBuffer> GetSquareVertexUvRenderBuffer();
 		std::shared_ptr<IBuffer> GetSquareVertexUvBuffer();
 		std::shared_ptr<IBuffer> GetSquareVertexBuffer();
 		std::shared_ptr<IBuffer> GetSquareUvBuffer();
@@ -36,6 +38,8 @@ namespace prosper
 		void Release();
 	private:
 		IPrContext &m_context;
+
+		std::shared_ptr<IRenderBuffer> m_squareVertexUvRenderBuffer {};
 
 		std::shared_ptr<IBuffer> m_squareVertexUvBuffer {};
 		std::shared_ptr<IBuffer> m_squareVertexBuffer {};

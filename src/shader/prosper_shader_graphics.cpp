@@ -379,7 +379,11 @@ const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderP
 	auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
 	return pipelineInfo.renderPass;
 }
-static std::vector<prosper::DeviceSize> s_vOffsets;
+bool prosper::ShaderGraphics::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
+{
+	auto cmdBuffer = GetCurrentCommandBuffer();
+	return cmdBuffer ? cmdBuffer->RecordBindRenderBuffer(renderBuffer) : false;
+}
 bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<prosper::DeviceSize> &offsets)
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();

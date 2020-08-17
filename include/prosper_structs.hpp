@@ -928,6 +928,13 @@ namespace prosper
 		ClearDepthStencilValue depthStencil;
 	};
 
+	struct DLLPROSPER IndexBufferInfo
+	{
+		std::shared_ptr<prosper::IBuffer> buffer = nullptr;
+		prosper::IndexType indexType = prosper::IndexType::UInt16;
+		prosper::DeviceSize offset = 0;
+	};
+
 	using PipelineID = uint32_t;
 	using SubPassID = uint32_t;
 	using SubPassAttachmentID = uint32_t;

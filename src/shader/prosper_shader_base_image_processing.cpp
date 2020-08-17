@@ -51,14 +51,7 @@ uint32_t ShaderBaseImageProcessing::GetTextureDescriptorSetIndex() const {return
 
 bool ShaderBaseImageProcessing::Draw()
 {
-	auto vertBuffer = GetContext().GetCommonBufferCache().GetSquareVertexBuffer();
-	auto uvBuffer = GetContext().GetCommonBufferCache().GetSquareUvBuffer();
-	if(
-		RecordBindVertexBuffers({vertBuffer.get(),uvBuffer.get()}) == false ||
-		RecordDraw(GetContext().GetCommonBufferCache().GetSquareVertexCount()) == false
-	)
-		return false;
-	return true;
+	return RecordBindRenderBuffer(*GetContext().GetCommonBufferCache().GetSquareVertexUvRenderBuffer()) && RecordDraw(GetContext().GetCommonBufferCache().GetSquareVertexCount());
 }
 
 bool ShaderBaseImageProcessing::Draw(prosper::IDescriptorSet &descSetTexture) {return RecordBindDescriptorSet(descSetTexture) && Draw();}

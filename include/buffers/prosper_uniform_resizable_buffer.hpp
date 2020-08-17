@@ -12,11 +12,6 @@
 #include <cinttypes>
 #include <functional>
 
-namespace Anvil
-{
-	class BaseDevice;
-};
-
 #pragma warning(push)
 #pragma warning(disable : 4251)
 namespace prosper

@@ -4,12 +4,15 @@
 
 #include "stdafx_prosper.h"
 #include "prosper_common_buffer_cache.hpp"
+#include "shader/prosper_shader_copy_image.hpp"
+#include "shader/prosper_pipeline_create_info.hpp"
 
 prosper::CommonBufferCache::CommonBufferCache(IPrContext &context)
 	: m_context{context}
 {}
 void prosper::CommonBufferCache::Release()
 {
+	m_squareVertexUvRenderBuffer = nullptr;
 	m_squareVertexUvBuffer = nullptr;
 	m_squareVertexBuffer = nullptr;
 	m_squareUvBuffer = nullptr;
@@ -50,6 +53,19 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexUvB
 		m_squareVertexUvBuffer = buf;
 	}
 	return m_squareVertexUvBuffer;
+}
+std::shared_ptr<prosper::IRenderBuffer> prosper::CommonBufferCache::GetSquareVertexUvRenderBuffer()
+{
+	if(m_squareVertexUvRenderBuffer == nullptr)
+	{
+		auto vertexBuf = GetSquareVertexBuffer();
+		auto uvBuf = GetSquareUvBuffer();
+		// The shader here doesn't matter, but has to be derived from ShaderBaseImageProcessing and have its same vertex buffer structure
+		auto *shaderCpy = static_cast<prosper::ShaderCopyImage*>(m_context.GetShader("copy_image").get());
+		if(shaderCpy)
+			m_squareVertexUvRenderBuffer = m_context.CreateRenderBuffer(*static_cast<prosper::GraphicsPipelineCreateInfo*>(shaderCpy->GetPipelineCreateInfo(0u)),{vertexBuf.get(),uvBuf.get()});
+	}
+	return m_squareVertexUvRenderBuffer;
 }
 std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexBuffer()
 {
