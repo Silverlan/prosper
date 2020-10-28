@@ -15,7 +15,7 @@
 #include "prosper_command_buffer.hpp"
 
 using namespace prosper;
-#pragma optimize("",off)
+
 decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION) ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,CommonBufferCache::GetSquareVertexFormat()};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_VERTEX,CommonBufferCache::GetSquareUvFormat()};
@@ -224,4 +224,3 @@ const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetFinalRenderTarget() co
 prosper::IDescriptorSet &BlurSet::GetFinalDescriptorSet() const {return *m_outDescSetGroup->GetDescriptorSet();}
 const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetStagingRenderTarget() const {return m_stagingRenderTarget;}
 prosper::IDescriptorSet &BlurSet::GetStagingDescriptorSet() const {return *m_stagingDescSetGroup->GetDescriptorSet();}
-#pragma optimize("",on)

@@ -29,7 +29,6 @@
 #include <iostream>
 #endif
 
-#pragma optimize("",off)
 bool prosper::util::RenderPassCreateInfo::AttachmentInfo::operator==(const AttachmentInfo &other) const
 {
 	return format == other.format &&
@@ -2105,4 +2104,3 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 		return static_cast<uint8_t*>(data);
 		},extents.width,extents.height,get_byte_size(dstFormat),numLayers,numMipmaps,cubemap,texInfo,errorHandler);
 }
-#pragma optimize("",on)

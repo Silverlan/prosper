@@ -11,7 +11,6 @@
 #include "debug/prosper_debug_lookup_map.hpp"
 
 using namespace prosper;
-
 #pragma optimize("",off)
 IDescriptorSetGroup::IDescriptorSetGroup(IPrContext &context,const DescriptorSetCreateInfo &createInfo)
 	: ContextObject(context),std::enable_shared_from_this<IDescriptorSetGroup>(),m_createInfo{createInfo}
@@ -380,6 +379,27 @@ prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t 
 	return nullptr;
 }
 
+prosper::Texture *IDescriptorSet::GetBoundArrayTexture(uint32_t bindingIndex,uint32_t index)
+{
+	if(bindingIndex >= m_bindings.size() || m_bindings.at(bindingIndex) == nullptr)
+		return 0;
+	auto &binding = m_bindings.at(bindingIndex);
+	if(binding->GetType() != DescriptorSetBinding::Type::ArrayTexture)
+		return 0;
+	auto &arrayTextureBinding = static_cast<prosper::DescriptorSetBindingArrayTexture&>(*binding);
+	auto *item = arrayTextureBinding.GetArrayItem(index);
+	return item ? item->GetTexture().get() : nullptr;
+}
+uint32_t IDescriptorSet::GetBoundArrayTextureCount(uint32_t bindingIndex) const
+{
+	if(bindingIndex >= m_bindings.size() || m_bindings.at(bindingIndex) == nullptr)
+		return 0;
+	auto &binding = m_bindings.at(bindingIndex);
+	if(binding->GetType() != DescriptorSetBinding::Type::ArrayTexture)
+		return 0;
+	return static_cast<prosper::DescriptorSetBindingArrayTexture&>(*binding).GetArrayCount();
+}
+
 prosper::Texture *IDescriptorSet::GetBoundTexture(uint32_t bindingIndex,std::optional<uint32_t> *optOutLayerIndex)
 {
 	if(bindingIndex >= m_bindings.size() || m_bindings.at(bindingIndex) == nullptr)
@@ -448,6 +468,8 @@ void DescriptorSetBindingArrayTexture::SetArrayBinding(uint32_t arrayIndex,std::
 		m_arrayItems.resize(arrayIndex +1);
 	m_arrayItems.at(arrayIndex) = std::move(bindingTexture);
 }
+uint32_t DescriptorSetBindingArrayTexture::GetArrayCount() const {return m_arrayItems.size();}
+DescriptorSetBindingTexture *DescriptorSetBindingArrayTexture::GetArrayItem(uint32_t idx) {return (idx < m_arrayItems.size()) ? m_arrayItems.at(idx).get() : nullptr;}
 
 ///
 

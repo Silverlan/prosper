@@ -23,8 +23,8 @@ namespace prosper
 		~ShaderManager()=default;
 
 		::util::WeakHandle<::util::ShaderInfo> PreRegisterShader(const std::string &identifier);
-		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
-		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&,bool&)> &fFactory);
+		void RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
+		void RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&,bool&)> &fFactory);
 		::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
 		const std::unordered_map<std::string,std::shared_ptr<Shader>> &GetShaders() const;
 		bool RemoveShader(Shader &shader);
@@ -37,7 +37,10 @@ namespace prosper
 		ShaderManager(const ShaderManager&)=delete;
 		ShaderManager &operator=(const ShaderManager&)=delete;
 	private:
+		::util::WeakHandle<Shader> LoadShader(const std::string &identifier);
 		std::unordered_map<std::string,std::shared_ptr<Shader>> m_shaders;
+
+		std::unordered_map<std::string,std::function<Shader*(IPrContext&,const std::string&,bool&)>> m_shaderFactories {};
 
 		// Pre-registered shaders
 		std::unordered_map<std::string,std::shared_ptr<::util::ShaderInfo>> m_shaderInfo;

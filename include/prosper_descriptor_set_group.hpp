@@ -76,6 +76,8 @@ namespace prosper
 		DescriptorSetBindingArrayTexture(IDescriptorSet &descSet,uint32_t bindingIdx);
 		virtual Type GetType() const override {return Type::ArrayTexture;}
 		void SetArrayBinding(uint32_t arrayIndex,std::unique_ptr<DescriptorSetBindingTexture> bindingTexture);
+		uint32_t GetArrayCount() const;
+		DescriptorSetBindingTexture *GetArrayItem(uint32_t idx);
 	private:
 		std::vector<std::unique_ptr<DescriptorSetBindingTexture>> m_arrayItems = {};
 	};
@@ -140,7 +142,9 @@ namespace prosper
 		const std::vector<std::unique_ptr<DescriptorSetBinding>> &GetBindings() const;
 		DescriptorSetBinding &SetBinding(uint32_t bindingIndex,std::unique_ptr<DescriptorSetBinding> binding);
 		virtual bool Update()=0;
-
+		
+		prosper::Texture *GetBoundArrayTexture(uint32_t bindingIndex,uint32_t index);
+		uint32_t GetBoundArrayTextureCount(uint32_t bindingIndex) const;
 		prosper::Texture *GetBoundTexture(uint32_t bindingIndex,std::optional<uint32_t> *optOutLayerIndex=nullptr);
 		prosper::IImage *GetBoundImage(uint32_t bindingIndex,std::optional<uint32_t> *optOutLayerIndex=nullptr);
 		prosper::IBuffer *GetBoundBuffer(uint32_t bindingIndex,uint64_t *outStartOffset=nullptr,uint64_t *outSize=nullptr);

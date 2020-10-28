@@ -25,7 +25,6 @@
 
 using namespace prosper;
 
-#pragma optimize("",off)
 IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>()),
@@ -415,7 +414,7 @@ void IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32
 
 ShaderManager &IPrContext::GetShaderManager() const {return *m_shaderManager;}
 
-::util::WeakHandle<Shader> IPrContext::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
+void IPrContext::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
 ::util::WeakHandle<Shader> IPrContext::GetShader(const std::string &identifier) const {return m_shaderManager->GetShader(identifier);}
 
 const std::shared_ptr<Texture> &IPrContext::GetDummyTexture() const {return m_dummyTexture;}
@@ -692,4 +691,3 @@ bool IPrContext::InitializeShaderSources(prosper::Shader &shader,bool bReload,st
 	}
 	return true;
 }
-#pragma optimize("",on)

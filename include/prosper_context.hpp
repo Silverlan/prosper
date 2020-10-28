@@ -189,7 +189,7 @@ namespace prosper
 
 		ShaderManager &GetShaderManager() const;
 
-		::util::WeakHandle<Shader> RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
+		void RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
 		::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
 
 		void GetScissorViewportInfo(Rect2D *out_scissors,Viewport *out_viewports); // TODO: Deprecated?

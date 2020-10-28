@@ -14,7 +14,7 @@
 #include <sharedutils/util_string.h>
 #include <sstream>
 #include <cassert>
-#pragma optimize("",off)
+
 static unsigned int get_line_break(std::string &str,int pos=0)
 {
 	auto len = str.length();
@@ -344,4 +344,3 @@ std::optional<std::string> prosper::glsl::load_glsl(
 }
 
 #endif
-#pragma optimize("",on)
