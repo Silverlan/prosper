@@ -412,6 +412,8 @@ void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper:
 void prosper::Shader::UnbindPipeline()
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
+	if(cmdBuffer == nullptr)
+		return;
 	auto it = s_boundShaderPipeline.find(cmdBuffer.get());
 	if(it != s_boundShaderPipeline.end())
 		s_boundShaderPipeline.erase(it);
