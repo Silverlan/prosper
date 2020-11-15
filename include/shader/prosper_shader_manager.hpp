@@ -15,6 +15,7 @@ namespace prosper
 {
 	class Shader;
 	class PipelineCache;
+	using ShaderIndex = uint32_t;
 	class DLLPROSPER ShaderManager
 		: public ContextObject
 	{
@@ -26,7 +27,9 @@ namespace prosper
 		void RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory);
 		void RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&,bool&)> &fFactory);
 		::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
-		const std::unordered_map<std::string,std::shared_ptr<Shader>> &GetShaders() const;
+		Shader *GetShader(ShaderIndex index) const;
+		const std::vector<std::shared_ptr<Shader>> &GetShaders() const;
+		const std::unordered_map<std::string,ShaderIndex> &GetShaderNameToIndexTable() const {return m_shaderNameToIndex;}
 		bool RemoveShader(Shader &shader);
 
 		template<class T>
@@ -38,7 +41,8 @@ namespace prosper
 		ShaderManager &operator=(const ShaderManager&)=delete;
 	private:
 		::util::WeakHandle<Shader> LoadShader(const std::string &identifier);
-		std::unordered_map<std::string,std::shared_ptr<Shader>> m_shaders;
+		std::unordered_map<std::string,ShaderIndex> m_shaderNameToIndex;
+		std::vector<std::shared_ptr<Shader>> m_shaders;
 
 		std::unordered_map<std::string,std::function<Shader*(IPrContext&,const std::string&,bool&)>> m_shaderFactories {};
 
@@ -55,10 +59,10 @@ template<class T>
 template<class T>
 	prosper::Shader *prosper::ShaderManager::FindShader()
 {
-	auto it = std::find_if(m_shaders.begin(),m_shaders.end(),[](const std::pair<std::string,std::shared_ptr<Shader>> &pair) {
-		return typeid(T) == typeid(*pair.second);
+	auto it = std::find_if(m_shaders.begin(),m_shaders.end(),[](const std::shared_ptr<Shader> &shader) {
+		return typeid(T) == typeid(*shader);
 	});
-	return (it != m_shaders.end()) ? it->second.get() : nullptr;
+	return (it != m_shaders.end()) ? it->get() : nullptr;
 }
 #pragma warning(pop)
 

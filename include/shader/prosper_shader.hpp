@@ -91,6 +91,7 @@ namespace prosper
 	class IPipelineManager;
 	class GraphicsPipelineCreateInfo;
 	class ComputePipelineCreateInfo;
+	using ShaderIndex = uint32_t;
 	namespace util {struct RenderPassCreateInfo;};
 	class DLLPROSPER Shader
 		: public ContextObject,
@@ -150,6 +151,7 @@ namespace prosper
 		prosper::ShaderModule *GetModule(ShaderStage stage);
 		bool IsValid() const;
 		const std::string &GetIdentifier() const;
+		ShaderIndex GetIndex() const {return m_shaderIndex;}
 
 		const PipelineInfo *GetPipelineInfo(PipelineID id) const;
 		PipelineInfo *GetPipelineInfo(PipelineID id);
@@ -166,6 +168,7 @@ namespace prosper
 		void SetStageSourceFilePath(ShaderStage stage,const std::string &filePath);
 		std::optional<std::string> GetStageSourceFilePath(ShaderStage stage) const;
 	protected:
+		friend ShaderManager;
 		virtual void OnPipelineBound() {};
 		virtual void OnPipelineUnbound() {};
 		void UnbindPipeline();
@@ -189,6 +192,8 @@ namespace prosper
 		// Pipeline this pipeline is derived from
 		std::weak_ptr<Shader> m_basePipeline = {};
 		uint32_t m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
+
+		void SetIndex(ShaderIndex shaderIndex) {m_shaderIndex = shaderIndex;}
 	private:
 		std::weak_ptr<prosper::IPrimaryCommandBuffer> m_currentCmd = {};
 		static std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> s_logCallback;
@@ -200,6 +205,7 @@ namespace prosper
 		std::array<std::shared_ptr<ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> m_stages;
 		bool m_bValid = false;
 		bool m_bFirstTimeInit = true;
+		ShaderIndex m_shaderIndex = std::numeric_limits<ShaderIndex>::max();
 		std::string m_identifier;
 
 		PipelineBindPoint m_pipelineBindPoint = static_cast<PipelineBindPoint>(-1);
