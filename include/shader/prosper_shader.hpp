@@ -174,7 +174,7 @@ namespace prosper
 		void UnbindPipeline();
 		void SetIdentifier(const std::string &identifier);
 		uint32_t GetCurrentPipelineIndex() const;
-		std::shared_ptr<prosper::IPrimaryCommandBuffer> GetCurrentCommandBuffer() const;
+		prosper::IPrimaryCommandBuffer *GetCurrentCommandBuffer() const;
 		void SetPipelineCount(uint32_t count);
 		void SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=std::numeric_limits<uint32_t>::max());
 		virtual void InitializePipeline();
@@ -195,7 +195,7 @@ namespace prosper
 
 		void SetIndex(ShaderIndex shaderIndex) {m_shaderIndex = shaderIndex;}
 	private:
-		std::weak_ptr<prosper::IPrimaryCommandBuffer> m_currentCmd = {};
+		mutable prosper::IPrimaryCommandBuffer *m_currentCmd = nullptr;
 		static std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> s_logCallback;
 		using std::enable_shared_from_this<Shader>::shared_from_this;
 
