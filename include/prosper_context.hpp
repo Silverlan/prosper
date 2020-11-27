@@ -100,6 +100,7 @@ namespace prosper
 		std::function<void(prosper::IPrimaryCommandBuffer&,uint32_t)> drawFrame = nullptr;
 	};
 
+	using FrameIndex = uint64_t;
 	class DLLPROSPER IPrContext
 		: public std::enable_shared_from_this<IPrContext>
 	{
@@ -202,7 +203,7 @@ namespace prosper
 
 		virtual void GetGLSLDefinitions(glsl::Definitions &outDef) const=0;
 
-		uint64_t GetLastFrameId() const;
+		FrameIndex GetLastFrameId() const;
 		void Draw(uint32_t n_swapchain_image);
 		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetSetupCommandBuffer();
 		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer() const;
@@ -259,7 +260,8 @@ namespace prosper
 		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo,const void *data=nullptr)=0;
 		std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(
 			util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
-			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr
+			uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage=1.f,const void *data=nullptr,
+			std::optional<DeviceSize> customAlignment={}
 		);
 		virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(
 			util::BufferCreateInfo createInfo,
@@ -401,7 +403,7 @@ namespace prosper
 
 		std::unique_ptr<GLFW::WindowCreationInfo> m_windowCreationInfo = nullptr;
 	private:
-		mutable uint64_t m_frameId = 0ull;
+		mutable FrameIndex m_frameId = 0ull;
 		mutable CommonBufferCache m_commonBufferCache;
 	};
 };

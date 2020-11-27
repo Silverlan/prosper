@@ -234,7 +234,7 @@ void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::s
 }
 
 std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize size,const void *data) {return AllocateBuffer(size,m_alignment,data);}
-std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requestSize,uint32_t alignment,const void *data)
+std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requestSize,uint32_t alignment,const void *data,bool reallocateIfNoSpaceAvailable)
 {
 	if(requestSize == 0ull)
 		return nullptr;
@@ -261,6 +261,8 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 		auto padding = prosper::util::get_offset_alignment_padding(m_baseSize,alignment);
 		if(m_baseSize +requestSize +padding > m_maxTotalSize)
 			return nullptr; // Total capacity has been reached
+		if(reallocateIfNoSpaceAvailable == false)
+			return nullptr;
 		// Re-allocate buffer; Increase previous size by additional factor
 		auto oldSize = m_baseSize;
 		m_baseSize += umath::max(m_createInfo.size,requestSize +padding);

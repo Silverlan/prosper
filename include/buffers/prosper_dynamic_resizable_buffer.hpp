@@ -22,7 +22,7 @@ namespace prosper
 	{
 	public:
 		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,const void *data=nullptr);
-		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,uint32_t alignment,const void *data);
+		std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size,uint32_t alignment,const void *data,bool reallocateIfNoSpaceAvailable=true);
 		void DebugPrint(std::stringstream &strFilledData,std::stringstream &strFreeData,std::stringstream *bufferData=nullptr) const;
 		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;
 		uint64_t GetFreeSize() const;

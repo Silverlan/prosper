@@ -90,7 +90,7 @@ void IPrContext::Release()
 	m_stateFlags |= StateFlags::Closed;
 }
 
-uint64_t IPrContext::GetLastFrameId() const {return m_frameId;}
+FrameIndex IPrContext::GetLastFrameId() const {return m_frameId;}
 
 void IPrContext::EndFrame() {++m_frameId;}
 
@@ -373,7 +373,8 @@ void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize,uint64_t &buffe
 
 std::shared_ptr<IUniformResizableBuffer> IPrContext::CreateUniformResizableBuffer(
 	prosper::util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
-	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data
+	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data,
+	std::optional<DeviceSize> customAlignment
 )
 {
 	createInfo.size = ClampDeviceMemorySize(createInfo.size,clampSizeToAvailableGPUMemoryPercentage,createInfo.memoryFeatures);
@@ -381,7 +382,10 @@ std::shared_ptr<IUniformResizableBuffer> IPrContext::CreateUniformResizableBuffe
 
 	auto bufferBaseSize = createInfo.size;
 	auto alignment = 0u;
-	CalcAlignedSizes(bufferInstanceSize,bufferBaseSize,maxTotalSize,alignment,createInfo.usageFlags);
+	if(customAlignment.has_value())
+		alignment = *customAlignment;
+	else
+		CalcAlignedSizes(bufferInstanceSize,bufferBaseSize,maxTotalSize,alignment,createInfo.usageFlags);
 	return DoCreateUniformResizableBuffer(createInfo,bufferInstanceSize,maxTotalSize,data,bufferBaseSize,alignment);
 }
 
