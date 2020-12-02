@@ -20,19 +20,24 @@ prosper::IBuffer::~IBuffer() {}
 
 void prosper::IBuffer::OnRelease()
 {
-	if(m_bPermanentlyMapped == true)
+	if(m_permanentlyMapped.has_value())
 		Unmap();
 }
 
-void prosper::IBuffer::SetPermanentlyMapped(bool b)
+void prosper::IBuffer::SetPermanentlyMapped(bool b,MapFlags mapFlags)
 {
-	if(m_bPermanentlyMapped == b)
-		return;
+	if(m_permanentlyMapped.has_value() == b)
+	{
+		if(b == false || mapFlags == *m_permanentlyMapped)
+			return;
+		Unmap();
+	}
+	mapFlags |= prosper::IBuffer::MapFlags::PersistentBit;
 	if(b == true)
-		Map(0ull,GetSize(),prosper::IBuffer::MapFlags::PersistentBit);
+		Map(0ull,GetSize(),mapFlags);
 	else
 		Unmap();
-	m_bPermanentlyMapped = b;
+	m_permanentlyMapped = mapFlags;
 }
 void prosper::IBuffer::SetParent(IBuffer &parent,SubBufferIndex baseIndex)
 {
@@ -96,7 +101,7 @@ bool prosper::IBuffer::Write(Offset offset,Size size,const void *data) const
 	}
 	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
-		if(Map(offset,size,BufferUsageFlags::TransferDstBit,BufferUsageFlags::TransferSrcBit,prosper::IBuffer::MapFlags::None,nullptr) == false)
+		if(Map(offset,size,BufferUsageFlags::TransferDstBit,BufferUsageFlags::TransferSrcBit,prosper::IBuffer::MapFlags::WriteBit,nullptr) == false)
 			return false;
 		Write(offset,size,data);
 		return Unmap();
@@ -125,7 +130,7 @@ bool prosper::IBuffer::Read(Offset offset,Size size,void *data) const
 	}
 	if(umath::is_flag_set(m_createInfo.memoryFeatures,MemoryFeatureFlags::HostAccessable) == false)
 	{
-		if(Map(offset,size,BufferUsageFlags::TransferSrcBit,BufferUsageFlags::TransferDstBit,prosper::IBuffer::MapFlags::None,nullptr) == false)
+		if(Map(offset,size,BufferUsageFlags::TransferSrcBit,BufferUsageFlags::TransferDstBit,prosper::IBuffer::MapFlags::ReadBit,nullptr) == false)
 			return false;
 		Read(offset,size,data);
 		return Unmap();

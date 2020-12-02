@@ -303,11 +303,13 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetDrawComman
 	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
 }
 
+void IPrContext::FlushCommandBuffer(prosper::ICommandBuffer &cmd) {DoFlushCommandBuffer(cmd);}
+
 void IPrContext::FlushSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer == nullptr)
 		return;
-	DoFlushSetupCommandBuffer();
+	DoFlushCommandBuffer(*m_setupCmdBuffer);
 	m_setupCmdBuffer = nullptr;
 }
 
@@ -585,7 +587,7 @@ void IPrContext::InitTemporaryBuffer()
 		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
 	m_tmpBuffer = CreateDynamicResizableBuffer(createInfo,maxBufferSize);
 	assert(m_tmpBuffer);
-	m_tmpBuffer->SetPermanentlyMapped(true);
+	m_tmpBuffer->SetPermanentlyMapped(true,prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
 }
 
 void IPrContext::Draw(uint32_t n_swapchain_image)

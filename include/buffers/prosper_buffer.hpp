@@ -30,8 +30,11 @@ namespace prosper
 	public:
 		enum class MapFlags : uint8_t
 		{
-			None = 0,
-			PersistentBit = 1
+			None = 0u,
+			PersistentBit = 1u,
+			ReadBit = PersistentBit<<1u,
+			WriteBit = ReadBit<<1u,
+			Unsynchronized = WriteBit<<1u
 		};
 
 		using SubBufferIndex = uint32_t;
@@ -59,8 +62,8 @@ namespace prosper
 		template<typename T>
 			bool Read(Offset offset,T &tOut) const;
 
-		void SetPermanentlyMapped(bool b);
-		bool Map(Offset offset,Size size,MapFlags mapFlags=MapFlags::None,void **optOutMappedPtr=nullptr) const;
+		void SetPermanentlyMapped(bool b,MapFlags mapFlags);
+		bool Map(Offset offset,Size size,MapFlags mapFlags,void **optOutMappedPtr=nullptr) const;
 		bool Unmap() const;
 
 		virtual std::shared_ptr<IBuffer> CreateSubBuffer(DeviceSize offset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback=nullptr)=0;
@@ -71,6 +74,17 @@ namespace prosper
 
 		// For internal use only!
 		virtual void Initialize();
+
+		template<class T,typename=std::enable_if_t<std::is_base_of_v<IBuffer,T>>>
+			T &GetAPITypeRef()
+		{
+			return *static_cast<T*>(m_apiTypePtr);
+		}
+		template<class T,typename=std::enable_if_t<std::is_base_of_v<IBuffer,T>>>
+			const T &GetAPITypeRef() const
+		{
+			return const_cast<IBuffer*>(this)->GetAPITypeRef<T>();
+		}
 	protected:
 		friend IUniformResizableBuffer;
 		friend IDynamicResizableBuffer;
@@ -94,11 +108,13 @@ namespace prosper
 		mutable std::unique_ptr<MappedBuffer> m_mappedTmpBuffer = nullptr;
 
 		std::shared_ptr<IBuffer> m_parent = nullptr;
-		bool m_bPermanentlyMapped = false;
+		std::optional<MapFlags> m_permanentlyMapped {};
 
 		util::BufferCreateInfo m_createInfo {};
 		DeviceSize m_startOffset = 0;
 		DeviceSize m_size = 0;
+
+		void *m_apiTypePtr = nullptr;
 	private:
 		SubBufferIndex m_baseIndex = INVALID_INDEX;
 	};

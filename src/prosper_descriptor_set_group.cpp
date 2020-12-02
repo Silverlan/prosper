@@ -6,6 +6,7 @@
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "prosper_descriptor_set_group.hpp"
+#include "buffers/prosper_swap_buffer.hpp"
 #include "image/prosper_image_view.hpp"
 #include "image/prosper_sampler.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
@@ -497,4 +498,106 @@ DescriptorSetBindingStorageBuffer::DescriptorSetBindingStorageBuffer(IDescriptor
 uint64_t DescriptorSetBindingStorageBuffer::GetStartOffset() const {return m_startOffset;}
 uint64_t DescriptorSetBindingStorageBuffer::GetSize() const {return m_size;}
 const std::shared_ptr<prosper::IBuffer> &DescriptorSetBindingStorageBuffer::GetBuffer() const {return m_buffer;}
+
+///////////////////
+
+std::shared_ptr<SwapDescriptorSet> prosper::SwapDescriptorSet::Create(IPrContext &context,const DescriptorSetInfo &descSetInfo)
+{
+	auto n = context.GetSwapchainImageCount();
+	std::vector<std::shared_ptr<IDescriptorSetGroup>> dsgs;
+	dsgs.reserve(n);
+	for(auto i=decltype(n){0u};i<n;++i)
+	{
+		auto dsg = context.CreateDescriptorSetGroup(descSetInfo);
+		dsgs.push_back(dsg);
+	}
+	return std::shared_ptr<SwapDescriptorSet>{new SwapDescriptorSet{std::move(dsgs)}};
+}
+std::shared_ptr<prosper::SwapDescriptorSet> prosper::SwapDescriptorSet::Create(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
+{
+	assert(!dsgs.empty());
+	assert(dsgs.size() == dsgs[0]->GetContext().GetSwapchainImageCount());
+	if(dsgs.size() != dsgs[0]->GetContext().GetSwapchainImageCount())
+		throw std::logic_error{"Swap descriptor set dsg count does not match number of swapchain images!"};
+	return std::shared_ptr<SwapDescriptorSet>{new SwapDescriptorSet{std::move(dsgs)}};
+}
+
+prosper::SwapDescriptorSet::SwapDescriptorSet(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
+	: m_dsgs{std::move(dsgs)}
+{}
+prosper::IDescriptorSet *prosper::SwapDescriptorSet::operator->() {return m_dsgs[m_dsgs[0]->GetContext().GetLastAcquiredSwapchainImageIndex()]->GetDescriptorSet();}
+prosper::IDescriptorSet &prosper::SwapDescriptorSet::operator*() {return *operator->();}
+IDescriptorSet &prosper::SwapDescriptorSet::GetDescriptorSet() {return operator*();}
+prosper::IDescriptorSet &prosper::SwapDescriptorSet::GetDescriptorSet(SubDescriptorSetIndex idx)
+{
+	assert(idx < m_dsgs.size());
+	return *m_dsgs[idx]->GetDescriptorSet();
+}
+void prosper::SwapDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingStorageImage(texture,bindingIdx,layerId);
+}
+void prosper::SwapDescriptorSet::SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingStorageImage(texture,bindingIdx);
+}
+void prosper::SwapDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingTexture(texture,bindingIdx,layerId);
+}
+void prosper::SwapDescriptorSet::SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingTexture(texture,bindingIdx);
+}
+void prosper::SwapDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingArrayTexture(texture,bindingIdx,arrayIndex,layerId);
+}
+void prosper::SwapDescriptorSet::SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingArrayTexture(texture,bindingIdx,arrayIndex);
+}
+void prosper::SwapDescriptorSet::SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingUniformBuffer(buffer,bindingIdx,startOffset,size);
+}
+void prosper::SwapDescriptorSet::SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingDynamicUniformBuffer(buffer,bindingIdx,startOffset,size);
+}
+void prosper::SwapDescriptorSet::SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->SetBindingStorageBuffer(buffer,bindingIdx,startOffset,size);
+}
+
+void prosper::SwapDescriptorSet::SetBindingUniformBuffer(prosper::SwapBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	for(auto i=decltype(m_dsgs.size()){0u};i<m_dsgs.size();++i)
+		m_dsgs[i]->GetDescriptorSet()->SetBindingUniformBuffer(buffer.GetBuffer(i),bindingIdx,startOffset,size);
+}
+void prosper::SwapDescriptorSet::SetBindingDynamicUniformBuffer(prosper::SwapBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	for(auto i=decltype(m_dsgs.size()){0u};i<m_dsgs.size();++i)
+		m_dsgs[i]->GetDescriptorSet()->SetBindingDynamicUniformBuffer(buffer.GetBuffer(i),bindingIdx,startOffset,size);
+}
+void prosper::SwapDescriptorSet::SetBindingStorageBuffer(prosper::SwapBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	for(auto i=decltype(m_dsgs.size()){0u};i<m_dsgs.size();++i)
+		m_dsgs[i]->GetDescriptorSet()->SetBindingStorageBuffer(buffer.GetBuffer(i),bindingIdx,startOffset,size);
+}
+void prosper::SwapDescriptorSet::Update()
+{
+	for(auto &dsg : m_dsgs)
+		dsg->GetDescriptorSet()->Update();
+}
+
 #pragma optimize("",on)

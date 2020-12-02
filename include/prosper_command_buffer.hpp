@@ -128,6 +128,16 @@ namespace prosper
 		virtual bool ResetQuery(const Query &query) const=0;
 
 		virtual bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex)=0;
+		template<class T,typename=std::enable_if_t<std::is_base_of_v<ICommandBuffer,T>>>
+			T &GetAPITypeRef()
+		{
+			return *static_cast<T*>(m_apiTypePtr);
+		}
+		template<class T,typename=std::enable_if_t<std::is_base_of_v<ICommandBuffer,T>>>
+			const T &GetAPITypeRef() const
+		{
+			return const_cast<ICommandBuffer*>(this)->GetAPITypeRef<T>();
+		}
 	protected:
 		ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType);
 		friend Shader;
@@ -141,6 +151,7 @@ namespace prosper
 		virtual bool DoRecordResolveImage(IImage &imgSrc,IImage &imgDst,const util::ImageResolve &resolve)=0;
 
 		prosper::QueueFamilyType m_queueFamilyType = prosper::QueueFamilyType::Compute;
+		void *m_apiTypePtr = nullptr;
 	};
 
 	///////////////////

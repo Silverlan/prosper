@@ -208,6 +208,7 @@ namespace prosper
 		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetSetupCommandBuffer();
 		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer() const;
 		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer(uint32_t swapchainIdx) const;
+		void FlushCommandBuffer(prosper::ICommandBuffer &cmd);
 		void FlushSetupCommandBuffer();
 
 		void KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource);
@@ -349,7 +350,7 @@ namespace prosper
 		)=0;
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)=0;
 		virtual void DoWaitIdle()=0;
-		virtual void DoFlushSetupCommandBuffer()=0;
+		virtual void DoFlushCommandBuffer(ICommandBuffer &cmd)=0;
 		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(
 			const util::BufferCreateInfo &createInfo,uint64_t bufferInstanceSize,
 			uint64_t maxTotalSize,const void *data,

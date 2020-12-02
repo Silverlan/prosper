@@ -190,6 +190,45 @@ namespace prosper
 		std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
 		DescriptorSetCreateInfo m_createInfo;
 	};
+
+	class SwapBuffer;
+	struct DescriptorSetInfo;
+	class DLLPROSPER SwapDescriptorSet
+		: public std::enable_shared_from_this<SwapDescriptorSet>
+	{
+	public:
+		using SubDescriptorSetIndex = uint32_t;
+		static std::shared_ptr<SwapDescriptorSet> Create(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
+		static std::shared_ptr<SwapDescriptorSet> Create(IPrContext &context,const DescriptorSetInfo &descSetInfo);
+		IDescriptorSet &GetDescriptorSet(SubDescriptorSetIndex idx);
+		const IDescriptorSet &GetDescriptorSet(SubDescriptorSetIndex idx) const {return const_cast<SwapDescriptorSet*>(this)->GetDescriptorSet(idx);}
+		IDescriptorSet &GetDescriptorSet();
+		const IDescriptorSet &GetDescriptorSet() const {return const_cast<SwapDescriptorSet*>(this)->GetDescriptorSet();}
+
+		void SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
+		void SetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx);
+		void SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t layerId);
+		void SetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx);
+		void SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex,uint32_t layerId);
+		void SetBindingArrayTexture(prosper::Texture &texture,uint32_t bindingIdx,uint32_t arrayIndex);
+		void SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		void SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		void SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+
+		void SetBindingUniformBuffer(prosper::SwapBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		void SetBindingDynamicUniformBuffer(prosper::SwapBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		void SetBindingStorageBuffer(prosper::SwapBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		
+		void Update();
+
+		IDescriptorSet *operator->();
+		const IDescriptorSet *operator->() const {return const_cast<SwapDescriptorSet*>(this)->operator->();}
+		IDescriptorSet &operator*();
+		const IDescriptorSet &operator*() const {return const_cast<SwapDescriptorSet*>(this)->operator*();}
+	private:
+		SwapDescriptorSet(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
+		std::vector<std::shared_ptr<IDescriptorSetGroup>> m_dsgs;
+	};
 };
 #pragma warning(pop)
 

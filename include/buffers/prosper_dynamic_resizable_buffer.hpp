@@ -27,6 +27,7 @@ namespace prosper
 		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;
 		uint64_t GetFreeSize() const;
 		float GetFragmentationPercent() const;
+		uint32_t GetAlignment() const {return m_alignment;}
 	protected:
 		struct Range
 		{

@@ -1880,7 +1880,7 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 		bufCreateInfo.usageFlags = prosper::BufferUsageFlags::TransferDstBit;
 		bufCreateInfo.flags |= prosper::util::BufferCreateInfo::Flags::Persistent;
 		auto buf = context.CreateBuffer(bufCreateInfo);
-		buf->SetPermanentlyMapped(true);
+		buf->SetPermanentlyMapped(true,prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
 
 		setupCmd->RecordImageBarrier(*imgRead,ImageLayout::ShaderReadOnlyOptimal,ImageLayout::TransferSrcOptimal);
 		// Initialize buffer with image data
