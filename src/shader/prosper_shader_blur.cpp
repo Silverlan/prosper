@@ -105,7 +105,8 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 		return false;
 	auto &shaderH = *s_blurShaderH;
 	auto &shaderV = *s_blurShaderV;
-
+	if(shaderH.IsValid() == false || shaderV.IsValid() == false)
+		return false;
 	auto &stagingRt = *blurSet.GetStagingRenderTarget();
 	auto &stagingImg = stagingRt.GetTexture().GetImage();
 	cmdBuffer->RecordImageBarrier(stagingImg,ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal);

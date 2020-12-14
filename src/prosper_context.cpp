@@ -24,7 +24,7 @@
 // #define ENABLE_OFFSCREEN_RENDERING
 
 using namespace prosper;
-
+#pragma optimize("",off)
 IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>()),
@@ -697,3 +697,4 @@ bool IPrContext::InitializeShaderSources(prosper::Shader &shader,bool bReload,st
 	}
 	return true;
 }
+#pragma optimize("",on)

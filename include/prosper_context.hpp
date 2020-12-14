@@ -156,6 +156,7 @@ namespace prosper
 		virtual bool InitializeShaderSources(prosper::Shader &shader,bool bReload,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const;
 		virtual std::string GetAPIIdentifier() const=0;
 		virtual std::string GetAPIAbbreviation() const=0;
+		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)=0;
 
 		void Run();
 		void Close();
