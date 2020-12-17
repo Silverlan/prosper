@@ -175,10 +175,12 @@ namespace prosper
 		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
 		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
 		bool RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<ClearValue> &clearValues={});
-		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const=0;
+		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const;
+		virtual bool StopRecording() const override;
 		bool RecordEndRenderPass();
 		virtual bool RecordNextSubPass()=0;
 
+		bool IsRecording() const {return m_recording;}
 		RenderTargetInfo *GetActiveRenderPassTargetInfo() const;
 		bool GetActiveRenderPassTarget(prosper::IRenderPass **outRp=nullptr,prosper::IImage **outImg=nullptr,prosper::IFramebuffer **outFb=nullptr,prosper::RenderTarget **outRt=nullptr) const;
 		void SetActiveRenderPassTarget(prosper::IRenderPass *outRp,uint32_t layerId,prosper::IImage *outImg=nullptr,prosper::IFramebuffer *outFb=nullptr,prosper::RenderTarget *outRt=nullptr) const;
@@ -188,6 +190,7 @@ namespace prosper
 		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues)=0;
 		
 		mutable std::optional<RenderTargetInfo> m_renderTargetInfo {};
+		mutable bool m_recording = false;
 	};
 
 	///////////////////
