@@ -304,7 +304,7 @@ void prosper::IPrimaryCommandBuffer::SetActiveRenderPassTarget(prosper::IRenderP
 	rtInfo->renderTarget = outRt ? outRt->shared_from_this() : std::weak_ptr<prosper::RenderTarget>{};
 }
 
-bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp,RenderPassFlags renderPassFlags)
 {
 	auto *fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : &rt.GetFramebuffer();
 	if(rp == nullptr)
@@ -317,25 +317,25 @@ bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarg
 	auto &img = tex.GetImage();
 
 	SetActiveRenderPassTarget(rp,(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),&img,fb,nullptr);
-	return DoRecordBeginRenderPass(img,*rp,*fb,layerId,clearValues);
+	return DoRecordBeginRenderPass(img,*rp,*fb,layerId,clearValues,renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,RenderPassFlags renderPassFlags,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)
 {
-	return DoRecordBeginRenderPass(rt,&layerId,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp);
+	return DoRecordBeginRenderPass(rt,&layerId,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp,renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<prosper::ClearValue> &clearValues,RenderPassFlags renderPassFlags,prosper::IRenderPass *rp)
 {
-	return DoRecordBeginRenderPass(rt,&layerId,clearValues,rp);
+	return DoRecordBeginRenderPass(rt,&layerId,clearValues,rp,renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,RenderPassFlags renderPassFlags,const prosper::ClearValue *clearValue,prosper::IRenderPass *rp)
 {
-	return DoRecordBeginRenderPass(rt,nullptr,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp);
+	return DoRecordBeginRenderPass(rt,nullptr,(clearValue != nullptr) ? std::vector<prosper::ClearValue>{*clearValue} : std::vector<prosper::ClearValue>{},rp,renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<prosper::ClearValue> &clearValues,RenderPassFlags renderPassFlags,prosper::IRenderPass *rp)
 {
-	return DoRecordBeginRenderPass(rt,nullptr,clearValues,rp);
+	return DoRecordBeginRenderPass(rt,nullptr,clearValues,rp,renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<prosper::ClearValue> &clearValues)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,RenderPassFlags renderPassFlags,const std::vector<prosper::ClearValue> &clearValues)
 {
-	return DoRecordBeginRenderPass(img,rp,fb,0u,clearValues);
+	return DoRecordBeginRenderPass(img,rp,fb,0u,clearValues,renderPassFlags);
 }

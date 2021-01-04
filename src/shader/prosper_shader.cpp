@@ -137,7 +137,7 @@ bool prosper::Shader::IsValid() const {return m_bValid;}
 
 void prosper::Shader::SetIdentifier(const std::string &identifier) {m_identifier = identifier;}
 uint32_t prosper::Shader::GetCurrentPipelineIndex() const {return m_currentPipelineIdx;}
-prosper::IPrimaryCommandBuffer *prosper::Shader::GetCurrentCommandBuffer() const {return m_currentCmd;}
+prosper::ICommandBuffer *prosper::Shader::GetCurrentCommandBuffer() const {return m_currentCmd;}
 
 uint32_t prosper::Shader::GetPipelineCount() const {return m_pipelineInfos.size();}
 void prosper::Shader::ReloadPipelines(bool bReloadSourceCode) {Initialize(bReloadSourceCode);}
@@ -390,16 +390,17 @@ bool prosper::Shader::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,u
 }
 
 static std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> s_boundShaderPipeline = {};
-const std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> &prosper::Shader::GetBoundPipelines() {return s_boundShaderPipeline;}
+static std::mutex s_boundShaderPipelineMutex;
 prosper::Shader *prosper::Shader::GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer,uint32_t &outPipelineIdx)
 {
+	std::unique_lock lock {s_boundShaderPipelineMutex};
 	auto it = s_boundShaderPipeline.find(&cmdBuffer);
 	if(it == s_boundShaderPipeline.end())
 		return nullptr;
 	outPipelineIdx = it->second.second;
 	return it->second.first;
 }
-void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
+void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
 {
 	if(cmdBuffer == nullptr)
 	{
@@ -407,16 +408,22 @@ void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper:
 		return;
 	}
 	m_currentCmd = cmdBuffer.get();
-	s_boundShaderPipeline[cmdBuffer.get()] = {std::pair<prosper::Shader*,uint32_t>{this,pipelineIdx}};
+	s_boundShaderPipelineMutex.lock();
+		s_boundShaderPipeline[cmdBuffer.get()] = {std::pair<prosper::Shader*,uint32_t>{this,pipelineIdx}};
+	s_boundShaderPipelineMutex.unlock();
 }
 void prosper::Shader::UnbindPipeline()
 {
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	if(cmdBuffer == nullptr)
 		return;
+
+	s_boundShaderPipelineMutex.lock();
 	auto it = s_boundShaderPipeline.find(cmdBuffer);
 	if(it != s_boundShaderPipeline.end())
 		s_boundShaderPipeline.erase(it);
+	s_boundShaderPipelineMutex.unlock();
+
 	m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
 	cmdBuffer->ClearBoundPipeline();
 	OnPipelineUnbound();

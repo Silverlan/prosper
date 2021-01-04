@@ -85,7 +85,6 @@ namespace prosper
 	class IRenderPass;
 	class ICommandBuffer;
 	class IBuffer;
-	class IPrimaryCommandBuffer;
 	class IDescriptorSet;
 	class ShaderManager;
 	class IPipelineManager;
@@ -101,7 +100,6 @@ namespace prosper
 		static void SetLogCallback(const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &fLogCallback);
 		static const std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> &GetLogCallback();
 		static Shader *GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer,uint32_t &outPipelineIdx);
-		static const std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> &GetBoundPipelines();
 		static void SetRootShaderLocation(const std::string &location);
 		static const std::string &GetRootShaderLocation();
 		//static int32_t Register(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory);
@@ -174,9 +172,9 @@ namespace prosper
 		void UnbindPipeline();
 		void SetIdentifier(const std::string &identifier);
 		uint32_t GetCurrentPipelineIndex() const;
-		prosper::IPrimaryCommandBuffer *GetCurrentCommandBuffer() const;
+		prosper::ICommandBuffer *GetCurrentCommandBuffer() const;
 		void SetPipelineCount(uint32_t count);
-		void SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=std::numeric_limits<uint32_t>::max());
+		void SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx=std::numeric_limits<uint32_t>::max());
 		virtual void InitializePipeline();
 		virtual void OnPipelineInitialized(uint32_t pipelineIdx);
 		// Called when the pipelines have been initialized for the first time
@@ -195,7 +193,7 @@ namespace prosper
 
 		void SetIndex(ShaderIndex shaderIndex) {m_shaderIndex = shaderIndex;}
 	private:
-		mutable prosper::IPrimaryCommandBuffer *m_currentCmd = nullptr;
+		mutable prosper::ICommandBuffer *m_currentCmd = nullptr;
 		static std::function<void(Shader&,ShaderStage,const std::string&,const std::string&)> s_logCallback;
 		using std::enable_shared_from_this<Shader>::shared_from_this;
 
@@ -273,7 +271,7 @@ namespace prosper
 		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,uint32_t firstInstance=0u);
 		void AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);
 		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data);
-		virtual bool BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
+		virtual bool BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		virtual bool Draw();
 		virtual void EndDraw();
 
@@ -281,7 +279,7 @@ namespace prosper
 		template<class TShader>
 			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context,uint32_t pipelineIdx=0u);
 	protected:
-		bool BeginDrawViewport(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
+		bool BeginDrawViewport(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		void SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 		void ToggleDynamicViewportState(prosper::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
 		void ToggleDynamicScissorState(prosper::GraphicsPipelineCreateInfo &pipelineInfo,bool bEnable);
@@ -304,7 +302,7 @@ namespace prosper
 		ShaderCompute(prosper::IPrContext &context,const std::string &identifier,const std::string &csShader);
 
 		bool RecordDispatch(uint32_t x=1u,uint32_t y=1u,uint32_t z=1u);
-		virtual bool BeginCompute(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u);
+		virtual bool BeginCompute(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u);
 		virtual void Compute();
 		virtual void EndCompute();
 		bool AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data);

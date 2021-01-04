@@ -17,6 +17,7 @@
 #include "shader/prosper_shader.hpp"
 #include "image/prosper_image_view.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
+#include "prosper_swap_command_buffer.hpp"
 #include "prosper_memory_tracker.hpp"
 #include <sharedutils/util.h>
 #include <util_image_buffer.hpp>

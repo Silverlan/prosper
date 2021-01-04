@@ -27,6 +27,8 @@ namespace prosper
 	class OcclusionQuery;
 	class TimestampQuery;
 	class PipelineStatisticsQuery;
+	class IPrimaryCommandBuffer;
+	class ISecondaryCommandBuffer;
 	class Query;
 	class Shader;
 	class IRenderBuffer;
@@ -43,6 +45,7 @@ namespace prosper
 		virtual bool IsSecondary() const;
 		virtual bool Reset(bool shouldReleaseResources) const=0;
 		virtual bool StopRecording() const=0;
+		bool IsRecording() const {return m_recording;}
 
 		virtual bool RecordBindIndexBuffer(IBuffer &buf,IndexType indexType=IndexType::UInt16,DeviceSize offset=0)=0;
 		virtual bool RecordBindVertexBuffers(
@@ -138,8 +141,14 @@ namespace prosper
 		{
 			return const_cast<ICommandBuffer*>(this)->GetAPITypeRef<T>();
 		}
+
+		IPrimaryCommandBuffer *GetPrimaryCommandBufferPtr();
+		const IPrimaryCommandBuffer *GetPrimaryCommandBufferPtr() const;
+		ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr();
+		const ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr() const;
 	protected:
 		ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType);
+		void Initialize();
 		friend Shader;
 		virtual void ClearBoundPipeline();
 		virtual bool DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId)=0;
@@ -150,8 +159,27 @@ namespace prosper
 		virtual bool DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets)=0;
 		virtual bool DoRecordResolveImage(IImage &imgSrc,IImage &imgDst,const util::ImageResolve &resolve)=0;
 
+		void SetRecording(bool recording) const {m_recording = recording;}
+
 		prosper::QueueFamilyType m_queueFamilyType = prosper::QueueFamilyType::Compute;
 		void *m_apiTypePtr = nullptr;
+		void *m_cmdBufSpecializationPtr = nullptr; // Pointer to IPrimaryCommandBuffer or ISecondaryCommandBuffer
+		mutable bool m_recording = false;
+	};
+
+	class DLLPROSPER ICommandBufferPool
+		: public ContextObject,
+		public std::enable_shared_from_this<ICommandBufferPool>
+	{
+	public:
+		virtual std::shared_ptr<IPrimaryCommandBuffer> AllocatePrimaryCommandBuffer() const=0;
+		virtual std::shared_ptr<ISecondaryCommandBuffer> AllocateSecondaryCommandBuffer() const=0;
+		prosper::QueueFamilyType GetQueueFamilyType() const {return m_queueFamilyType;}
+	protected:
+		ICommandBufferPool(prosper::IPrContext &context,prosper::QueueFamilyType queueFamilyType)
+			: ContextObject{context},m_queueFamilyType{queueFamilyType}
+		{}
+		prosper::QueueFamilyType m_queueFamilyType;
 	};
 
 	///////////////////
@@ -168,29 +196,33 @@ namespace prosper
 			std::weak_ptr<prosper::IFramebuffer> framebuffer;
 			std::weak_ptr<prosper::RenderTarget> renderTarget;
 		};
+		enum class RenderPassFlags : uint8_t
+		{
+			None = 0u,
+			SecondaryCommandBuffers = 1u
+		};
 
 		// If no render pass is specified, the render target's render pass will be used
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<ClearValue> &clearValues,prosper::IRenderPass *rp=nullptr);
-		bool RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const std::vector<ClearValue> &clearValues={});
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,RenderPassFlags renderPassFlags=RenderPassFlags::None,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t layerId,const std::vector<ClearValue> &clearValues,RenderPassFlags renderPassFlags=RenderPassFlags::None,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,RenderPassFlags renderPassFlags=RenderPassFlags::None,const ClearValue *clearValue=nullptr,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::RenderTarget &rt,const std::vector<ClearValue> &clearValues,RenderPassFlags renderPassFlags=RenderPassFlags::None,prosper::IRenderPass *rp=nullptr);
+		bool RecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,RenderPassFlags renderPassFlags=RenderPassFlags::None,const std::vector<ClearValue> &clearValues={});
 		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const;
 		virtual bool StopRecording() const override;
 		bool RecordEndRenderPass();
 		virtual bool RecordNextSubPass()=0;
+		virtual bool ExecuteCommands(prosper::ISecondaryCommandBuffer &cmdBuf)=0;
 
-		bool IsRecording() const {return m_recording;}
 		RenderTargetInfo *GetActiveRenderPassTargetInfo() const;
 		bool GetActiveRenderPassTarget(prosper::IRenderPass **outRp=nullptr,prosper::IImage **outImg=nullptr,prosper::IFramebuffer **outFb=nullptr,prosper::RenderTarget **outRt=nullptr) const;
 		void SetActiveRenderPassTarget(prosper::IRenderPass *outRp,uint32_t layerId,prosper::IImage *outImg=nullptr,prosper::IFramebuffer *outFb=nullptr,prosper::RenderTarget *outRt=nullptr) const;
 	protected:
-		bool DoRecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp);
+		bool DoRecordBeginRenderPass(prosper::RenderTarget &rt,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,prosper::IRenderPass *rp,RenderPassFlags renderPassFlags);
 		virtual bool DoRecordEndRenderPass()=0;
-		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues)=0;
+		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,RenderPassFlags renderPassFlags)=0;
 		
 		mutable std::optional<RenderTargetInfo> m_renderTargetInfo {};
-		mutable bool m_recording = false;
 	};
 
 	///////////////////
@@ -200,11 +232,23 @@ namespace prosper
 	{
 	public:
 		using ICommandBuffer::ICommandBuffer;
+		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const;
+		virtual bool StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const;
+		virtual bool StopRecording() const override;
+
+		prosper::IRenderPass *GetCurrentRenderPass() {return m_currentRenderPass;}
+		const prosper::IRenderPass *GetCurrentRenderPass() const {return const_cast<ISecondaryCommandBuffer*>(this)->GetCurrentRenderPass();}
+
+		prosper::IFramebuffer *GetCurrentFramebuffer() {return m_currentFramebuffer;}
+		const prosper::IFramebuffer *GetCurrentFramebuffer() const {return const_cast<ISecondaryCommandBuffer*>(this)->GetCurrentFramebuffer();}
 	protected:
+		mutable prosper::IRenderPass *m_currentRenderPass = nullptr;
+		mutable prosper::IFramebuffer *m_currentFramebuffer = nullptr;
 	};
 };
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::IPrimaryCommandBuffer::RenderPassFlags)
 template<typename T>
-		bool prosper::ICommandBuffer::RecordUpdateBuffer(IBuffer &buffer,uint64_t offset,const T &data)
+	bool prosper::ICommandBuffer::RecordUpdateBuffer(IBuffer &buffer,uint64_t offset,const T &data)
 {
 	return RecordUpdateBuffer(buffer,offset,sizeof(data),&data);
 }

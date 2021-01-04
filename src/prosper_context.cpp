@@ -7,6 +7,7 @@
 #include "prosper_context.hpp"
 #include "image/prosper_texture.hpp"
 #include "prosper_util.hpp"
+#include "prosper_glsl.hpp"
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
@@ -24,7 +25,7 @@
 // #define ENABLE_OFFSCREEN_RENDERING
 
 using namespace prosper;
-#pragma optimize("",off)
+
 IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>()),
@@ -335,6 +336,7 @@ void IPrContext::ClearKeepAliveResources()
 }
 void IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
+	std::unique_lock lock {m_aliveResourceMutex};
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
 	DoKeepResourceAliveUntilPresentationComplete(resource);
@@ -419,6 +421,8 @@ void IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32
 }
 
 ShaderManager &IPrContext::GetShaderManager() const {return *m_shaderManager;}
+
+std::optional<std::string> IPrContext::FindShaderFile(const std::string &fileName,std::string *optOutExt) {return prosper::glsl::find_shader_file(fileName,optOutExt);}
 
 void IPrContext::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
 ::util::WeakHandle<Shader> IPrContext::GetShader(const std::string &identifier) const {return m_shaderManager->GetShader(identifier);}
@@ -697,4 +701,3 @@ bool IPrContext::InitializeShaderSources(prosper::Shader &shader,bool bReload,st
 	}
 	return true;
 }
-#pragma optimize("",on)

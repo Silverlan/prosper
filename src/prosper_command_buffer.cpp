@@ -23,6 +23,16 @@ prosper::ICommandBuffer::ICommandBuffer(IPrContext &context,prosper::QueueFamily
 
 prosper::ICommandBuffer::~ICommandBuffer() {}
 
+void prosper::ICommandBuffer::Initialize()
+{
+	m_cmdBufSpecializationPtr = IsPrimary() ? static_cast<void*>(dynamic_cast<IPrimaryCommandBuffer*>(this)) : static_cast<void*>(dynamic_cast<ISecondaryCommandBuffer*>(this));
+}
+
+prosper::IPrimaryCommandBuffer *prosper::ICommandBuffer::GetPrimaryCommandBufferPtr() {return IsPrimary() ? static_cast<IPrimaryCommandBuffer*>(m_cmdBufSpecializationPtr) : nullptr;}
+const prosper::IPrimaryCommandBuffer *prosper::ICommandBuffer::GetPrimaryCommandBufferPtr() const {return const_cast<ICommandBuffer*>(this)->GetPrimaryCommandBufferPtr();}
+prosper::ISecondaryCommandBuffer *prosper::ICommandBuffer::GetSecondaryCommandBufferPtr() {return !IsPrimary() ? static_cast<ISecondaryCommandBuffer*>(m_cmdBufSpecializationPtr) : nullptr;}
+const prosper::ISecondaryCommandBuffer *prosper::ICommandBuffer::GetSecondaryCommandBufferPtr() const {return const_cast<ICommandBuffer*>(this)->GetSecondaryCommandBufferPtr();}
+
 bool prosper::ICommandBuffer::IsPrimary() const {return false;}
 bool prosper::ICommandBuffer::IsSecondary() const {return false;}
 prosper::QueueFamilyType prosper::ICommandBuffer::GetQueueFamilyType() const {return m_queueFamilyType;}
@@ -30,12 +40,35 @@ prosper::QueueFamilyType prosper::ICommandBuffer::GetQueueFamilyType() const {re
 bool prosper::IPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
 {
 	assert(!m_recording);
-	m_recording = true;
+	SetRecording(true);
 	return true;
 }
 bool prosper::IPrimaryCommandBuffer::StopRecording() const
 {
 	assert(m_recording);
-	m_recording = false;
+	SetRecording(false);
+	return true;
+}
+
+bool prosper::ISecondaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
+{
+	assert(!m_recording);
+	SetRecording(true);
+	return true;
+}
+bool prosper::ISecondaryCommandBuffer::StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,bool oneTimeSubmit,bool simultaneousUseAllowed) const
+{
+	assert(!m_recording);
+	SetRecording(true);
+	m_currentRenderPass = &rp;
+	m_currentFramebuffer = &fb;
+	return true;
+}
+bool prosper::ISecondaryCommandBuffer::StopRecording() const
+{
+	assert(m_recording);
+	SetRecording(false);
+	m_currentRenderPass = nullptr;
+	m_currentFramebuffer = nullptr;
 	return true;
 }

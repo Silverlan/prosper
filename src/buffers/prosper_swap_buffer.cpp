@@ -7,7 +7,7 @@
 #include "buffers/prosper_uniform_resizable_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
 
-#pragma optimize("",off)
+
 std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IUniformResizableBuffer &buffer,const void *data)
 {
 	auto numBuffers = buffer.GetContext().GetSwapchainImageCount();
@@ -77,4 +77,3 @@ prosper::IBuffer &prosper::SwapBuffer::Update(IBuffer::Offset offset,IBuffer::Si
 	return GetBuffer();
 }
 bool prosper::SwapBuffer::IsDirty() const {return m_buffersDirty != 0;}
-#pragma optimize("",on)

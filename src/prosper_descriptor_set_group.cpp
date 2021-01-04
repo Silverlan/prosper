@@ -12,7 +12,7 @@
 #include "debug/prosper_debug_lookup_map.hpp"
 
 using namespace prosper;
-#pragma optimize("",off)
+
 IDescriptorSetGroup::IDescriptorSetGroup(IPrContext &context,const DescriptorSetCreateInfo &createInfo)
 	: ContextObject(context),std::enable_shared_from_this<IDescriptorSetGroup>(),m_createInfo{createInfo}
 {}
@@ -599,5 +599,3 @@ void prosper::SwapDescriptorSet::Update()
 	for(auto &dsg : m_dsgs)
 		dsg->GetDescriptorSet()->Update();
 }
-
-#pragma optimize("",on)

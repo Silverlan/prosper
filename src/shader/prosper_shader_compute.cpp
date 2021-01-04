@@ -71,7 +71,7 @@ void prosper::ShaderCompute::InitializePipeline()
 	}
 }
 
-bool prosper::ShaderCompute::BeginCompute(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
+bool prosper::ShaderCompute::BeginCompute(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
 {
 	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
 	if(b == true)

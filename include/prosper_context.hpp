@@ -11,6 +11,7 @@
 #include <memory>
 #include <chrono>
 #include <optional>
+#include <mutex>
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
 #include "shader/prosper_shader_manager.hpp"
@@ -77,6 +78,8 @@ namespace prosper
 	class IQueryPool;
 	class IPrimaryCommandBuffer;
 	class ISecondaryCommandBuffer;
+	class ICommandBufferPool;
+	class ISwapCommandBufferGroup;
 	class IFence;
 	class IEvent;
 	class TimestampQuery;
@@ -234,6 +237,7 @@ namespace prosper
 
 		virtual std::shared_ptr<prosper::IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)=0;
 		virtual std::shared_ptr<prosper::ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)=0;
+		virtual std::shared_ptr<prosper::ICommandBufferPool> CreateCommandBufferPool(prosper::QueueFamilyType queueFamilyType)=0;
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr)=0;
 		void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,bool shouldBlock=false,prosper::IFence *fence=nullptr);
 
@@ -280,6 +284,7 @@ namespace prosper
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)=0;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)=0;
+		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup()=0;
 		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)=0;
 		std::shared_ptr<Texture> CreateTexture(
 			const util::TextureCreateInfo &createInfo,IImage &img,
@@ -298,6 +303,8 @@ namespace prosper
 			const std::string &entrypointName="main"
 		)=0;
 		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false)=0;
+		virtual std::optional<std::unordered_map<prosper::ShaderStage,std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog) {return {};}
+		std::optional<std::string> FindShaderFile(const std::string &fileName,std::string *optOutExt=nullptr);
 		virtual std::optional<PipelineID> AddPipeline(
 			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
@@ -341,6 +348,36 @@ namespace prosper
 		virtual void *GetInternalUniversalQueue() const {return nullptr;}
 		virtual bool IsDeviceExtensionEnabled(const std::string &ext) const {return false;}
 		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const {return false;}
+
+		struct ShaderDescriptorSetBindingInfo
+		{
+			enum class Type : uint8_t
+			{
+				Buffer = 0,
+				Image
+			};
+			uint32_t bindingPoint = 0;
+			uint32_t bindingCount = 1;
+			std::vector<std::string> args;
+			Type type = Type::Buffer;
+			std::string namedType;
+		};
+		struct ShaderDescriptorSetInfo
+		{
+			std::vector<ShaderDescriptorSetBindingInfo> bindingPoints {};
+		};
+		struct ShaderMacroLocation
+		{
+			size_t macroStart = 0;
+			size_t macroEnd = 0;
+			uint32_t setIndexIndex = 0;
+			uint32_t bindingIndexIndex = 0;
+		};
+		static void ParseShaderUniforms(
+			const std::string &glslShader,std::unordered_map<std::string,int32_t> &outDefinitions,
+			std::vector<std::optional<ShaderDescriptorSetInfo>> &outDescSetInfos,
+			std::vector<ShaderMacroLocation> &outMacroLocations
+		);
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
@@ -392,6 +429,7 @@ namespace prosper
 		std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};
 		std::vector<std::shared_ptr<prosper::IImage>> m_swapchainImages {};
 		uint32_t m_numSwapchainImages = 0u;
+		std::mutex m_aliveResourceMutex;
 
 		std::queue<std::function<void(prosper::IPrimaryCommandBuffer&)>> m_scheduledBufferUpdates;
 		std::vector<std::shared_ptr<prosper::IPrimaryCommandBuffer>> m_commandBuffers;

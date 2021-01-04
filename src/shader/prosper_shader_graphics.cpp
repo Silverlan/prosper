@@ -16,7 +16,7 @@
 #include <sharedutils/util.h>
 #include <queue>
 #include <unordered_map>
-#pragma optimize("",off)
+
 prosper::ShaderGraphics::VertexBinding::VertexBinding(prosper::VertexInputRate inputRate,uint32_t stride)
 	: stride(stride),inputRate(inputRate)
 {}
@@ -467,7 +467,7 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &d
 #endif
 	return prosper::Shader::RecordBindDescriptorSet(descSet,firstSet,dynamicOffsets);
 }
-bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
 	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo*>(GetPipelineCreateInfo(pipelineIdx));
 	if(info == nullptr)
@@ -475,6 +475,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
 	if(b == false)
 		return false;
+#if 0
 	if(GetContext().IsValidationEnabled())
 	{
 		prosper::IRenderPass *rp;
@@ -532,6 +533,7 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 			}
 		}
 	}
+#endif
 	if(recordFlags != RecordFlags::None)
 	{
 		auto nDynamicScissors = info->GetDynamicScissorBoxesCount();
@@ -556,14 +558,24 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 	SetCurrentDrawCommandBuffer(cmdBuffer,pipelineIdx);
 	return true;
 }
-bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
 {
-	prosper::IImage *img;
-	if(cmdBuffer->GetActiveRenderPassTarget(nullptr,&img) == false || img == nullptr)
-		return false;
-	auto extents = img->GetExtents();
+	prosper::Extent2D extents;
+	if(cmdBuffer->IsPrimary())
+	{
+		prosper::IImage *img;
+		if(cmdBuffer->GetPrimaryCommandBufferPtr()->GetActiveRenderPassTarget(nullptr,&img) == false || img == nullptr)
+			return false;
+		extents = img->GetExtents();
+	}
+	else
+	{
+		auto *fb = cmdBuffer->GetSecondaryCommandBufferPtr()->GetCurrentFramebuffer();
+		if(fb == nullptr)
+			return false;
+		extents = {fb->GetWidth(),fb->GetHeight()};
+	}
 	return BeginDrawViewport(cmdBuffer,extents.width,extents.height,pipelineIdx,recordFlags);
 }
 bool prosper::ShaderGraphics::Draw() {return true;}
 void prosper::ShaderGraphics::EndDraw() {UnbindPipeline(); SetCurrentDrawCommandBuffer(nullptr);}
-#pragma optimize("",on)

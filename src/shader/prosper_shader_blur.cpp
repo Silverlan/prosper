@@ -33,9 +33,9 @@ static constexpr std::array<prosper::Format,umath::to_integral(prosper::ShaderBl
 	prosper::Format::R8G8B8A8_UNorm,
 	prosper::Format::R8_UNorm,
 	prosper::Format::R16G16B16A16_SFloat,
-	prosper::Format::BC1_RGBA_UNorm_Block,
-	prosper::Format::BC2_UNorm_Block,
-	prosper::Format::BC3_UNorm_Block
+	//prosper::Format::BC1_RGBA_UNorm_Block,
+	//prosper::Format::BC2_UNorm_Block,
+	//prosper::Format::BC3_UNorm_Block
 };
 
 ShaderBlurBase::ShaderBlurBase(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader)
@@ -60,7 +60,7 @@ void ShaderBlurBase::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &
 	AttachPushConstantRange(pipelineInfo,0u,sizeof(PushConstants),prosper::ShaderStageFlags::FragmentBit);
 }
 
-bool ShaderBlurBase::BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx)
+bool ShaderBlurBase::BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,Pipeline pipelineIdx)
 {
 	return ShaderGraphics::BeginDraw(cmdBuffer,umath::to_integral(pipelineIdx));
 }
@@ -118,6 +118,9 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 	switch(imgFormat)
 	{
 		case prosper::Format::R8G8B8A8_UNorm:
+		case prosper::Format::BC1_RGBA_UNorm_Block:
+		case prosper::Format::BC2_UNorm_Block:
+		case prosper::Format::BC3_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
 			break;
 		case prosper::Format::R8_UNorm:
@@ -126,7 +129,7 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 		case prosper::Format::R16G16B16A16_SFloat:
 			pipelineId = ShaderBlurBase::Pipeline::R16G16B16A16Sfloat;
 			break;
-		case prosper::Format::BC1_RGBA_UNorm_Block:
+		/*case prosper::Format::BC1_RGBA_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC1;
 			break;
 		case prosper::Format::BC2_UNorm_Block:
@@ -134,7 +137,7 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 			break;
 		case prosper::Format::BC3_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC3;
-			break;
+			break;*/
 		default:
 			throw std::logic_error("Unsupported image format for blur input image!");
 	}

@@ -28,9 +28,9 @@ namespace prosper
 			R8G8B8A8Unorm,
 			R8Unorm,
 			R16G16B16A16Sfloat,
-			BC1,
-			BC2,
-			BC3,
+			//BC1,
+			//BC2,
+			//BC3,
 
 			Count
 		};
@@ -45,7 +45,7 @@ namespace prosper
 #pragma pack(pop)
 
 		ShaderBlurBase(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader);
-		bool BeginDraw(const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,Pipeline pipelineIdx=Pipeline::R8G8B8A8Unorm);
+		bool BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,Pipeline pipelineIdx=Pipeline::R8G8B8A8Unorm);
 		bool Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants);
 	protected:
 		virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx) override;
