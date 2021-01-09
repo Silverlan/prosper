@@ -7,7 +7,7 @@
 #include "prosper_command_buffer.hpp"
 
 using namespace prosper;
-#pragma optimize("",off)
+
 ISwapCommandBufferGroup::ISwapCommandBufferGroup(prosper::IPrContext &context)
 	: m_context{context}
 {
@@ -96,6 +96,8 @@ void MtSwapCommandBufferGroup::Draw(prosper::IRenderPass &rp,prosper::IFramebuff
 		};
 		m_conditionVar.notify_one();
 	m_waitMutex.unlock();
+	if(GetContext().IsMultiThreadedRenderingEnabled() == false)
+		Wait();
 }
 
 void MtSwapCommandBufferGroup::Wait() {while(IsPending());}
@@ -130,4 +132,3 @@ bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &c
 	}
 	return ISwapCommandBufferGroup::ExecuteCommands(cmdBuf);
 }
-#pragma optimize("",on)

@@ -23,7 +23,7 @@ uint32_t IDescriptorSetGroup::GetBindingCount() const {return GetDescriptorSetCr
 
 const DescriptorSetCreateInfo &IDescriptorSetGroup::GetDescriptorSetCreateInfo() const {return m_createInfo;}
 
-IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) {return (index < m_descriptorSets.size()) ? m_descriptorSets.at(index).get() : nullptr;}
+IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) {return m_descriptorSets.at(index).get();}
 const IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) const {return const_cast<IDescriptorSetGroup*>(this)->GetDescriptorSet(index);}
 
 ShaderModuleStageEntryPoint::ShaderModuleStageEntryPoint(const ShaderModuleStageEntryPoint& in)

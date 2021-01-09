@@ -23,6 +23,15 @@
 namespace prosper
 {
 	class DescriptorSetCreateInfo;
+	
+	class Shader;
+	class DLLPROSPER IShaderPipelineLayout
+	{
+	public:
+		virtual ~IShaderPipelineLayout() {};
+	protected:
+		IShaderPipelineLayout() {}
+	};
 
 	class ShaderStageProgram;
 	struct DLLPROSPER ShaderStageData
@@ -35,7 +44,6 @@ namespace prosper
 		std::shared_ptr<ShaderStageProgram> program = nullptr;
 	};
 
-	class Shader;
 	struct DLLPROSPER DescriptorSetInfo
 	{
 		struct DLLPROSPER Binding

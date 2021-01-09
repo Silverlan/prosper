@@ -16,7 +16,7 @@
 #include <sstream>
 #include <cassert>
 #include <mpParser.h>
-#pragma optimize("",off)
+
 static unsigned int get_line_break(std::string &str,int pos=0)
 {
 	auto len = str.length();
@@ -604,5 +604,5 @@ std::optional<std::string> prosper::glsl::load_glsl(
 	}
 	return shaderCode;
 }
-#pragma optimize("",on)
+
 #endif

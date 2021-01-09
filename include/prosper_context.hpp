@@ -82,6 +82,7 @@ namespace prosper
 	class ISwapCommandBufferGroup;
 	class IFence;
 	class IEvent;
+	class IShaderPipelineLayout;
 	class TimestampQuery;
 	class Query;
 	class PipelineStatisticsQuery;
@@ -119,7 +120,8 @@ namespace prosper
 			Initialized = ValidationEnabled<<1u,
 			Idle = Initialized<<1u,
 			Closed = Idle<<1u,
-			ClearingKeepAliveResources = Closed<<1u
+			ClearingKeepAliveResources = Closed<<1u,
+			EnableMultiThreadedRendering = ClearingKeepAliveResources<<1u
 		};
 
 		struct DLLPROSPER CreateInfo
@@ -284,8 +286,9 @@ namespace prosper
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)=0;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)=0;
-		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup()=0;
+		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(bool allowMt=true)=0;
 		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)=0;
+		virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader,uint32_t pipelineIdx=0u) const=0;
 		std::shared_ptr<Texture> CreateTexture(
 			const util::TextureCreateInfo &createInfo,IImage &img,
 			const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo=util::ImageViewCreateInfo{},
@@ -304,6 +307,7 @@ namespace prosper
 		)=0;
 		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false)=0;
 		virtual std::optional<std::unordered_map<prosper::ShaderStage,std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog) {return {};}
+		virtual bool GetParsedShaderSourceCode(prosper::Shader &shader,std::vector<std::string> &outGlslCodePerStage,std::vector<prosper::ShaderStage> &outGlslCodeStages,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const=0;
 		std::optional<std::string> FindShaderFile(const std::string &fileName,std::string *optOutExt=nullptr);
 		virtual std::optional<PipelineID> AddPipeline(
 			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
@@ -348,6 +352,9 @@ namespace prosper
 		virtual void *GetInternalUniversalQueue() const {return nullptr;}
 		virtual bool IsDeviceExtensionEnabled(const std::string &ext) const {return false;}
 		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const {return false;}
+
+		void SetMultiThreadedRenderingEnabled(bool enabled) {umath::set_flag(m_stateFlags,StateFlags::EnableMultiThreadedRendering);}
+		bool IsMultiThreadedRenderingEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::EnableMultiThreadedRendering);}
 
 		struct ShaderDescriptorSetBindingInfo
 		{

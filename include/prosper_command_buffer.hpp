@@ -51,6 +51,7 @@ namespace prosper
 		virtual bool RecordBindVertexBuffers(
 			const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={}
 		)=0;
+		virtual bool RecordBindVertexBuffer(const prosper::ShaderGraphics &shader,const IBuffer &buf,uint32_t startBinding=0u,DeviceSize offset=0u)=0;
 		virtual bool RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)=0;
 		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)=0;
 		virtual bool RecordDispatch(uint32_t x,uint32_t y,uint32_t z)=0;
@@ -116,8 +117,14 @@ namespace prosper
 			PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,
 			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
 		)=0;
+		virtual bool RecordBindDescriptorSets(
+			PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
+			const prosper::IDescriptorSet &descSet,uint32_t *optDynamicOffset=nullptr
+		)=0;
 		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)=0;
+		virtual bool RecordPushConstants(const IShaderPipelineLayout &pipelineLayout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)=0;
 		bool RecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId);
+		bool RecordUnbindShaderPipeline();
 
 		virtual bool RecordSetLineWidth(float lineWidth)=0;
 		virtual bool RecordSetViewport(uint32_t width,uint32_t height,uint32_t x=0u,uint32_t y=0u,float minDepth=0.f,float maxDepth=0.f)=0;

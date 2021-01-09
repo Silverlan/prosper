@@ -240,6 +240,11 @@ bool prosper::ICommandBuffer::RecordPostRenderPassImageBarrier(
 	return ::record_image_barrier(*this,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange);
 }
 void prosper::ICommandBuffer::ClearBoundPipeline() {}
+bool prosper::ICommandBuffer::RecordUnbindShaderPipeline()
+{
+	ClearBoundPipeline();
+	return true;
+}
 bool prosper::ICommandBuffer::RecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId)
 {
 	auto *pipelineInfo = shader.GetPipelineInfo(shaderPipelineId);

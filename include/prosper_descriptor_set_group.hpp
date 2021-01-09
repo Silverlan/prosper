@@ -160,6 +160,17 @@ namespace prosper
 		bool SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
 
 		IDescriptorSetGroup &GetDescriptorSetGroup() const;
+
+		template<class T,typename=std::enable_if_t<std::is_base_of_v<IDescriptorSet,T>>>
+			T &GetAPITypeRef()
+		{
+			return *static_cast<T*>(m_apiTypePtr);
+		}
+		template<class T,typename=std::enable_if_t<std::is_base_of_v<IDescriptorSet,T>>>
+			const T &GetAPITypeRef() const
+		{
+			return const_cast<IDescriptorSet*>(this)->GetAPITypeRef<T>();
+		}
 	protected:
 		virtual bool DoSetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)=0;
 		virtual bool DoSetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)=0;
@@ -167,6 +178,7 @@ namespace prosper
 		virtual bool DoSetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
 		virtual bool DoSetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
 		virtual bool DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
+		void *m_apiTypePtr = nullptr;
 	private:
 		IDescriptorSetGroup &m_dsg;
 		std::vector<std::unique_ptr<DescriptorSetBinding>> m_bindings = {};
