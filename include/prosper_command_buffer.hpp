@@ -29,6 +29,7 @@ namespace prosper
 	class PipelineStatisticsQuery;
 	class IPrimaryCommandBuffer;
 	class ISecondaryCommandBuffer;
+	class IShaderPipelineLayout;
 	class Query;
 	class Shader;
 	class IRenderBuffer;
@@ -165,6 +166,7 @@ namespace prosper
 		virtual bool DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst,uint32_t w,uint32_t h)=0;
 		virtual bool DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets)=0;
 		virtual bool DoRecordResolveImage(IImage &imgSrc,IImage &imgDst,const util::ImageResolve &resolve)=0;
+		void UpdateLastUsageTimes(IDescriptorSet &ds);
 
 		void SetRecording(bool recording) const {m_recording = recording;}
 

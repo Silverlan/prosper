@@ -17,6 +17,7 @@
 #include "image/prosper_sampler.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
+#include "prosper_descriptor_set_group.hpp"
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
 #include <thread>
@@ -398,6 +399,8 @@ void IPrContext::Initialize(const CreateInfo &createInfo)
 	// TODO: Check if resolution is supported
 	m_windowCreationInfo->width = createInfo.width;
 	m_windowCreationInfo->height = createInfo.height;
+	if(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled))
+		m_validationData = std::unique_ptr<ValidationData>{new ValidationData{}};
 	ChangePresentMode(createInfo.presentMode);
 	InitAPI(createInfo);
 	InitBuffers();
@@ -660,6 +663,84 @@ void IPrContext::Draw(uint32_t n_swapchain_image)
 }
 
 void IPrContext::InitGfxPipelines() {}
+
+void IPrContext::UpdateLastUsageTime(IImage &img)
+{
+	if(IsValidationEnabled() == false)
+		return;
+	m_validationData->lastImageUsage[&img] = std::chrono::steady_clock::now();
+}
+void IPrContext::UpdateLastUsageTime(IBuffer &buf)
+{
+	if(IsValidationEnabled() == false)
+		return;
+	m_validationData->lastBufferUsage[&buf] = std::chrono::steady_clock::now();
+}
+std::optional<std::chrono::steady_clock::time_point> IPrContext::GetLastUsageTime(IImage &img)
+{
+	if(IsValidationEnabled() == false)
+		return {};
+	std::unique_lock lock {m_validationData->mutex};
+	auto it = m_validationData->lastImageUsage.find(&img);
+	if(it == m_validationData->lastImageUsage.end())
+		return {};
+	return it->second;
+}
+std::optional<std::chrono::steady_clock::time_point> IPrContext::GetLastUsageTime(IBuffer &buf)
+{
+	if(IsValidationEnabled() == false)
+		return {};
+	std::unique_lock lock {m_validationData->mutex};
+	auto it = m_validationData->lastBufferUsage.find(&buf);
+	if(it == m_validationData->lastBufferUsage.end())
+		return {};
+	return it->second;
+}
+void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
+{
+	if(IsValidationEnabled() == false)
+		return;
+	std::unique_lock lock {m_validationData->mutex};
+	auto &bindings = ds.GetBindings();
+	auto numBindings = bindings.size();
+	for(auto i=decltype(numBindings){0u};i<numBindings;++i)
+	{
+		auto &binding = bindings[i];
+		if(binding == nullptr)
+			continue;
+		switch(binding->GetType())
+		{
+		case prosper::DescriptorSetBinding::Type::Texture:
+		{
+			std::optional<uint32_t> layer {};
+			auto *tex = ds.GetBoundTexture(i,&layer);
+			if(tex)
+				UpdateLastUsageTime(tex->GetImage());
+			break;
+		}
+		case prosper::DescriptorSetBinding::Type::ArrayTexture:
+		{
+			auto numTextures = ds.GetBoundArrayTextureCount(i);
+			for(auto j=decltype(numTextures){0u};j<numTextures;++j)
+			{
+				auto *tex = ds.GetBoundArrayTexture(i,j);
+				if(tex)
+					UpdateLastUsageTime(tex->GetImage());
+			}
+			break;
+		}
+		case prosper::DescriptorSetBinding::Type::UniformBuffer:
+		case prosper::DescriptorSetBinding::Type::DynamicUniformBuffer:
+		case prosper::DescriptorSetBinding::Type::StorageBuffer:
+		{
+			auto *buf = ds.GetBoundBuffer(i);
+			if(buf)
+				UpdateLastUsageTime(*buf);
+			break;
+		}
+		}
+	}
+}
 
 const GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() const {return const_cast<IPrContext*>(this)->GetWindowCreationInfo();}
 GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() {return *m_windowCreationInfo;}

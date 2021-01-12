@@ -66,6 +66,7 @@ namespace prosper
 	class Texture;
 	class RenderTarget;
 	class IBuffer;
+	class IDescriptorSet;
 	class IUniformResizableBuffer;
 	class IDynamicResizableBuffer;
 	class ISampler;
@@ -385,6 +386,11 @@ namespace prosper
 			std::vector<std::optional<ShaderDescriptorSetInfo>> &outDescSetInfos,
 			std::vector<ShaderMacroLocation> &outMacroLocations
 		);
+		std::optional<std::chrono::steady_clock::time_point> GetLastUsageTime(IImage &img);
+		std::optional<std::chrono::steady_clock::time_point> GetLastUsageTime(IBuffer &buf);
+		void UpdateLastUsageTime(IImage &img);
+		void UpdateLastUsageTime(IBuffer &buf);
+		void UpdateLastUsageTimes(IDescriptorSet &ds);
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
@@ -447,6 +453,14 @@ namespace prosper
 		std::shared_ptr<prosper::Texture> m_dummyTexture = nullptr;
 		std::shared_ptr<prosper::Texture> m_dummyCubemapTexture = nullptr;
 		std::shared_ptr<prosper::IBuffer> m_dummyBuffer = nullptr;
+
+		struct ValidationData
+		{
+			std::unordered_map<prosper::IImage*,std::chrono::steady_clock::time_point> lastImageUsage;
+			std::unordered_map<prosper::IBuffer*,std::chrono::steady_clock::time_point> lastBufferUsage;
+			std::mutex mutex;
+		};
+		std::unique_ptr<ValidationData> m_validationData = nullptr;
 
 		std::unique_ptr<GLFW::WindowCreationInfo> m_windowCreationInfo = nullptr;
 	private:

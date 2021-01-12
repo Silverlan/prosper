@@ -37,6 +37,8 @@ bool prosper::ICommandBuffer::IsPrimary() const {return false;}
 bool prosper::ICommandBuffer::IsSecondary() const {return false;}
 prosper::QueueFamilyType prosper::ICommandBuffer::GetQueueFamilyType() const {return m_queueFamilyType;}
 
+void prosper::ICommandBuffer::UpdateLastUsageTimes(IDescriptorSet &ds) {GetContext().UpdateLastUsageTimes(ds);}
+
 bool prosper::IPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
 {
 	assert(!m_recording);

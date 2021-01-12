@@ -321,6 +321,18 @@ bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarg
 	auto &tex = rt.GetTexture();
 	auto &img = tex.GetImage();
 
+	if(GetContext().IsValidationEnabled())
+	{
+		auto n = rt.GetAttachmentCount();
+		for(auto i=decltype(n){0u};i<n;++i)
+		{
+			auto *tex = rt.GetTexture(i);
+			if(tex == nullptr)
+				continue;
+			GetContext().UpdateLastUsageTime(tex->GetImage());
+		}
+	}
+
 	SetActiveRenderPassTarget(rp,(layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(),&img,fb,nullptr);
 	return DoRecordBeginRenderPass(img,*rp,*fb,layerId,clearValues,renderPassFlags);
 }
