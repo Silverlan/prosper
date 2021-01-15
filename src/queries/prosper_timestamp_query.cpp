@@ -15,11 +15,15 @@ TimestampQuery::TimestampQuery(IQueryPool &queryPool,uint32_t queryId,PipelineSt
 
 void TimestampQuery::OnReset(prosper::ICommandBuffer &cmdBuffer)
 {
-	m_bReset = true;
+	m_state = State::Reset;
 }
 
-bool TimestampQuery::Write(prosper::ICommandBuffer &cmdBuffer) {return cmdBuffer.WriteTimestampQuery(*this);}
+bool TimestampQuery::Write(prosper::ICommandBuffer &cmdBuffer)
+{
+	m_state = State::Set;
+	return cmdBuffer.WriteTimestampQuery(*this);
+}
 bool TimestampQuery::QueryResult(std::chrono::nanoseconds &outTimestampValue) const {return GetContext().QueryResult(*this,outTimestampValue);}
-bool TimestampQuery::IsReset() const {return m_bReset;}
+bool TimestampQuery::IsReset() const {return m_state != State::Set;}
 
 prosper::PipelineStageFlags TimestampQuery::GetPipelineStage() const {return m_pipelineStage;}

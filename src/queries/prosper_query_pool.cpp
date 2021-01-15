@@ -50,12 +50,12 @@ std::shared_ptr<TimestampQuery> IQueryPool::CreateTimestampQuery(PipelineStageFl
 		return nullptr;
 	return std::shared_ptr<TimestampQuery>(new TimestampQuery(*this,query,pipelineStage));
 }
-std::shared_ptr<TimerQuery> IQueryPool::CreateTimerQuery(PipelineStageFlags pipelineStage)
+std::shared_ptr<TimerQuery> IQueryPool::CreateTimerQuery(PipelineStageFlags pipelineStageStart,PipelineStageFlags pipelineStageEnd)
 {
-	auto tsQuery0 = CreateTimestampQuery(pipelineStage);
+	auto tsQuery0 = CreateTimestampQuery(pipelineStageStart);
 	if(tsQuery0 == nullptr)
 		return nullptr;
-	auto tsQuery1 = CreateTimestampQuery(pipelineStage);
+	auto tsQuery1 = CreateTimestampQuery(pipelineStageEnd);
 	if(tsQuery1 == nullptr)
 		return nullptr;
 	return std::shared_ptr<TimerQuery>(new TimerQuery(tsQuery0,tsQuery1));

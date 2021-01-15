@@ -29,7 +29,7 @@ namespace prosper
 		std::shared_ptr<OcclusionQuery> CreateOcclusionQuery();
 		std::shared_ptr<PipelineStatisticsQuery> CreatePipelineStatisticsQuery();
 		std::shared_ptr<TimestampQuery> CreateTimestampQuery(PipelineStageFlags pipelineStage);
-		std::shared_ptr<TimerQuery> CreateTimerQuery(PipelineStageFlags pipelineStage);
+		std::shared_ptr<TimerQuery> CreateTimerQuery(PipelineStageFlags pipelineStageStart,PipelineStageFlags pipelineStageEnd);
 	protected:
 		IQueryPool(IPrContext &context,QueryType type,uint32_t queryCount);
 

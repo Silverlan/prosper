@@ -22,6 +22,11 @@ bool TimerQuery::End(prosper::ICommandBuffer &cmdBuffer) const {return m_tsQuery
 
 bool TimerQuery::QueryResult(std::chrono::nanoseconds &outDuration) const
 {
+	if(m_tsQuery0->GetState() == TimestampQuery::State::Initial || m_tsQuery1->GetState() == TimestampQuery::State::Initial)
+	{
+		outDuration = std::chrono::nanoseconds{0};
+		return true;
+	}
 	std::chrono::nanoseconds nsStart,nsEnd;
 	if(m_tsQuery0->QueryResult(nsStart) == false || m_tsQuery1->QueryResult(nsEnd) == false)
 		return false;
@@ -29,5 +34,10 @@ bool TimerQuery::QueryResult(std::chrono::nanoseconds &outDuration) const
 	return true;
 }
 
-bool TimerQuery::IsResultAvailable() const {return (m_tsQuery0->IsResultAvailable() && m_tsQuery1->IsResultAvailable()) ? true : false;}
+bool TimerQuery::IsResultAvailable() const
+{
+	if(m_tsQuery0->GetState() == TimestampQuery::State::Initial || m_tsQuery1->GetState() == TimestampQuery::State::Initial)
+		return true;
+	return (m_tsQuery0->IsResultAvailable() && m_tsQuery1->IsResultAvailable()) ? true : false;
+}
 prosper::PipelineStageFlags TimerQuery::GetPipelineStage() const {return m_tsQuery0->GetPipelineStage();}
