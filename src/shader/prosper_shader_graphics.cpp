@@ -240,7 +240,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 		else
 			gfxPipelineInfo->SetDynamicScissorBoxesCount(1u);
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
-		pipelineInfo.id = std::numeric_limits<decltype(pipelineInfo.id)>::max();
+		pipelineInfo.id = InitPipelineId(pipelineIdx);
 		auto &context = GetContext();
 		auto result = context.AddPipeline(*this,pipelineIdx,*gfxPipelineInfo,*renderPass,modFs,modVs,modGs,modTessControl,modTessEval,subPassId,basePipelineId);
 		pipelineInfo.createInfo = std::move(gfxPipelineInfo);
@@ -252,6 +252,8 @@ void prosper::ShaderGraphics::InitializePipeline()
 			pipelineInfo.renderPass = renderPass;
 			OnPipelineInitialized(pipelineIdx);
 		}
+		else
+			pipelineInfo.id = std::numeric_limits<PipelineID>::max();
 	}
 }
 void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
@@ -412,9 +414,14 @@ bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t ins
 	auto cmdBuffer = GetCurrentCommandBuffer();
 	return cmdBuffer != nullptr && cmdBuffer->RecordDrawIndexed(indexCount,instanceCount,firstIndex,firstInstance);
 }
-bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data)
+bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStageFlags stageFlags,uint32_t constantId,uint32_t numBytes,const void *data)
 {
-	return pipelineInfo.AddSpecializationConstant(stage,constantId,numBytes,data);
+	for(auto v : util::shader_stage_flags_to_shader_stages(stageFlags))
+	{
+		if(pipelineInfo.AddSpecializationConstant(v,constantId,numBytes,data) == false)
+			return false;
+	}
+	return true;
 }
 void prosper::ShaderGraphics::AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr) {m_vertexAttributes.push_back(attr);}
 bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)

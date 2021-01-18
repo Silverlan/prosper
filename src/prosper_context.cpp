@@ -25,9 +25,11 @@
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
 
-using namespace prosper;
+prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader,uint32_t pipeline)
+	: shader{shader.GetHandle()},pipeline{pipeline}
+{}
 
-IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
+prosper::IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_lastSemaporeUsed(0),m_appName(appName),
 	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>()),
 	m_commonBufferCache{*this}
@@ -36,42 +38,42 @@ IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	m_windowCreationInfo->title = appName;
 }
 
-IPrContext::~IPrContext()
+prosper::IPrContext::~IPrContext()
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed) == false)
 		throw std::logic_error{"Prosper context has to be closed before being destroyed!"};
 }
 
-void IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
-bool IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
+void prosper::IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
+bool prosper::IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
 
-const std::string &IPrContext::GetAppName() const {return m_appName;}
-uint32_t IPrContext::GetSwapchainImageCount() const {return m_numSwapchainImages;}
+const std::string &prosper::IPrContext::GetAppName() const {return m_appName;}
+uint32_t prosper::IPrContext::GetSwapchainImageCount() const {return m_numSwapchainImages;}
 
-prosper::IImage *IPrContext::GetSwapchainImage(uint32_t idx)
+prosper::IImage *prosper::IPrContext::GetSwapchainImage(uint32_t idx)
 {
 	return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr;
 }
 
-GLFW::Window &IPrContext::GetWindow() {return *m_glfwWindow;}
-std::array<uint32_t,2> IPrContext::GetWindowSize() const {return {m_windowCreationInfo->width,m_windowCreationInfo->height};}
-uint32_t IPrContext::GetWindowWidth() const {return m_windowCreationInfo->width;}
-uint32_t IPrContext::GetWindowHeight() const {return m_windowCreationInfo->height;}
+GLFW::Window &prosper::IPrContext::GetWindow() {return *m_glfwWindow;}
+std::array<uint32_t,2> prosper::IPrContext::GetWindowSize() const {return {m_windowCreationInfo->width,m_windowCreationInfo->height};}
+uint32_t prosper::IPrContext::GetWindowWidth() const {return m_windowCreationInfo->width;}
+uint32_t prosper::IPrContext::GetWindowHeight() const {return m_windowCreationInfo->height;}
 
-void IPrContext::Close()
+void prosper::IPrContext::Close()
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed))
 		return;
 	WaitIdle();
 	OnClose();
 }
-void IPrContext::OnClose()
+void prosper::IPrContext::OnClose()
 {
 	if(m_callbacks.onClose)
 		m_callbacks.onClose();
 	Release();
 }
-void IPrContext::Release()
+void prosper::IPrContext::Release()
 {
 	m_commonBufferCache.Release();
 	m_shaderManager = nullptr;
@@ -92,11 +94,11 @@ void IPrContext::Release()
 	m_stateFlags |= StateFlags::Closed;
 }
 
-FrameIndex IPrContext::GetLastFrameId() const {return m_frameId;}
+prosper::FrameIndex prosper::IPrContext::GetLastFrameId() const {return m_frameId;}
 
-void IPrContext::EndFrame() {++m_frameId;}
+void prosper::IPrContext::EndFrame() {++m_frameId;}
 
-void IPrContext::DrawFrame()
+void prosper::IPrContext::DrawFrame()
 {
 	DrawFrame([this](const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t m_n_swapchain_image) {
 		Draw(m_n_swapchain_image);
@@ -104,13 +106,13 @@ void IPrContext::DrawFrame()
 	EndFrame();
 }
 
-void IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data)
+void prosper::IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data)
 {
 	auto req = GetMemoryRequirements(img);
 	auto buf = AllocateDeviceImageBuffer(req.size,req.alignment,data);
 	img.SetMemoryBuffer(*buf);
 }
-std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
 {
 	static uint64_t totalAllocated = 0;
 	totalAllocated += size;
@@ -156,7 +158,7 @@ std::shared_ptr<IBuffer> IPrContext::AllocateDeviceImageBuffer(prosper::DeviceSi
 	return buf;
 }
 
-std::shared_ptr<IBuffer> IPrContext::AllocateTemporaryBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
+std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateTemporaryBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
 {
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
@@ -172,14 +174,14 @@ std::shared_ptr<IBuffer> IPrContext::AllocateTemporaryBuffer(prosper::DeviceSize
 		BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
 	return CreateBuffer(createInfo,data);
 }
-void IPrContext::AllocateTemporaryBuffer(prosper::IImage &img,const void *data)
+void prosper::IPrContext::AllocateTemporaryBuffer(prosper::IImage &img,const void *data)
 {
 	auto req = GetMemoryRequirements(img);
 	auto buf = AllocateTemporaryBuffer(req.size,req.alignment,data);
 	img.SetMemoryBuffer(*buf);
 }
 
-void IPrContext::ChangeResolution(uint32_t width,uint32_t height)
+void prosper::IPrContext::ChangeResolution(uint32_t width,uint32_t height)
 {
 	if(width == m_windowCreationInfo->width && height == m_windowCreationInfo->height)
 		return;
@@ -193,19 +195,19 @@ void IPrContext::ChangeResolution(uint32_t width,uint32_t height)
 	OnResolutionChanged(width,height);
 }
 
-void IPrContext::OnResolutionChanged(uint32_t width,uint32_t height)
+void prosper::IPrContext::OnResolutionChanged(uint32_t width,uint32_t height)
 {
 	if(m_callbacks.onResolutionChanged)
 		m_callbacks.onResolutionChanged(width,height);
 }
-void IPrContext::OnWindowInitialized()
+void prosper::IPrContext::OnWindowInitialized()
 {
 	if(m_callbacks.onWindowInitialized)
 		m_callbacks.onWindowInitialized();
 }
-void IPrContext::OnSwapchainInitialized() {}
+void prosper::IPrContext::OnSwapchainInitialized() {}
 
-void IPrContext::SetPresentMode(prosper::PresentModeKHR presentMode)
+void prosper::IPrContext::SetPresentMode(prosper::PresentModeKHR presentMode)
 {
 	if(IsPresentationModeSupported(presentMode) == false)
 	{
@@ -220,8 +222,8 @@ void IPrContext::SetPresentMode(prosper::PresentModeKHR presentMode)
 	}
 	m_presentMode = presentMode;
 }
-prosper::PresentModeKHR IPrContext::GetPresentMode() const {return m_presentMode;}
-void IPrContext::ChangePresentMode(prosper::PresentModeKHR presentMode)
+prosper::PresentModeKHR prosper::IPrContext::GetPresentMode() const {return m_presentMode;}
+void prosper::IPrContext::ChangePresentMode(prosper::PresentModeKHR presentMode)
 {
 	auto oldPresentMode = GetPresentMode();
 	SetPresentMode(presentMode);
@@ -231,7 +233,7 @@ void IPrContext::ChangePresentMode(prosper::PresentModeKHR presentMode)
 	ReloadSwapchain();
 }
 
-void IPrContext::GetScissorViewportInfo(Rect2D *out_scissors,Viewport *out_viewports)
+void prosper::IPrContext::GetScissorViewportInfo(Rect2D *out_scissors,Viewport *out_viewports)
 {
 	auto width = GetWindowWidth();
 	auto height = GetWindowHeight();
@@ -284,7 +286,7 @@ void IPrContext::GetScissorViewportInfo(Rect2D *out_scissors,Viewport *out_viewp
 	}
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetSetupCommandBuffer()
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer != nullptr)
 		return m_setupCmdBuffer;
@@ -297,17 +299,17 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetSetupComma
 	return m_setupCmdBuffer;
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &IPrContext::GetDrawCommandBuffer(uint32_t swapchainIdx) const
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer(uint32_t swapchainIdx) const
 {
 	static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
 	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
 }
 
-void IPrContext::FlushCommandBuffer(prosper::ICommandBuffer &cmd) {DoFlushCommandBuffer(cmd);}
+void prosper::IPrContext::FlushCommandBuffer(prosper::ICommandBuffer &cmd) {DoFlushCommandBuffer(cmd);}
 
-void IPrContext::FlushSetupCommandBuffer()
+void prosper::IPrContext::FlushSetupCommandBuffer()
 {
 	if(m_setupCmdBuffer == nullptr)
 		return;
@@ -315,7 +317,7 @@ void IPrContext::FlushSetupCommandBuffer()
 	m_setupCmdBuffer = nullptr;
 }
 
-void IPrContext::ClearKeepAliveResources(uint32_t n)
+void prosper::IPrContext::ClearKeepAliveResources(uint32_t n)
 {
 	if(m_n_swapchain_image >= m_keepAliveResources.size())
 		return;
@@ -324,7 +326,7 @@ void IPrContext::ClearKeepAliveResources(uint32_t n)
 	while(n-- > 0u)
 		resources.erase(resources.begin());
 }
-void IPrContext::ClearKeepAliveResources()
+void prosper::IPrContext::ClearKeepAliveResources()
 {
 	if(m_n_swapchain_image >= m_keepAliveResources.size())
 		return;
@@ -335,7 +337,7 @@ void IPrContext::ClearKeepAliveResources()
 	resources.clear();
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources,false);
 }
-void IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
+void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
 	std::unique_lock lock {m_aliveResourceMutex};
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
@@ -343,7 +345,25 @@ void IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_pt
 	DoKeepResourceAliveUntilPresentationComplete(resource);
 }
 
-void IPrContext::WaitIdle()
+prosper::PipelineID prosper::IPrContext::ReserveShaderPipeline()
+{
+	m_shaderPipelines.push_back({});
+	return m_shaderPipelines.size() -1;
+}
+void prosper::IPrContext::AddShaderPipeline(prosper::Shader &shader,uint32_t shaderPipelineIdx,PipelineID pipelineId)
+{
+	if(pipelineId >= m_shaderPipelines.size())
+		m_shaderPipelines.resize(pipelineId +1);
+	m_shaderPipelines[pipelineId] = {shader,shaderPipelineIdx};
+}
+prosper::Shader *prosper::IPrContext::GetShaderPipeline(PipelineID id,uint32_t &outPipelineIdx) const
+{
+	auto &info = m_shaderPipelines[id];
+	outPipelineIdx = info.pipeline;
+	return info.shader.get();
+}
+
+void prosper::IPrContext::WaitIdle()
 {
 	FlushSetupCommandBuffer();
 	DoWaitIdle();
@@ -351,9 +371,9 @@ void IPrContext::WaitIdle()
 	ClearKeepAliveResources();
 }
 
-CommonBufferCache &IPrContext::GetCommonBufferCache() const {return m_commonBufferCache;}
+prosper::CommonBufferCache &prosper::IPrContext::GetCommonBufferCache() const {return m_commonBufferCache;}
 
-bool IPrContext::ValidationCallback(
+bool prosper::IPrContext::ValidationCallback(
 	DebugMessageSeverityFlags severityFlags,
 	const std::string &message
 )
@@ -376,7 +396,7 @@ void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize,uint64_t &buffe
 	maxTotalSize = alignedMaxTotalSize;
 }
 
-std::shared_ptr<IUniformResizableBuffer> IPrContext::CreateUniformResizableBuffer(
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(
 	prosper::util::BufferCreateInfo createInfo,uint64_t bufferInstanceSize,
 	uint64_t maxTotalSize,float clampSizeToAvailableGPUMemoryPercentage,const void *data,
 	std::optional<DeviceSize> customAlignment
@@ -394,7 +414,7 @@ std::shared_ptr<IUniformResizableBuffer> IPrContext::CreateUniformResizableBuffe
 	return DoCreateUniformResizableBuffer(createInfo,bufferInstanceSize,maxTotalSize,data,bufferBaseSize,alignment);
 }
 
-void IPrContext::Initialize(const CreateInfo &createInfo)
+void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	// TODO: Check if resolution is supported
 	m_windowCreationInfo->width = createInfo.width;
@@ -415,27 +435,27 @@ void IPrContext::Initialize(const CreateInfo &createInfo)
 	shaderManager.RegisterShader("blur_vertical",[](prosper::IPrContext &context,const std::string &identifier) {return new ShaderBlurV(context,identifier);});
 }
 
-void IPrContext::InitBuffers() {}
+void prosper::IPrContext::InitBuffers() {}
 
-void IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image)
+void prosper::IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image)
 {
 	if(m_callbacks.drawFrame)
 		m_callbacks.drawFrame(cmd_buffer_ptr,n_current_swapchain_image);
 }
 
-ShaderManager &IPrContext::GetShaderManager() const {return *m_shaderManager;}
+prosper::ShaderManager &prosper::IPrContext::GetShaderManager() const {return *m_shaderManager;}
 
-std::optional<std::string> IPrContext::FindShaderFile(const std::string &fileName,std::string *optOutExt) {return prosper::glsl::find_shader_file(fileName,optOutExt);}
+std::optional<std::string> prosper::IPrContext::FindShaderFile(const std::string &fileName,std::string *optOutExt) {return prosper::glsl::find_shader_file(fileName,optOutExt);}
 
-void IPrContext::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
-::util::WeakHandle<Shader> IPrContext::GetShader(const std::string &identifier) const {return m_shaderManager->GetShader(identifier);}
+void prosper::IPrContext::RegisterShader(const std::string &identifier,const std::function<Shader*(IPrContext&,const std::string&)> &fFactory) {return m_shaderManager->RegisterShader(identifier,fFactory);}
+::util::WeakHandle<prosper::Shader> prosper::IPrContext::GetShader(const std::string &identifier) const {return m_shaderManager->GetShader(identifier);}
 
-const std::shared_ptr<Texture> &IPrContext::GetDummyTexture() const {return m_dummyTexture;}
-const std::shared_ptr<Texture> &IPrContext::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
-const std::shared_ptr<IBuffer> &IPrContext::GetDummyBuffer() const {return m_dummyBuffer;}
-const std::shared_ptr<IDynamicResizableBuffer> &IPrContext::GetTemporaryBuffer() const {return m_tmpBuffer;}
-const std::vector<std::shared_ptr<IDynamicResizableBuffer>> &IPrContext::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
-void IPrContext::InitDummyBuffer()
+const std::shared_ptr<prosper::Texture> &prosper::IPrContext::GetDummyTexture() const {return m_dummyTexture;}
+const std::shared_ptr<prosper::Texture> &prosper::IPrContext::GetDummyCubemapTexture() const {return m_dummyCubemapTexture;}
+const std::shared_ptr<prosper::IBuffer> &prosper::IPrContext::GetDummyBuffer() const {return m_dummyBuffer;}
+const std::shared_ptr<prosper::IDynamicResizableBuffer> &prosper::IPrContext::GetTemporaryBuffer() const {return m_tmpBuffer;}
+const std::vector<std::shared_ptr<prosper::IDynamicResizableBuffer>> &prosper::IPrContext::GetDeviceImageBuffers() const {return m_deviceImgBuffers;}
+void prosper::IPrContext::InitDummyBuffer()
 {
 	prosper::util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
@@ -445,7 +465,7 @@ void IPrContext::InitDummyBuffer()
 	assert(m_dummyBuffer);
 	m_dummyBuffer->SetDebugName("context_dummy_buf");
 }
-void IPrContext::InitDummyTextures()
+void prosper::IPrContext::InitDummyTextures()
 {
 	prosper::util::ImageCreateInfo createInfo {};
 	createInfo.format = Format::R8G8B8A8_UNorm;
@@ -470,10 +490,10 @@ void IPrContext::InitDummyTextures()
 	m_dummyCubemapTexture->SetDebugName("context_dummy_cubemap_tex");
 }
 
-void IPrContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,bool shouldBlock,prosper::IFence *fence) {SubmitCommandBuffer(cmd,cmd.GetQueueFamilyType(),shouldBlock,fence);}
+void prosper::IPrContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,bool shouldBlock,prosper::IFence *fence) {SubmitCommandBuffer(cmd,cmd.GetQueueFamilyType(),shouldBlock,fence);}
 
-bool IPrContext::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
-bool IPrContext::ScheduleRecordUpdateBuffer(
+bool prosper::IPrContext::IsRecording() const {return umath::is_flag_set(m_stateFlags,StateFlags::IsRecording);}
+bool prosper::IPrContext::ScheduleRecordUpdateBuffer(
 	const std::shared_ptr<IBuffer> &buffer,uint64_t offset,uint64_t size,const void *data,const BufferUpdateInfo &updateInfo
 )
 {
@@ -581,7 +601,7 @@ bool IPrContext::ScheduleRecordUpdateBuffer(
 	return true;
 }
 
-void IPrContext::InitTemporaryBuffer()
+void prosper::IPrContext::InitTemporaryBuffer()
 {
 	auto bufferSize = 512ull *1'024ull *1'024ull; // 512 MiB
 	auto maxBufferSize = 1ull *1'024ull *1'024ull *1'024ull; // 1 GiB
@@ -597,7 +617,7 @@ void IPrContext::InitTemporaryBuffer()
 	m_tmpBuffer->SetPermanentlyMapped(true,prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
 }
 
-void IPrContext::Draw(uint32_t n_swapchain_image)
+void prosper::IPrContext::Draw(uint32_t n_swapchain_image)
 {
 	{
 #if 0
@@ -662,21 +682,21 @@ void IPrContext::Draw(uint32_t n_swapchain_image)
 	}
 }
 
-void IPrContext::InitGfxPipelines() {}
+void prosper::IPrContext::InitGfxPipelines() {}
 
-void IPrContext::UpdateLastUsageTime(IImage &img)
+void prosper::IPrContext::UpdateLastUsageTime(IImage &img)
 {
 	if(IsValidationEnabled() == false)
 		return;
 	m_validationData->lastImageUsage[&img] = std::chrono::steady_clock::now();
 }
-void IPrContext::UpdateLastUsageTime(IBuffer &buf)
+void prosper::IPrContext::UpdateLastUsageTime(IBuffer &buf)
 {
 	if(IsValidationEnabled() == false)
 		return;
 	m_validationData->lastBufferUsage[&buf] = std::chrono::steady_clock::now();
 }
-std::optional<std::chrono::steady_clock::time_point> IPrContext::GetLastUsageTime(IImage &img)
+std::optional<std::chrono::steady_clock::time_point> prosper::IPrContext::GetLastUsageTime(IImage &img)
 {
 	if(IsValidationEnabled() == false)
 		return {};
@@ -686,7 +706,7 @@ std::optional<std::chrono::steady_clock::time_point> IPrContext::GetLastUsageTim
 		return {};
 	return it->second;
 }
-std::optional<std::chrono::steady_clock::time_point> IPrContext::GetLastUsageTime(IBuffer &buf)
+std::optional<std::chrono::steady_clock::time_point> prosper::IPrContext::GetLastUsageTime(IBuffer &buf)
 {
 	if(IsValidationEnabled() == false)
 		return {};
@@ -742,12 +762,12 @@ void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
 	}
 }
 
-const GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() const {return const_cast<IPrContext*>(this)->GetWindowCreationInfo();}
-GLFW::WindowCreationInfo &IPrContext::GetWindowCreationInfo() {return *m_windowCreationInfo;}
+const GLFW::WindowCreationInfo &prosper::IPrContext::GetWindowCreationInfo() const {return const_cast<IPrContext*>(this)->GetWindowCreationInfo();}
+GLFW::WindowCreationInfo &prosper::IPrContext::GetWindowCreationInfo() {return *m_windowCreationInfo;}
 
-void IPrContext::SetCallbacks(const Callbacks &callbacks) {m_callbacks = callbacks;}
+void prosper::IPrContext::SetCallbacks(const Callbacks &callbacks) {m_callbacks = callbacks;}
 
-void IPrContext::Run()
+void prosper::IPrContext::Run()
 {
 	auto t = ::util::Clock::now();
 	while(true) // TODO
@@ -765,7 +785,7 @@ void IPrContext::Run()
 	}
 }
 
-bool IPrContext::InitializeShaderSources(prosper::Shader &shader,bool bReload,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const
+bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader,bool bReload,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const
 {
 	auto &stages = shader.GetStages();
 	for(auto i=decltype(stages.size()){0};i<stages.size();++i)

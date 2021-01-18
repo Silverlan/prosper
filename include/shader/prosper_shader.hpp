@@ -190,6 +190,7 @@ namespace prosper
 		virtual void OnPipelinesInitialized();
 		virtual bool ShouldInitializePipeline(uint32_t pipelineIdx);
 		void ClearPipelines();
+		prosper::PipelineID InitPipelineId(uint32_t pipelineIdx);
 
 		ShaderStageData *GetStage(ShaderStage stage);
 		const ShaderStageData *GetStage(ShaderStage stage) const;
@@ -215,6 +216,7 @@ namespace prosper
 		std::string m_identifier;
 
 		PipelineBindPoint m_pipelineBindPoint = static_cast<PipelineBindPoint>(-1);
+		std::vector<prosper::PipelineID> m_cachedPipelineIds;
 	};
 
 	class IRenderBuffer;
@@ -278,7 +280,12 @@ namespace prosper
 		bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1u,uint32_t firstVertex=0u,uint32_t firstInstance=0u);
 		bool RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount=1u,uint32_t firstIndex=0u,uint32_t firstInstance=0u);
 		void AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr);
-		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStage stage,uint32_t constantId,uint32_t numBytes,const void *data);
+		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStageFlags stageFlags,uint32_t constantId,uint32_t numBytes,const void *data);
+		template<typename T>
+			bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStageFlags stageFlags,uint32_t constantId,const T &value)
+		{
+			return AddSpecializationConstant(pipelineInfo,stageFlags,constantId,sizeof(T),&value);
+		}
 		virtual bool BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx=0u,RecordFlags recordFlags=RecordFlags::RenderPassTargetAsViewportAndScissor);
 		virtual bool Draw();
 		virtual void EndDraw();

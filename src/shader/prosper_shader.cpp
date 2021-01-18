@@ -89,7 +89,11 @@ std::optional<std::string> prosper::Shader::GetStageSourceFilePath(ShaderStage s
 
 const std::string &prosper::Shader::GetIdentifier() const {return m_identifier;}
 
-void prosper::Shader::SetPipelineCount(uint32_t count) {m_pipelineInfos.resize(count,{});}
+void prosper::Shader::SetPipelineCount(uint32_t count)
+{
+	m_pipelineInfos.resize(count,{});
+	m_cachedPipelineIds.resize(count,std::numeric_limits<PipelineID>::max());
+}
 
 bool prosper::Shader::IsGraphicsShader() const {return m_pipelineBindPoint == PipelineBindPoint::Graphics;}
 bool prosper::Shader::IsComputeShader() const {return m_pipelineBindPoint == PipelineBindPoint::Compute;}
@@ -485,6 +489,15 @@ prosper::ShaderModule::ShaderModule(
 	m_vsEntrypointName      (in_opt_vs_entrypoint_name),
 	m_shaderStageProgram{shaderStageProgram}
 {}
+
+prosper::PipelineID prosper::Shader::InitPipelineId(uint32_t pipelineIdx)
+{
+	if(pipelineIdx < m_cachedPipelineIds.size() && m_cachedPipelineIds[pipelineIdx] != std::numeric_limits<PipelineID>::max())
+		return m_cachedPipelineIds[pipelineIdx];
+	if(pipelineIdx >= m_cachedPipelineIds.size())
+		m_cachedPipelineIds.resize(pipelineIdx,std::numeric_limits<prosper::PipelineID>::max());
+	m_cachedPipelineIds[pipelineIdx] = GetContext().ReserveShaderPipeline();
+}
 
 void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)
 {

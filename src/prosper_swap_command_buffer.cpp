@@ -32,6 +32,14 @@ void ISwapCommandBufferGroup::Initialize(uint32_t swapchainIdx)
 		m_commandBuffers.push_back(cmdBuf);
 	}
 }
+void ISwapCommandBufferGroup::Reuse()
+{
+	auto swapchainIdx = m_context.GetLastAcquiredSwapchainImageIndex();
+	Initialize(swapchainIdx);
+
+	auto *instance = m_commandBuffers[swapchainIdx].get();
+	m_curCommandBuffer = instance;
+}
 void ISwapCommandBufferGroup::Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw)
 {
 	auto swapchainIdx = m_context.GetLastAcquiredSwapchainImageIndex();
@@ -88,7 +96,7 @@ void MtSwapCommandBufferGroup::Draw(prosper::IRenderPass &rp,prosper::IFramebuff
 		m_pending = true;
 		m_drawCall = [draw,&rp,&fb,this](prosper::ISecondaryCommandBuffer &drawCmd) {
 			m_curCommandBuffer->Reset(false);
-			m_curCommandBuffer->StartRecording(rp,fb);
+			m_curCommandBuffer->StartRecording(rp,fb,GetOneTimeSubmit());
 
 			draw(drawCmd);
 

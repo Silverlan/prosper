@@ -1570,6 +1570,36 @@ prosper::PipelineBindPoint prosper::util::get_pipeline_bind_point(prosper::Shade
 	return ((shaderStages &prosper::ShaderStageFlags::ComputeBit) != prosper::ShaderStageFlags(0)) ? prosper::PipelineBindPoint::Compute : prosper::PipelineBindPoint::Graphics;
 }
 
+prosper::ShaderStage prosper::util::shader_stage_flag_to_shader_stage(prosper::ShaderStageFlags flag)
+{
+	switch(flag)
+	{
+	case ShaderStageFlags::ComputeBit:
+		return ShaderStage::Compute;
+	case ShaderStageFlags::FragmentBit:
+		return ShaderStage::Fragment;
+	case ShaderStageFlags::GeometryBit:
+		return ShaderStage::Geometry;
+	case ShaderStageFlags::TessellationControlBit:
+		return ShaderStage::TessellationControl;
+	case ShaderStageFlags::TessellationEvaluationBit:
+		return ShaderStage::TessellationEvaluation;
+	case ShaderStageFlags::VertexBit:
+		return ShaderStage::Vertex;
+	}
+	throw std::logic_error{std::to_string(umath::to_integral(flag)) +" is not a unique shader stage flag"};
+}
+
+std::vector<prosper::ShaderStage> prosper::util::shader_stage_flags_to_shader_stages(prosper::ShaderStageFlags flags)
+{
+	std::vector<prosper::ShaderStage> stages;
+	auto values = umath::get_power_of_2_values(umath::to_integral(flags));
+	stages.reserve(values.size());
+	for(auto v : values)
+		stages.push_back(shader_stage_flag_to_shader_stage(static_cast<prosper::ShaderStageFlags>(v)));
+	return stages;
+}
+
 prosper::ImageAspectFlags prosper::util::get_aspect_mask(Format format)
 {
 	auto aspectMask = ImageAspectFlags::ColorBit;

@@ -40,10 +40,18 @@ namespace uimg
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	class Shader;
 	class ShaderStageProgram
 	{
 	public:
 		ShaderStageProgram()=default;
+	};
+	struct DLLPROSPER ShaderPipeline
+	{
+		ShaderPipeline()=default;
+		ShaderPipeline(prosper::Shader &shader,uint32_t pipeline);
+		::util::WeakHandle<prosper::Shader> shader {};
+		uint32_t pipeline = 0;
 	};
 	enum class Vendor : uint32_t
 	{
@@ -325,6 +333,7 @@ namespace prosper
 			SubPassID subPassId=0,
 			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		)=0;
+		prosper::Shader *GetShaderPipeline(PipelineID id,uint32_t &outPipelineIdx) const;
 		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId)=0;
 		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const=0;
 
@@ -391,6 +400,9 @@ namespace prosper
 		void UpdateLastUsageTime(IImage &img);
 		void UpdateLastUsageTime(IBuffer &buf);
 		void UpdateLastUsageTimes(IDescriptorSet &ds);
+
+		// Internal use only
+		PipelineID ReserveShaderPipeline();
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
@@ -421,6 +433,7 @@ namespace prosper
 		IPrContext(const IPrContext&)=delete;
 		IPrContext &operator=(const IPrContext&)=delete;
 
+		void AddShaderPipeline(prosper::Shader &shader,uint32_t shaderPipelineIdx,PipelineID pipelineId);
 		void ClearKeepAliveResources();
 		void ClearKeepAliveResources(uint32_t n);
 		void InitDummyTextures();
@@ -433,6 +446,7 @@ namespace prosper
 
 		std::string m_appName;
 		std::shared_ptr<prosper::IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
+		std::vector<ShaderPipeline> m_shaderPipelines;
 
 		Callbacks m_callbacks {};
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;

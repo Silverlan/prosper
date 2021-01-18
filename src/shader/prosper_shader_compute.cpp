@@ -57,7 +57,7 @@ void prosper::ShaderCompute::InitializePipeline()
 		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 		
 		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
-		pipelineInfo.id = std::numeric_limits<decltype(pipelineInfo.id)>::max();
+		pipelineInfo.id = InitPipelineId(pipelineIdx);
 		auto &context = GetContext();
 		auto result = context.AddPipeline(*this,pipelineIdx,*computePipelineInfo,*modCmp,basePipelineId);
 		pipelineInfo.createInfo = std::move(computePipelineInfo);
@@ -68,6 +68,8 @@ void prosper::ShaderCompute::InitializePipeline()
 				firstPipelineId = pipelineInfo.id;
 			OnPipelineInitialized(pipelineIdx);
 		}
+		else
+			pipelineInfo.id = std::numeric_limits<PipelineID>::max();
 	}
 }
 

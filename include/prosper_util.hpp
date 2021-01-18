@@ -87,6 +87,8 @@ namespace prosper
 		DLLPROSPER prosper::AccessFlags get_image_read_access_mask();
 		DLLPROSPER prosper::AccessFlags get_image_write_access_mask();
 		DLLPROSPER prosper::PipelineBindPoint get_pipeline_bind_point(prosper::ShaderStageFlags shaderStages);
+		DLLPROSPER prosper::ShaderStage shader_stage_flag_to_shader_stage(prosper::ShaderStageFlags flag);
+		DLLPROSPER std::vector<prosper::ShaderStage> shader_stage_flags_to_shader_stages(prosper::ShaderStageFlags flags);
 		DLLPROSPER ImageAspectFlags get_aspect_mask(IImage &img);
 		DLLPROSPER ImageAspectFlags get_aspect_mask(Format format);
 		DLLPROSPER void apply_image_subresource_range(const prosper::util::ImageSubresourceRange &srcRange,prosper::util::ImageSubresourceRange &vkRange,prosper::IImage &img);
