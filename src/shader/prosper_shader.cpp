@@ -298,7 +298,7 @@ bool prosper::Shader::GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pip
 {
 	if(pipelineIdx >= m_pipelineInfos.size())
 		return false;
-	pipelineId = m_pipelineInfos.at(pipelineIdx).id;
+	pipelineId = m_pipelineInfos[pipelineIdx].id;
 	return true;
 }
 size_t prosper::Shader::GetBaseTypeHashCode() const {return typeid(Shader).hash_code();}
