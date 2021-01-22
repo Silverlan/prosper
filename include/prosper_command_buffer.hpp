@@ -124,8 +124,16 @@ namespace prosper
 		)=0;
 		virtual bool RecordBindDescriptorSets(
 			PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
-			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
+			uint32_t numDescSets,const prosper::IDescriptorSet * const *descSets,uint32_t numDynamicOffsets=0,const uint32_t *dynamicOffsets=nullptr
 		)=0;
+		template<class TDs,class TDo>
+			bool RecordBindDescriptorSets(
+				PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
+				const TDs &descSets,const TDo &offsets
+			)
+		{
+			return RecordBindDescriptorSets(bindPoint,pipelineLayout,firstSet,descSets.size(),descSets.data(),offsets.size(),offsets.data());//,,);
+		}
 		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)=0;
 		virtual bool RecordPushConstants(const IShaderPipelineLayout &pipelineLayout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)=0;
 		bool RecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId);
