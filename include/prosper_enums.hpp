@@ -512,10 +512,11 @@ namespace prosper
 		NONE = 0
 	};
 
-	enum class PipelineBindPoint : uint8_t
+	enum class PipelineBindPoint : uint32_t
 	{
 		Graphics = 0,
-		Compute = 1
+		Compute = 1,
+		RayTracingKHR = 1'000'165'000
 	};
 
 	enum class AttachmentLoadOp : uint8_t

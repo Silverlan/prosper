@@ -96,6 +96,7 @@ namespace prosper
 	class Query;
 	class PipelineStatisticsQuery;
 	class ComputePipelineCreateInfo;
+	class RayTracingPipelineCreateInfo;
 	class GraphicsPipelineCreateInfo;
 	class IRenderBuffer;
 	struct DescriptorSetInfo;
@@ -320,6 +321,10 @@ namespace prosper
 		std::optional<std::string> FindShaderFile(const std::string &fileName,std::string *optOutExt=nullptr);
 		virtual std::optional<PipelineID> AddPipeline(
 			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
+			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
+		)=0;
+		virtual std::optional<PipelineID> AddPipeline(
+			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::RayTracingPipelineCreateInfo &createInfo,
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		)=0;
 		virtual std::optional<PipelineID> AddPipeline(

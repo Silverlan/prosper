@@ -827,6 +827,17 @@ namespace prosper
 	private:
 		using BasePipelineCreateInfo::BasePipelineCreateInfo;
 	};
+
+	class DLLPROSPER RayTracingPipelineCreateInfo
+		: public BasePipelineCreateInfo
+	{
+	public:
+		/* Public functions */
+		static std::unique_ptr<RayTracingPipelineCreateInfo> Create      (const PipelineCreateFlags&  in_create_flags,
+			const ShaderModuleStageEntryPoint& in_compute_shader_stage_entrypoint_info,
+			const PipelineID*           in_opt_base_pipeline_id_ptr = nullptr) {return nullptr;} // Stub
+
+	};
 };
 
 #endif

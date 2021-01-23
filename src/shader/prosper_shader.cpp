@@ -97,6 +97,7 @@ void prosper::Shader::SetPipelineCount(uint32_t count)
 
 bool prosper::Shader::IsGraphicsShader() const {return m_pipelineBindPoint == PipelineBindPoint::Graphics;}
 bool prosper::Shader::IsComputeShader() const {return m_pipelineBindPoint == PipelineBindPoint::Compute;}
+bool prosper::Shader::IsRaytracingShader() const {return m_pipelineBindPoint == PipelineBindPoint::RayTracingKHR;}
 prosper::PipelineBindPoint prosper::Shader::GetPipelineBindPoint() const {return m_pipelineBindPoint;}
 
 prosper::ShaderModule *prosper::Shader::GetModule(ShaderStage stage)

@@ -98,6 +98,7 @@ namespace prosper
 	class IPipelineManager;
 	class GraphicsPipelineCreateInfo;
 	class ComputePipelineCreateInfo;
+	class RayTracingPipelineCreateInfo;
 	using ShaderIndex = uint32_t;
 	namespace util {struct RenderPassCreateInfo;};
 	class DLLPROSPER Shader
@@ -131,6 +132,7 @@ namespace prosper
 
 		bool IsGraphicsShader() const;
 		bool IsComputeShader() const;
+		bool IsRaytracingShader() const;
 		PipelineBindPoint GetPipelineBindPoint() const;
 		const prosper::ShaderModuleStageEntryPoint *GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx=0u) const;
 		bool GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx=0u) const;
@@ -323,6 +325,17 @@ namespace prosper
 		bool AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t constantId,uint32_t numBytes,const void *data);
 	protected:
 		virtual void InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
+	private:
+		virtual void InitializePipeline() override;
+	};
+
+	class DLLPROSPER ShaderRaytracing
+		: public Shader
+	{
+	public:
+		ShaderRaytracing(prosper::IPrContext &context,const std::string &identifier,const std::string &rtShader);
+	protected:
+		virtual void InitializeRaytracingPipeline(prosper::RayTracingPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx);
 	private:
 		virtual void InitializePipeline() override;
 	};
