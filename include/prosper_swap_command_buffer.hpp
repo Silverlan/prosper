@@ -20,16 +20,18 @@ namespace prosper
 	class ISecondaryCommandBuffer;
 	class ICommandBufferPool;
 
-	using RenderThreadDrawCall = std::function<void(prosper::ISecondaryCommandBuffer&)>;
+	using RenderThreadRecordCall = std::function<void(prosper::ISecondaryCommandBuffer&)>;
 	class SwapCommandBufferGroup;
 	class DLLPROSPER ISwapCommandBufferGroup
 	{
 	public:
 		ISwapCommandBufferGroup(prosper::IPrContext &context);
 		virtual ~ISwapCommandBufferGroup();
-		virtual void Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw)=0;
+		virtual void Record(const RenderThreadRecordCall &record)=0;
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf);
 		virtual bool IsPending() const=0;
+		void StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb);
+		void EndRecording();
 		void SetOneTimeSubmit(bool oneTimeSubmit) {m_oneTimeSubmit = oneTimeSubmit;}
 		bool GetOneTimeSubmit() const {return m_oneTimeSubmit;}
 
@@ -42,7 +44,7 @@ namespace prosper
 		std::vector<std::shared_ptr<prosper::ISecondaryCommandBuffer>> m_commandBuffers;
 		std::shared_ptr<prosper::ICommandBufferPool> m_cmdPool = nullptr;
 		prosper::ISecondaryCommandBuffer *m_curCommandBuffer = nullptr;
-		RenderThreadDrawCall m_drawCall;
+		std::queue<RenderThreadRecordCall> m_recordCalls;
 		bool m_oneTimeSubmit = true;
 	};
 
@@ -54,7 +56,7 @@ namespace prosper
 		virtual ~MtSwapCommandBufferGroup() override;
 		virtual bool IsPending() const override {return m_pending;}
 	private:
-		virtual void Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw) override;
+		virtual void Record(const RenderThreadRecordCall &record) override;
 		virtual void Wait() override;;
 
 		std::thread m_thread;
@@ -72,7 +74,7 @@ namespace prosper
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf) override;
 		virtual bool IsPending() const override {return false;}
 	private:
-		virtual void Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw) override;
+		virtual void Record(const RenderThreadRecordCall &record) override;
 		virtual void Wait() override;;
 	};
 };

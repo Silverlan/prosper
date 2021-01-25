@@ -32,15 +32,26 @@ void ISwapCommandBufferGroup::Initialize(uint32_t swapchainIdx)
 		m_commandBuffers.push_back(cmdBuf);
 	}
 }
-void ISwapCommandBufferGroup::Reuse()
+void ISwapCommandBufferGroup::StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb)
 {
 	auto swapchainIdx = m_context.GetLastAcquiredSwapchainImageIndex();
 	Initialize(swapchainIdx);
 
 	auto *instance = m_commandBuffers[swapchainIdx].get();
 	m_curCommandBuffer = instance;
+
+	Record([this,&rp,&fb](prosper::ISecondaryCommandBuffer &cmd) {
+		cmd.Reset(false);
+		cmd.StartRecording(rp,fb,GetOneTimeSubmit());
+	});
 }
-void ISwapCommandBufferGroup::Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw)
+void ISwapCommandBufferGroup::EndRecording()
+{
+	Record([](prosper::ISecondaryCommandBuffer &cmd) {
+		cmd.StopRecording();	
+	});
+}
+void ISwapCommandBufferGroup::Reuse()
 {
 	auto swapchainIdx = m_context.GetLastAcquiredSwapchainImageIndex();
 	Initialize(swapchainIdx);
@@ -68,12 +79,16 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(prosper::IPrContext &context)
 		while(!m_close)
 		{
 			std::unique_lock<std::mutex> lock {m_waitMutex};
-			m_conditionVar.wait(lock,[this]{return m_drawCall != nullptr || m_close;});
+			m_conditionVar.wait(lock,[this]{return !m_recordCalls.empty() || m_close;});
 
 			if(m_close)
 				break;
-			m_drawCall(*m_curCommandBuffer);
-			m_drawCall = nullptr;
+			while(m_recordCalls.empty() == false)
+			{
+				auto &drawCall = m_recordCalls.front();
+				drawCall(*m_curCommandBuffer);
+				m_recordCalls.pop();
+			}
 
 			m_pending = false;
 		}
@@ -89,19 +104,11 @@ MtSwapCommandBufferGroup::~MtSwapCommandBufferGroup()
 	m_thread.join();
 }
 
-void MtSwapCommandBufferGroup::Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw)
+void MtSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record)
 {
-	ISwapCommandBufferGroup::Draw(rp,fb,draw);
 	m_waitMutex.lock();
 		m_pending = true;
-		m_drawCall = [draw,&rp,&fb,this](prosper::ISecondaryCommandBuffer &drawCmd) {
-			m_curCommandBuffer->Reset(false);
-			m_curCommandBuffer->StartRecording(rp,fb,GetOneTimeSubmit());
-
-			draw(drawCmd);
-
-			m_curCommandBuffer->StopRecording();	
-		};
+		m_recordCalls.push(record);
 		m_conditionVar.notify_one();
 	m_waitMutex.unlock();
 	if(GetContext().IsMultiThreadedRenderingEnabled() == false)
@@ -116,27 +123,20 @@ StSwapCommandBufferGroup::StSwapCommandBufferGroup(prosper::IPrContext &context)
 	: ISwapCommandBufferGroup{context}
 {}
 
-void StSwapCommandBufferGroup::Draw(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,const RenderThreadDrawCall &draw)
+void StSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record)
 {
-	ISwapCommandBufferGroup::Draw(rp,fb,draw);
-	m_drawCall = [draw,&rp,&fb,this](prosper::ISecondaryCommandBuffer &drawCmd) {
-		m_curCommandBuffer->Reset(false);
-		m_curCommandBuffer->StartRecording(rp,fb);
-
-		draw(drawCmd);
-
-		m_curCommandBuffer->StopRecording();	
-	};
+	m_recordCalls.push(record);
 }
 
 void StSwapCommandBufferGroup::Wait() {while(IsPending());}
 
 bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
 {
-	if(m_drawCall)
+	while(m_recordCalls.empty() == false)
 	{
-		m_drawCall(*m_curCommandBuffer);
-		m_drawCall = nullptr;
+		auto &drawCall = m_recordCalls.front();
+		drawCall(*m_curCommandBuffer);
+		m_recordCalls.pop();
 	}
 	return ISwapCommandBufferGroup::ExecuteCommands(cmdBuf);
 }
