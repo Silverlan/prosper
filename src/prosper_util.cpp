@@ -316,20 +316,32 @@ prosper::Format prosper::util::get_vk_format(uimg::ImageBuffer::Format format)
 {
 	switch(format)
 	{
+	case uimg::ImageBuffer::Format::R8:
+		return prosper::Format::R8_UNorm;
+	case uimg::ImageBuffer::Format::RG8:
+		return prosper::Format::R8G8_UNorm;
 	case uimg::ImageBuffer::Format::RGB8:
 		return prosper::Format::R8G8B8_UNorm_PoorCoverage;
 	case uimg::ImageBuffer::Format::RGBA8:
 		return prosper::Format::R8G8B8A8_UNorm;
+	case uimg::ImageBuffer::Format::R16:
+		return prosper::Format::R16_SFloat;
+	case uimg::ImageBuffer::Format::RG16:
+		return prosper::Format::R16G16_SFloat;
 	case uimg::ImageBuffer::Format::RGB16:
 		return prosper::Format::R16G16B16_SFloat_PoorCoverage;
 	case uimg::ImageBuffer::Format::RGBA16:
 		return prosper::Format::R16G16B16A16_SFloat;
+	case uimg::ImageBuffer::Format::R32:
+		return prosper::Format::R32_SFloat;
+	case uimg::ImageBuffer::Format::RG32:
+		return prosper::Format::R32G32_SFloat;
 	case uimg::ImageBuffer::Format::RGB32:
 		return prosper::Format::R32G32B32_SFloat;
 	case uimg::ImageBuffer::Format::RGBA32:
 		return prosper::Format::R32G32B32A32_SFloat;
 	}
-	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 7);
+	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 13);
 	return prosper::Format::Unknown;
 }
 

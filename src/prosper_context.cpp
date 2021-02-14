@@ -288,6 +288,8 @@ void prosper::IPrContext::GetScissorViewportInfo(Rect2D *out_scissors,Viewport *
 
 const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetSetupCommandBuffer()
 {
+	if(m_setupCmdBuffer)
+		std::cout<<"WARNING: Setup command requested before previous setup command buffer has been flushed!"<<std::endl;
 	if(m_setupCmdBuffer != nullptr)
 		return m_setupCmdBuffer;
 	uint32_t queueFamilyIndex;
