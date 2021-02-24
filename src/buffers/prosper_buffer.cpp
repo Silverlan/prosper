@@ -161,3 +161,10 @@ bool prosper::IBuffer::Unmap() const
 const prosper::util::BufferCreateInfo &prosper::IBuffer::GetCreateInfo() const {return m_createInfo;}
 prosper::IBuffer::SubBufferIndex prosper::IBuffer::GetBaseIndex() const {return m_baseIndex;}
 prosper::BufferUsageFlags prosper::IBuffer::GetUsageFlags() const {return m_createInfo.usageFlags;}
+
+CallbackHandle prosper::IBuffer::AddReallocationCallback(const std::function<void()> &fCallback)
+{
+	auto cb = FunctionCallback<void>::Create(fCallback);
+	m_reallocationCallbacks.push_back(cb);
+	return cb;
+}

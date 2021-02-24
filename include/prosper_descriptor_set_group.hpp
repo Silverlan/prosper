@@ -9,6 +9,7 @@
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_structs.hpp"
+#include <sharedutils/functioncallback.h>
 
 #undef max
 
@@ -29,7 +30,9 @@ namespace prosper
 			ArrayTexture,
 			UniformBuffer,
 			DynamicUniformBuffer,
-			StorageBuffer
+			StorageBuffer,
+
+			Count
 		};
 		DescriptorSetBinding(const DescriptorSetBinding&)=delete;
 		DescriptorSetBinding &operator=(const DescriptorSetBinding&)=delete;
@@ -50,9 +53,9 @@ namespace prosper
 		DescriptorSetBindingStorageImage(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::Texture &texture,std::optional<uint32_t> layerId={});
 		virtual Type GetType() const override {return Type::StorageImage;}
 		std::optional<uint32_t> GetLayerIndex() const;
-		const std::shared_ptr<prosper::Texture> &GetTexture() const;
+		const std::weak_ptr<prosper::Texture> &GetTexture() const;
 	private:
-		std::shared_ptr<prosper::Texture> m_texture = nullptr;
+		std::weak_ptr<prosper::Texture> m_texture {};
 		std::optional<uint32_t> m_layerId = {};
 	};
 
@@ -63,9 +66,9 @@ namespace prosper
 		DescriptorSetBindingTexture(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::Texture &texture,std::optional<uint32_t> layerId={});
 		virtual Type GetType() const override {return Type::Texture;}
 		std::optional<uint32_t> GetLayerIndex() const;
-		const std::shared_ptr<prosper::Texture> &GetTexture() const;
+		const std::weak_ptr<prosper::Texture> &GetTexture() const;
 	private:
-		std::shared_ptr<prosper::Texture> m_texture = nullptr;
+		std::weak_ptr<prosper::Texture> m_texture {};
 		std::optional<uint32_t> m_layerId = {};
 	};
 
@@ -82,49 +85,44 @@ namespace prosper
 		std::vector<std::unique_ptr<DescriptorSetBindingTexture>> m_arrayItems = {};
 	};
 
-	class DLLPROSPER DescriptorSetBindingUniformBuffer
+	class DLLPROSPER DescriptorSetBindingBaseBuffer
 		: public DescriptorSetBinding
+	{
+	public:
+		DescriptorSetBindingBaseBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
+		virtual ~DescriptorSetBindingBaseBuffer() override;
+		uint64_t GetStartOffset() const;
+		uint64_t GetSize() const;
+		const std::weak_ptr<prosper::IBuffer> &GetBuffer() const;
+	private:
+		CallbackHandle m_cbBufferReallocation {};
+		std::weak_ptr<prosper::IBuffer> m_buffer {};
+		uint64_t m_startOffset = 0u;
+		uint64_t m_size = 0u;
+	};
+
+	class DLLPROSPER DescriptorSetBindingUniformBuffer
+		: public DescriptorSetBindingBaseBuffer
 	{
 	public:
 		DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
 		virtual Type GetType() const override {return Type::UniformBuffer;}
-		uint64_t GetStartOffset() const;
-		uint64_t GetSize() const;
-		const std::shared_ptr<prosper::IBuffer> &GetBuffer() const;
-	private:
-		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr;
-		uint64_t m_startOffset = 0u;
-		uint64_t m_size = 0u;
 	};
 
 	class DLLPROSPER DescriptorSetBindingDynamicUniformBuffer
-		: public DescriptorSetBinding
+		: public DescriptorSetBindingBaseBuffer
 	{
 	public:
 		DescriptorSetBindingDynamicUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
 		virtual Type GetType() const override {return Type::DynamicUniformBuffer;}
-		uint64_t GetStartOffset() const;
-		uint64_t GetSize() const;
-		const std::shared_ptr<prosper::IBuffer> &GetBuffer() const;
-	private:
-		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr;
-		uint64_t m_startOffset = 0u;
-		uint64_t m_size = 0u;
 	};
 
 	class DLLPROSPER DescriptorSetBindingStorageBuffer
-		: public DescriptorSetBinding
+		: public DescriptorSetBindingBaseBuffer
 	{
 	public:
 		DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
 		virtual Type GetType() const override {return Type::StorageBuffer;}
-		uint64_t GetStartOffset() const;
-		uint64_t GetSize() const;
-		const std::shared_ptr<prosper::IBuffer> &GetBuffer() const;
-	private:
-		std::shared_ptr<prosper::IBuffer> m_buffer = nullptr;
-		uint64_t m_startOffset = 0u;
-		uint64_t m_size = 0u;
 	};
 
 	class IDescriptorSetGroup;
@@ -171,6 +169,8 @@ namespace prosper
 		{
 			return const_cast<IDescriptorSet*>(this)->GetAPITypeRef<T>();
 		}
+
+		void ReloadBinding(uint32_t bindingIdx);
 	protected:
 		virtual bool DoSetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)=0;
 		virtual bool DoSetBindingTexture(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)=0;

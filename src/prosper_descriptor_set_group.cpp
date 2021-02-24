@@ -342,6 +342,78 @@ bool IDescriptorSet::SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t b
 	return DoSetBindingStorageBuffer(buffer,bindingIdx,startOffset,size);
 }
 
+void IDescriptorSet::ReloadBinding(uint32_t bindingIdx)
+{
+	if(bindingIdx >= m_bindings.size() || m_bindings[bindingIdx] == nullptr)
+		return;
+	auto &pbinding = m_bindings[bindingIdx];
+	switch(pbinding->GetType())
+	{
+	case DescriptorSetBinding::Type::StorageImage:
+	{
+		auto &binding = static_cast<DescriptorSetBindingStorageImage&>(*pbinding);
+		auto &tex = binding.GetTexture();
+		if(tex.expired())
+			return;
+		DoSetBindingStorageImage(*tex.lock(),binding.GetBindingIndex(),binding.GetLayerIndex());
+		break;
+	}
+	case DescriptorSetBinding::Type::Texture:
+	{
+		auto &binding = static_cast<DescriptorSetBindingTexture&>(*pbinding);
+		auto &tex = binding.GetTexture();
+		if(tex.expired())
+			return;
+		DoSetBindingTexture(*tex.lock(),binding.GetBindingIndex(),binding.GetLayerIndex());
+		break;
+	}
+	case DescriptorSetBinding::Type::ArrayTexture:
+	{
+		auto &binding = static_cast<DescriptorSetBindingArrayTexture&>(*pbinding);
+		auto n = binding.GetArrayCount();
+		for(auto i=decltype(n){0u};i<n;++i)
+		{
+			auto *texBinding = binding.GetArrayItem(i);
+			if(texBinding == nullptr)
+				continue;
+			auto &tex = texBinding->GetTexture();
+			if(tex.expired())
+				continue;
+			DoSetBindingArrayTexture(*tex.lock(),texBinding->GetBindingIndex(),i,texBinding->GetLayerIndex());
+		}
+		break;
+	}
+	case DescriptorSetBinding::Type::UniformBuffer:
+	{
+		auto &binding = static_cast<DescriptorSetBindingUniformBuffer&>(*pbinding);
+		auto &buf = binding.GetBuffer();
+		if(buf.expired())
+			return;
+		DoSetBindingUniformBuffer(*buf.lock(),binding.GetBindingIndex(),binding.GetStartOffset(),binding.GetSize());
+		break;
+	}
+	case DescriptorSetBinding::Type::DynamicUniformBuffer:
+	{
+		auto &binding = static_cast<DescriptorSetBindingDynamicUniformBuffer&>(*pbinding);
+		auto &buf = binding.GetBuffer();
+		if(buf.expired())
+			return;
+		DoSetBindingDynamicUniformBuffer(*buf.lock(),binding.GetBindingIndex(),binding.GetStartOffset(),binding.GetSize());
+		break;
+	}
+	case DescriptorSetBinding::Type::StorageBuffer:
+	{
+		auto &binding = static_cast<DescriptorSetBindingStorageBuffer&>(*pbinding);
+		auto &buf = binding.GetBuffer();
+		if(buf.expired())
+			return;
+		DoSetBindingStorageBuffer(*buf.lock(),binding.GetBindingIndex(),binding.GetStartOffset(),binding.GetSize());
+		break;
+	}
+	}
+	static_assert(umath::to_integral(DescriptorSetBinding::Type::Count) == 6u,"Update this implementation when new types are added!");
+}
+
 prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t *outStartOffset,uint64_t *outSize)
 {
 	if(bindingIndex >= m_bindings.size() || m_bindings.at(bindingIndex) == nullptr)
@@ -356,7 +428,7 @@ prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t 
 			*outStartOffset = bindingImg.GetStartOffset();
 		if(outSize)
 			*outSize = bindingImg.GetSize();
-		return bindingImg.GetBuffer().get();
+		return bindingImg.GetBuffer().lock().get();
 	}
 	case DescriptorSetBinding::Type::DynamicUniformBuffer:
 	{
@@ -365,7 +437,7 @@ prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t 
 			*outStartOffset = bindingTex.GetStartOffset();
 		if(outSize)
 			*outSize = bindingTex.GetSize();
-		return bindingTex.GetBuffer().get();
+		return bindingTex.GetBuffer().lock().get();
 	}
 	case DescriptorSetBinding::Type::StorageBuffer:
 	{
@@ -374,7 +446,7 @@ prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t 
 			*outStartOffset = bindingImg.GetStartOffset();
 		if(outSize)
 			*outSize = bindingImg.GetSize();
-		return bindingImg.GetBuffer().get();
+		return bindingImg.GetBuffer().lock().get();
 	}
 	}
 	return nullptr;
@@ -389,7 +461,7 @@ prosper::Texture *IDescriptorSet::GetBoundArrayTexture(uint32_t bindingIndex,uin
 		return 0;
 	auto &arrayTextureBinding = static_cast<prosper::DescriptorSetBindingArrayTexture&>(*binding);
 	auto *item = arrayTextureBinding.GetArrayItem(index);
-	return item ? item->GetTexture().get() : nullptr;
+	return item ? item->GetTexture().lock().get() : nullptr;
 }
 uint32_t IDescriptorSet::GetBoundArrayTextureCount(uint32_t bindingIndex) const
 {
@@ -413,14 +485,14 @@ prosper::Texture *IDescriptorSet::GetBoundTexture(uint32_t bindingIndex,std::opt
 		auto &bindingImg = *static_cast<DescriptorSetBindingStorageImage*>(binding.get());
 		if(optOutLayerIndex)
 			*optOutLayerIndex = bindingImg.GetLayerIndex();
-		return bindingImg.GetTexture().get();
+		return bindingImg.GetTexture().lock().get();
 	}
 	case DescriptorSetBinding::Type::Texture:
 	{
 		auto &bindingTex = *static_cast<DescriptorSetBindingTexture*>(binding.get());
 		if(optOutLayerIndex)
 			*optOutLayerIndex = bindingTex.GetLayerIndex();
-		return bindingTex.GetTexture().get();
+		return bindingTex.GetTexture().lock().get();
 	}
 	}
 	return nullptr;
@@ -448,7 +520,7 @@ DescriptorSetBindingStorageImage::DescriptorSetBindingStorageImage(IDescriptorSe
 	: DescriptorSetBinding{descSet,bindingIdx},m_texture{texture.shared_from_this()},m_layerId{layerId}
 {}
 std::optional<uint32_t> DescriptorSetBindingStorageImage::GetLayerIndex() const {return m_layerId;}
-const std::shared_ptr<prosper::Texture> &DescriptorSetBindingStorageImage::GetTexture() const {return m_texture;}
+const std::weak_ptr<prosper::Texture> &DescriptorSetBindingStorageImage::GetTexture() const {return m_texture;}
 
 ///
 
@@ -456,7 +528,7 @@ DescriptorSetBindingTexture::DescriptorSetBindingTexture(IDescriptorSet &descSet
 	: DescriptorSetBinding{descSet,bindingIdx},m_texture{texture.shared_from_this()},m_layerId{layerId}
 {}
 std::optional<uint32_t> DescriptorSetBindingTexture::GetLayerIndex() const {return m_layerId;}
-const std::shared_ptr<prosper::Texture> &DescriptorSetBindingTexture::GetTexture() const {return m_texture;}
+const std::weak_ptr<prosper::Texture> &DescriptorSetBindingTexture::GetTexture() const {return m_texture;}
 
 ///
 
@@ -474,30 +546,37 @@ DescriptorSetBindingTexture *DescriptorSetBindingArrayTexture::GetArrayItem(uint
 
 ///
 
-DescriptorSetBindingUniformBuffer::DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
+DescriptorSetBindingBaseBuffer::DescriptorSetBindingBaseBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
 	: DescriptorSetBinding{descSet,bindingIdx},m_buffer{buffer.shared_from_this()},m_startOffset{startOffset},m_size{size}
+{
+	m_cbBufferReallocation = buffer.AddReallocationCallback([&descSet,bindingIdx]() {descSet.ReloadBinding(bindingIdx);});
+}
+DescriptorSetBindingBaseBuffer::~DescriptorSetBindingBaseBuffer()
+{
+	if(m_cbBufferReallocation.IsValid())
+		m_cbBufferReallocation.Remove();
+}
+uint64_t DescriptorSetBindingBaseBuffer::GetStartOffset() const {return m_startOffset;}
+uint64_t DescriptorSetBindingBaseBuffer::GetSize() const {return m_size;}
+const std::weak_ptr<prosper::IBuffer> &DescriptorSetBindingBaseBuffer::GetBuffer() const {return m_buffer;}
+
+///
+
+DescriptorSetBindingUniformBuffer::DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
+	: DescriptorSetBindingBaseBuffer{descSet,bindingIdx,buffer,startOffset,size}
 {}
-uint64_t DescriptorSetBindingUniformBuffer::GetStartOffset() const {return m_startOffset;}
-uint64_t DescriptorSetBindingUniformBuffer::GetSize() const {return m_size;}
-const std::shared_ptr<prosper::IBuffer> &DescriptorSetBindingUniformBuffer::GetBuffer() const {return m_buffer;}
 
 ///
 
 DescriptorSetBindingDynamicUniformBuffer::DescriptorSetBindingDynamicUniformBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
-	: DescriptorSetBinding{descSet,bindingIdx},m_buffer{buffer.shared_from_this()},m_startOffset{startOffset},m_size{size}
+	: DescriptorSetBindingBaseBuffer{descSet,bindingIdx,buffer,startOffset,size}
 {}
-uint64_t DescriptorSetBindingDynamicUniformBuffer::GetStartOffset() const {return m_startOffset;}
-uint64_t DescriptorSetBindingDynamicUniformBuffer::GetSize() const {return m_size;}
-const std::shared_ptr<prosper::IBuffer> &DescriptorSetBindingDynamicUniformBuffer::GetBuffer() const {return m_buffer;}
 
 ///
 
 DescriptorSetBindingStorageBuffer::DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
-	: DescriptorSetBinding{descSet,bindingIdx},m_buffer{buffer.shared_from_this()},m_startOffset{startOffset},m_size{size}
+	: DescriptorSetBindingBaseBuffer{descSet,bindingIdx,buffer,startOffset,size}
 {}
-uint64_t DescriptorSetBindingStorageBuffer::GetStartOffset() const {return m_startOffset;}
-uint64_t DescriptorSetBindingStorageBuffer::GetSize() const {return m_size;}
-const std::shared_ptr<prosper::IBuffer> &DescriptorSetBindingStorageBuffer::GetBuffer() const {return m_buffer;}
 
 ///////////////////
 

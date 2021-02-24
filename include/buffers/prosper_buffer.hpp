@@ -10,6 +10,7 @@
 #include "prosper_context_object.hpp"
 #include "prosper_buffer_create_info.hpp"
 #include <mathutil/umath.h>
+#include <sharedutils/functioncallback.h>
 #include <memory>
 #include <cinttypes>
 #include <functional>
@@ -71,6 +72,7 @@ namespace prosper
 		const util::BufferCreateInfo &GetCreateInfo() const;
 		SubBufferIndex GetBaseIndex() const;
 		BufferUsageFlags GetUsageFlags() const;
+		CallbackHandle AddReallocationCallback(const std::function<void()> &fCallback);
 
 		// For internal use only!
 		virtual void Initialize();
@@ -109,6 +111,7 @@ namespace prosper
 
 		std::shared_ptr<IBuffer> m_parent = nullptr;
 		std::optional<MapFlags> m_permanentlyMapped {};
+		std::vector<CallbackHandle> m_reallocationCallbacks {};
 
 		util::BufferCreateInfo m_createInfo {};
 		DeviceSize m_startOffset = 0;

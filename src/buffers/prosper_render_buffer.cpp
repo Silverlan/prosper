@@ -13,10 +13,24 @@ IRenderBuffer::IRenderBuffer(
 	: prosper::ContextObject{context},m_indexBufferInfo{indexBufferInfo}
 {
 	m_buffers.reserve(buffers.size());
+	m_reallocationCallbacks.reserve(buffers.size());
 	for(auto *buf : buffers)
+	{
 		m_buffers.push_back(buf->shared_from_this());
+		m_reallocationCallbacks.push_back(buf->AddReallocationCallback([this]() {Reload();}));
+	}
 	if(m_indexBufferInfo.has_value() && m_indexBufferInfo->buffer == nullptr)
 		m_indexBufferInfo = {};
+}
+
+IRenderBuffer::~IRenderBuffer()
+{
+	for(auto &cb : m_reallocationCallbacks)
+	{
+		if(cb.IsValid() == false)
+			continue;
+		cb.Remove();
+	}
 }
 
 const std::vector<std::shared_ptr<prosper::IBuffer>> &IRenderBuffer::GetBuffers() const {return m_buffers;}

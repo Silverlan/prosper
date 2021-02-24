@@ -48,6 +48,7 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 		{
 			if(m_assignedMemory +alignedInstanceSize > m_maxTotalSize)
 				return nullptr; // Total capacity has been reached
+			GetContext().WaitIdle();
 			// Re-allocate buffer; Increase previous size by additional factor
 			auto oldSize = m_baseSize;
 			m_baseSize += m_createInfo.size;
@@ -69,7 +70,19 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 			auto numMaxBuffers = createInfo.size /baseAlignedInstanceSize;
 			m_allocatedSubBuffers.resize(numMaxBuffers,nullptr);
 
-			for(auto &f : m_reallocationCallbacks)
+			for(auto *subBuffer : m_allocatedSubBuffers)
+			{
+				if(subBuffer == nullptr)
+					continue;
+				for(auto &cb : subBuffer->m_reallocationCallbacks)
+				{
+					if(cb.IsValid() == false)
+						continue;
+					cb();
+				}
+			}
+
+			for(auto &f : m_onReallocCallbacks)
 				f();
 		}
 		offset = m_assignedMemory;

@@ -20,6 +20,7 @@ namespace prosper
 		: public prosper::ContextObject
 	{
 	public:
+		virtual ~IRenderBuffer() override;
 		const std::vector<std::shared_ptr<prosper::IBuffer>> &GetBuffers() const;
 		const IndexBufferInfo *GetIndexBufferInfo() const;
 		IndexBufferInfo *GetIndexBufferInfo();
@@ -27,9 +28,11 @@ namespace prosper
 		IRenderBuffer(
 			prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
+		virtual void Reload()=0;
 
 		std::vector<std::shared_ptr<prosper::IBuffer>> m_buffers;
 		std::optional<IndexBufferInfo> m_indexBufferInfo {};
+		std::vector<CallbackHandle> m_reallocationCallbacks {};
 	};
 };
 #pragma warning(pop)

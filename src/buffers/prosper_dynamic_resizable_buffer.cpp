@@ -11,7 +11,7 @@
 #include <cassert>
 
 using namespace prosper;
-
+#pragma optimize("",off)
 /*
 static void test_dynamic_resizable_buffer()
 {
@@ -263,6 +263,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 			return nullptr; // Total capacity has been reached
 		if(reallocateIfNoSpaceAvailable == false)
 			return nullptr;
+		GetContext().WaitIdle();
 		// Re-allocate buffer; Increase previous size by additional factor
 		auto oldSize = m_baseSize;
 		m_baseSize += umath::max(m_createInfo.size,requestSize +padding);
@@ -294,7 +295,17 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 			m_freeRanges.push_back({oldSize,m_baseSize -oldSize});
 		//
 
-		for(auto &f : m_reallocationCallbacks)
+		for(auto *subBuffer : m_allocatedSubBuffers)
+		{
+			for(auto &cb : subBuffer->m_reallocationCallbacks)
+			{
+				if(cb.IsValid() == false)
+					continue;
+				cb();
+			}
+		}
+
+		for(auto &f : m_onReallocCallbacks)
 			f();
 		return AllocateBuffer(requestSize,alignment,data);
 	}
@@ -317,3 +328,4 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 	m_allocatedSubBuffers.push_back(subBuffer.get());
 	return subBuffer;
 }
+#pragma optimize("",on)

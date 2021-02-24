@@ -25,7 +25,7 @@ namespace prosper
 		uint64_t m_baseSize = 0ull; // Un-aligned size of m_buffer
 		uint64_t m_maxTotalSize = 0ull;
 
-		std::vector<std::function<void()>> m_reallocationCallbacks;
+		std::vector<std::function<void()>> m_onReallocCallbacks;
 	};
 };
 #pragma warning(pop)
