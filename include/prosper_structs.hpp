@@ -935,6 +935,25 @@ namespace prosper
 		prosper::IndexType indexType = prosper::IndexType::UInt16;
 		prosper::DeviceSize offset = 0;
 	};
+	
+	enum class Vendor : uint32_t;
+	namespace util
+	{
+		struct DLLPROSPER VendorDeviceInfo
+		{
+			uint32_t apiVersion = 0;
+			std::string deviceName;
+			PhysicalDeviceType deviceType;
+			uint32_t deviceId;
+			uint32_t driverVersion;
+			Vendor vendor;
+		};
+
+		struct DLLPROSPER PhysicalDeviceMemoryProperties
+		{
+			std::vector<DeviceSize> heapSizes;
+		};
+	};
 
 	using PipelineID = uint32_t;
 	using SubPassID = uint32_t;

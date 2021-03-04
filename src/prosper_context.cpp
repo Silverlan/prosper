@@ -114,6 +114,8 @@ void prosper::IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img,const v
 }
 std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
 {
+	if(!m_useReservedDeviceLocalImageBuffer)
+		return nullptr;
 	static uint64_t totalAllocated = 0;
 	totalAllocated += size;
 	auto fAllocateImgBuf = [this,size,alignment,data](prosper::IDynamicResizableBuffer &deviceImgBuf) -> std::shared_ptr<IBuffer> {

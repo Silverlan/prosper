@@ -162,6 +162,14 @@ const prosper::util::BufferCreateInfo &prosper::IBuffer::GetCreateInfo() const {
 prosper::IBuffer::SubBufferIndex prosper::IBuffer::GetBaseIndex() const {return m_baseIndex;}
 prosper::BufferUsageFlags prosper::IBuffer::GetUsageFlags() const {return m_createInfo.usageFlags;}
 
+prosper::IBuffer *prosper::IBuffer::GetMappedBuffer(Offset &outOffset)
+{
+	if(m_mappedTmpBuffer == nullptr)
+		return nullptr;
+	outOffset = m_mappedTmpBuffer->offset;
+	return m_mappedTmpBuffer->buffer.get();
+}
+
 CallbackHandle prosper::IBuffer::AddReallocationCallback(const std::function<void()> &fCallback)
 {
 	auto cb = FunctionCallback<void>::Create(fCallback);

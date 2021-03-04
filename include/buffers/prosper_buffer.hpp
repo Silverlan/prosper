@@ -87,6 +87,9 @@ namespace prosper
 		{
 			return const_cast<IBuffer*>(this)->GetAPITypeRef<T>();
 		}
+
+		// For debugging purposes only!
+		IBuffer *GetMappedBuffer(Offset &outOffset);
 	protected:
 		friend IUniformResizableBuffer;
 		friend IDynamicResizableBuffer;

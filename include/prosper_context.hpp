@@ -68,6 +68,8 @@ namespace prosper
 		struct ImageCreateInfo;
 		struct Limits;
 		struct PhysicalDeviceImageFormatProperties;
+		struct VendorDeviceInfo;
+		struct PhysicalDeviceMemoryProperties;
 	};
 
 	struct ShaderStageData;
@@ -354,6 +356,15 @@ namespace prosper
 		virtual void EndFrame();
 		void SetPresentMode(prosper::PresentModeKHR presentMode);
 
+		virtual std::optional<std::string> DumpMemoryBudget() const {return {};}
+		virtual std::optional<std::string> DumpMemoryStats() const {return {};}
+		virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const {return {};}
+		virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const {return {};}
+		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const {return {};}
+
+		//DLLPROSPER_VK std::vector<util::VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);
+		//DLLPROSPER_VK std::optional<util::PhysicalDeviceMemoryProperties> get_physical_device_memory_properties(const IPrContext &context);
+
 		virtual void AddDebugObjectInformation(std::string &msgValidation) {}
 		bool ValidationCallback(
 			DebugMessageSeverityFlags severityFlags,
@@ -469,6 +480,7 @@ namespace prosper
 		uint32_t m_lastSemaporeUsed;
 		uint32_t m_n_swapchain_image = 0u;
 
+		bool m_useReservedDeviceLocalImageBuffer = true;
 		std::shared_ptr<prosper::Texture> m_dummyTexture = nullptr;
 		std::shared_ptr<prosper::Texture> m_dummyCubemapTexture = nullptr;
 		std::shared_ptr<prosper::IBuffer> m_dummyBuffer = nullptr;

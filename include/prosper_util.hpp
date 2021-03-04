@@ -102,16 +102,6 @@ namespace prosper
 
 		DLLPROSPER void get_image_layout_transition_access_masks(prosper::ImageLayout oldLayout,prosper::ImageLayout newLayout,prosper::AccessFlags &readAccessMask,prosper::AccessFlags &writeAccessMask);
 
-		struct DLLPROSPER VendorDeviceInfo
-		{
-			uint32_t apiVersion = 0;
-			std::string deviceName;
-			PhysicalDeviceType deviceType;
-			uint32_t deviceId;
-			uint32_t driverVersion;
-			Vendor vendor;
-		};
-
 		struct DLLPROSPER Limits
 		{
 			float maxSamplerAnisotropy = 0.f;
@@ -123,11 +113,6 @@ namespace prosper
 		struct DLLPROSPER PhysicalDeviceImageFormatProperties
 		{
 			SampleCountFlags sampleCount;
-		};
-
-		struct DLLPROSPER PhysicalDeviceMemoryProperties
-		{
-			std::vector<DeviceSize> heapSizes;
 		};
 
 		template<class T>
