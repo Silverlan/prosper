@@ -291,7 +291,8 @@ namespace prosper
 		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled=false)=0;
 		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo)=0;
 		std::shared_ptr<IImageView> CreateImageView(const util::ImageViewCreateInfo &createInfo,IImage &img);
-		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const ImageData &imgData={})=0;
+		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const std::function<const uint8_t*(uint32_t layer,uint32_t mipmap,uint32_t &dataSize,uint32_t &rowSize)> &getImageData=nullptr)=0;
+		std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const ImageData &imgData);
 		std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const uint8_t *data);
 		std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});
 		std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>,6> &imgBuffers,const std::optional<util::ImageCreateInfo> &imgCreateInfo={});

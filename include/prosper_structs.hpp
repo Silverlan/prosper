@@ -313,7 +313,10 @@ namespace prosper
 				SparseAliasedResidency = Sparse<<1u, // Only has an effect if Sparse-flag is set
 
 				AllocateDiscreteMemory = SparseAliasedResidency<<1u,
-				DontAllocateMemory = AllocateDiscreteMemory<<1u
+				DontAllocateMemory = AllocateDiscreteMemory<<1u,
+
+				Srgb = DontAllocateMemory<<1u,
+				NormalMap = Srgb<<1u
 			};
 			Flags flags = Flags::None;
 			QueueFamilyFlags queueFamilyMask = QueueFamilyFlags::GraphicsBit;

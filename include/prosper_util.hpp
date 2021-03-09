@@ -17,6 +17,7 @@ namespace uimg
 {
 	class ImageBuffer;
 	struct TextureInfo;
+	struct TextureOutputHandler;
 };
 
 namespace Anvil
@@ -81,6 +82,7 @@ namespace prosper
 		DLLPROSPER uint32_t get_bit_size(Format format);
 		DLLPROSPER uint32_t get_byte_size(Format format);
 		DLLPROSPER uint32_t get_block_size(Format format);
+		DLLPROSPER uint32_t get_pixel_size(Format format);
 		DLLPROSPER uint32_t get_component_count(Format format);
 		DLLPROSPER prosper::AccessFlags get_read_access_mask();
 		DLLPROSPER prosper::AccessFlags get_write_access_mask();
@@ -92,8 +94,11 @@ namespace prosper
 		DLLPROSPER ImageAspectFlags get_aspect_mask(IImage &img);
 		DLLPROSPER ImageAspectFlags get_aspect_mask(Format format);
 		DLLPROSPER void apply_image_subresource_range(const prosper::util::ImageSubresourceRange &srcRange,prosper::util::ImageSubresourceRange &vkRange,prosper::IImage &img);
-		//get_queue_family_index
+		
+		DLLPROSPER bool compress_image(prosper::IImage &image,const uimg::TextureInfo &texInfo,const uimg::TextureOutputHandler &outputHandler,const std::function<void(const std::string&)> &errorHandler=nullptr);
+		DLLPROSPER bool compress_image(prosper::IImage &image,const uimg::TextureInfo &texInfo,std::vector<std::vector<std::vector<uint8_t>>> &outputData,const std::function<void(const std::string&)> &errorHandler=nullptr);
 		DLLPROSPER bool save_texture(const std::string &fileName,prosper::IImage &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler=nullptr);
+		DLLPROSPER std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> image_to_data(prosper::IImage &image,const std::optional<prosper::Format> &dstFormat={});
 
 		// Returns the padding required to align the offset with the specified alignment
 		DLLPROSPER uint32_t get_offset_alignment_padding(uint32_t offset,uint32_t alignment);
