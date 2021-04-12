@@ -1971,13 +1971,19 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 		auto extents = imgRead->GetExtents();
 		auto numLayers = imgRead->GetLayerCount();
 		auto numLevels = imgRead->GetMipmapCount();
+		auto isCubemap = imgRead->IsCubemap();
 		auto &context = imgRead->GetContext();
 		uint32_t famIdx;
 		auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal,famIdx);
 		setupCmd->StartRecording();
 
-		gli::extent2d gliExtents {extents.width,extents.height};
-		gli::texture2d gliTex {static_cast<gli::texture::format_type>(imgRead->GetFormat()),gliExtents,numLevels};
+		gli::extent3d gliExtents {extents.width,extents.height,0};
+		gli::texture gliTex {
+			gli::texture::target_type::TARGET_2D,static_cast<gli::texture::format_type>(imgRead->GetFormat()),gliExtents,
+			static_cast<gli::texture::size_type>(isCubemap ? 1 : numLayers),
+			static_cast<gli::texture::size_type>(isCubemap ? 6 : 1),
+			static_cast<gli::texture::size_type>(numLevels)
+		};
 
 		prosper::util::BufferCreateInfo bufCreateInfo {};
 		bufCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUToCPU;
@@ -2020,7 +2026,7 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 			{
 				auto extents = imgRead->GetExtents(iMipmap);
 				auto mipmapSize = gliTex.size(iMipmap);
-				auto *dstData = gliTex.data(iLayer,0u /* face */,iMipmap);
+				auto *dstData = gliTex.data(isCubemap ? 0 : iLayer,isCubemap ? iLayer : 0,iMipmap);
 				memset(dstData,1,mipmapSize);
 				buf->Read(bufferOffset,mipmapSize,dstData);
 				bufferOffset += mipmapSize;
@@ -2046,9 +2052,9 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 				return static_cast<const uint8_t*>(layerMipmapData[iLayer][iMipmap]);
 			};
 		}
-		return [gliTex](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
+		return [gliTex,isCubemap](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
 			outDeleter = nullptr;
-			return static_cast<const uint8_t*>(gliTex.data(iLayer,0u /* face */,iMipmap));
+			return static_cast<const uint8_t*>(gliTex.data(isCubemap ? 0 : iLayer,isCubemap ? iLayer : 0,iMipmap));
 		};
 		/*auto fullFileName = uimg::get_absolute_path(fileName,texInfo.containerFormat);
 		switch(texInfo.containerFormat)
