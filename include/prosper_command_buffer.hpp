@@ -149,8 +149,11 @@ namespace prosper
 		virtual bool RecordEndOcclusionQuery(const OcclusionQuery &query) const=0;
 		virtual bool WriteTimestampQuery(const TimestampQuery &query) const=0;
 		virtual bool ResetQuery(const Query &query) const=0;
-
-		virtual bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex)=0;
+		
+		virtual bool RecordPresentImage(IImage &img,IImage &swapchainImg)=0;
+		bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex);
+		bool RecordPresentImage(IImage &img,Window &window);
+		bool RecordPresentImage(IImage &img,Window &window,uint32_t swapchainImgIndex);
 		template<class T,typename=std::enable_if_t<std::is_base_of_v<ICommandBuffer,T>>>
 			T &GetAPITypeRef()
 		{

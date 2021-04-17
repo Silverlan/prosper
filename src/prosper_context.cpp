@@ -17,6 +17,7 @@
 #include "image/prosper_sampler.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_fence.hpp"
+#include "prosper_window.hpp"
 #include "prosper_descriptor_set_group.hpp"
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
@@ -30,12 +31,11 @@ prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader,uint32_t pipelin
 {}
 
 prosper::IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
-	: m_lastSemaporeUsed(0),m_appName(appName),
-	m_windowCreationInfo(std::make_unique<GLFW::WindowCreationInfo>()),
+	: m_appName(appName),
 	m_commonBufferCache{*this}
 {
 	umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,bEnableValidation);
-	m_windowCreationInfo->title = appName;
+	m_initialWindowSettings.title = appName;
 }
 
 prosper::IPrContext::~IPrContext()
@@ -48,17 +48,14 @@ void prosper::IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateF
 bool prosper::IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
 
 const std::string &prosper::IPrContext::GetAppName() const {return m_appName;}
-uint32_t prosper::IPrContext::GetSwapchainImageCount() const {return m_numSwapchainImages;}
+uint32_t prosper::IPrContext::GetSwapchainImageCount() const {return GetWindow().GetSwapchainImageCount();}
 
-prosper::IImage *prosper::IPrContext::GetSwapchainImage(uint32_t idx)
-{
-	return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr;
-}
+prosper::IImage *prosper::IPrContext::GetSwapchainImage(uint32_t idx) {return GetWindow().GetSwapchainImage(idx);}
 
-GLFW::Window &prosper::IPrContext::GetWindow() {return *m_glfwWindow;}
-std::array<uint32_t,2> prosper::IPrContext::GetWindowSize() const {return {m_windowCreationInfo->width,m_windowCreationInfo->height};}
-uint32_t prosper::IPrContext::GetWindowWidth() const {return m_windowCreationInfo->width;}
-uint32_t prosper::IPrContext::GetWindowHeight() const {return m_windowCreationInfo->height;}
+prosper::Window &prosper::IPrContext::GetWindow() {return *m_window;}
+std::array<uint32_t,2> prosper::IPrContext::GetWindowSize() const {return {m_initialWindowSettings.width,m_initialWindowSettings.height};}
+uint32_t prosper::IPrContext::GetWindowWidth() const {return m_initialWindowSettings.width;}
+uint32_t prosper::IPrContext::GetWindowHeight() const {return m_initialWindowSettings.height;}
 
 void prosper::IPrContext::Close()
 {
@@ -80,7 +77,6 @@ void prosper::IPrContext::Release()
 	m_dummyTexture = nullptr;
 	m_dummyCubemapTexture = nullptr;
 	m_dummyBuffer = nullptr;
-	m_swapchainImages.clear();
 
 	m_tmpBuffer = nullptr;
 	m_deviceImgBuffers.clear();
@@ -90,7 +86,7 @@ void prosper::IPrContext::Release()
 	while(m_scheduledBufferUpdates.empty() == false)
 		m_scheduledBufferUpdates.pop();
 
-	m_glfwWindow = nullptr;
+	m_window = nullptr;
 	m_stateFlags |= StateFlags::Closed;
 }
 
@@ -185,14 +181,18 @@ void prosper::IPrContext::AllocateTemporaryBuffer(prosper::IImage &img,const voi
 
 void prosper::IPrContext::ChangeResolution(uint32_t width,uint32_t height)
 {
-	if(width == m_windowCreationInfo->width && height == m_windowCreationInfo->height)
-		return;
-	m_windowCreationInfo->width = width;
-	m_windowCreationInfo->height = height;
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == false)
+	{
+		m_initialWindowSettings.width = width;
+		m_initialWindowSettings.height = height;
+		return;
+	}
+	if(!m_window || m_window->IsValid() == false)
+		return;
+	if(width == (*m_window)->GetSize().x && height == (*m_window)->GetSize().y)
 		return;
 	WaitIdle();
-	m_glfwWindow->SetSize(Vector2i(width,height));
+	m_window->GetGlfwWindow().SetSize(Vector2i(width,height));
 	ReloadSwapchain();
 	OnResolutionChanged(width,height);
 }
@@ -303,7 +303,7 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetS
 	return m_setupCmdBuffer;
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer() const {return m_commandBuffers.at(m_n_swapchain_image);}
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer() const {return m_commandBuffers.at(GetWindow().GetLastAcquiredSwapchainImageIndex());}
 
 const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer(uint32_t swapchainIdx) const
 {
@@ -323,20 +323,34 @@ void prosper::IPrContext::FlushSetupCommandBuffer()
 
 void prosper::IPrContext::ClearKeepAliveResources(uint32_t n)
 {
-	if(m_n_swapchain_image >= m_keepAliveResources.size())
+	if(!m_window || !m_window->IsValid())
+	{
+		for(auto &res : m_keepAliveResources)
+			res.clear();
 		return;
-	auto &resources = m_keepAliveResources.at(m_n_swapchain_image);
+	}
+	auto idx = GetWindow().GetLastAcquiredSwapchainImageIndex();
+	if(idx >= m_keepAliveResources.size())
+		return;
+	auto &resources = m_keepAliveResources.at(idx);
 	n = umath::min(static_cast<size_t>(n),resources.size());
 	while(n-- > 0u)
 		resources.erase(resources.begin());
 }
 void prosper::IPrContext::ClearKeepAliveResources()
 {
-	if(m_n_swapchain_image >= m_keepAliveResources.size())
+	if(!m_window || !m_window->IsValid())
+	{
+		for(auto &res : m_keepAliveResources)
+			res.clear();
+		return;
+	}
+	auto idx = GetWindow().GetLastAcquiredSwapchainImageIndex();
+	if(idx >= m_keepAliveResources.size())
 		return;
 	if(umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		throw std::logic_error("ClearKeepAliveResources mustn't be called by a resource destructor!");
-	auto &resources = m_keepAliveResources.at(m_n_swapchain_image);
+	auto &resources = m_keepAliveResources.at(idx);
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources);
 	resources.clear();
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources,false);
@@ -421,8 +435,8 @@ std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUni
 void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	// TODO: Check if resolution is supported
-	m_windowCreationInfo->width = createInfo.width;
-	m_windowCreationInfo->height = createInfo.height;
+	m_initialWindowSettings.width = createInfo.width;
+	m_initialWindowSettings.height = createInfo.height;
 	if(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled))
 		m_validationData = std::unique_ptr<ValidationData>{new ValidationData{}};
 	ChangePresentMode(createInfo.presentMode);
@@ -766,8 +780,8 @@ void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
 	}
 }
 
-const GLFW::WindowCreationInfo &prosper::IPrContext::GetWindowCreationInfo() const {return const_cast<IPrContext*>(this)->GetWindowCreationInfo();}
-GLFW::WindowCreationInfo &prosper::IPrContext::GetWindowCreationInfo() {return *m_windowCreationInfo;}
+const prosper::WindowSettings &prosper::IPrContext::GetInitialWindowSettings() const {return const_cast<IPrContext*>(this)->GetInitialWindowSettings();}
+prosper::WindowSettings &prosper::IPrContext::GetInitialWindowSettings() {return m_initialWindowSettings;}
 
 void prosper::IPrContext::SetCallbacks(const Callbacks &callbacks) {m_callbacks = callbacks;}
 

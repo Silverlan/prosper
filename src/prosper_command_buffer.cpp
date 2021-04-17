@@ -16,6 +16,7 @@
 #include "queries/prosper_query_pool.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
+#include "prosper_window.hpp"
 
 prosper::ICommandBuffer::ICommandBuffer(IPrContext &context,prosper::QueueFamilyType queueFamilyType)
 	: ContextObject(context),std::enable_shared_from_this<ICommandBuffer>(),m_queueFamilyType{queueFamilyType}
@@ -38,6 +39,19 @@ bool prosper::ICommandBuffer::IsSecondary() const {return false;}
 prosper::QueueFamilyType prosper::ICommandBuffer::GetQueueFamilyType() const {return m_queueFamilyType;}
 
 void prosper::ICommandBuffer::UpdateLastUsageTimes(IDescriptorSet &ds) {GetContext().UpdateLastUsageTimes(ds);}
+
+bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,uint32_t swapchainImgIndex)
+{
+	return RecordPresentImage(img,*GetContext().GetSwapchainImage(swapchainImgIndex));
+}
+bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,Window &window,uint32_t swapchainImgIndex)
+{
+	return RecordPresentImage(img,*window.GetSwapchainImage(swapchainImgIndex));
+}
+bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,Window &window)
+{
+	return RecordPresentImage(img,window,window.GetLastAcquiredSwapchainImageIndex());
+}
 
 bool prosper::IPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
 {

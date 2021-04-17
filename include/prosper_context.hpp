@@ -12,6 +12,7 @@
 #include <chrono>
 #include <optional>
 #include <mutex>
+#include <iglfw/glfw_window.h>
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
 #include "shader/prosper_shader_manager.hpp"
@@ -24,7 +25,6 @@
 namespace GLFW
 {
 	class Window;
-	struct WindowCreationInfo;
 };
 
 namespace uimg
@@ -35,11 +35,13 @@ namespace uimg
 
 #undef max
 #undef CreateEvent
+#undef CreateWindow
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
 namespace prosper
 {
+	struct WindowSettings;
 	class Shader;
 	class ShaderStageProgram
 	{
@@ -117,6 +119,7 @@ namespace prosper
 	};
 
 	using FrameIndex = uint64_t;
+	class Window;
 	class DLLPROSPER IPrContext
 		: public std::enable_shared_from_this<IPrContext>
 	{
@@ -174,6 +177,7 @@ namespace prosper
 		virtual std::string GetAPIIdentifier() const=0;
 		virtual std::string GetAPIAbbreviation() const=0;
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)=0;
+		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo)=0;
 
 		void Run();
 		void Close();
@@ -182,7 +186,10 @@ namespace prosper
 		void SetValidationEnabled(bool b);
 		bool IsValidationEnabled() const;
 
-		GLFW::Window &GetWindow();
+		Window &GetWindow();
+		const Window &GetWindow() const {return const_cast<IPrContext*>(this)->GetWindow();}
+		const std::vector<std::weak_ptr<Window>> &GetWindows() const {return const_cast<IPrContext*>(this)->GetWindows();}
+		std::vector<std::weak_ptr<Window>> &GetWindows() {return m_windows;}
 		std::array<uint32_t,2> GetWindowSize() const;
 		uint32_t GetWindowWidth() const;
 		uint32_t GetWindowHeight() const;
@@ -202,8 +209,8 @@ namespace prosper
 		void ChangePresentMode(prosper::PresentModeKHR presentMode);
 		prosper::PresentModeKHR GetPresentMode() const;
 
-		const GLFW::WindowCreationInfo &GetWindowCreationInfo() const;
-		GLFW::WindowCreationInfo &GetWindowCreationInfo();
+		const WindowSettings &GetInitialWindowSettings() const;
+		WindowSettings &GetInitialWindowSettings();
 		virtual void ReloadWindow()=0;
 
 		ShaderManager &GetShaderManager() const;
@@ -468,18 +475,16 @@ namespace prosper
 		Callbacks m_callbacks {};
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;
 		std::unique_ptr<ShaderManager> m_shaderManager = nullptr;
-		std::unique_ptr<GLFW::Window> m_glfwWindow = nullptr;
+		std::shared_ptr<Window> m_window = nullptr;
+		std::vector<std::weak_ptr<Window>> m_windows {};
 		std::shared_ptr<IDynamicResizableBuffer> m_tmpBuffer = nullptr;
 		std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};
-		std::vector<std::shared_ptr<prosper::IImage>> m_swapchainImages {};
-		uint32_t m_numSwapchainImages = 0u;
 		std::mutex m_aliveResourceMutex;
 
 		std::queue<std::function<void(prosper::IPrimaryCommandBuffer&)>> m_scheduledBufferUpdates;
 		std::vector<std::shared_ptr<prosper::IPrimaryCommandBuffer>> m_commandBuffers;
-
-		uint32_t m_lastSemaporeUsed;
-		uint32_t m_n_swapchain_image = 0u;
+		
+		WindowSettings m_initialWindowSettings {};
 
 		bool m_useReservedDeviceLocalImageBuffer = true;
 		std::shared_ptr<prosper::Texture> m_dummyTexture = nullptr;
@@ -493,8 +498,6 @@ namespace prosper
 			std::mutex mutex;
 		};
 		std::unique_ptr<ValidationData> m_validationData = nullptr;
-
-		std::unique_ptr<GLFW::WindowCreationInfo> m_windowCreationInfo = nullptr;
 	private:
 		mutable FrameIndex m_frameId = 0ull;
 		mutable CommonBufferCache m_commonBufferCache;

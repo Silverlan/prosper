@@ -7,6 +7,7 @@
 
 #include "prosper_definitions.hpp"
 #include "prosper_enums.hpp"
+#include <iglfw/glfw_window.h>
 #include <limits>
 #include <array>
 #include <cinttypes>
@@ -961,6 +962,13 @@ namespace prosper
 	using PipelineID = uint32_t;
 	using SubPassID = uint32_t;
 	using SubPassAttachmentID = uint32_t;
+
+	struct DLLPROSPER WindowSettings
+		: public GLFW::WindowCreationInfo
+	{
+		bool windowedMode = true;
+		prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
+	};
 };
 
 #endif
