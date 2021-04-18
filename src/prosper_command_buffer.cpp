@@ -42,11 +42,11 @@ void prosper::ICommandBuffer::UpdateLastUsageTimes(IDescriptorSet &ds) {GetConte
 
 bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,uint32_t swapchainImgIndex)
 {
-	return RecordPresentImage(img,*GetContext().GetSwapchainImage(swapchainImgIndex));
+	return RecordPresentImage(img,*GetContext().GetSwapchainImage(swapchainImgIndex),*GetContext().GetSwapchainFramebuffer(swapchainImgIndex));
 }
 bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,Window &window,uint32_t swapchainImgIndex)
 {
-	return RecordPresentImage(img,*window.GetSwapchainImage(swapchainImgIndex));
+	return RecordPresentImage(img,*window.GetSwapchainImage(swapchainImgIndex),*window.GetSwapchainFramebuffer(swapchainImgIndex));
 }
 bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,Window &window)
 {

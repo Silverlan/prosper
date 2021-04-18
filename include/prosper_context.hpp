@@ -196,6 +196,7 @@ namespace prosper
 		const std::string &GetAppName() const;
 		uint32_t GetSwapchainImageCount() const;
 		prosper::IImage *GetSwapchainImage(uint32_t idx);
+		prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
 		virtual bool IsImageFormatSupported(
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
@@ -350,7 +351,7 @@ namespace prosper
 		)=0;
 		prosper::Shader *GetShaderPipeline(PipelineID id,uint32_t &outPipelineIdx) const;
 		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId)=0;
-		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const=0;
+		uint32_t GetLastAcquiredSwapchainImageIndex() const;
 
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries)=0;
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries)=0;
@@ -463,6 +464,7 @@ namespace prosper
 		void InitDummyTextures();
 		void InitDummyBuffer();
 		void InitTemporaryBuffer();
+		void InitWindow();
 		virtual void InitAPI(const CreateInfo &createInfo)=0;
 
 		prosper::PresentModeKHR m_presentMode = prosper::PresentModeKHR::Immediate;

@@ -219,4 +219,9 @@ prosper::IImage *Window::GetSwapchainImage(uint32_t idx)
 {
 	return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr;
 }
+
+prosper::IFramebuffer *Window::GetSwapchainFramebuffer(uint32_t idx)
+{
+	return (idx < m_swapchainFramebuffers.size()) ? m_swapchainFramebuffers.at(idx).get() : nullptr;
+}
 #pragma optimize("",on)

@@ -51,12 +51,54 @@ const std::string &prosper::IPrContext::GetAppName() const {return m_appName;}
 uint32_t prosper::IPrContext::GetSwapchainImageCount() const {return GetWindow().GetSwapchainImageCount();}
 
 prosper::IImage *prosper::IPrContext::GetSwapchainImage(uint32_t idx) {return GetWindow().GetSwapchainImage(idx);}
+prosper::IFramebuffer *prosper::IPrContext::GetSwapchainFramebuffer(uint32_t idx) {return GetWindow().GetSwapchainFramebuffer(idx);}
 
 prosper::Window &prosper::IPrContext::GetWindow() {return *m_window;}
 std::array<uint32_t,2> prosper::IPrContext::GetWindowSize() const {return {m_initialWindowSettings.width,m_initialWindowSettings.height};}
 uint32_t prosper::IPrContext::GetWindowWidth() const {return m_initialWindowSettings.width;}
 uint32_t prosper::IPrContext::GetWindowHeight() const {return m_initialWindowSettings.height;}
 
+uint32_t prosper::IPrContext::GetLastAcquiredSwapchainImageIndex() const {return GetWindow().GetLastAcquiredSwapchainImageIndex();}
+void prosper::IPrContext::InitWindow()
+{
+	auto oldSize = (m_window != nullptr) ? m_window->GetGlfwWindow().GetSize() : Vector2i();
+	auto onWindowReloaded = [this]() {
+		OnWindowInitialized();
+		if(m_window && umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == true)
+		{
+			auto &initWindowSettings = GetInitialWindowSettings();
+			auto newSize = m_window->GetGlfwWindow().GetSize();
+			if(newSize.x != initWindowSettings.width || newSize.y != initWindowSettings.height)
+			{
+				initWindowSettings.width = newSize.x;
+				initWindowSettings.height = newSize.y;
+				OnResolutionChanged(newSize.x,newSize.y);
+			}
+		}
+	};
+	auto newWindow = CreateWindow(m_initialWindowSettings);
+	assert(newWindow != nullptr);
+	auto it = std::find_if(m_windows.begin(),m_windows.end(),[&newWindow](const std::weak_ptr<prosper::Window> &wpWindow) {
+		return !wpWindow.expired() && wpWindow.lock() == newWindow;
+	});
+	if(it != m_windows.end())
+		m_windows.erase(it); // We'll handle the insertion of the primary window ourselves
+	newWindow->SetInitCallback(onWindowReloaded);
+
+	it = m_windows.end();
+	if(m_window)
+	{
+		it = std::find_if(m_windows.begin(),m_windows.end(),[this](const std::weak_ptr<prosper::Window> &wpWindow) {
+			return !wpWindow.expired() && wpWindow.lock() == m_window;
+		});
+	}
+	m_window = newWindow;
+	if(it != m_windows.end())
+		*it = m_window;
+	else
+		m_windows.push_back(m_window);
+	onWindowReloaded();
+}
 void prosper::IPrContext::Close()
 {
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed))

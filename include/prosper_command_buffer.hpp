@@ -33,6 +33,7 @@ namespace prosper
 	class Query;
 	class Shader;
 	class IRenderBuffer;
+	class Window;
 	class DLLPROSPER ICommandBuffer
 		: public ContextObject,
 		public std::enable_shared_from_this<ICommandBuffer>
@@ -150,7 +151,7 @@ namespace prosper
 		virtual bool WriteTimestampQuery(const TimestampQuery &query) const=0;
 		virtual bool ResetQuery(const Query &query) const=0;
 		
-		virtual bool RecordPresentImage(IImage &img,IImage &swapchainImg)=0;
+		virtual bool RecordPresentImage(IImage &img,IImage &swapchainImg,IFramebuffer &swapchainFramebuffer)=0;
 		bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex);
 		bool RecordPresentImage(IImage &img,Window &window);
 		bool RecordPresentImage(IImage &img,Window &window,uint32_t swapchainImgIndex);

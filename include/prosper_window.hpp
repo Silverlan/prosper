@@ -8,6 +8,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
+#include "prosper_structs.hpp"
 #include <iglfw/glfw_window.h>
 
 namespace prosper
@@ -30,6 +31,7 @@ namespace prosper
 		uint32_t GetSwapchainImageCount() const {return m_swapchainImages.size();}
 		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const=0;
 		prosper::IImage *GetSwapchainImage(uint32_t idx);
+		prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 		GLFW::Window &GetGlfwWindow() {return *m_glfwWindow;}
 		
 		std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget();
@@ -90,6 +92,7 @@ namespace prosper
 		float m_aspectRatio = 1.f;
 		std::shared_ptr<prosper::RenderTarget> m_stagingRenderTarget = nullptr;
 		std::vector<std::shared_ptr<prosper::IImage>> m_swapchainImages {};
+		std::vector<std::shared_ptr<prosper::IFramebuffer>> m_swapchainFramebuffers {};
 		uint32_t m_lastSemaporeUsed = 0u;
 	};
 };
