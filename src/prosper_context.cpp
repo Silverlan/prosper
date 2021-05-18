@@ -399,6 +399,8 @@ void prosper::IPrContext::ClearKeepAliveResources()
 }
 void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
+	if(!resource)
+		return;
 	std::unique_lock lock {m_aliveResourceMutex};
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
