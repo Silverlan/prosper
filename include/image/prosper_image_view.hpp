@@ -24,6 +24,7 @@ namespace prosper
 		IImageView(const IImageView&)=delete;
 		IImageView &operator=(const IImageView&)=delete;
 		virtual ~IImageView() override;
+		virtual const void *GetInternalHandle() const {return nullptr;}
 
 		ImageViewType GetType() const;
 		ImageAspectFlags GetAspectMask() const;

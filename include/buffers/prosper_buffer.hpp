@@ -73,6 +73,7 @@ namespace prosper
 		SubBufferIndex GetBaseIndex() const;
 		BufferUsageFlags GetUsageFlags() const;
 		CallbackHandle AddReallocationCallback(const std::function<void()> &fCallback);
+		virtual const void *GetInternalHandle() const {return nullptr;}
 
 		// For internal use only!
 		virtual void Initialize();

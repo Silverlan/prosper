@@ -166,6 +166,7 @@ namespace prosper
 			return const_cast<ICommandBuffer*>(this)->GetAPITypeRef<T>();
 		}
 
+		virtual const void *GetInternalHandle() const {return nullptr;}
 		IPrimaryCommandBuffer *GetPrimaryCommandBufferPtr();
 		const IPrimaryCommandBuffer *GetPrimaryCommandBufferPtr() const;
 		ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr();

@@ -21,6 +21,7 @@ namespace prosper
 		IFence(const IFence&)=delete;
 		IFence &operator=(const IFence&)=delete;
 		virtual ~IFence() override;
+		virtual const void *GetInternalHandle() const {return nullptr;}
 
 		virtual bool IsSet() const=0;
 		virtual bool Reset() const=0;

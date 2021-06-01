@@ -23,6 +23,7 @@ namespace prosper
 		virtual ~IEvent() override;
 
 		virtual bool IsSet() const=0;
+		virtual const void *GetInternalHandle() const {return nullptr;}
 	protected:
 		IEvent(IPrContext &context);
 	};

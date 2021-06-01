@@ -26,6 +26,7 @@ namespace prosper
 		ISampler(const ISampler&)=delete;
 		ISampler &operator=(const ISampler&)=delete;
 		virtual ~ISampler() override;
+		virtual const void *GetInternalHandle() const {return nullptr;}
 
 		void SetMinFilter(Filter filter);
 		void SetMagFilter(Filter filter);
