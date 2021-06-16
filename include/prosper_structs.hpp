@@ -949,7 +949,7 @@ namespace prosper
 			std::string deviceName;
 			PhysicalDeviceType deviceType;
 			uint32_t deviceId;
-			uint32_t driverVersion;
+			std::string driverVersion;
 			Vendor vendor;
 		};
 
