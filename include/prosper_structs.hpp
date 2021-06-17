@@ -13,6 +13,7 @@
 #include <cinttypes>
 #include <optional>
 #include <string>
+#include <cstring>
 #include <map>
 
 #undef max
@@ -899,7 +900,7 @@ namespace prosper
 			depthStencil = depthStencil_;
 		}
 		ClearValue(const ClearValue &cv)
-			: color{cv.color},depthStencil{cv.depthStencil}
+			: color{cv.color}
 		{}
 		ClearValue &operator=(const ClearValue &other)
 		{
@@ -945,7 +946,7 @@ namespace prosper
 	{
 		struct DLLPROSPER VendorDeviceInfo
 		{
-			uint32_t apiVersion = 0;
+			std::string apiVersion;
 			std::string deviceName;
 			PhysicalDeviceType deviceType;
 			uint32_t deviceId;
