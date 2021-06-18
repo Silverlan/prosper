@@ -118,6 +118,17 @@ namespace prosper
 		std::function<void(prosper::IPrimaryCommandBuffer&,uint32_t)> drawFrame = nullptr;
 	};
 
+	namespace detail
+	{
+		struct DLLPROSPER BufferUpdateInfo
+		{
+			std::optional<PipelineStageFlags> srcStageMask = util::PIPELINE_STAGE_SHADER_INPUT_FLAGS | PipelineStageFlags::TransferBit;
+			std::optional<AccessFlags> srcAccessMask = AccessFlags::ShaderReadBit | AccessFlags::ShaderWriteBit | AccessFlags::TransferReadBit | AccessFlags::TransferWriteBit;
+			std::optional<PipelineStageFlags> postUpdateBarrierStageMask = {};
+			std::optional<AccessFlags> postUpdateBarrierAccessMask = {};
+		};
+	};
+
 	using FrameIndex = uint64_t;
 	class Window;
 	class DLLPROSPER IPrContext
@@ -139,6 +150,7 @@ namespace prosper
 			EnableMultiThreadedRendering = ClearingKeepAliveResources<<1u
 		};
 
+		using BufferUpdateInfo = detail::BufferUpdateInfo; // Workaround for gcc bug, see https://stackoverflow.com/a/53423881/2482983
 		struct DLLPROSPER CreateInfo
 		{
 			struct DLLPROSPER DeviceInfo
@@ -153,14 +165,6 @@ namespace prosper
 			uint32_t height = 0u;
 			prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
 			std::optional<DeviceInfo> device = {};
-		};
-
-		struct DLLPROSPER BufferUpdateInfo
-		{
-			std::optional<PipelineStageFlags> srcStageMask = util::PIPELINE_STAGE_SHADER_INPUT_FLAGS | PipelineStageFlags::TransferBit;
-			std::optional<AccessFlags> srcAccessMask = AccessFlags::ShaderReadBit | AccessFlags::ShaderWriteBit | AccessFlags::TransferReadBit | AccessFlags::TransferWriteBit;
-			std::optional<PipelineStageFlags> postUpdateBarrierStageMask = {};
-			std::optional<AccessFlags> postUpdateBarrierAccessMask = {};
 		};
 
 		using ImageMipmapData = const uint8_t*;
