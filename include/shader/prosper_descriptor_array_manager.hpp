@@ -6,6 +6,7 @@
 #define __PROSPER_DESCRIPTOR_ARRAY_MANAGER_HPP__
 
 #include "prosper_definitions.hpp"
+#include "prosper_util.hpp"
 #include <memory>
 #include <queue>
 #include <optional>
@@ -18,6 +19,7 @@
 
 namespace prosper
 {
+	namespace detail {struct DLLPROSPER DescriptorSetInfoBinding;};
 	class IDescriptorSet;
 	class IDescriptorSetGroup;
 	class IPrContext;
@@ -54,11 +56,11 @@ namespace prosper
 template<class TDescriptorArrayManager>
 	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context,prosper::ShaderStageFlags shaderStages)
 {
-	auto limits = prosper::util::get_physical_device_limits(context);
+	auto limits = context.GetPhysicalDeviceLimits();
 	auto maxArrayLayers = limits.maxImageArrayLayers;
 	auto matArrayDsg = context.CreateDescriptorSetGroup({
 		{
-			prosper::DescriptorSetInfo::Binding {
+			prosper::detail::DescriptorSetInfoBinding {
 				prosper::DescriptorType::CombinedImageSampler,
 				shaderStages,
 				maxArrayLayers,

@@ -2058,7 +2058,7 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 		case uimg::TextureInfo::ContainerFormat::KTX:
 			return gli::save_ktx(gliTex,fullFileName);
 		}*/
-		return false;
+		return nullptr;
 	}
 
 	std::vector<std::vector<size_t>> layerMipmapOffsets {};
@@ -2107,7 +2107,7 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 		if(buf == nullptr)
 		{
 			context.FlushCommandBuffer(*setupCmd);
-			return false; // Buffer allocation failed; Requested size too large?
+			return nullptr; // Buffer allocation failed; Requested size too large?
 		}
 		setupCmd->RecordImageBarrier(*imgRead,ImageLayout::TransferDstOptimal,ImageLayout::TransferSrcOptimal);
 

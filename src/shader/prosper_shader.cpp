@@ -22,7 +22,7 @@ prosper::DescriptorSetInfo::DescriptorSetInfo(DescriptorSetInfo *parent,const st
 {}
 bool prosper::DescriptorSetInfo::WasBaked() const {return m_bWasBaked;}
 bool prosper::DescriptorSetInfo::IsValid() const {return WasBaked();}
-prosper::DescriptorSetInfo::Binding::Binding(DescriptorType type,ShaderStageFlags shaderStages,uint32_t descriptorArraySize,uint32_t bindingIndex)
+prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(DescriptorType type,ShaderStageFlags shaderStages,uint32_t descriptorArraySize,uint32_t bindingIndex)
 	: bindingIndex(bindingIndex),type(type),shaderStages(shaderStages),descriptorArraySize(descriptorArraySize)
 {}
 
@@ -498,6 +498,7 @@ prosper::PipelineID prosper::Shader::InitPipelineId(uint32_t pipelineIdx)
 	if(pipelineIdx >= m_cachedPipelineIds.size())
 		m_cachedPipelineIds.resize(pipelineIdx,std::numeric_limits<prosper::PipelineID>::max());
 	m_cachedPipelineIds[pipelineIdx] = GetContext().ReserveShaderPipeline();
+	return m_cachedPipelineIds[pipelineIdx];
 }
 
 void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)

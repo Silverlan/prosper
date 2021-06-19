@@ -44,18 +44,22 @@ namespace prosper
 		std::shared_ptr<ShaderStageProgram> program = nullptr;
 	};
 
-	struct DLLPROSPER DescriptorSetInfo
+	namespace detail
 	{
-		struct DLLPROSPER Binding
+		struct DLLPROSPER DescriptorSetInfoBinding
 		{
-			Binding()=default;
+			DescriptorSetInfoBinding()=default;
 			// If 'bindingIndex' is not specified, it will use the index of the previous binding, incremented by the previous array size
-			Binding(DescriptorType type,ShaderStageFlags shaderStages,uint32_t descriptorArraySize=1u,uint32_t bindingIndex=std::numeric_limits<uint32_t>::max());
+			DescriptorSetInfoBinding(DescriptorType type,ShaderStageFlags shaderStages,uint32_t descriptorArraySize=1u,uint32_t bindingIndex=std::numeric_limits<uint32_t>::max());
 			DescriptorType type = {};
 			ShaderStageFlags shaderStages = ShaderStageFlags::All;
 			uint32_t bindingIndex = std::numeric_limits<uint32_t>::max();
 			uint32_t descriptorArraySize = 1u;
 		};
+	};
+	struct DLLPROSPER DescriptorSetInfo
+	{
+		using Binding = detail::DescriptorSetInfoBinding;
 		DescriptorSetInfo()=default;
 		DescriptorSetInfo(const std::vector<Binding> &bindings);
 		DescriptorSetInfo(const DescriptorSetInfo &)=default;
