@@ -156,22 +156,22 @@ prosper::Format prosper::util::get_prosper_format(const uimg::ImageBuffer &imgBu
 	prosper::Format prosperFormat;
 	switch(format)
 	{
-	case uimg::ImageBuffer::Format::RGB8:
+	case uimg::Format::RGB8:
 		prosperFormat = prosper::Format::R8G8B8_UNorm_PoorCoverage;
 		break;
-	case uimg::ImageBuffer::Format::RGB16:
+	case uimg::Format::RGB16:
 		prosperFormat = prosper::Format::R16G16B16_SFloat_PoorCoverage;
 		break;
-	case uimg::ImageBuffer::Format::RGB32:
+	case uimg::Format::RGB32:
 		prosperFormat = prosper::Format::R32G32B32_SFloat;
 		break;
-	case uimg::ImageBuffer::Format::RGBA8:
+	case uimg::Format::RGBA8:
 		prosperFormat = prosper::Format::R8G8B8A8_UNorm;
 		break;
-	case uimg::ImageBuffer::Format::RGBA16:
+	case uimg::Format::RGBA16:
 		prosperFormat = prosper::Format::R16G16B16A16_SFloat;
 		break;
-	case uimg::ImageBuffer::Format::RGBA32:
+	case uimg::Format::RGBA32:
 		prosperFormat = prosper::Format::R32G32B32A32_SFloat;
 		break;
 	}
@@ -318,36 +318,36 @@ std::shared_ptr<prosper::RenderTarget> prosper::IPrContext::CreateRenderTarget(
 	}};
 }
 
-prosper::Format prosper::util::get_vk_format(uimg::ImageBuffer::Format format)
+prosper::Format prosper::util::get_vk_format(uimg::Format format)
 {
 	switch(format)
 	{
-	case uimg::ImageBuffer::Format::R8:
+	case uimg::Format::R8:
 		return prosper::Format::R8_UNorm;
-	case uimg::ImageBuffer::Format::RG8:
+	case uimg::Format::RG8:
 		return prosper::Format::R8G8_UNorm;
-	case uimg::ImageBuffer::Format::RGB8:
+	case uimg::Format::RGB8:
 		return prosper::Format::R8G8B8_UNorm_PoorCoverage;
-	case uimg::ImageBuffer::Format::RGBA8:
+	case uimg::Format::RGBA8:
 		return prosper::Format::R8G8B8A8_UNorm;
-	case uimg::ImageBuffer::Format::R16:
+	case uimg::Format::R16:
 		return prosper::Format::R16_SFloat;
-	case uimg::ImageBuffer::Format::RG16:
+	case uimg::Format::RG16:
 		return prosper::Format::R16G16_SFloat;
-	case uimg::ImageBuffer::Format::RGB16:
+	case uimg::Format::RGB16:
 		return prosper::Format::R16G16B16_SFloat_PoorCoverage;
-	case uimg::ImageBuffer::Format::RGBA16:
+	case uimg::Format::RGBA16:
 		return prosper::Format::R16G16B16A16_SFloat;
-	case uimg::ImageBuffer::Format::R32:
+	case uimg::Format::R32:
 		return prosper::Format::R32_SFloat;
-	case uimg::ImageBuffer::Format::RG32:
+	case uimg::Format::RG32:
 		return prosper::Format::R32G32_SFloat;
-	case uimg::ImageBuffer::Format::RGB32:
+	case uimg::Format::RGB32:
 		return prosper::Format::R32G32B32_SFloat;
-	case uimg::ImageBuffer::Format::RGBA32:
+	case uimg::Format::RGBA32:
 		return prosper::Format::R32G32B32A32_SFloat;
 	}
-	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 13);
+	static_assert(umath::to_integral(uimg::Format::Count) == 13);
 	return prosper::Format::Unknown;
 }
 
@@ -1582,6 +1582,198 @@ uint32_t prosper::util::get_component_count(Format format)
 	return gli::component_count(static_cast<gli::texture::format_type>(format));
 }
 
+bool prosper::util::get_format_channel_mask(Format format,uimg::ChannelMask &outChannelMask)
+{
+	switch(format)
+	{
+	case Format::R4G4_UNorm_Pack8:
+	case Format::R4G4B4A4_UNorm_Pack16:
+	case Format::R5G6B5_UNorm_Pack16:
+	case Format::R5G5B5A1_UNorm_Pack16:
+	case Format::R8_UNorm:
+	case Format::R8_SNorm:
+	case Format::R8_UScaled_PoorCoverage:
+	case Format::R8_SScaled_PoorCoverage:
+	case Format::R8_UInt:
+	case Format::R8_SInt:
+	case Format::R8_SRGB:
+	case Format::R8G8_UNorm:
+	case Format::R8G8_SNorm:
+	case Format::R8G8_UScaled_PoorCoverage:
+	case Format::R8G8_SScaled_PoorCoverage:
+	case Format::R8G8_UInt:
+	case Format::R8G8_SInt:
+	case Format::R8G8_SRGB_PoorCoverage:
+	case Format::R8G8B8_UNorm_PoorCoverage:
+	case Format::R8G8B8_SNorm_PoorCoverage:
+	case Format::R8G8B8_UScaled_PoorCoverage:
+	case Format::R8G8B8_SScaled_PoorCoverage:
+	case Format::R8G8B8_UInt_PoorCoverage:
+	case Format::R8G8B8_SInt_PoorCoverage:
+	case Format::R8G8B8_SRGB_PoorCoverage:
+	case Format::R8G8B8A8_UNorm:
+	case Format::R8G8B8A8_SNorm:
+	case Format::R8G8B8A8_UScaled_PoorCoverage:
+	case Format::R8G8B8A8_SScaled_PoorCoverage:
+	case Format::R8G8B8A8_UInt:
+	case Format::R8G8B8A8_SInt:
+	case Format::R8G8B8A8_SRGB:
+	case Format::R16_UNorm:
+	case Format::R16_SNorm:
+	case Format::R16_UScaled_PoorCoverage:
+	case Format::R16_SScaled_PoorCoverage:
+	case Format::R16_UInt:
+	case Format::R16_SInt:
+	case Format::R16_SFloat:
+	case Format::R16G16_UNorm:
+	case Format::R16G16_SNorm:
+	case Format::R16G16_UScaled_PoorCoverage:
+	case Format::R16G16_SScaled_PoorCoverage:
+	case Format::R16G16_UInt:
+	case Format::R16G16_SInt:
+	case Format::R16G16_SFloat:
+	case Format::R16G16B16_UNorm_PoorCoverage:
+	case Format::R16G16B16_SNorm_PoorCoverage:
+	case Format::R16G16B16_UScaled_PoorCoverage:
+	case Format::R16G16B16_SScaled_PoorCoverage:
+	case Format::R16G16B16_UInt_PoorCoverage:
+	case Format::R16G16B16_SInt_PoorCoverage:
+	case Format::R16G16B16_SFloat_PoorCoverage:
+	case Format::R16G16B16A16_UNorm:
+	case Format::R16G16B16A16_SNorm:
+	case Format::R16G16B16A16_UScaled_PoorCoverage:
+	case Format::R16G16B16A16_SScaled_PoorCoverage:
+	case Format::R16G16B16A16_UInt:
+	case Format::R16G16B16A16_SInt:
+	case Format::R16G16B16A16_SFloat:
+	case Format::R32_UInt:
+	case Format::R32_SInt:
+	case Format::R32_SFloat:
+	case Format::R32G32_UInt:
+	case Format::R32G32_SInt:
+	case Format::R32G32_SFloat:
+	case Format::R32G32B32_UInt:
+	case Format::R32G32B32_SInt:
+	case Format::R32G32B32_SFloat:
+	case Format::R32G32B32A32_UInt:
+	case Format::R32G32B32A32_SInt:
+	case Format::R32G32B32A32_SFloat:
+	case Format::R64_UInt_PoorCoverage:
+	case Format::R64_SInt_PoorCoverage:
+	case Format::R64_SFloat_PoorCoverage:
+	case Format::R64G64_UInt_PoorCoverage:
+	case Format::R64G64_SInt_PoorCoverage:
+	case Format::R64G64_SFloat_PoorCoverage:
+	case Format::R64G64B64_UInt_PoorCoverage:
+	case Format::R64G64B64_SInt_PoorCoverage:
+	case Format::R64G64B64_SFloat_PoorCoverage:
+	case Format::R64G64B64A64_UInt_PoorCoverage:
+	case Format::R64G64B64A64_SInt_PoorCoverage:
+	case Format::R64G64B64A64_SFloat_PoorCoverage:
+	case Format::BC1_RGB_UNorm_Block:
+	case Format::BC1_RGB_SRGB_Block:
+	case Format::BC1_RGBA_UNorm_Block:
+	case Format::BC1_RGBA_SRGB_Block:
+	case Format::BC2_UNorm_Block:
+	case Format::BC2_SRGB_Block:
+	case Format::BC3_UNorm_Block:
+	case Format::BC3_SRGB_Block:
+	case Format::BC4_UNorm_Block:
+	case Format::BC4_SNorm_Block:
+	case Format::BC5_UNorm_Block:
+	case Format::BC5_SNorm_Block:
+	case Format::BC6H_UFloat_Block:
+	case Format::BC6H_SFloat_Block:
+	case Format::BC7_UNorm_Block:
+	case Format::BC7_SRGB_Block:
+	case Format::ETC2_R8G8B8_UNorm_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8_SRGB_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8A1_UNorm_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8A1_SRGB_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8A8_UNorm_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8A8_SRGB_Block_PoorCoverage:
+	case Format::EAC_R11_UNorm_Block_PoorCoverage:
+	case Format::EAC_R11_SNorm_Block_PoorCoverage:
+	case Format::EAC_R11G11_UNorm_Block_PoorCoverage:
+	case Format::EAC_R11G11_SNorm_Block_PoorCoverage:
+	case Format::ASTC_4x4_UNorm_Block_PoorCoverage:
+	case Format::ASTC_4x4_SRGB_Block_PoorCoverage:
+	case Format::ASTC_5x4_UNorm_Block_PoorCoverage:
+	case Format::ASTC_5x4_SRGB_Block_PoorCoverage:
+	case Format::ASTC_5x5_UNorm_Block_PoorCoverage:
+	case Format::ASTC_5x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_6x5_UNorm_Block_PoorCoverage:
+	case Format::ASTC_6x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_6x6_UNorm_Block_PoorCoverage:
+	case Format::ASTC_6x6_SRGB_Block_PoorCoverage:
+	case Format::ASTC_8x5_UNorm_Block_PoorCoverage:
+	case Format::ASTC_8x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_8x6_UNorm_Block_PoorCoverage:
+	case Format::ASTC_8x6_SRGB_Block_PoorCoverage:
+	case Format::ASTC_8x8_UNorm_Block_PoorCoverage:
+	case Format::ASTC_8x8_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x5_UNorm_Block_PoorCoverage:
+	case Format::ASTC_10x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x6_UNorm_Block_PoorCoverage:
+	case Format::ASTC_10x6_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x8_UNorm_Block_PoorCoverage:
+	case Format::ASTC_10x8_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x10_UNorm_Block_PoorCoverage:
+	case Format::ASTC_10x10_SRGB_Block_PoorCoverage:
+	case Format::ASTC_12x10_UNorm_Block_PoorCoverage:
+	case Format::ASTC_12x10_SRGB_Block_PoorCoverage:
+	case Format::ASTC_12x12_UNorm_Block_PoorCoverage:
+	case Format::ASTC_12x12_SRGB_Block_PoorCoverage:
+		outChannelMask = {uimg::Channel::R,uimg::Channel::G,uimg::Channel::B,uimg::Channel::A};
+		return true;
+	case Format::B5G6R5_UNorm_Pack16:
+	case Format::B4G4R4A4_UNorm_Pack16:
+	case Format::B5G5R5A1_UNorm_Pack16:
+	case Format::B8G8R8_UNorm_PoorCoverage:
+	case Format::B8G8R8_SNorm_PoorCoverage:
+	case Format::B8G8R8_UScaled_PoorCoverage:
+	case Format::B8G8R8_SScaled_PoorCoverage:
+	case Format::B8G8R8_UInt_PoorCoverage:
+	case Format::B8G8R8_SInt_PoorCoverage:
+	case Format::B8G8R8_SRGB_PoorCoverage:
+	case Format::B8G8R8A8_UNorm:
+	case Format::B8G8R8A8_SNorm:
+	case Format::B8G8R8A8_UScaled_PoorCoverage:
+	case Format::B8G8R8A8_SScaled_PoorCoverage:
+	case Format::B8G8R8A8_UInt:
+	case Format::B8G8R8A8_SInt:
+	case Format::B8G8R8A8_SRGB:
+	case Format::B10G11R11_UFloat_Pack32:
+		outChannelMask = {uimg::Channel::B,uimg::Channel::G,uimg::Channel::R,uimg::Channel::A};
+		return true;
+	case Format::A1R5G5B5_UNorm_Pack16:
+	case Format::A2R10G10B10_UNorm_Pack32:
+	case Format::A2R10G10B10_SNorm_Pack32_PoorCoverage:
+	case Format::A2R10G10B10_UScaled_Pack32_PoorCoverage:
+	case Format::A2R10G10B10_SScaled_Pack32_PoorCoverage:
+	case Format::A2R10G10B10_UInt_Pack32:
+	case Format::A2R10G10B10_SInt_Pack32_PoorCoverage:
+		outChannelMask = {uimg::Channel::A,uimg::Channel::R,uimg::Channel::G,uimg::Channel::B};
+		return true;
+	case Format::A8B8G8R8_UNorm_Pack32:
+	case Format::A8B8G8R8_SNorm_Pack32:
+	case Format::A8B8G8R8_UScaled_Pack32_PoorCoverage:
+	case Format::A8B8G8R8_SScaled_Pack32_PoorCoverage:
+	case Format::A8B8G8R8_UInt_Pack32:
+	case Format::A8B8G8R8_SInt_Pack32:
+	case Format::A8B8G8R8_SRGB_Pack32:
+	case Format::A2B10G10R10_UNorm_Pack32:
+	case Format::A2B10G10R10_SNorm_Pack32_PoorCoverage:
+	case Format::A2B10G10R10_UScaled_Pack32_PoorCoverage:
+	case Format::A2B10G10R10_SScaled_Pack32_PoorCoverage:
+	case Format::A2B10G10R10_UInt_Pack32:
+	case Format::A2B10G10R10_SInt_Pack32_PoorCoverage:
+		outChannelMask = {uimg::Channel::A,uimg::Channel::B,uimg::Channel::G,uimg::Channel::R};
+		return true;
+	}
+	return false;
+}
+
 prosper::AccessFlags prosper::util::get_read_access_mask() {return prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::DepthStencilAttachmentReadBit | prosper::AccessFlags::HostReadBit | prosper::AccessFlags::IndexReadBit | prosper::AccessFlags::IndirectCommandReadBit | prosper::AccessFlags::InputAttachmentReadBit | prosper::AccessFlags::MemoryReadBit | prosper::AccessFlags::ShaderReadBit | prosper::AccessFlags::TransferReadBit | prosper::AccessFlags::UniformReadBit | prosper::AccessFlags::VertexAttributeReadBit;}
 prosper::AccessFlags prosper::util::get_write_access_mask() {return prosper::AccessFlags::ColorAttachmentWriteBit | prosper::AccessFlags::DepthStencilAttachmentWriteBit | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::MemoryWriteBit | prosper::AccessFlags::ShaderWriteBit | prosper::AccessFlags::TransferWriteBit;}
 
@@ -2157,12 +2349,12 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 		context.FlushCommandBuffer(*setupCmd);
 
 		/*// The dds library expects the image data in RGB form, so we have to do some conversions in some cases.
-		std::optional<util::ImageBuffer::Format> imgBufFormat = {};
+		std::optional<util::Format> imgBufFormat = {};
 		switch(srcFormat)
 		{
 		case Anvil::Format::B8G8R8_UNORM:
 		case Anvil::Format::B8G8R8A8_UNORM:
-		imgBufFormat = util::ImageBuffer::Format::RGBA32; // TODO: dst format
+		imgBufFormat = util::Format::RGBA32; // TODO: dst format
 		break;
 		}
 		if(imgBufFormat.has_value())
@@ -2215,21 +2407,33 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 }
 bool prosper::util::compress_image(prosper::IImage &image,const uimg::TextureInfo &texInfo,const uimg::TextureOutputHandler &outputHandler,const std::function<void(const std::string&)> &errorHandler)
 {
-	auto numLayers = image.GetLayerCount();
-	auto numMipmaps = image.GetMipmapCount();
-	auto cubemap = image.IsCubemap();
 	auto extents = image.GetExtents();
 	auto dstFormat = image.GetFormat();
-	return uimg::compress_texture(outputHandler,prosper::util::image_to_data(image,dstFormat),extents.width,extents.height,get_pixel_size(dstFormat),numLayers,numMipmaps,cubemap,texInfo,errorHandler);
+	
+	uimg::TextureSaveInfo saveInfo {};
+	saveInfo.numLayers = image.GetLayerCount();
+	saveInfo.numMipmaps = image.GetMipmapCount();
+	saveInfo.cubemap = image.IsCubemap();
+	saveInfo.width = extents.width;
+	saveInfo.height = extents.height;
+	saveInfo.szPerPixel = get_pixel_size(dstFormat);
+	saveInfo.texInfo = texInfo;
+	return uimg::compress_texture(outputHandler,prosper::util::image_to_data(image,dstFormat),saveInfo,errorHandler);
 }
 bool prosper::util::compress_image(prosper::IImage &image,const uimg::TextureInfo &texInfo,std::vector<std::vector<std::vector<uint8_t>>> &outputData,const std::function<void(const std::string&)> &errorHandler)
 {
-	auto numLayers = image.GetLayerCount();
-	auto numMipmaps = image.GetMipmapCount();
-	auto cubemap = image.IsCubemap();
 	auto extents = image.GetExtents();
 	auto dstFormat = image.GetFormat();
-	return uimg::compress_texture(outputData,prosper::util::image_to_data(image,dstFormat),extents.width,extents.height,get_pixel_size(dstFormat),numLayers,numMipmaps,cubemap,texInfo,errorHandler);
+
+	uimg::TextureSaveInfo saveInfo {};
+	saveInfo.numLayers = image.GetLayerCount();
+	saveInfo.numMipmaps = image.GetMipmapCount();
+	saveInfo.cubemap = image.IsCubemap();
+	saveInfo.width = extents.width;
+	saveInfo.height = extents.height;
+	saveInfo.szPerPixel = get_pixel_size(dstFormat);
+	saveInfo.texInfo = texInfo;
+	return uimg::compress_texture(outputData,prosper::util::image_to_data(image,dstFormat),saveInfo,errorHandler);
 }
 bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler)
 {
@@ -2238,6 +2442,9 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 	auto dstFormat = srcFormat;
 	if(texInfo.inputFormat != uimg::TextureInfo::InputFormat::KeepInputImageFormat)
 		dstFormat = ::get_prosper_format(texInfo.inputFormat);
+
+	uimg::ChannelMask channelMask {};
+	get_format_channel_mask(srcFormat,channelMask);
 
 	if(texInfo.outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat || is_compressed_format(imgRead->GetFormat()))
 	{
@@ -2342,7 +2549,13 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 					mipmapData.push_back(dstData);
 				}
 			}
-			return uimg::save_texture(fileName,layerMipmapData,extents.width,extents.height,sizeof(float) *4,*convTexInfo,false);
+			uimg::TextureSaveInfo saveInfo {};
+			saveInfo.width = extents.width;
+			saveInfo.height = extents.height;
+			saveInfo.szPerPixel = sizeof(float) *4;
+			saveInfo.texInfo = *convTexInfo;
+			saveInfo.channelMask = channelMask;
+			return uimg::save_texture(fileName,layerMipmapData,saveInfo);
 		}
 		auto fullFileName = uimg::get_absolute_path(fileName,texInfo.containerFormat);
 		switch(texInfo.containerFormat)
@@ -2354,10 +2567,18 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 		}
 		return false;
 	}
-	auto numLayers = imgRead->GetLayerCount();
-	auto numMipmaps = imgRead->GetMipmapCount();
 	auto cubemap = imgRead->IsCubemap();
 	auto extents = imgRead->GetExtents();
-	return uimg::save_texture(fileName,prosper::util::image_to_data(*imgRead,dstFormat),extents.width,extents.height,get_pixel_size(dstFormat),numLayers,numMipmaps,cubemap,texInfo,errorHandler);
+
+	uimg::TextureSaveInfo saveInfo {};
+	saveInfo.width = extents.width;
+	saveInfo.height = extents.height;
+	saveInfo.numLayers = imgRead->GetLayerCount();
+	saveInfo.numMipmaps = imgRead->GetMipmapCount();
+	saveInfo.szPerPixel = get_pixel_size(dstFormat);
+	saveInfo.texInfo = texInfo;
+	saveInfo.cubemap = cubemap;
+	saveInfo.channelMask = channelMask;
+	return uimg::save_texture(fileName,prosper::util::image_to_data(*imgRead,dstFormat),saveInfo,errorHandler);
 }
 #pragma optimize("",on)

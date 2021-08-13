@@ -20,7 +20,7 @@ namespace Anvil
 
 namespace prosper::util
 {
-	DLLPROSPER prosper::Format get_vk_format(uimg::ImageBuffer::Format format);
+	DLLPROSPER prosper::Format get_vk_format(uimg::Format format);
 };
 
 #endif
