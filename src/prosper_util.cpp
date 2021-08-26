@@ -1586,10 +1586,6 @@ bool prosper::util::get_format_channel_mask(Format format,uimg::ChannelMask &out
 {
 	switch(format)
 	{
-	case Format::R4G4_UNorm_Pack8:
-	case Format::R4G4B4A4_UNorm_Pack16:
-	case Format::R5G6B5_UNorm_Pack16:
-	case Format::R5G5B5A1_UNorm_Pack16:
 	case Format::R8_UNorm:
 	case Format::R8_SNorm:
 	case Format::R8_UScaled_PoorCoverage:
@@ -1726,9 +1722,6 @@ bool prosper::util::get_format_channel_mask(Format format,uimg::ChannelMask &out
 	case Format::ASTC_12x12_SRGB_Block_PoorCoverage:
 		outChannelMask = {uimg::Channel::R,uimg::Channel::G,uimg::Channel::B,uimg::Channel::A};
 		return true;
-	case Format::B5G6R5_UNorm_Pack16:
-	case Format::B4G4R4A4_UNorm_Pack16:
-	case Format::B5G5R5A1_UNorm_Pack16:
 	case Format::B8G8R8_UNorm_PoorCoverage:
 	case Format::B8G8R8_SNorm_PoorCoverage:
 	case Format::B8G8R8_UScaled_PoorCoverage:
@@ -1743,8 +1736,28 @@ bool prosper::util::get_format_channel_mask(Format format,uimg::ChannelMask &out
 	case Format::B8G8R8A8_UInt:
 	case Format::B8G8R8A8_SInt:
 	case Format::B8G8R8A8_SRGB:
-	case Format::B10G11R11_UFloat_Pack32:
 		outChannelMask = {uimg::Channel::B,uimg::Channel::G,uimg::Channel::R,uimg::Channel::A};
+		return true;
+	// Note: Pack formats have reverse order due to endianness! Unused channels are set to uimg::Channel::A (unless all channels are used)
+	case Format::R4G4_UNorm_Pack8:
+		outChannelMask = {uimg::Channel::G,uimg::Channel::R,uimg::Channel::A,uimg::Channel::A};
+		return true;
+	case Format::R4G4B4A4_UNorm_Pack16:
+	case Format::R5G5B5A1_UNorm_Pack16:
+		outChannelMask = {uimg::Channel::A,uimg::Channel::B,uimg::Channel::G,uimg::Channel::R};
+		return true;
+	case Format::R5G6B5_UNorm_Pack16:
+		outChannelMask = {uimg::Channel::B,uimg::Channel::G,uimg::Channel::R,uimg::Channel::A};
+		return true;
+	case Format::B5G6R5_UNorm_Pack16:
+		outChannelMask = {uimg::Channel::R,uimg::Channel::G,uimg::Channel::B,uimg::Channel::A};
+		return true;
+	case Format::B4G4R4A4_UNorm_Pack16:
+	case Format::B5G5R5A1_UNorm_Pack16:
+		outChannelMask = {uimg::Channel::A,uimg::Channel::R,uimg::Channel::G,uimg::Channel::B};
+		return true;
+	case Format::B10G11R11_UFloat_Pack32:
+		outChannelMask = {uimg::Channel::R,uimg::Channel::G,uimg::Channel::B,uimg::Channel::A};
 		return true;
 	case Format::A1R5G5B5_UNorm_Pack16:
 	case Format::A2R10G10B10_UNorm_Pack32:
@@ -1753,7 +1766,7 @@ bool prosper::util::get_format_channel_mask(Format format,uimg::ChannelMask &out
 	case Format::A2R10G10B10_SScaled_Pack32_PoorCoverage:
 	case Format::A2R10G10B10_UInt_Pack32:
 	case Format::A2R10G10B10_SInt_Pack32_PoorCoverage:
-		outChannelMask = {uimg::Channel::A,uimg::Channel::R,uimg::Channel::G,uimg::Channel::B};
+		outChannelMask = {uimg::Channel::B,uimg::Channel::G,uimg::Channel::R,uimg::Channel::A};
 		return true;
 	case Format::A8B8G8R8_UNorm_Pack32:
 	case Format::A8B8G8R8_SNorm_Pack32:
@@ -1768,7 +1781,7 @@ bool prosper::util::get_format_channel_mask(Format format,uimg::ChannelMask &out
 	case Format::A2B10G10R10_SScaled_Pack32_PoorCoverage:
 	case Format::A2B10G10R10_UInt_Pack32:
 	case Format::A2B10G10R10_SInt_Pack32_PoorCoverage:
-		outChannelMask = {uimg::Channel::A,uimg::Channel::B,uimg::Channel::G,uimg::Channel::R};
+		outChannelMask = {uimg::Channel::R,uimg::Channel::G,uimg::Channel::B,uimg::Channel::A};
 		return true;
 	}
 	return false;
@@ -2435,6 +2448,44 @@ bool prosper::util::compress_image(prosper::IImage &image,const uimg::TextureInf
 	saveInfo.texInfo = texInfo;
 	return uimg::compress_texture(outputData,prosper::util::image_to_data(image,dstFormat),saveInfo,errorHandler);
 }
+
+bool prosper::util::is_packed_format(Format format)
+{
+	switch(format)
+	{
+	case Format::R4G4_UNorm_Pack8:
+	case Format::R4G4B4A4_UNorm_Pack16:
+	case Format::R5G5B5A1_UNorm_Pack16:
+	case Format::R5G6B5_UNorm_Pack16:
+	case Format::B5G6R5_UNorm_Pack16:
+	case Format::B4G4R4A4_UNorm_Pack16:
+	case Format::B5G5R5A1_UNorm_Pack16:
+	case Format::B10G11R11_UFloat_Pack32:
+	case Format::A1R5G5B5_UNorm_Pack16:
+	case Format::A2R10G10B10_UNorm_Pack32:
+	case Format::A2R10G10B10_SNorm_Pack32_PoorCoverage:
+	case Format::A2R10G10B10_UScaled_Pack32_PoorCoverage:
+	case Format::A2R10G10B10_SScaled_Pack32_PoorCoverage:
+	case Format::A2R10G10B10_UInt_Pack32:
+	case Format::A2R10G10B10_SInt_Pack32_PoorCoverage:
+	case Format::A8B8G8R8_UNorm_Pack32:
+	case Format::A8B8G8R8_SNorm_Pack32:
+	case Format::A8B8G8R8_UScaled_Pack32_PoorCoverage:
+	case Format::A8B8G8R8_SScaled_Pack32_PoorCoverage:
+	case Format::A8B8G8R8_UInt_Pack32:
+	case Format::A8B8G8R8_SInt_Pack32:
+	case Format::A8B8G8R8_SRGB_Pack32:
+	case Format::A2B10G10R10_UNorm_Pack32:
+	case Format::A2B10G10R10_SNorm_Pack32_PoorCoverage:
+	case Format::A2B10G10R10_UScaled_Pack32_PoorCoverage:
+	case Format::A2B10G10R10_SScaled_Pack32_PoorCoverage:
+	case Format::A2B10G10R10_UInt_Pack32:
+	case Format::A2B10G10R10_SInt_Pack32_PoorCoverage:
+		return true;
+	}
+	return false;
+}
+
 bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &image,const uimg::TextureInfo &texInfo,const std::function<void(const std::string&)> &errorHandler)
 {
 	std::shared_ptr<prosper::IImage> imgRead = image.shared_from_this();
@@ -2444,7 +2495,8 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 		dstFormat = ::get_prosper_format(texInfo.inputFormat);
 
 	uimg::ChannelMask channelMask {};
-	get_format_channel_mask(srcFormat,channelMask);
+	if(is_packed_format(srcFormat))
+		channelMask.Reverse();
 
 	if(texInfo.outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat || is_compressed_format(imgRead->GetFormat()))
 	{
