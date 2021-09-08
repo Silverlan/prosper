@@ -590,7 +590,7 @@ std::optional<std::string> prosper::glsl::load_glsl(
 		return {};
 	}
 	auto hlsl = false;
-	if(ustring::compare(ext,"hls",false))
+	if(ustring::compare<std::string>(ext,"hls",false))
 		hlsl = true;
 	auto shaderCode = f->ReadString();
 	std::vector<IncludeLine> includeLines;
