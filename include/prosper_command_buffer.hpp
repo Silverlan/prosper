@@ -74,9 +74,9 @@ namespace prosper
 		bool RecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst);
 		virtual bool RecordSetDepthBias(float depthBiasConstantFactor=0.f,float depthBiasClamp=0.f,float depthBiasSlopeFactor=0.f)=0;
 		virtual bool RecordClearImage(IImage &img,ImageLayout layout,const std::array<float,4> &clearColor,const util::ClearImageInfo &clearImageInfo={})=0;
-		virtual bool RecordClearImage(IImage &img,ImageLayout layout,float clearDepth,const util::ClearImageInfo &clearImageInfo={})=0;
+		virtual bool RecordClearImage(IImage &img,ImageLayout layout,std::optional<float> clearDepth,std::optional<uint32_t> clearStencil,const util::ClearImageInfo &clearImageInfo={})=0;
 		virtual bool RecordClearAttachment(IImage &img,const std::array<float,4> &clearColor,uint32_t attId,uint32_t layerId,uint32_t layerCount=1)=0;
-		virtual bool RecordClearAttachment(IImage &img,float clearDepth,uint32_t layerId=0u)=0;
+		virtual bool RecordClearAttachment(IImage &img,std::optional<float> clearDepth,std::optional<uint32_t> clearStencil,uint32_t layerId=0u)=0;
 		bool RecordClearAttachment(IImage &img,const std::array<float,4> &clearColor,uint32_t attId=0u);
 		bool RecordCopyImage(const util::CopyInfo &copyInfo,IImage &imgSrc,IImage &imgDst);
 		bool RecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst);
@@ -97,19 +97,19 @@ namespace prosper
 		bool RecordImageBarrier(
 			IImage &img,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
 			ImageLayout oldLayout,ImageLayout newLayout,AccessFlags srcAccessMask,AccessFlags dstAccessMask,
-			uint32_t baseLayer=std::numeric_limits<uint32_t>::max()
+			uint32_t baseLayer=std::numeric_limits<uint32_t>::max(),std::optional<prosper::ImageAspectFlags> aspectMask={}
 		);
 		bool RecordImageBarrier(
 			IImage &img,const util::BarrierImageLayout &srcBarrierInfo,const util::BarrierImageLayout &dstBarrierInfo,
-			const util::ImageSubresourceRange &subresourceRange={}
+			const util::ImageSubresourceRange &subresourceRange={},std::optional<prosper::ImageAspectFlags> aspectMask={}
 		);
 		bool RecordImageBarrier(
-			IImage &img,ImageLayout srcLayout,ImageLayout dstLayout,const util::ImageSubresourceRange &subresourceRange={}
+			IImage &img,ImageLayout srcLayout,ImageLayout dstLayout,const util::ImageSubresourceRange &subresourceRange={},std::optional<prosper::ImageAspectFlags> aspectMask={}
 		);
 		bool RecordPostRenderPassImageBarrier(
 			IImage &img,
 			ImageLayout preRenderPassLayout,ImageLayout postRenderPassLayout,
-			const util::ImageSubresourceRange &subresourceRange={}
+			const util::ImageSubresourceRange &subresourceRange={},std::optional<prosper::ImageAspectFlags> aspectMask={}
 		);
 		bool RecordBufferBarrier(
 			IBuffer &buf,PipelineStageFlags srcStageMask,PipelineStageFlags dstStageMask,
@@ -181,7 +181,7 @@ namespace prosper
 		virtual bool DoRecordCopyImage(const util::CopyInfo &copyInfo,IImage &imgSrc,IImage &imgDst,uint32_t w,uint32_t h)=0;
 		virtual bool DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h)=0;
 		virtual bool DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst,uint32_t w,uint32_t h)=0;
-		virtual bool DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets)=0;
+		virtual bool DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets,std::optional<prosper::ImageAspectFlags> aspectFlags={})=0;
 		virtual bool DoRecordResolveImage(IImage &imgSrc,IImage &imgDst,const util::ImageResolve &resolve)=0;
 		void UpdateLastUsageTimes(IDescriptorSet &ds);
 

@@ -41,18 +41,22 @@ prosper::util::BufferBarrier prosper::util::create_buffer_barrier(const prosper:
 	);
 }
 
-prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange)
+prosper::util::ImageBarrier prosper::util::create_image_barrier(
+	IImage &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange,std::optional<prosper::ImageAspectFlags> aspectMask
+)
 {
 	util::ImageSubresourceRange resourceRange {};
 	apply_image_subresource_range(subresourceRange,resourceRange,img);
 	return prosper::util::ImageBarrier(
 		srcBarrierInfo.accessMask,dstBarrierInfo.accessMask,
 		srcBarrierInfo.layout,dstBarrierInfo.layout,
-		QUEUE_FAMILY_IGNORED,QUEUE_FAMILY_IGNORED,&img,resourceRange
+		QUEUE_FAMILY_IGNORED,QUEUE_FAMILY_IGNORED,&img,resourceRange,aspectMask
 	);
 }
 
-prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img,const prosper::util::ImageBarrierInfo &barrierInfo)
+prosper::util::ImageBarrier prosper::util::create_image_barrier(
+	IImage &img,const prosper::util::ImageBarrierInfo &barrierInfo,std::optional<prosper::ImageAspectFlags> aspectMask
+)
 {
 	util::ImageSubresourceRange resourceRange {};
 	apply_image_subresource_range(barrierInfo.subresourceRange,resourceRange,img);
@@ -60,7 +64,7 @@ prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img,cons
 		barrierInfo.srcAccessMask,barrierInfo.dstAccessMask,
 		barrierInfo.oldLayout,barrierInfo.newLayout,
 		barrierInfo.srcQueueFamilyIndex,barrierInfo.dstQueueFamilyIndex,
-		&img,resourceRange
+		&img,resourceRange,aspectMask
 	};
 }
 
@@ -145,7 +149,8 @@ bool prosper::debug::get_last_recorded_image_layout(prosper::ICommandBuffer &cmd
 static bool record_image_barrier(
 	prosper::ICommandBuffer &cmdBuffer,prosper::IImage &img,
 	prosper::ImageLayout originalLayout,prosper::ImageLayout currentLayout,
-	prosper::ImageLayout dstLayout,const prosper::util::ImageSubresourceRange &subresourceRange={}
+	prosper::ImageLayout dstLayout,const prosper::util::ImageSubresourceRange &subresourceRange={},
+	std::optional<prosper::ImageAspectFlags> aspectMask={}
 )
 {
 	prosper::util::BarrierImageLayout srcInfo {};
@@ -187,13 +192,13 @@ static bool record_image_barrier(
 		dstInfo = {prosper::PipelineStageFlags::TransferBit,dstLayout,prosper::AccessFlags::TransferWriteBit};
 		break;
 	}
-	return cmdBuffer.RecordImageBarrier(img,srcInfo,dstInfo,subresourceRange);
+	return cmdBuffer.RecordImageBarrier(img,srcInfo,dstInfo,subresourceRange,aspectMask);
 }
 
 bool prosper::ICommandBuffer::RecordImageBarrier(
 	prosper::IImage &img,prosper::PipelineStageFlags srcStageMask,prosper::PipelineStageFlags dstStageMask,
 	prosper::ImageLayout oldLayout,prosper::ImageLayout newLayout,prosper::AccessFlags srcAccessMask,prosper::AccessFlags dstAccessMask,
-	uint32_t baseLayer
+	uint32_t baseLayer,std::optional<prosper::ImageAspectFlags> aspectMask
 )
 {
 	prosper::util::PipelineBarrierInfo barrier {};
@@ -210,34 +215,34 @@ bool prosper::ICommandBuffer::RecordImageBarrier(
 		imgBarrier.subresourceRange.baseArrayLayer = baseLayer;
 		imgBarrier.subresourceRange.layerCount = 1u;
 	}
-	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,imgBarrier));
+	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,imgBarrier,aspectMask));
 
 	return RecordPipelineBarrier(barrier);
 }
 bool prosper::ICommandBuffer::RecordImageBarrier(
 	IImage &img,const util::BarrierImageLayout &srcBarrierInfo,const util::BarrierImageLayout &dstBarrierInfo,
-	const util::ImageSubresourceRange &subresourceRange
+	const util::ImageSubresourceRange &subresourceRange,std::optional<prosper::ImageAspectFlags> aspectMask
 )
 {
 	prosper::util::PipelineBarrierInfo barrier {};
 	barrier.srcStageMask = srcBarrierInfo.stageMask;
 	barrier.dstStageMask = dstBarrierInfo.stageMask;
-	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,srcBarrierInfo,dstBarrierInfo,subresourceRange));
+	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img,srcBarrierInfo,dstBarrierInfo,subresourceRange,aspectMask));
 	return RecordPipelineBarrier(barrier);
 }
 bool prosper::ICommandBuffer::RecordImageBarrier(
-	IImage &img,ImageLayout srcLayout,ImageLayout dstLayout,const util::ImageSubresourceRange &subresourceRange
+	IImage &img,ImageLayout srcLayout,ImageLayout dstLayout,const util::ImageSubresourceRange &subresourceRange,std::optional<prosper::ImageAspectFlags> aspectMask
 )
 {
-	return ::record_image_barrier(*this,img,srcLayout,srcLayout,dstLayout,subresourceRange);
+	return ::record_image_barrier(*this,img,srcLayout,srcLayout,dstLayout,subresourceRange,aspectMask);
 }
 bool prosper::ICommandBuffer::RecordPostRenderPassImageBarrier(
 	IImage &img,
 	ImageLayout preRenderPassLayout,ImageLayout postRenderPassLayout,
-	const util::ImageSubresourceRange &subresourceRange
+	const util::ImageSubresourceRange &subresourceRange,std::optional<prosper::ImageAspectFlags> aspectMask
 )
 {
-	return ::record_image_barrier(*this,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange);
+	return ::record_image_barrier(*this,img,preRenderPassLayout,postRenderPassLayout,postRenderPassLayout,subresourceRange,aspectMask);
 }
 void prosper::ICommandBuffer::ClearBoundPipeline() {}
 bool prosper::ICommandBuffer::RecordUnbindShaderPipeline()

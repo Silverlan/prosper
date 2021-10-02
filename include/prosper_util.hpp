@@ -51,8 +51,11 @@ namespace prosper
 		DLLPROSPER prosper::util::ImageCreateInfo get_image_create_info(const uimg::ImageBuffer &imgBuffer,bool cubemap=false);
 
 		DLLPROSPER BufferBarrier create_buffer_barrier(const util::BufferBarrierInfo &barrierInfo,IBuffer &buffer);
-		DLLPROSPER ImageBarrier create_image_barrier(IImage &img,const util::ImageBarrierInfo &barrierInfo);
-		DLLPROSPER ImageBarrier create_image_barrier(IImage &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange={});
+		DLLPROSPER ImageBarrier create_image_barrier(IImage &img,const util::ImageBarrierInfo &barrierInfo,std::optional<prosper::ImageAspectFlags> aspectMask={});
+		DLLPROSPER ImageBarrier create_image_barrier(
+			IImage &img,const BarrierImageLayout &srcBarrierInfo,const BarrierImageLayout &dstBarrierInfo,const ImageSubresourceRange &subresourceRange={},
+			std::optional<prosper::ImageAspectFlags> aspectMask={}
+		);
 
 		DLLPROSPER void calculate_mipmap_size(uint32_t w,uint32_t h,uint32_t *wMipmap,uint32_t *hMipmap,uint32_t level);
 		DLLPROSPER uint32_t calculate_mipmap_size(uint32_t v,uint32_t level);

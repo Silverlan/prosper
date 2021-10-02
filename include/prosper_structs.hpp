@@ -217,6 +217,7 @@ namespace prosper
 			ImageLayout oldLayout;
 			uint32_t srcQueueFamilyIndex;
 			ImageSubresourceRange subresourceRange;
+			std::optional<ImageAspectFlags> aspectMask {};
 
 			ImageBarrier(
 				AccessFlags in_source_access_mask,
@@ -226,11 +227,12 @@ namespace prosper
 				uint32_t in_src_queue_family_index,
 				uint32_t in_dst_queue_family_index,
 				IImage *in_image_ptr,
-				ImageSubresourceRange in_image_subresource_range
+				ImageSubresourceRange in_image_subresource_range,
+				std::optional<ImageAspectFlags> aspectMask
 			)
 				: srcAccessMask{in_source_access_mask},dstAccessMask{in_destination_access_mask},oldLayout{in_old_layout},
 				newLayout{in_new_layout},srcQueueFamilyIndex{in_src_queue_family_index},dstQueueFamilyIndex{in_dst_queue_family_index},
-				image{in_image_ptr},subresourceRange{in_image_subresource_range}
+				image{in_image_ptr},subresourceRange{in_image_subresource_range},aspectMask{aspectMask}
 			{}
 		};
 
@@ -352,6 +354,7 @@ namespace prosper
 			ComponentSwizzle swizzleGreen = ComponentSwizzle::G;
 			ComponentSwizzle swizzleBlue = ComponentSwizzle::B;
 			ComponentSwizzle swizzleAlpha = ComponentSwizzle::A;
+			std::optional<ImageAspectFlags> aspectFlags = {};
 		};
 
 		struct DLLPROSPER SamplerCreateInfo
@@ -384,7 +387,8 @@ namespace prosper
 				AttachmentInfo(
 					prosper::Format format=prosper::Format::R8G8B8A8_UNorm,prosper::ImageLayout initialLayout=prosper::ImageLayout::ColorAttachmentOptimal,
 					prosper::AttachmentLoadOp loadOp=prosper::AttachmentLoadOp::DontCare,prosper::AttachmentStoreOp storeOp=prosper::AttachmentStoreOp::Store,
-					prosper::SampleCountFlags sampleCount=prosper::SampleCountFlags::e1Bit,prosper::ImageLayout finalLayout=prosper::ImageLayout::ShaderReadOnlyOptimal
+					prosper::SampleCountFlags sampleCount=prosper::SampleCountFlags::e1Bit,prosper::ImageLayout finalLayout=prosper::ImageLayout::ShaderReadOnlyOptimal,
+					prosper::AttachmentLoadOp stencilLoadOp=prosper::AttachmentLoadOp::DontCare,prosper::AttachmentStoreOp stencilStoreOp=prosper::AttachmentStoreOp::DontCare
 				);
 				bool operator==(const AttachmentInfo &other) const;
 				bool operator!=(const AttachmentInfo &other) const;
@@ -392,6 +396,8 @@ namespace prosper
 				prosper::SampleCountFlags sampleCount = prosper::SampleCountFlags::e1Bit;
 				prosper::AttachmentLoadOp loadOp = prosper::AttachmentLoadOp::DontCare;
 				prosper::AttachmentStoreOp storeOp = prosper::AttachmentStoreOp::Store;
+				prosper::AttachmentLoadOp stencilLoadOp = prosper::AttachmentLoadOp::DontCare;
+				prosper::AttachmentStoreOp stencilStoreOp = prosper::AttachmentStoreOp::DontCare;
 				prosper::ImageLayout initialLayout = prosper::ImageLayout::ColorAttachmentOptimal;
 				prosper::ImageLayout finalLayout = prosper::ImageLayout::ShaderReadOnlyOptimal;
 			};

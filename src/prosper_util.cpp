@@ -69,10 +69,11 @@ bool prosper::util::RenderPassCreateInfo::SubPass::Dependency::operator!=(const 
 prosper::util::RenderPassCreateInfo::AttachmentInfo::AttachmentInfo(
 	prosper::Format format,prosper::ImageLayout initialLayout,
 	prosper::AttachmentLoadOp loadOp,prosper::AttachmentStoreOp storeOp,
-	prosper::SampleCountFlags sampleCount,prosper::ImageLayout finalLayout
+	prosper::SampleCountFlags sampleCount,prosper::ImageLayout finalLayout,
+	prosper::AttachmentLoadOp stencilLoadOp,prosper::AttachmentStoreOp stencilStoreOp
 )
 	: format{format},initialLayout{initialLayout},loadOp{loadOp},storeOp{storeOp},
-	sampleCount{sampleCount},finalLayout{finalLayout}
+	sampleCount{sampleCount},finalLayout{finalLayout},stencilLoadOp{stencilLoadOp},stencilStoreOp{stencilStoreOp}
 {}
 bool prosper::util::RenderPassCreateInfo::operator==(const RenderPassCreateInfo &other) const
 {
@@ -102,7 +103,7 @@ std::shared_ptr<prosper::IImageView> prosper::IPrContext::CreateImageView(const 
 	if(format == Format::Unknown)
 		format = img.GetFormat();
 
-	auto aspectMask = util::get_aspect_mask(format);
+	auto aspectMask = createInfo.aspectFlags.has_value() ? *createInfo.aspectFlags : util::get_aspect_mask(format);
 	auto imgType = img.GetType();
 	auto numLayers = createInfo.levelCount;
 	auto type = ImageViewType::e2D;

@@ -186,27 +186,51 @@ void Window::ReloadStagingRenderTarget()
 	auto resolution = (*this)->GetSize();
 	prosper::util::ImageCreateInfo createInfo {};
 	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::ColorAttachmentBit;
-	createInfo.format = prosper::Format::R8G8B8A8_UNorm;
+	auto colorFormat = createInfo.format = STAGING_RENDER_TARGET_COLOR_FORMAT;
 	createInfo.width = resolution.x;
 	createInfo.height = resolution.y;
 	createInfo.postCreateLayout = prosper::ImageLayout::ColorAttachmentOptimal;
 	auto stagingImg = context.CreateImage(createInfo);
+	
+	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::DepthStencilAttachmentBit;
+	auto depthStencilFormat = createInfo.format = STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT;
+	createInfo.postCreateLayout = prosper::ImageLayout::DepthStencilAttachmentOptimal;
+	auto depthStencilImg = context.CreateImage(createInfo);
+
 	prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
 	auto stagingTex = context.CreateTexture({},*stagingImg,imgViewCreateInfo);
+	imgViewCreateInfo.aspectFlags = prosper::ImageAspectFlags::StencilBit;
+	auto depthStencilTex = context.CreateTexture({},*depthStencilImg,imgViewCreateInfo);
 
 	auto rp = context.CreateRenderPass(
-		prosper::util::RenderPassCreateInfo{{{prosper::Format::R8G8B8A8_UNorm,prosper::ImageLayout::ColorAttachmentOptimal,prosper::AttachmentLoadOp::DontCare,
-			prosper::AttachmentStoreOp::Store,prosper::SampleCountFlags::e1Bit,prosper::ImageLayout::ColorAttachmentOptimal
-		}}}
-		//prosper::util::RenderPassCreateInfo{vk::Format::eD32Sfloat,vk::ImageLayout::eDepthStencilAttachmentOptimal,vk::AttachmentLoadOp::eClear}
-	);
-	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex},rp);//,finalDepthTex},rp);
+		prosper::util::RenderPassCreateInfo{
+			{
+				prosper::util::RenderPassCreateInfo::AttachmentInfo{
+					colorFormat,prosper::ImageLayout::ColorAttachmentOptimal,prosper::AttachmentLoadOp::DontCare,
+					prosper::AttachmentStoreOp::Store,prosper::SampleCountFlags::e1Bit,prosper::ImageLayout::ColorAttachmentOptimal
+				},
+				prosper::util::RenderPassCreateInfo::AttachmentInfo{
+					depthStencilFormat,prosper::ImageLayout::DepthStencilAttachmentOptimal,
+					prosper::AttachmentLoadOp::DontCare,prosper::AttachmentStoreOp::DontCare,
+					prosper::SampleCountFlags::e1Bit,prosper::ImageLayout::DepthStencilAttachmentOptimal,
+					prosper::AttachmentLoadOp::Clear,prosper::AttachmentStoreOp::Store
+				}
+			}
+	});
+	
+	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex,depthStencilTex},rp);//,finalDepthTex},rp);
 	m_stagingRenderTarget->SetDebugName("engine_staging_rt");
 	// Vulkan TODO: Resize when window resolution was changed
 }
 
 GLFW::Window *Window::operator->() {return m_glfwWindow.get();}
 GLFW::Window &Window::operator*() {return *operator->();}
+
+prosper::IRenderPass &Window::GetStagingRenderPass() const
+{
+	auto rt = GetStagingRenderTarget();
+	return rt->GetRenderPass();
+}
 
 std::shared_ptr<prosper::RenderTarget> &Window::GetStagingRenderTarget()
 {

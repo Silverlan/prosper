@@ -18,6 +18,9 @@ namespace prosper
 		public std::enable_shared_from_this<Window>
 	{
 	public:
+		static constexpr auto STAGING_RENDER_TARGET_COLOR_FORMAT = prosper::Format::R8G8B8A8_UNorm;
+		static constexpr auto STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT = prosper::Format::D32_SFloat_S8_UInt;
+
 		Window(const Window&)=delete;
 		Window &operator=(const Window&)=delete;
 		virtual ~Window() override;
@@ -34,6 +37,7 @@ namespace prosper
 		prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 		GLFW::Window &GetGlfwWindow() {return *m_glfwWindow;}
 		
+		prosper::IRenderPass &GetStagingRenderPass() const;
 		std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget();
 		const std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget() const {return const_cast<Window*>(this)->GetStagingRenderTarget();}
 		void ReloadStagingRenderTarget();
