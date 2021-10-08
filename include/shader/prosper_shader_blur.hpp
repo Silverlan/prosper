@@ -102,7 +102,10 @@ namespace prosper
 
 	namespace util
 	{
-		DLLPROSPER bool record_blur_image(prosper::IPrContext &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants);
+		DLLPROSPER bool record_blur_image(
+			prosper::IPrContext &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,
+			const ShaderBlurBase::PushConstants &pushConstants,uint32_t blurStrength=1u
+		);
 	};
 };
 

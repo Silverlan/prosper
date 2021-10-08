@@ -99,7 +99,10 @@ ShaderBlurV::~ShaderBlurV() {s_blurShaderV = nullptr;}
 
 /////////////////////////
 
-bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,const ShaderBlurBase::PushConstants &pushConstants)
+bool prosper::util::record_blur_image(
+	prosper::IPrContext &context,const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer,const BlurSet &blurSet,
+	const ShaderBlurBase::PushConstants &pushConstants,uint32_t blurStrength
+)
 {
 	if(s_blurShaderH == nullptr || s_blurShaderV == nullptr)
 		return false;
@@ -109,10 +112,6 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 		return false;
 	auto &stagingRt = *blurSet.GetStagingRenderTarget();
 	auto &stagingImg = stagingRt.GetTexture().GetImage();
-	cmdBuffer->RecordImageBarrier(stagingImg,ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal);
-
-	if(cmdBuffer->RecordBeginRenderPass(stagingRt) == false)
-		return false;
 	auto imgFormat = stagingImg.GetFormat();
 	auto pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
 	switch(imgFormat)
@@ -141,39 +140,45 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context,const std::sh
 		default:
 			throw std::logic_error("Unsupported image format for blur input image!");
 	}
-	if(shaderH.BeginDraw(cmdBuffer,pipelineId) == false)
-	{
-		cmdBuffer->RecordEndRenderPass();
-		return false;
-	}
-	shaderH.Draw(blurSet.GetFinalDescriptorSet(),pushConstants);
-	shaderH.EndDraw();
-	cmdBuffer->RecordEndRenderPass();
-
 	auto &finalRt = *blurSet.GetFinalRenderTarget();
-	cmdBuffer->RecordPostRenderPassImageBarrier(
-		stagingImg,
-		ImageLayout::ColorAttachmentOptimal,ImageLayout::ShaderReadOnlyOptimal
-	);
-	cmdBuffer->RecordImageBarrier(
-		finalRt.GetTexture().GetImage(),
-		ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal
-	);
+	for(auto i=decltype(blurStrength){0u};i<blurStrength;++i)
+	{
+		cmdBuffer->RecordImageBarrier(stagingImg,ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal);
+		if(cmdBuffer->RecordBeginRenderPass(stagingRt) == false)
+			return false;
+		if(shaderH.BeginDraw(cmdBuffer,pipelineId) == false)
+		{
+			cmdBuffer->RecordEndRenderPass();
+			return false;
+		}
+		shaderH.Draw(blurSet.GetFinalDescriptorSet(),pushConstants);
+		shaderH.EndDraw();
+		cmdBuffer->RecordEndRenderPass();
 
-	if(cmdBuffer->RecordBeginRenderPass(finalRt) == false)
-		return false;
-	if(shaderV.BeginDraw(cmdBuffer,pipelineId) == false)
-		return false;
-	shaderV.Draw(blurSet.GetStagingDescriptorSet(),pushConstants);
-	shaderV.EndDraw();
-	auto success = cmdBuffer->RecordEndRenderPass();
-	if(success == false)
-		return success;
-	cmdBuffer->RecordPostRenderPassImageBarrier(
-		finalRt.GetTexture().GetImage(),
-		ImageLayout::ColorAttachmentOptimal,ImageLayout::ShaderReadOnlyOptimal
-	);
-	return success;
+		cmdBuffer->RecordPostRenderPassImageBarrier(
+			stagingImg,
+			ImageLayout::ColorAttachmentOptimal,ImageLayout::ShaderReadOnlyOptimal
+		);
+		cmdBuffer->RecordImageBarrier(
+			finalRt.GetTexture().GetImage(),
+			ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal
+		);
+
+		if(cmdBuffer->RecordBeginRenderPass(finalRt) == false)
+			return false;
+		if(shaderV.BeginDraw(cmdBuffer,pipelineId) == false)
+			return false;
+		shaderV.Draw(blurSet.GetStagingDescriptorSet(),pushConstants);
+		shaderV.EndDraw();
+		auto success = cmdBuffer->RecordEndRenderPass();
+		if(success == false)
+			return success;
+		cmdBuffer->RecordPostRenderPassImageBarrier(
+			finalRt.GetTexture().GetImage(),
+			ImageLayout::ColorAttachmentOptimal,ImageLayout::ShaderReadOnlyOptimal
+		);
+	}
+	return true;
 }
 
 /////////////////////////
@@ -198,12 +203,13 @@ std::shared_ptr<BlurSet> BlurSet::Create(prosper::IPrContext &context,const std:
 	auto &finalImg = finalTex.GetImage();
 	finalDescSetGroup->GetDescriptorSet()->SetBindingTexture(finalTex,0u);
 
+	auto format = finalImg.GetFormat();
 	auto extents = finalImg.GetExtents();
 	prosper::util::ImageCreateInfo createInfo {};
 	createInfo.width = extents.width;
 	createInfo.height = extents.height;
-	createInfo.format = finalImg.GetFormat();
-	createInfo.usage = ImageUsageFlags::SampledBit | ImageUsageFlags::ColorAttachmentBit;
+	createInfo.format = prosper::util::is_compressed_format(format) ? prosper::Format::R8G8B8A8_UNorm : format; // If it's a compressed format, we'll fall back to RGBA8
+	createInfo.usage = ImageUsageFlags::SampledBit | ImageUsageFlags::ColorAttachmentBit | ImageUsageFlags::TransferDstBit;
 	createInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
 	auto imgViewCreateInfo = prosper::util::ImageViewCreateInfo {};
 	auto samplerCreateInfo = prosper::util::SamplerCreateInfo {};
