@@ -63,23 +63,7 @@ jobs:
       - name: Download common external libs
         uses: Silverlan/common_actions/get_common_external_libs@actions
         
-      - name: Build submodule - util_image
-        uses: Silverlan/common_actions/build_submodule@actions
-        with:
-          repo: 'https://github.com/Silverlan/util_image.git'
-          repo_name: 'util_image'
-          build_target: 'util_image'
-          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
-          
-      - name: Build submodule - iglfw
-        uses: Silverlan/common_actions/build_submodule@actions
-        with:
-          repo: 'https://github.com/Silverlan/iglfw.git'
-          repo_name: 'iglfw'
-          build_target: 'iglfw'
-          cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
+
       
       - name: CMake Build
         uses: Silverlan/common_actions/build_cmake@main
