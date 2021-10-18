@@ -67,7 +67,7 @@ jobs:
           github_token: "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"
           workflow: pragma-generic-ci.yml
           run_id: 185
-          repo: "https://github.com/Silverlan/util_image.git"
+          repo: "Silverlan/util_image"
           
           # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
           # Required, if artifact is from a different repo
