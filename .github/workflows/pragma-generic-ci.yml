@@ -49,7 +49,7 @@ jobs:
             cxx: "cl",
             archiver: "7z a",
             generators: "Visual Studio 16 2019",
-            build_dir: 'build
+            build_dir: 'build'
           }
 
     steps:
@@ -63,35 +63,23 @@ jobs:
       - name: Download common external libs
         uses: Silverlan/common_actions/get_common_external_libs@actions
         
-      - name: Build submodule - glfw
+      - name: Build submodule - util_image
         uses: Silverlan/common_actions/build_submodule@actions
         with:
-          repo: 'https://github.com/glfw/glfw.git'
-          repo_name: 'glfw'
-          repo_branch: '3.3-stable'
-          build_target: 'src/glfw'
-          cmake_var: 'DEPENDENCY_GLFW_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_GLFW_LIBRARY'
-          cmake_definitions_tmp: '-DBUILD_SHARED_LIBS=ON'
-          lib_name: 'src/${{ matrix.config.build_type }}/glfw3dll'
-
-      #- name: Build submodule - util_image
-      #  uses: Silverlan/common_actions/build_submodule@actions
-      #  with:
-      #    repo: 'https://github.com/Silverlan/util_image.git'
-      #    repo_name: 'util_image'
-      #    build_target: 'util_image'
-      #    cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
-      #    cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
+          repo: 'https://github.com/Silverlan/util_image.git'
+          repo_name: 'util_image'
+          build_target: 'util_image'
+          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
+          cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
           
-      #- name: Build submodule - iglfw
-      #  uses: Silverlan/common_actions/build_submodule@actions
-      #  with:
-      #    repo: 'https://github.com/Silverlan/iglfw.git'
-      #    repo_name: 'iglfw'
-      #    build_target: 'iglfw'
-      #    cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
-      #    cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
+      - name: Build submodule - iglfw
+        uses: Silverlan/common_actions/build_submodule@actions
+        with:
+          repo: 'https://github.com/Silverlan/iglfw.git'
+          repo_name: 'iglfw'
+          build_target: 'iglfw'
+          cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
+          cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
       
       - name: CMake Build
         uses: Silverlan/common_actions/build_cmake@main
