@@ -1,0 +1,88 @@
+name: Build
+
+on: [push]
+#on:
+#  push:
+#    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
+  
+# Template for downloading and building submodule
+#- name: Build submodule - moduleName
+#  uses: Silverlan/common_actions/build_submodule@actions
+#  with:
+#    repo: 'repositoryUrl'
+#    repo_name: 'repoName'
+#    repo_branch: 'master'
+#    build_target: buildTarget
+#    cmake_var: 'MODULE_INCLUDE_DIR'
+#    cmake_var_lib: 'MODULE_LIBRARY'
+#    include_dir: '.'
+
+# Template for downloading header-only module (without building)
+#- name: Download submodule - moduleName
+#  uses: Silverlan/common_actions/get_submodule@actions
+#  with:
+#    dir: 'third_party_libs'
+#    repo: 'repositoryUrl'
+#    repo_name: 'repoName'
+#    repo_branch: 'master'
+#    cmake_definitions: ${{ env.cmake_definitions }}
+
+jobs:
+  # WINDOWS x64 MSVC
+  build-windows:
+    name: Build-Windows-x64
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Windows x64 MSVC",
+            os: windows-latest,
+            artifact: "Windows-MSVC.tar.xz",
+            build_type: "RelWithDebInfo",
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+            cc: "cl",
+            cxx: "cl",
+            archiver: "7z a",
+            generators: "Visual Studio 16 2019",
+            build_dir: 'build
+          }
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Download submodules
+        run: |
+          git submodule update --init --recursive
+          
+      - name: Download common external libs
+        uses: Silverlan/common_actions/get_common_external_libs@actions
+        
+      - name: Build submodule - util_image
+        uses: Silverlan/common_actions/build_submodule@actions
+        with:
+          repo: 'https://github.com/Silverlan/util_image.git'
+          repo_name: 'util_image'
+          build_target: 'util_image'
+          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
+          cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
+          
+      - name: Build submodule - iglfw
+        uses: Silverlan/common_actions/build_submodule@actions
+        with:
+          repo: 'https://github.com/Silverlan/iglfw.git'
+          repo_name: 'iglfw'
+          build_target: 'iglfw'
+          cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
+          cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
+      
+      - name: CMake Build
+        uses: Silverlan/common_actions/build_cmake@main
+        with:
+          build_type: ${{ matrix.config.build_type }}
+          build_generator: ${{ matrix.config.generators }}
+          
