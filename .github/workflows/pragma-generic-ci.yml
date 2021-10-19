@@ -65,15 +65,15 @@ jobs:
         uses: Silverlan/util_image/github_actions/build@actions
         with:
           root_dir: "${{ env.GA_ROOT_DIR }}/external_libs/util_image"
-        
+
       - name: Build submodule 2 - util_image
-        uses: Silverlan/common_actions/build_cmake@actions
+        uses: Silverlan/common_actions/build_submodule@actions
         with:
           repo: 'https://github.com/Silverlan/util_image.git'
           repo_name: 'util_image'
           build_target: 'util_image'
-          cmake_var: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
-          dir: 'external_libs'
+          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
+          cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
           
       - name: Build submodule - iglfw
         uses: Silverlan/common_actions/build_submodule@actions
