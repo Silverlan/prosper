@@ -74,6 +74,7 @@ jobs:
           build_target: 'muparserx'
           cmake_var: 'DEPENDENCY_MUPARSERX_INCLUDE'
           cmake_var_lib: 'DEPENDENCY_MUPARSERX_LIBRARY'
+          include_dir: 'parser'
         
       - name: Build submodule - util_image
         uses: Silverlan/util_image/github_actions/build@actions
