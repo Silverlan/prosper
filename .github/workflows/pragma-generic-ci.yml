@@ -1,12 +1,10 @@
 name: Build
 
-on: [push]
-
-#on:
-#  push:
-#    branches: [ master ]
-#  pull_request:
-#    branches: [ master ]
+on:
+  push:
+    branches: [ master, actions ]
+  pull_request:
+    branches: [ master, actions ]
   
 # Template for downloading and building submodule
 #- name: Build submodule - moduleName
@@ -31,101 +29,55 @@ on: [push]
 #    cmake_definitions: ${{ env.cmake_definitions }}
 
 jobs:
-  # WINDOWS x64 MSVC
-  build-windows:
-    name: Build-Windows-x64
+  build:
+    name: Build
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
         config:
-        - {
-            name: "Windows x64 MSVC",
-            os: windows-latest,
-            artifact: "Windows-MSVC.tar.xz",
-            build_type: "RelWithDebInfo",
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
-            cc: "cl",
-            cxx: "cl",
-            archiver: "7z a",
-            generators: "Visual Studio 16 2019",
+          - os: windows-latest
+            name: "Windows x64 MSVC"
+            artifact: "Windows-MSVC.tar.xz"
+            build_type: "RelWithDebInfo"
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+            cc: "cl"
+            cxx: "cl"
+            archiver: "7z a"
+            generators: "Visual Studio 16 2019"
             build_dir: 'build'
-          }
+          - os: ubuntu-latest
+            name: "Ubuntu GCC-11"
+            artifact: "ubuntu_gcc.7z"
+            build_type: "RelWithDebInfo"
+            cc: "gcc-11"
+            cxx: "g++-11"
+            archiver: "7z a"
+            generators: "Unix Makefiles"
+            build_dir: 'build'
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
-      - name: Download submodules
-        run: |
-          git submodule update --init --recursive
-          
-          
-      - name: Download artifact
-        uses: dawidd6/action-download-artifact@v2.15.0
         with:
-          github_token: "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"
-          workflow: pragma-generic-ci.yml
-          run_id: 185
-          repo: "Silverlan/util_image"
+          submodules: true
           
-          # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
-          # Required, if artifact is from a different repo
-          # Required, if repo is private a Personal Access Token with `repo` scope is needed
-          #github_token: "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"
-          # Required, workflow file name or ID
-          #workflow: pragma-generic-ci.yml
-          # Optional, the status or conclusion of a completed workflow to search for
-          # Can be one of a workflow conclusion:
-          #   "failure", "success", "neutral", "cancelled", "skipped", "timed_out", "action_required"
-          # Or a workflow status:
-          #   "completed", "in_progress", "queued"
-          #workflow_conclusion: success
-          # Optional, will get head commit SHA
-          #pr: ${{github.event.pull_request.number}}
-          # Optional, no need to specify if PR is
-          #commit: ${{github.event.pull_request.head.sha}}
-          # Optional, will use the branch
-          #branch: actions
-          # Optional, defaults to all types
-          #event: push
-          # Optional, will use specified workflow run
-          # run_id: 1122334455
-          # Optional, run number from the workflow
-          # run_number: 34
-          # Optional, uploaded artifact name,
-          # will download all artifacts if not specified
-          # and extract them in respective subdirectories
-          # https://github.com/actions/download-artifact#download-all-artifacts
-          #name: upload-binary
-          # Optional, directory where to extract artifact. Defaults to the artifact name (see `name` input)
-          #path: ./sharedutils.dll
-          # Optional, defaults to current repo
-          #repo: "https://github.com/Silverlan/util_image.git"
-          # Optional, check the workflow run whether it has an artifact
-          # then will get the last available artifact from previous workflow
-          # default false, just try to download from the last one
-          #check_artifacts:  false
-          
-      #- uses: actions/download-artifact@v2
-      #  with:
-      #    name: upload-binary
-      #    path: build/RelWithDebInfo/util_image.dll
-          
-          
-          
-          
-      - name: Download common external libs
-        uses: Silverlan/common_actions/get_common_external_libs@actions
+      - name: Setup
+        id: setup
+        uses: Silverlan/common_actions/setup@actions
+        
+      - name: Install GCC-11
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install gcc-11 g++-11
+
+      - name: Download binaries
+        uses: Silverlan/common_actions/download_build_binaries@actions
+        continue-on-error: true
         
       - name: Build submodule - util_image
-        uses: Silverlan/common_actions/build_submodule@actions
-        with:
-          repo: 'https://github.com/Silverlan/util_image.git'
-          repo_name: 'util_image'
-          build_target: 'util_image'
-          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
+        uses: Silverlan/util_image/github_actions/build@actions
           
       - name: Build submodule - iglfw
         uses: Silverlan/common_actions/build_submodule@actions
@@ -135,10 +87,14 @@ jobs:
           build_target: 'iglfw'
           cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
           cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
-      
-      - name: CMake Build
-        uses: Silverlan/common_actions/build_cmake@main
-        with:
-          build_type: ${{ matrix.config.build_type }}
-          build_generator: ${{ matrix.config.generators }}
+        
+      #- name: Download common external libs
+      #  uses: Silverlan/common_actions/get_common_external_libs@actions
+          
+      - name: Build
+        id: build
+        uses: Silverlan/util_image/github_actions/build@actions
+          
+      - name: Upload binaries
+        uses: Silverlan/common_actions/upload_build_binaries@actions
           
