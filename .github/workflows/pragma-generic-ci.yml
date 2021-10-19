@@ -76,8 +76,23 @@ jobs:
         uses: Silverlan/common_actions/download_build_binaries@actions
         continue-on-error: true
         
+      - name: Get submodule - iglfw
+        uses: Silverlan/common_actions/get_submodule@actions
+        with:
+          repo: 'https://github.com/Silverlan/util_image.git'
+          repo_name: 'util_image'
+          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
+        
       - name: Build submodule - util_image
         uses: Silverlan/util_image/github_actions/build@actions
+        
+      - name: Build submodule 2 - util_image
+        uses: Silverlan/common_actions/build_cmake@actions
+        with:
+          repo: 'https://github.com/Silverlan/util_image.git'
+          repo_name: 'util_image'
+          build_target: 'util_image'
+          cmake_var: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
           
       - name: Build submodule - iglfw
         uses: Silverlan/common_actions/build_submodule@actions
