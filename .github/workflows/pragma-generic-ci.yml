@@ -87,9 +87,12 @@ jobs:
       #- name: Download common external libs
       #  uses: Silverlan/common_actions/get_common_external_libs@actions
           
-      - name: Build
-        id: build
-        uses: Silverlan/util_image/github_actions/build@actions
+      - name: CMake Build
+        uses: Silverlan/common_actions/build_cmake@actions
+        with:
+          build_target: prosper
+          build_type: ${{ matrix.config.build_type }}
+          build_generator: ${{ matrix.config.generators }}
           
       - name: Upload binaries
         uses: Silverlan/common_actions/upload_build_binaries@actions
