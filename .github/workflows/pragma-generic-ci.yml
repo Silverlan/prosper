@@ -1,33 +1,10 @@
 name: Build
-
 on:
   push:
     branches: [ master, actions ]
   pull_request:
     branches: [ master, actions ]
   
-# Template for downloading and building submodule
-#- name: Build submodule - moduleName
-#  uses: Silverlan/common_actions/build_submodule@actions
-#  with:
-#    repo: 'repositoryUrl'
-#    repo_name: 'repoName'
-#    repo_branch: 'master'
-#    build_target: buildTarget
-#    cmake_var: 'MODULE_INCLUDE_DIR'
-#    cmake_var_lib: 'MODULE_LIBRARY'
-#    include_dir: '.'
-
-# Template for downloading header-only module (without building)
-#- name: Download submodule - moduleName
-#  uses: Silverlan/common_actions/get_submodule@actions
-#  with:
-#    dir: 'third_party_libs'
-#    repo: 'repositoryUrl'
-#    repo_name: 'repoName'
-#    repo_branch: 'master'
-#    cmake_definitions: ${{ env.cmake_definitions }}
-
 jobs:
   build:
     name: Build
