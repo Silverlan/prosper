@@ -1,2 +1,4 @@
+[![Build](https://github.com/Silverlan/prosper/actions/workflows/pragma-generic-ci.yml/badge.svg)](https://github.com/Silverlan/prosper/actions/workflows/pragma-generic-ci.yml)
+
 # prosper
-Vulkan framework used for the pragma game engine.
+Graphics rendering framework used for the Pragma game engine.
