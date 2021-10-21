@@ -1,10 +1,10 @@
 name: Build
-
 on:
   push:
     branches: [ master, actions ]
   pull_request:
     branches: [ master, actions ]
+
 jobs:
   build:
     name: Build
@@ -32,107 +32,25 @@ jobs:
           #  archiver: "7z a"
           #  generators: "Unix Makefiles"
           #  build_dir: 'build'
-
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
           submodules: true
-          
+
       - name: Setup
         id: setup
-        uses: Silverlan/common_actions/setup@actions
-        
-      - name: Install GCC-11
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt update
-          sudo apt install gcc-11 g++-11
-
+        uses: Silverlan/common_actions/setup@main
+          
       - name: Download binaries
-        uses: Silverlan/common_actions/download_build_binaries@actions
+        uses: Silverlan/common_actions/download_build_binaries@main
         continue-on-error: true
-        
-      - name: Get submodule - iglfw
-        uses: Silverlan/common_actions/get_submodule@actions
+          
+      - name: Build
+        id: build
+        uses: Silverlan/prosper/github_actions/build@actions
         with:
-          repo: 'https://github.com/Silverlan/util_image.git'
-          repo_name: 'util_image'
-          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
-          dir: 'external_libs'
-          
-      - name: Download GLI
-        uses: Silverlan/common_actions/get_gli@actions
-        with:
-          cmake_var: 'DEPENDENCY_GLI_INCLUDE'
-          cmake_definitions: ${{ env.cmake_definitions }}
-          
-      - name: Build submodule - muparserx
-        uses: Silverlan/common_actions/build_submodule@actions
-        with:
-          repo: 'https://github.com/Silverlan/muparserx.git'
-          repo_name: 'muparserx'
-          build_target: 'muparserx'
-          cmake_var: 'DEPENDENCY_MUPARSERX_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_MUPARSERX_LIBRARY'
-          include_dir: 'parser'
-        
-      - name: Build submodule - util_image
-        uses: Silverlan/util_image/github_actions/build@actions
-        with:
-          root_dir: "${{ env.GA_ROOT_DIR }}/external_libs/util_image"
-
-      - name: Build submodule 2 - util_image
-        uses: Silverlan/common_actions/build_submodule@actions
-        with:
-          repo: 'https://github.com/Silverlan/util_image.git'
-          repo_name: 'util_image'
-          build_target: 'util_image'
-          cmake_var: 'DEPENDENCY_UTIL_IMAGE_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_UTIL_IMAGE_LIBRARY'
-          
-          
-          
-          
-          
-      - name: Build submodule - iglfw
-        uses: Silverlan/iglfw/github_actions/build@actions
-        with:
-          root_dir: "${{ env.GA_ROOT_DIR }}/external_libs/iglfw"
-
-      - name: Build submodule 2 - iglfw
-        uses: Silverlan/common_actions/build_submodule@actions
-        with:
-          repo: 'https://github.com/Silverlan/iglfw.git'
-          repo_name: 'iglfw'
-          build_target: 'iglfw'
-          cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
-          cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
-          
-          
-          
-          
-          
-          
-      #- name: Build submodule - iglfw
-      #  uses: Silverlan/common_actions/build_submodule@actions
-      #  with:
-      #    repo: 'https://github.com/Silverlan/iglfw.git'
-      #    repo_name: 'iglfw'
-      #    build_target: 'iglfw'
-      #    cmake_var: 'DEPENDENCY_IGLFW_INCLUDE'
-      #    cmake_var_lib: 'DEPENDENCY_IGLFW_LIBRARY'
-        
-      #- name: Download common external libs
-      #  uses: Silverlan/common_actions/get_common_external_libs@actions
-          
-      - name: CMake Build
-        uses: Silverlan/common_actions/build_cmake@actions
-        with:
-          build_target: prosper
-          build_type: ${{ matrix.config.build_type }}
-          build_generator: ${{ matrix.config.generators }}
+          root_dir: "${{ env.GA_ROOT_DIR }}"
+          should_checkout: "0"
           
       - name: Upload binaries
-        uses: Silverlan/common_actions/upload_build_binaries@actions
-          
+        uses: Silverlan/common_actions/upload_build_binaries@main
