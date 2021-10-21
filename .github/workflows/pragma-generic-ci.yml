@@ -51,6 +51,7 @@ jobs:
         with:
           root_dir: "${{ env.GA_ROOT_DIR }}"
           should_checkout: "0"
+          dir: '.'
           
       - name: Upload binaries
         uses: Silverlan/common_actions/upload_build_binaries@main
