@@ -8,6 +8,10 @@ inputs:
     description: 'Checkout the core library?'
     required: true
     default: '1'
+  dir:
+    description: 'Library directory'
+    required: true
+    default: 'external_libs/prosper'
 runs:
   using: "composite"
   steps:
@@ -59,5 +63,5 @@ runs:
         build_generator: ${{ matrix.config.generators }}
         cmake_var: 'DEPENDENCY_PROSPER_LIBRARY'
         build_target: prosper
-        build_dir: '${{ matrix.config.build_dir }}/external_libs/prosper'
-        cmake_script_location: 'external_libs/prosper'
+        build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
+        cmake_script_location: '${{ inputs.dir }}'
