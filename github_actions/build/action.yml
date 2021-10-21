@@ -22,8 +22,8 @@ runs:
         step: |
           uses: Silverlan/common_actions/get_submodule@main
           with:
-            repo: '${{ github.repository }}'
-            repo_name: '${{ github.event.repository.name }}'
+            repo: 'Silverlan/prosper'
+            repo_name: 'prosper'
             cmake_var: 'DEPENDENCY_PROSPER_INCLUDE'
             dir: 'external_libs'
             
@@ -57,4 +57,7 @@ runs:
       with:
         build_type: ${{ matrix.config.build_type }}
         build_generator: ${{ matrix.config.generators }}
+        cmake_var: 'DEPENDENCY_PROSPER_LIBRARY'
         build_target: prosper
+        build_dir: '${{ matrix.config.build_dir }}/external_libs/prosper'
+        cmake_script_location: 'external_libs/prosper'
