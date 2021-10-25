@@ -976,6 +976,77 @@ namespace prosper
 		bool windowedMode = true;
 		prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
 	};
+	
+	class DescriptorSetCreateInfo;
+	
+	class Shader;
+	class DLLPROSPER IShaderPipelineLayout
+	{
+	public:
+		virtual ~IShaderPipelineLayout() {};
+	protected:
+		IShaderPipelineLayout() {}
+	};
+
+	class ShaderStageProgram;
+	struct DLLPROSPER ShaderStageData
+	{
+		std::unique_ptr<prosper::ShaderModule,std::function<void(prosper::ShaderModule*)>> module = nullptr;
+		std::unique_ptr<prosper::ShaderModuleStageEntryPoint> entryPoint = nullptr;
+		prosper::ShaderStage stage = prosper::ShaderStage::Fragment;
+		std::string path;
+
+		std::shared_ptr<ShaderStageProgram> program = nullptr;
+	};
+
+	namespace detail
+	{
+		struct DLLPROSPER DescriptorSetInfoBinding
+		{
+			DescriptorSetInfoBinding()=default;
+			// If 'bindingIndex' is not specified, it will use the index of the previous binding, incremented by the previous array size
+			DescriptorSetInfoBinding(DescriptorType type,ShaderStageFlags shaderStages,uint32_t descriptorArraySize=1u,uint32_t bindingIndex=std::numeric_limits<uint32_t>::max());
+			DescriptorType type = {};
+			ShaderStageFlags shaderStages = ShaderStageFlags::All;
+			uint32_t bindingIndex = std::numeric_limits<uint32_t>::max();
+			uint32_t descriptorArraySize = 1u;
+		};
+	};
+	struct DLLPROSPER DescriptorSetInfo
+	{
+		using Binding = detail::DescriptorSetInfoBinding;
+		DescriptorSetInfo()=default;
+		DescriptorSetInfo(const std::vector<Binding> &bindings);
+		DescriptorSetInfo(const DescriptorSetInfo &)=default;
+		DescriptorSetInfo(DescriptorSetInfo *parent,const std::vector<Binding> &bindings={});
+		bool WasBaked() const;
+		bool IsValid() const;
+		mutable DescriptorSetInfo *parent = nullptr;
+		std::vector<Binding> bindings;
+		uint32_t setIndex = 0u; // This value will be set after the shader has been baked
+
+		std::unique_ptr<prosper::DescriptorSetCreateInfo> ToProsperDescriptorSetInfo() const;
+	private:
+		friend Shader;
+		std::unique_ptr<prosper::DescriptorSetCreateInfo> Bake();
+		bool m_bWasBaked = false;
+	};
+
+	class BasePipelineCreateInfo;
+	class IRenderPass;
+	struct DLLPROSPER PipelineInfo
+	{
+		PipelineInfo()=default;
+		prosper::PipelineID id = std::numeric_limits<prosper::PipelineID>::max();
+		std::shared_ptr<IRenderPass> renderPass = nullptr; // Only used for graphics shader
+		std::string debugName;
+
+		std::vector<PushConstantRange> pushConstantRanges {};
+		// TODO: These should be unique_ptrs, but that results in compiler errors
+		// that I haven't been able to get around
+		std::shared_ptr<prosper::BasePipelineCreateInfo> createInfo = nullptr;
+		std::vector<std::shared_ptr<DescriptorSetCreateInfo>> descSetInfos {};
+	};
 };
 
 #endif

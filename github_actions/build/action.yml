@@ -45,6 +45,7 @@ runs:
         cmake_var: 'DEPENDENCY_MUPARSERX_INCLUDE'
         cmake_var_lib: 'DEPENDENCY_MUPARSERX_LIBRARY'
         include_dir: 'parser'
+        static_library: '1'
             
     - name: Build submodule - iglfw
       uses: Silverlan/iglfw/github_actions/build@master
