@@ -68,7 +68,7 @@ template<class TDescriptorArrayManager>
 			}
 		}
 	});
-	return Create(matArrayDsg,0u);
+	return Create<TDescriptorArrayManager>(matArrayDsg,0u);
 }
 
 template<class TDescriptorArrayManager>
