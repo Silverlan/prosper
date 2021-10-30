@@ -185,14 +185,14 @@ void Window::ReloadStagingRenderTarget()
 
 	auto resolution = (*this)->GetSize();
 	prosper::util::ImageCreateInfo createInfo {};
-	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::ColorAttachmentBit;
+	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::ColorAttachmentBit | prosper::ImageUsageFlags::SampledBit;
 	auto colorFormat = createInfo.format = STAGING_RENDER_TARGET_COLOR_FORMAT;
 	createInfo.width = resolution.x;
 	createInfo.height = resolution.y;
 	createInfo.postCreateLayout = prosper::ImageLayout::ColorAttachmentOptimal;
 	auto stagingImg = context.CreateImage(createInfo);
 	
-	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::DepthStencilAttachmentBit;
+	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::DepthStencilAttachmentBit | prosper::ImageUsageFlags::SampledBit;
 	auto depthStencilFormat = createInfo.format = STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT;
 	createInfo.postCreateLayout = prosper::ImageLayout::DepthStencilAttachmentOptimal;
 	auto depthStencilImg = context.CreateImage(createInfo);
