@@ -409,11 +409,17 @@ void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::
 
 prosper::PipelineID prosper::IPrContext::ReserveShaderPipeline()
 {
+	if(m_shaderPipelines.size() == m_shaderPipelines.capacity())
+		m_shaderPipelines.reserve(m_shaderPipelines.size() *1.5 +50);
+
 	m_shaderPipelines.push_back({});
 	return m_shaderPipelines.size() -1;
 }
 void prosper::IPrContext::AddShaderPipeline(prosper::Shader &shader,uint32_t shaderPipelineIdx,PipelineID pipelineId)
 {
+	if(m_shaderPipelines.size() == m_shaderPipelines.capacity())
+		m_shaderPipelines.reserve(m_shaderPipelines.size() *1.5 +50);
+
 	if(pipelineId >= m_shaderPipelines.size())
 		m_shaderPipelines.resize(pipelineId +1);
 	m_shaderPipelines[pipelineId] = {shader,shaderPipelineIdx};
