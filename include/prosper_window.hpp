@@ -21,6 +21,12 @@ namespace prosper
 		static constexpr auto STAGING_RENDER_TARGET_COLOR_FORMAT = prosper::Format::R8G8B8A8_UNorm;
 		static constexpr auto STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT = prosper::Format::D32_SFloat_S8_UInt;
 
+		enum class State : uint8_t
+		{
+			Active = 0,
+			Inactive
+		};
+
 		Window(const Window&)=delete;
 		Window &operator=(const Window&)=delete;
 		virtual ~Window() override;
@@ -58,10 +64,17 @@ namespace prosper
 		float GetAspectRatio() const;
 		void ReloadSwapchain();
 
+		State GetState() const {return m_state;}
+		void SetState(State state) {m_state = state;}
+
 		void SetInitCallback(const std::function<void()> &callback) {m_initCallback = callback;}
 		const std::function<void()> &GetInitCallback() const {return m_initCallback;}
-		void SetCloseCallback(const std::function<void()> &callback) {m_closeCallback = callback;}
-		const std::function<void()> &GetCloseCallback() const {return m_closeCallback;}
+
+		void AddCloseListener(const std::function<void()> &callback) {m_closeListeners.push_back(callback);}
+		const std::vector<std::function<void()>> &GetCloseListeners() const {return m_closeListeners;}
+
+		void AddClosedListener(const std::function<void()> &callback) {m_closedListeners.push_back(callback);}
+		const std::vector<std::function<void()>> &GetClosedListeners() const {return m_closedListeners;}
 
 		prosper::ISwapCommandBufferGroup &GetSwapCommandBufferGroup() {return *m_guiCommandBufferGroup;}
 	protected:
@@ -88,16 +101,19 @@ namespace prosper
 		std::unique_ptr<WindowChangeInfo> m_scheduledWindowReloadInfo = nullptr;
 
 		std::function<void()> m_initCallback = nullptr;
-		std::function<void()> m_closeCallback = nullptr;
+		std::vector<std::function<void()>> m_closeListeners;
+		std::vector<std::function<void()>> m_closedListeners;
 		WindowSettings m_settings {};
 		std::unique_ptr<GLFW::Window> m_glfwWindow = nullptr;
 		std::shared_ptr<prosper::ISwapCommandBufferGroup> m_guiCommandBufferGroup = nullptr;
 		
+		State m_state = State::Active;
 		float m_aspectRatio = 1.f;
 		std::shared_ptr<prosper::RenderTarget> m_stagingRenderTarget = nullptr;
 		std::vector<std::shared_ptr<prosper::IImage>> m_swapchainImages {};
 		std::vector<std::shared_ptr<prosper::IFramebuffer>> m_swapchainFramebuffers {};
 		uint32_t m_lastSemaporeUsed = 0u;
+		bool m_closed = false;
 	};
 };
 

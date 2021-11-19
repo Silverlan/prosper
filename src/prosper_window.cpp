@@ -37,9 +37,19 @@ void Window::Release()
 
 void Window::Close()
 {
+	if(m_closed)
+		return;
+	m_closed = true;
+
+	for(auto &cb : m_closeListeners)
+		cb();
+	m_closeListeners.clear();
+
 	Release();
-	if(m_closeCallback)
-		m_closeCallback();
+
+	for(auto &cb : m_closedListeners)
+		cb();
+	m_closedListeners.clear();
 }
 
 bool Window::IsValid() const {return m_glfwWindow != nullptr;}
@@ -184,6 +194,8 @@ void Window::ReloadStagingRenderTarget()
 	m_stagingRenderTarget = nullptr;
 
 	auto resolution = (*this)->GetSize();
+	resolution.x = umath::max(resolution.x,1);
+	resolution.y = umath::max(resolution.y,1);
 	prosper::util::ImageCreateInfo createInfo {};
 	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::ColorAttachmentBit | prosper::ImageUsageFlags::SampledBit;
 	auto colorFormat = createInfo.format = STAGING_RENDER_TARGET_COLOR_FORMAT;
