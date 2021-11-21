@@ -200,11 +200,13 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer
 
 std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateTemporaryBuffer(prosper::DeviceSize size,uint32_t alignment,const void *data)
 {
+	std::unique_lock lock {m_tmpBufferMutex};
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
 	auto allocatedBuffer = m_tmpBuffer->AllocateBuffer(size,alignment,data);
 	if(allocatedBuffer)
 		return allocatedBuffer;
+	lock.release();
 	// Couldn't allocate from temp buffer, request size was most likely too large. Fall back to creating a completely new buffer.
 	util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = MemoryFeatureFlags::CPUToGPU;
@@ -401,7 +403,7 @@ void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::
 {
 	if(!resource)
 		return;
-	std::unique_lock lock {m_aliveResourceMutex};
+	std::scoped_lock lock {m_aliveResourceMutex};
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Idle) || umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
 	DoKeepResourceAliveUntilPresentationComplete(resource);
@@ -768,7 +770,7 @@ std::optional<std::chrono::steady_clock::time_point> prosper::IPrContext::GetLas
 {
 	if(IsValidationEnabled() == false)
 		return {};
-	std::unique_lock lock {m_validationData->mutex};
+	std::scoped_lock lock {m_validationData->mutex};
 	auto it = m_validationData->lastImageUsage.find(&img);
 	if(it == m_validationData->lastImageUsage.end())
 		return {};
@@ -778,7 +780,7 @@ std::optional<std::chrono::steady_clock::time_point> prosper::IPrContext::GetLas
 {
 	if(IsValidationEnabled() == false)
 		return {};
-	std::unique_lock lock {m_validationData->mutex};
+	std::scoped_lock lock {m_validationData->mutex};
 	auto it = m_validationData->lastBufferUsage.find(&buf);
 	if(it == m_validationData->lastBufferUsage.end())
 		return {};
@@ -788,7 +790,7 @@ void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
 {
 	if(IsValidationEnabled() == false)
 		return;
-	std::unique_lock lock {m_validationData->mutex};
+	std::scoped_lock lock {m_validationData->mutex};
 	auto &bindings = ds.GetBindings();
 	auto numBindings = bindings.size();
 	for(auto i=decltype(numBindings){0u};i<numBindings;++i)

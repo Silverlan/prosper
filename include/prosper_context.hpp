@@ -484,6 +484,7 @@ namespace prosper
 		std::shared_ptr<Window> m_window = nullptr;
 		std::vector<std::weak_ptr<Window>> m_windows {};
 		std::shared_ptr<IDynamicResizableBuffer> m_tmpBuffer = nullptr;
+		std::mutex m_tmpBufferMutex;
 		std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};
 		std::mutex m_aliveResourceMutex;
 

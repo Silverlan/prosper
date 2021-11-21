@@ -398,7 +398,7 @@ static std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,ui
 static std::mutex s_boundShaderPipelineMutex;
 prosper::Shader *prosper::Shader::GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer,uint32_t &outPipelineIdx)
 {
-	std::unique_lock lock {s_boundShaderPipelineMutex};
+	std::scoped_lock lock {s_boundShaderPipelineMutex};
 	auto it = s_boundShaderPipeline.find(&cmdBuffer);
 	if(it == s_boundShaderPipeline.end())
 		return nullptr;
