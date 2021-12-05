@@ -395,6 +395,8 @@ namespace prosper
 		void SetMultiThreadedRenderingEnabled(bool enabled) {umath::set_flag(m_stateFlags,StateFlags::EnableMultiThreadedRendering);}
 		bool IsMultiThreadedRenderingEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::EnableMultiThreadedRendering);}
 
+		virtual bool SupportsMultiThreadedResourceAllocation() const {return false;}
+
 		struct ShaderDescriptorSetBindingInfo
 		{
 			enum class Type : uint8_t
