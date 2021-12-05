@@ -23,7 +23,10 @@ namespace prosper
 		std::shared_ptr<IBuffer> AllocateBuffer(const void *data=nullptr);
 
 		uint64_t GetInstanceSize() const;
+
+		// This is *not* thread-safe!
 		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;
+
 		uint64_t GetAssignedMemory() const;
 		uint32_t GetTotalInstanceCount() const;
 	protected:
@@ -35,6 +38,7 @@ namespace prosper
 		uint64_t m_bufferInstanceSize = 0ull; // Size of each sub-buffer
 		uint64_t m_assignedMemory = 0ull;
 		uint32_t m_alignment = 0u;
+		mutable std::mutex m_bufferMutex;
 		std::vector<IBuffer*> m_allocatedSubBuffers;
 		std::queue<uint64_t> m_freeOffsets;
 	};

@@ -169,12 +169,15 @@ const std::vector<IBuffer*> &IDynamicResizableBuffer::GetAllocatedSubBuffers() c
 uint64_t IDynamicResizableBuffer::GetFreeSize() const
 {
 	auto size = 0ull;
+	m_bufferMutex.lock();
 	for(auto &range : m_freeRanges)
 		size += range.size;
+	m_bufferMutex.unlock();
 	return size;
 }
 float IDynamicResizableBuffer::GetFragmentationPercent() const
 {
+	m_bufferMutex.lock();
 	auto size = GetSize();
 	auto fragmentSize = 0ull;
 	for(auto &range : m_freeRanges)
@@ -182,11 +185,13 @@ float IDynamicResizableBuffer::GetFragmentationPercent() const
 		if(range.startOffset +range.size < size)
 			fragmentSize += range.size;
 	}
+	m_bufferMutex.unlock();
 	return fragmentSize /static_cast<double>(size);
 }
 
 void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData,std::stringstream &strFreeData,std::stringstream *bufferData) const
 {
+	std::scoped_lock lock {m_bufferMutex};
 	std::vector<Range> allocatedRanges(m_allocatedSubBuffers.size());
 	for(auto i=decltype(m_allocatedSubBuffers.size()){0};i<m_allocatedSubBuffers.size();++i)
 	{
@@ -238,6 +243,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 {
 	if(requestSize == 0ull)
 		return nullptr;
+	std::scoped_lock lock {m_bufferMutex};
 	auto offset = 0ull;
 	auto bUseExistingSlot = false;
 	auto it = FindFreeRange(requestSize,alignment);
@@ -313,6 +319,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 	auto pThis = std::dynamic_pointer_cast<IDynamicResizableBuffer>(shared_from_this());
 
 	auto subBuffer = CreateSubBuffer(offset,requestSize,[pThis,requestSize](IBuffer &subBuffer) {
+		std::scoped_lock lock {pThis->m_bufferMutex};
 		auto it = std::find_if(pThis->m_allocatedSubBuffers.begin(),pThis->m_allocatedSubBuffers.end(),[&subBuffer](const IBuffer *subBufferOther) {
 			return subBufferOther == &subBuffer;
 		});

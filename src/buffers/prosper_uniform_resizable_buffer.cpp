@@ -24,14 +24,23 @@ IUniformResizableBuffer::IUniformResizableBuffer(
 	m_allocatedSubBuffers.resize(numMaxBuffers,nullptr);
 }
 
-uint64_t IUniformResizableBuffer::GetInstanceSize() const {return m_bufferInstanceSize;}
+uint64_t IUniformResizableBuffer::GetInstanceSize() const
+{
+	std::unique_lock lock {m_bufferMutex};
+	return m_bufferInstanceSize;
+}
 
 const std::vector<IBuffer*> &IUniformResizableBuffer::GetAllocatedSubBuffers() const {return m_allocatedSubBuffers;}
-uint64_t IUniformResizableBuffer::GetAssignedMemory() const {return m_assignedMemory;}
+uint64_t IUniformResizableBuffer::GetAssignedMemory() const
+{
+	std::unique_lock lock {m_bufferMutex};
+	return m_assignedMemory;
+}
 uint32_t IUniformResizableBuffer::GetTotalInstanceCount() const {return m_allocatedSubBuffers.size();}
 
 std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *data)
 {
+	std::unique_lock lock {m_bufferMutex};
 	auto offset = 0ull;
 	auto bUseExistingSlot = false;
 	auto baseAlignedInstanceSize = prosper::util::get_aligned_size(m_bufferInstanceSize,m_alignment);
@@ -91,6 +100,7 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 	auto idx = offset /baseAlignedInstanceSize;
 	auto pThis = std::dynamic_pointer_cast<IUniformResizableBuffer>(shared_from_this());
 	auto subBuffer = CreateSubBuffer(offset,m_bufferInstanceSize,[pThis,idx](IBuffer &subBuffer) {
+		std::unique_lock lock {pThis->m_bufferMutex};
 		pThis->m_freeOffsets.push(subBuffer.GetStartOffset());
 		pThis->m_allocatedSubBuffers.at(idx) = nullptr;
 	});
