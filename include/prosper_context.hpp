@@ -209,6 +209,8 @@ namespace prosper
 		virtual uint32_t GetUniversalQueueFamilyIndex() const=0;
 		virtual util::Limits GetPhysicalDeviceLimits() const=0;
 		virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)=0;
+		// If image tiling is not specified, return value will refer to buffer feature support
+		virtual prosper::FeatureSupport AreFormatFeaturesSupported(Format format,FormatFeatureFlags featureFlags,std::optional<ImageTiling> tiling) const=0;
 
 		void ChangeResolution(uint32_t width,uint32_t height);
 		void ChangePresentMode(prosper::PresentModeKHR presentMode);

@@ -28,6 +28,10 @@ bool IImage::IsCubemap() const
 {
 	return umath::is_flag_set(m_createInfo.flags,prosper::util::ImageCreateInfo::Flags::Cubemap);
 }
+prosper::FeatureSupport IImage::AreFormatFeaturesSupported(FormatFeatureFlags featureFlags) const
+{
+	return GetContext().AreFormatFeaturesSupported(GetFormat(),featureFlags,GetTiling());
+}
 ImageUsageFlags IImage::GetUsageFlags() const {return m_createInfo.usage;}
 uint32_t IImage::GetLayerCount() const {return m_createInfo.layers;}
 ImageTiling IImage::GetTiling() const {return m_createInfo.tiling;}

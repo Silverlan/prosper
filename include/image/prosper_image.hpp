@@ -51,6 +51,7 @@ namespace prosper
 		bool SetMemoryBuffer(IBuffer &buffer);
 		virtual DeviceSize GetAlignment() const=0;
 		virtual const void *GetInternalHandle() const=0;
+		prosper::FeatureSupport AreFormatFeaturesSupported(FormatFeatureFlags featureFlags) const;
 
 		bool IsSrgb() const;
 		bool IsNormalMap() const;

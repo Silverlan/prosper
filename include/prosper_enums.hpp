@@ -881,6 +881,24 @@ namespace prosper
 	using PipelineID = uint32_t;
 	using BindingIndex = uint32_t;
 	using SampleMask = uint32_t;
+
+	enum class FeatureSupport : uint8_t
+	{
+		Supported = 0,
+		Unsupported,
+		Unknown
+	};
+	enum class FormatFeatureFlags : uint16_t
+	{
+		BlitDstBit = 1,
+		BlitSrcBit = BlitDstBit<<1u,
+		ColorAttachmentBit = BlitSrcBit<<1u,
+		DepthStencilAttachmentBit = ColorAttachmentBit<<1u,
+		SampledImageBit = DepthStencilAttachmentBit<<1u,
+		StorageTexelBufferBit = SampledImageBit<<1u,
+		UniformTexelBufferBit = StorageTexelBufferBit<<1u,
+		VertexBufferBit = UniformTexelBufferBit<<1u
+	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryFeatureFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueueFamilyFlags)
@@ -902,5 +920,6 @@ REGISTER_BASIC_BITWISE_OPERATORS(prosper::DebugMessageSeverityFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryPropertyFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueryPipelineStatisticFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::DebugReportFlags)
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::FormatFeatureFlags)
 
 #endif
