@@ -131,6 +131,7 @@ namespace prosper
 
 	using FrameIndex = uint64_t;
 	class Window;
+	class ShaderPipelineLoader;
 	class DLLPROSPER IPrContext
 		: public std::enable_shared_from_this<IPrContext>
 	{
@@ -211,6 +212,7 @@ namespace prosper
 		virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)=0;
 		// If image tiling is not specified, return value will refer to buffer feature support
 		virtual prosper::FeatureSupport AreFormatFeaturesSupported(Format format,FormatFeatureFlags featureFlags,std::optional<ImageTiling> tiling) const=0;
+		virtual void BakeShaderPipeline(prosper::PipelineID pipelineId,prosper::PipelineBindPoint pipelineType)=0;
 
 		void ChangeResolution(uint32_t width,uint32_t height);
 		void ChangePresentMode(prosper::PresentModeKHR presentMode);
@@ -387,6 +389,9 @@ namespace prosper
 		);
 		CommonBufferCache &GetCommonBufferCache() const;
 
+		ShaderPipelineLoader &GetPipelineLoader();
+		const ShaderPipelineLoader &GetPipelineLoader() const {return const_cast<IPrContext*>(this)->GetPipelineLoader();}
+
 		virtual void *GetInternalDevice() const {return nullptr;}
 		virtual void *GetInternalPhysicalDevice() const {return nullptr;}
 		virtual void *GetInternalInstance() const {return nullptr;}
@@ -394,7 +399,7 @@ namespace prosper
 		virtual bool IsDeviceExtensionEnabled(const std::string &ext) const {return false;}
 		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const {return false;}
 
-		void SetMultiThreadedRenderingEnabled(bool enabled) {umath::set_flag(m_stateFlags,StateFlags::EnableMultiThreadedRendering);}
+		void SetMultiThreadedRenderingEnabled(bool enabled);
 		bool IsMultiThreadedRenderingEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::EnableMultiThreadedRendering);}
 
 		virtual bool SupportsMultiThreadedResourceAllocation() const {return false;}
@@ -439,6 +444,8 @@ namespace prosper
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
+		virtual void UpdateMultiThreadedRendering(bool mtEnabled);
+		void ReloadPipelineLoader();
 
 		std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer,const std::optional<util::ImageCreateInfo> &createInfo={});
 		virtual std::shared_ptr<IImageView> DoCreateImageView(
@@ -481,6 +488,7 @@ namespace prosper
 		std::string m_appName;
 		std::shared_ptr<prosper::IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 		std::vector<ShaderPipeline> m_shaderPipelines;
+		std::unique_ptr<ShaderPipelineLoader> m_pipelineLoader;
 
 		Callbacks m_callbacks {};
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;

@@ -5,6 +5,7 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
+#include "shader/prosper_pipeline_loader.hpp"
 #include "prosper_util.hpp"
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"
@@ -161,10 +162,12 @@ void prosper::ShaderGraphics::InitializeGfxPipeline(prosper::GraphicsPipelineCre
 {
 	pipelineInfo.ToggleDynamicStates(true,{prosper::DynamicState::Viewport});
 }
+
 void prosper::ShaderGraphics::InitializePipeline()
 {
 	// Reset pipeline infos (in case the shader is being reloaded)
-	for(auto &pipelineInfo : m_pipelineInfos)
+	auto &pipelineInfos = GetPipelineInfos();
+	for(auto &pipelineInfo : pipelineInfos)
 		pipelineInfo = {};
 
 	/* Configure the graphics pipeline */
@@ -174,7 +177,10 @@ void prosper::ShaderGraphics::InitializePipeline()
 	auto *modTessControl = GetStage(ShaderStage::TessellationControl);
 	auto *modTessEval = GetStage(ShaderStage::TessellationEvaluation);
 	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
-	for(auto pipelineIdx=decltype(m_pipelineInfos.size()){0};pipelineIdx<m_pipelineInfos.size();++pipelineIdx)
+
+	static std::chrono::high_resolution_clock::duration accTime {0};
+	auto t = std::chrono::high_resolution_clock::now();
+	for(auto pipelineIdx=decltype(pipelineInfos.size()){0};pipelineIdx<pipelineInfos.size();++pipelineIdx)
 	{
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
@@ -188,7 +194,11 @@ void prosper::ShaderGraphics::InitializePipeline()
 		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false)
-			m_basePipeline.lock()->GetPipelineId(basePipelineId);
+		{
+			assert(!GetContext().GetPipelineLoader().IsShaderQueued(m_basePipeline.lock()->GetIndex()));
+			// Base shader pipeline must have already been loaded (but not necessarily baked) at this point!
+			m_basePipeline.lock()->GetPipelineId(basePipelineId,0u,false);
+		}
 
 		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
 		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
@@ -228,7 +238,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 		InitializeGfxPipeline(*gfxPipelineInfo,pipelineIdx);
 		InitializeDescriptorSetGroup(*gfxPipelineInfo);
 
-		auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
+		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
 		for(auto &range : pipelineInitInfo.pushConstantRanges)
 			gfxPipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
 
@@ -239,7 +249,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 			gfxPipelineInfo->SetScissorBoxProperties(0u,0,0,std::numeric_limits<int32_t>::max(),std::numeric_limits<int32_t>::max());
 		else
 			gfxPipelineInfo->SetDynamicScissorBoxesCount(1u);
-		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
+		auto &pipelineInfo = pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = InitPipelineId(pipelineIdx);
 		auto &context = GetContext();
 		auto result = context.AddPipeline(*this,pipelineIdx,*gfxPipelineInfo,*renderPass,modFs,modVs,modGs,modTessControl,modTessEval,subPassId,basePipelineId);
@@ -251,6 +261,8 @@ void prosper::ShaderGraphics::InitializePipeline()
 				firstPipelineId = pipelineInfo.id;
 			pipelineInfo.renderPass = renderPass;
 			OnPipelineInitialized(pipelineIdx);
+
+			GetContext().GetPipelineLoader().Bake(GetIndex(),pipelineInfo.id,GetPipelineBindPoint());
 		}
 		else
 			pipelineInfo.id = std::numeric_limits<PipelineID>::max();
@@ -378,8 +390,9 @@ void prosper::ShaderGraphics::ToggleDynamicScissorState(prosper::GraphicsPipelin
 
 const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(uint32_t pipelineIdx) const
 {
-	auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
-	return pipelineInfo.renderPass;
+	auto *pipelineInfo = GetPipelineInfo(pipelineIdx);
+	assert(pipelineInfo);
+	return pipelineInfo->renderPass;
 }
 bool prosper::ShaderGraphics::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
 {

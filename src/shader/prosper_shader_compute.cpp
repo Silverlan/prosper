@@ -5,6 +5,7 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
+#include "shader/prosper_pipeline_loader.hpp"
 #include "prosper_command_buffer.hpp"
 
 prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context,const std::string &identifier,const std::string &csShader)
@@ -19,13 +20,14 @@ void prosper::ShaderCompute::InitializeComputePipeline(prosper::ComputePipelineC
 void prosper::ShaderCompute::InitializePipeline()
 {
 	// Reset pipeline infos (in case the shader is being reloaded)
-	for(auto &pipelineInfo : m_pipelineInfos)
+	auto &pipelineInfos = GetPipelineInfos();
+	for(auto &pipelineInfo : pipelineInfos)
 		pipelineInfo = {};
 
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
 	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
-	for(auto pipelineIdx=decltype(m_pipelineInfos.size()){0};pipelineIdx<m_pipelineInfos.size();++pipelineIdx)
+	for(auto pipelineIdx=decltype(pipelineInfos.size()){0};pipelineIdx<pipelineInfos.size();++pipelineIdx)
 	{
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
@@ -33,7 +35,11 @@ void prosper::ShaderCompute::InitializePipeline()
 		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false)
+		{
+			assert(!GetContext().GetPipelineLoader().IsShaderQueued(m_basePipeline.lock()->GetIndex()));
+			// Base shader pipeline must have already been loaded (but not necessarily baked) at this point!
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
+		}
 
 		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
 		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
@@ -50,13 +56,13 @@ void prosper::ShaderCompute::InitializePipeline()
 		InitializeComputePipeline(*computePipelineInfo,pipelineIdx);
 		InitializeDescriptorSetGroup(*computePipelineInfo);
 
-		auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
+		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
 		for(auto &range : pipelineInitInfo.pushConstantRanges)
 			computePipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
 
 		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 		
-		auto &pipelineInfo = m_pipelineInfos.at(pipelineIdx);
+		auto &pipelineInfo = pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = InitPipelineId(pipelineIdx);
 		auto &context = GetContext();
 		auto result = context.AddPipeline(*this,pipelineIdx,*computePipelineInfo,*modCmp,basePipelineId);
@@ -67,6 +73,8 @@ void prosper::ShaderCompute::InitializePipeline()
 			if(firstPipelineId == std::numeric_limits<prosper::PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			OnPipelineInitialized(pipelineIdx);
+
+			GetContext().GetPipelineLoader().Bake(GetIndex(),pipelineInfo.id,GetPipelineBindPoint());
 		}
 		else
 			pipelineInfo.id = std::numeric_limits<PipelineID>::max();

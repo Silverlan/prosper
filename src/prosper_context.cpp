@@ -10,6 +10,7 @@
 #include "prosper_glsl.hpp"
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
+#include "shader/prosper_pipeline_loader.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
@@ -43,6 +44,8 @@ prosper::IPrContext::~IPrContext()
 	if(umath::is_flag_set(m_stateFlags,StateFlags::Closed) == false)
 		throw std::logic_error{"Prosper context has to be closed before being destroyed!"};
 }
+
+prosper::ShaderPipelineLoader &prosper::IPrContext::GetPipelineLoader() {return *m_pipelineLoader;}
 
 void prosper::IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
 bool prosper::IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
@@ -399,6 +402,11 @@ void prosper::IPrContext::ClearKeepAliveResources()
 	resources.clear();
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources,false);
 }
+void prosper::IPrContext::SetMultiThreadedRenderingEnabled(bool enabled)
+{
+	umath::set_flag(m_stateFlags,StateFlags::EnableMultiThreadedRendering);
+	UpdateMultiThreadedRendering(enabled);
+}
 void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
 	if(!resource)
@@ -484,8 +492,20 @@ std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUni
 	return DoCreateUniformResizableBuffer(createInfo,bufferInstanceSize,maxTotalSize,data,bufferBaseSize,alignment);
 }
 
+void prosper::IPrContext::UpdateMultiThreadedRendering(bool mtEnabled)
+{
+	ReloadPipelineLoader();
+}
+void prosper::IPrContext::ReloadPipelineLoader()
+{
+	m_pipelineLoader = nullptr;
+	m_pipelineLoader = std::make_unique<ShaderPipelineLoader>(*this);
+}
+
 void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
+	ReloadPipelineLoader();
+
 	// TODO: Check if resolution is supported
 	m_initialWindowSettings.width = createInfo.width;
 	m_initialWindowSettings.height = createInfo.height;

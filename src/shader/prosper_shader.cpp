@@ -6,6 +6,7 @@
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "shader/prosper_pipeline_manager.hpp"
+#include "shader/prosper_pipeline_loader.hpp"
 #include "prosper_util.hpp"
 #include "prosper_glsl.hpp"
 #include "prosper_command_buffer.hpp"
@@ -91,6 +92,7 @@ const std::string &prosper::Shader::GetIdentifier() const {return m_identifier;}
 
 void prosper::Shader::SetPipelineCount(uint32_t count)
 {
+	FlushLoad();
 	m_pipelineInfos.resize(count,{});
 	m_cachedPipelineIds.resize(count,std::numeric_limits<PipelineID>::max());
 }
@@ -144,25 +146,42 @@ void prosper::Shader::SetIdentifier(const std::string &identifier) {m_identifier
 uint32_t prosper::Shader::GetCurrentPipelineIndex() const {return m_currentPipelineIdx;}
 prosper::ICommandBuffer *prosper::Shader::GetCurrentCommandBuffer() const {return m_currentCmd;}
 
-uint32_t prosper::Shader::GetPipelineCount() const {return m_pipelineInfos.size();}
+uint32_t prosper::Shader::GetPipelineCount() const
+{
+	FlushLoad();
+	return m_pipelineInfos.size();
+}
 void prosper::Shader::ReloadPipelines(bool bReloadSourceCode) {Initialize(bReloadSourceCode);}
 void prosper::Shader::Initialize(bool bReloadSourceCode)
 {
+	auto &loader = GetContext().GetPipelineLoader();
+	if(loader.IsShaderQueued(GetIndex()))
+		FlushLoad();
+
 	auto bValidation = GetContext().IsValidationEnabled();
 	if(bValidation)
 		std::cout<<"[PR] Initializing shader '"<<GetIdentifier()<<"'"<<std::endl;
 	m_bValid = false;
+	m_loading = true;
 	ClearPipelines();
-	if(bValidation)
-		std::cout<<"[PR] Initializing shader sources..."<<std::endl;
-	if(InitializeSources(bReloadSourceCode) == false)
-		return;
-	if(bValidation)
-		std::cout<<"[PR] Initializing shader stages..."<<std::endl;
-	InitializeStages();
-	if(bValidation)
-		std::cout<<"[PR] Initializing shader pipeline..."<<std::endl;
-	InitializePipeline();
+
+	auto fInit = [this,bReloadSourceCode,bValidation]() -> bool {
+		if(bValidation)
+			std::cout<<"[PR] Initializing shader sources..."<<std::endl;
+		if(InitializeSources(bReloadSourceCode) == false)
+			return false;
+		if(bValidation)
+			std::cout<<"[PR] Initializing shader stages..."<<std::endl;
+		InitializeStages();
+		if(bValidation)
+			std::cout<<"[PR] Initializing shader pipeline..."<<std::endl;
+		InitializePipeline();
+		return true;
+	};
+	loader.Init(GetIndex(),fInit);
+}
+void prosper::Shader::FinalizeInitialization()
+{
 	m_bValid = true;
 
 	OnPipelinesInitialized();
@@ -171,6 +190,7 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 		OnInitialized();
 		m_bFirstTimeInit = false;
 	}
+	auto bValidation = GetContext().IsValidationEnabled();
 	if(bValidation)
 		std::cout<<"[PR] Shader successfully initialized!"<<std::endl;
 }
@@ -225,7 +245,7 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorS
 
 void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo)
 {
-	auto *pipeline = GetPipelineInfo(m_currentPipelineIdx);
+	auto *pipeline = &GetPipelineInfos()[m_currentPipelineIdx];
 	if(pipeline == nullptr)
 		return;
 	std::vector<const prosper::DescriptorSetCreateInfo*> dsInfos;
@@ -236,15 +256,17 @@ void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateIn
 }
 void prosper::Shader::SetDebugName(uint32_t pipelineIdx,const std::string &name)
 {
-	if(/*prosper::debug::is_debug_mode_enabled() == false || */pipelineIdx >= m_pipelineInfos.size())
+	auto &infos = GetPipelineInfos();
+	if(/*prosper::debug::is_debug_mode_enabled() == false || */pipelineIdx >= infos.size())
 		return;
-	m_pipelineInfos.at(pipelineIdx).debugName = name;
+	infos[pipelineIdx].debugName = name;
 }
 const std::string *prosper::Shader::GetDebugName(uint32_t pipelineIdx) const
 {
-	if(/*prosper::debug::is_debug_mode_enabled() == false || */pipelineIdx >= m_pipelineInfos.size())
+	auto &infos = const_cast<Shader*>(this)->GetPipelineInfos();
+	if(/*prosper::debug::is_debug_mode_enabled() == false || */pipelineIdx >= infos.size())
 		return nullptr;
-	return &m_pipelineInfos.at(pipelineIdx).debugName;
+	return &infos[pipelineIdx].debugName;
 }
 void prosper::Shader::OnPipelineInitialized(uint32_t pipelineIdx)
 {
@@ -256,6 +278,9 @@ void prosper::Shader::OnPipelineInitialized(uint32_t pipelineIdx)
 void prosper::Shader::ClearPipelines()
 {
 	GetContext().WaitIdle();
+	auto &loader = GetContext().GetPipelineLoader();
+	if(loader.IsShaderQueued(GetIndex()))
+		FlushLoad();
 	for(auto &pipelineInfo : m_pipelineInfos)
 	{
 		if(pipelineInfo.id == std::numeric_limits<prosper::PipelineID>::max())
@@ -295,11 +320,16 @@ const prosper::ShaderModuleStageEntryPoint *prosper::Shader::GetModuleStageEntry
 		return nullptr;
 	return stageData->entryPoint.get();
 }
-bool prosper::Shader::GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx) const
+bool prosper::Shader::GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx,bool waitForLoad) const
 {
-	if(pipelineIdx >= m_pipelineInfos.size())
+	const prosper::PipelineInfo *info = nullptr;
+	if(!waitForLoad)
+		info = (pipelineIdx < m_pipelineInfos.size()) ? &m_pipelineInfos[pipelineIdx] : nullptr;
+	else
+		info = GetPipelineInfo(pipelineIdx);
+	if(!info)
 		return false;
-	pipelineId = m_pipelineInfos[pipelineIdx].id;
+	pipelineId = info->id;
 	return true;
 }
 size_t prosper::Shader::GetBaseTypeHashCode() const {return typeid(Shader).hash_code();}
@@ -323,6 +353,7 @@ bool prosper::Shader::RecordPushConstants(uint32_t size,const void *data,uint32_
 const prosper::PipelineInfo *prosper::Shader::GetPipelineInfo(PipelineID id) const {return const_cast<Shader*>(this)->GetPipelineInfo(id);}
 prosper::PipelineInfo *prosper::Shader::GetPipelineInfo(PipelineID id)
 {
+	FlushLoad();
 	return (id < m_pipelineInfos.size()) ? &m_pipelineInfos.at(id) : nullptr;
 }
 const prosper::BasePipelineCreateInfo *prosper::Shader::GetPipelineCreateInfo(PipelineID id) const
@@ -435,13 +466,35 @@ void prosper::Shader::UnbindPipeline()
 }
 bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pipelineIdx)
 {
-	if(pipelineIdx >= m_pipelineInfos.size())
+	auto *pipeline = GetPipelineInfo(pipelineIdx);
+	if(!pipeline)
 		return false;
 	m_currentPipelineIdx = pipelineIdx;
 	auto r = cmdBuffer.RecordBindShaderPipeline(*this,m_currentPipelineIdx);
 	if(r == true)
 		OnPipelineBound();
 	return r;
+}
+void prosper::Shader::BakePipeline(uint32_t pipelineIdx) const
+{
+	PipelineID pipelineId;
+	if(!GetPipelineId(pipelineId,pipelineIdx))
+		return;
+	GetContext().BakeShaderPipeline(pipelineId,GetPipelineBindPoint());
+}
+void prosper::Shader::FlushLoad() const
+{
+	if(!m_loading)
+		return;
+	m_loading = false;
+	GetContext().GetPipelineLoader().Flush();
+}
+void prosper::Shader::BakePipelines() const
+{
+	FlushLoad();
+	auto n = m_pipelineInfos.size();
+	for(auto i=decltype(n){0u};i<n;++i)
+		BakePipeline(i);
 }
 std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::ToProsperDescriptorSetInfo() const
 {

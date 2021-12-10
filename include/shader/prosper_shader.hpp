@@ -60,6 +60,7 @@ namespace prosper
 		::util::WeakHandle<prosper::Shader> GetHandle();
 
 		void Initialize(bool bReloadSourceCode=false);
+		void FinalizeInitialization();
 		void ReloadPipelines(bool bReloadSourceCode=false);
 		uint32_t GetPipelineCount() const;
 
@@ -68,7 +69,10 @@ namespace prosper
 		bool IsRaytracingShader() const;
 		PipelineBindPoint GetPipelineBindPoint() const;
 		const prosper::ShaderModuleStageEntryPoint *GetModuleStageEntryPoint(prosper::ShaderStage stage,uint32_t pipelineIdx=0u) const;
-		bool GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx=0u) const;
+		bool GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pipelineIdx=0u,bool waitForLoad=true) const;
+
+		void BakePipeline(uint32_t pipelineIdx) const;
+		void BakePipelines() const;
 
 		// If a base shader is specified, pipelines will be created as derived pipelines
 		// of the pipeline of that shader
@@ -126,14 +130,16 @@ namespace prosper
 		virtual bool ShouldInitializePipeline(uint32_t pipelineIdx);
 		void ClearPipelines();
 		prosper::PipelineID InitPipelineId(uint32_t pipelineIdx);
+		void FlushLoad() const;
+		std::vector<PipelineInfo> &GetPipelineInfos() {return m_pipelineInfos;}
 
 		ShaderStageData *GetStage(ShaderStage stage);
 		const ShaderStageData *GetStage(ShaderStage stage) const;
 		void InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo);
-		std::vector<PipelineInfo> m_pipelineInfos {};
 		// Pipeline this pipeline is derived from
 		std::weak_ptr<Shader> m_basePipeline = {};
 		uint32_t m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
+		mutable bool m_loading = false;
 
 		void SetIndex(ShaderIndex shaderIndex) {m_shaderIndex = shaderIndex;}
 	private:
@@ -149,6 +155,7 @@ namespace prosper
 		bool m_bFirstTimeInit = true;
 		ShaderIndex m_shaderIndex = std::numeric_limits<ShaderIndex>::max();
 		std::string m_identifier;
+		std::vector<PipelineInfo> m_pipelineInfos {};
 
 		PipelineBindPoint m_pipelineBindPoint = static_cast<PipelineBindPoint>(-1);
 		std::vector<prosper::PipelineID> m_cachedPipelineIds;
