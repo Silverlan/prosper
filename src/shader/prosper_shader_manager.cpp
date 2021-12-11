@@ -70,6 +70,8 @@ void prosper::ShaderManager::RegisterShader(const std::string &identifier,const 
 		bExternalOwnership = false;
 		return fFactory(context,identifier);
 	});
+	if(GetContext().IsMultiThreadedRenderingEnabled())
+		LoadShader(identifier); // Immediately start loading the shader
 }
 prosper::Shader *prosper::ShaderManager::GetShader(ShaderIndex index) const
 {

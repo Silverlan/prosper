@@ -30,6 +30,8 @@ namespace prosper
 			IRenderPass &renderPass
 		);
 
+		void Bake();
+
 		uint32_t GetAttachmentCount() const;
 		const Texture *GetTexture(uint32_t attachmentId) const;
 		Texture *GetTexture(uint32_t attachmentId);

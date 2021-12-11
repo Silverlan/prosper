@@ -175,7 +175,8 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 		InitializeStages();
 		if(bValidation)
 			std::cout<<"[PR] Initializing shader pipeline..."<<std::endl;
-		InitializePipeline();
+		if(m_enableMultiThreadedPipelineInitialization)
+			InitializePipeline();
 		return true;
 	};
 	loader.Init(GetIndex(),fInit);
@@ -183,7 +184,8 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 void prosper::Shader::FinalizeInitialization()
 {
 	m_bValid = true;
-
+	if(!m_enableMultiThreadedPipelineInitialization)
+		InitializePipeline();
 	OnPipelinesInitialized();
 	if(m_bFirstTimeInit == true)
 	{

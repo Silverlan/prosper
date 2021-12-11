@@ -34,6 +34,7 @@ namespace prosper
 		uint32_t GetMipmapCount() const;
 		Format GetFormat() const;
 		std::array<ComponentSwizzle,4> GetSwizzleArray() const;
+		virtual void Bake() {}
 
 		const IImage &GetImage() const;
 		IImage &GetImage();

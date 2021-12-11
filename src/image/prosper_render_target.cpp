@@ -20,6 +20,18 @@ RenderTarget::RenderTarget(
 	: ContextObject{context},std::enable_shared_from_this<RenderTarget>(),m_textures{textures},m_framebuffers{framebuffers},m_renderPass{renderPass.shared_from_this()}
 {}
 
+void RenderTarget::Bake()
+{
+	for(auto &tex : m_textures)
+		tex->Bake();
+	if(m_renderPass)
+	{
+		m_renderPass->Bake();
+		for(auto &fb : m_framebuffers)
+			fb->Bake(*m_renderPass);
+	}
+}
+
 uint32_t RenderTarget::GetAttachmentCount() const {return m_textures.size();}
 const Texture *RenderTarget::GetTexture(uint32_t attachmentId) const {return const_cast<RenderTarget*>(this)->GetTexture(attachmentId);}
 Texture *RenderTarget::GetTexture(uint32_t attachmentId)

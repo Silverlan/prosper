@@ -61,6 +61,8 @@ namespace prosper
 		uint32_t GetPixelSize() const;
 		uint32_t GetSize() const;
 
+		virtual void Bake() {};
+
 		virtual bool WriteImageData(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32_t layerIndex,uint32_t mipLevel,uint64_t size,const uint8_t *data)=0;
 		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr)=0;
 		virtual bool Unmap()=0;

@@ -109,6 +109,8 @@ namespace prosper
 
 		std::array<std::shared_ptr<ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> &GetStages();
 
+		void SetMultiThreadedPipelineInitializationEnabled(bool enabled) {m_enableMultiThreadedPipelineInitialization = enabled;}
+
 		// Has to be called before the pipeline is initialized!
 		void SetStageSourceFilePath(ShaderStage stage,const std::string &filePath);
 		std::optional<std::string> GetStageSourceFilePath(ShaderStage stage) const;
@@ -153,6 +155,7 @@ namespace prosper
 		std::array<std::shared_ptr<ShaderStageData>,umath::to_integral(prosper::ShaderStage::Count)> m_stages;
 		bool m_bValid = false;
 		bool m_bFirstTimeInit = true;
+		bool m_enableMultiThreadedPipelineInitialization = true;
 		ShaderIndex m_shaderIndex = std::numeric_limits<ShaderIndex>::max();
 		std::string m_identifier;
 		std::vector<PipelineInfo> m_pipelineInfos {};

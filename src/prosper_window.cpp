@@ -232,6 +232,7 @@ void Window::ReloadStagingRenderTarget()
 	
 	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex,depthStencilTex},rp);//,finalDepthTex},rp);
 	m_stagingRenderTarget->SetDebugName("engine_staging_rt");
+	m_stagingRenderTarget->Bake();
 	// Vulkan TODO: Resize when window resolution was changed
 }
 

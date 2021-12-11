@@ -75,6 +75,8 @@ namespace prosper
 		CallbackHandle AddReallocationCallback(const std::function<void()> &fCallback);
 		virtual const void *GetInternalHandle() const {return nullptr;}
 
+		virtual void Bake() {};
+
 		// For internal use only!
 		virtual void Initialize();
 

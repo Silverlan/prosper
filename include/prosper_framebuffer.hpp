@@ -23,6 +23,7 @@ namespace prosper
 		IFramebuffer &operator=(const IFramebuffer&)=delete;
 		virtual ~IFramebuffer() override;
 
+		virtual void Bake(IRenderPass &rp) {}
 		uint32_t GetAttachmentCount() const;
 		prosper::IImageView *GetAttachment(uint32_t i);
 		const prosper::IImageView *GetAttachment(uint32_t i) const;

@@ -44,6 +44,15 @@ void Texture::SetDebugName(const std::string &name)
 	if(m_sampler != nullptr)
 		m_sampler->SetDebugName(name +"_smp");
 }
+void Texture::Bake()
+{
+	if(m_image)
+		m_image->Bake();
+	for(auto &imgView : m_imageViews)
+		imgView->Bake();
+	if(m_sampler)
+		m_sampler->Bake();
+}
 
 //////////////////////////
 

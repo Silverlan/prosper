@@ -8,9 +8,11 @@
 
 using namespace prosper;
 #pragma optimize("",off)
+static std::thread::id g_id;
 ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context)
 	: m_context{context},m_multiThreaded{context.IsMultiThreadedRenderingEnabled()}
 {
+	g_id = std::this_thread::get_id();
 	if(m_multiThreaded)
 	{
 		m_initThread = std::thread{[this]() {
@@ -37,6 +39,7 @@ ShaderPipelineLoader::~ShaderPipelineLoader()
 void ShaderPipelineLoader::ProcessInitQueue()
 {
 	std::queue<InitItem> initQueue;
+	if(m_multiThreaded)
 	{
 		std::unique_lock<std::mutex> lock {m_initQueueMutex};
 		m_initPending.wait(lock,[this]() {
@@ -44,6 +47,11 @@ void ShaderPipelineLoader::ProcessInitQueue()
 		});
 		if(!m_running)
 			return;
+		initQueue = std::move(m_initQueue);
+		m_initQueue = {};
+	}
+	else
+	{
 		initQueue = std::move(m_initQueue);
 		m_initQueue = {};
 	}
@@ -65,6 +73,7 @@ void ShaderPipelineLoader::ProcessInitQueue()
 void ShaderPipelineLoader::ProcessBakeQueue()
 {
 	std::queue<BakeItem> bakeQueue;
+	if(m_multiThreaded)
 	{
 		std::unique_lock<std::mutex> lock {m_bakeQueueMutex};
 		m_bakePending.wait(lock,[this]() {
@@ -72,6 +81,11 @@ void ShaderPipelineLoader::ProcessBakeQueue()
 		});
 		if(!m_running)
 			return;
+		bakeQueue = std::move(m_bakeQueue);
+		m_bakeQueue = {};
+	}
+	else
+	{
 		bakeQueue = std::move(m_bakeQueue);
 		m_bakeQueue = {};
 	}
@@ -99,6 +113,8 @@ void ShaderPipelineLoader::Flush()
 {
 	if(m_pendingWork > 0)
 	{
+		if(std::this_thread::get_id() != g_id)
+			std::cout<<"";
 		std::unique_lock<std::mutex> lock {m_pendingWorkMutex};
 		m_pendingWorkCondition.wait(lock,[this]() {
 			return m_pendingWork == 0;
@@ -143,7 +159,11 @@ void ShaderPipelineLoader::Init(ShaderIndex shaderIndex,const std::function<bool
 	m_initPending.notify_one();
 
 	if(!m_multiThreaded)
+	{
 		ProcessInitQueue();
+		ProcessBakeQueue();
+		Flush();
+	}
 }
 void ShaderPipelineLoader::Bake(ShaderIndex shaderIndex,prosper::PipelineID id,prosper::PipelineBindPoint pipelineType)
 {

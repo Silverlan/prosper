@@ -41,6 +41,7 @@ namespace prosper
 		void SetMinLod(float minLod);
 		void SetMaxLod(float maxLod);
 		void SetBorderColor(BorderColor borderColor);
+		virtual void Bake() {}
 		// void SetUseUnnormalizedCoordinates(bool bUseUnnormalizedCoordinates);
 
 		Filter GetMinFilter() const;

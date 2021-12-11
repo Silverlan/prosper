@@ -35,6 +35,8 @@ namespace prosper
 		void SetSampler(ISampler &sampler);
 		void SetImageView(IImageView &imgView);
 
+		void Bake();
+
 		virtual bool IsMSAATexture() const;
 		virtual void SetDebugName(const std::string &name) override;
 	protected:

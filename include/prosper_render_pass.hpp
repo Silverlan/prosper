@@ -23,6 +23,7 @@ namespace prosper
 		IRenderPass &operator=(const IRenderPass&)=delete;
 		virtual ~IRenderPass() override;
 		const util::RenderPassCreateInfo &GetCreateInfo() const;
+		virtual void Bake() {}
 		virtual const void *GetInternalHandle() const {return nullptr;}
 	protected:
 		IRenderPass(IPrContext &context,const util::RenderPassCreateInfo &createInfo);
