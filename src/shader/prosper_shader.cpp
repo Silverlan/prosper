@@ -184,6 +184,7 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 void prosper::Shader::FinalizeInitialization()
 {
 	m_bValid = true;
+	m_loading = false;
 	if(!m_enableMultiThreadedPipelineInitialization)
 		InitializePipeline();
 	OnPipelinesInitialized();

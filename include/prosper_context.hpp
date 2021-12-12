@@ -191,6 +191,8 @@ namespace prosper
 		void SetValidationEnabled(bool b);
 		bool IsValidationEnabled() const;
 
+		std::thread::id GetMainThreadId() const {return m_mainThreadId;}
+
 		Window &GetWindow();
 		const Window &GetWindow() const {return const_cast<IPrContext*>(this)->GetWindow();}
 		const std::vector<std::weak_ptr<Window>> &GetWindows() const {return const_cast<IPrContext*>(this)->GetWindows();}
@@ -505,6 +507,7 @@ namespace prosper
 		
 		WindowSettings m_initialWindowSettings {};
 
+		std::thread::id m_mainThreadId;
 		bool m_useReservedDeviceLocalImageBuffer = true;
 		std::shared_ptr<prosper::Texture> m_dummyTexture = nullptr;
 		std::shared_ptr<prosper::Texture> m_dummyCubemapTexture = nullptr;

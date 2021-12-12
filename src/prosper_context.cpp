@@ -26,14 +26,14 @@
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
-
+#pragma optimize("",off)
 prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader,uint32_t pipeline)
 	: shader{shader.GetHandle()},pipeline{pipeline}
 {}
 
 prosper::IPrContext::IPrContext(const std::string &appName,bool bEnableValidation)
 	: m_appName(appName),
-	m_commonBufferCache{*this}
+	m_commonBufferCache{*this},m_mainThreadId{std::this_thread::get_id()}
 {
 	umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,bEnableValidation);
 	m_initialWindowSettings.title = appName;
@@ -337,6 +337,11 @@ void prosper::IPrContext::GetScissorViewportInfo(Rect2D *out_scissors,Viewport *
 
 const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetSetupCommandBuffer()
 {
+	if(std::this_thread::get_id() != m_mainThreadId)
+	{
+		std::cout<<"WARNING: Attempted to create primary command buffer on non-main thread, this is not allowed!"<<std::endl;
+		return nullptr;
+	}
 	if(m_setupCmdBuffer)
 		std::cout<<"WARNING: Setup command requested before previous setup command buffer has been flushed!"<<std::endl;
 	if(m_setupCmdBuffer != nullptr)
@@ -362,6 +367,11 @@ void prosper::IPrContext::FlushCommandBuffer(prosper::ICommandBuffer &cmd) {DoFl
 
 void prosper::IPrContext::FlushSetupCommandBuffer()
 {
+	if(std::this_thread::get_id() != m_mainThreadId)
+	{
+		std::cout<<"WARNING: Attempted to flush primary command buffer on non-main thread, this is not allowed!"<<std::endl;
+		return;
+	}
 	if(m_setupCmdBuffer == nullptr)
 		return;
 	DoFlushCommandBuffer(*m_setupCmdBuffer);
@@ -892,3 +902,4 @@ bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader,bool b
 	}
 	return true;
 }
+#pragma optimize("",on)

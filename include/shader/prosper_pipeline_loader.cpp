@@ -8,11 +8,9 @@
 
 using namespace prosper;
 #pragma optimize("",off)
-static std::thread::id g_id;
 ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context)
 	: m_context{context},m_multiThreaded{context.IsMultiThreadedRenderingEnabled()}
 {
-	g_id = std::this_thread::get_id();
 	if(m_multiThreaded)
 	{
 		m_initThread = std::thread{[this]() {
@@ -113,8 +111,8 @@ void ShaderPipelineLoader::Flush()
 {
 	if(m_pendingWork > 0)
 	{
-		if(std::this_thread::get_id() != g_id)
-			std::cout<<"";
+		if(std::this_thread::get_id() != m_context.GetMainThreadId())
+			throw std::runtime_error{"Pipeline loader must not be flushed from non-main thread!"};
 		std::unique_lock<std::mutex> lock {m_pendingWorkMutex};
 		m_pendingWorkCondition.wait(lock,[this]() {
 			return m_pendingWork == 0;
