@@ -25,6 +25,13 @@ ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context)
 }
 ShaderPipelineLoader::~ShaderPipelineLoader()
 {
+	Stop();
+}
+
+void ShaderPipelineLoader::Stop()
+{
+	if(!m_running)
+		return;
 	m_running = false;
 	if(!m_multiThreaded)
 		return;
@@ -105,7 +112,6 @@ bool ShaderPipelineLoader::IsShaderQueued(ShaderIndex shaderIndex) const
 	std::scoped_lock lock {m_pendingShaderJobsMutex};
 	auto it = m_pendingShaderJobs.find(shaderIndex);
 	return it != m_pendingShaderJobs.end() && it->second > 0;
-		
 }
 void ShaderPipelineLoader::Flush()
 {
@@ -146,6 +152,8 @@ void ShaderPipelineLoader::AddPendingShaderJobCount(ShaderIndex shaderIndex,int3
 }
 void ShaderPipelineLoader::Init(ShaderIndex shaderIndex,const std::function<bool()> &job)
 {
+	if(!m_running)
+		return;
 	AddPendingShaderJobCount(shaderIndex,1);
 	m_pendingWorkMutex.lock();
 		++m_pendingWork;
@@ -165,6 +173,8 @@ void ShaderPipelineLoader::Init(ShaderIndex shaderIndex,const std::function<bool
 }
 void ShaderPipelineLoader::Bake(ShaderIndex shaderIndex,prosper::PipelineID id,prosper::PipelineBindPoint pipelineType)
 {
+	if(!m_running)
+		return;
 	AddPendingShaderJobCount(shaderIndex,1);
 	m_pendingWorkMutex.lock();
 		++m_pendingWork;

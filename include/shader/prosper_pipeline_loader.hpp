@@ -24,6 +24,7 @@ namespace prosper
 		ShaderPipelineLoader(prosper::IPrContext &context);
 		~ShaderPipelineLoader();
 		void Flush();
+		void Stop();
 		void Init(ShaderIndex shaderIndex,const std::function<bool()> &job);
 		void Bake(ShaderIndex shaderIndex,prosper::PipelineID id,prosper::PipelineBindPoint pipelineType);
 		bool IsShaderQueued(ShaderIndex shaderIndex) const;
