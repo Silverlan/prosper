@@ -115,6 +115,8 @@ bool ShaderPipelineLoader::IsShaderQueued(ShaderIndex shaderIndex) const
 }
 void ShaderPipelineLoader::Flush()
 {
+	if(!m_running)
+		return;
 	if(m_pendingWork > 0)
 	{
 		if(std::this_thread::get_id() != m_context.GetMainThreadId())
