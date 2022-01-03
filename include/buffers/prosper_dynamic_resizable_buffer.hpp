@@ -42,7 +42,7 @@ namespace prosper
 		std::list<Range>::iterator FindFreeRange(DeviceSize size,uint32_t alignment);
 		std::vector<IBuffer*> m_allocatedSubBuffers;
 		std::list<Range> m_freeRanges;
-		mutable std::mutex m_bufferMutex;
+		mutable std::recursive_mutex m_bufferMutex;
 		uint32_t m_alignment = 0u;
 	};
 };
