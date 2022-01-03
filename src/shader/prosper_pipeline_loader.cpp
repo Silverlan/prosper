@@ -46,14 +46,22 @@ void ShaderPipelineLoader::ProcessInitQueue()
 	std::queue<InitItem> initQueue;
 	if(m_multiThreaded)
 	{
-		std::unique_lock<std::mutex> lock {m_initQueueMutex};
-		m_initPending.wait(lock,[this]() {
-			return !m_initQueue.empty() || !m_running;
-		});
-		if(!m_running)
-			return;
-		initQueue = std::move(m_initQueue);
-		m_initQueue = {};
+		if(m_multiThreaded)
+		{
+			std::unique_lock<std::mutex> lock {m_initQueueMutex};
+			m_initPending.wait(lock,[this]() {
+				return !m_initQueue.empty() || !m_running;
+			});
+			if(!m_running)
+				return;
+			initQueue = std::move(m_initQueue);
+			m_initQueue = {};
+		}
+		else
+		{
+			initQueue = std::move(m_initQueue);
+			m_initQueue = {};
+		}
 	}
 	else
 	{
@@ -80,14 +88,22 @@ void ShaderPipelineLoader::ProcessBakeQueue()
 	std::queue<BakeItem> bakeQueue;
 	if(m_multiThreaded)
 	{
-		std::unique_lock<std::mutex> lock {m_bakeQueueMutex};
-		m_bakePending.wait(lock,[this]() {
-			return !m_bakeQueue.empty() || !m_running;
-		});
-		if(!m_running)
-			return;
-		bakeQueue = std::move(m_bakeQueue);
-		m_bakeQueue = {};
+		if(m_multiThreaded)
+		{
+			std::unique_lock<std::mutex> lock {m_bakeQueueMutex};
+			m_bakePending.wait(lock,[this]() {
+				return !m_bakeQueue.empty() || !m_running;
+			});
+			if(!m_running)
+				return;
+			bakeQueue = std::move(m_bakeQueue);
+			m_bakeQueue = {};
+		}
+		else
+		{
+			bakeQueue = std::move(m_bakeQueue);
+			m_bakeQueue = {};
+		}
 	}
 	else
 	{
@@ -117,7 +133,7 @@ void ShaderPipelineLoader::Flush()
 {
 	if(!m_running)
 		return;
-	if(m_pendingWork > 0)
+	if(m_pendingWork > 0 && m_multiThreaded)
 	{
 		if(std::this_thread::get_id() != m_context.GetMainThreadId())
 			throw std::runtime_error{"Pipeline loader must not be flushed from non-main thread!"};
@@ -186,8 +202,12 @@ void ShaderPipelineLoader::Bake(ShaderIndex shaderIndex,prosper::PipelineID id,p
 		m_bakeQueue.push(BakeItem{shaderIndex,id,pipelineType});
 	m_bakeQueueMutex.unlock();
 	m_bakePending.notify_one();
-
+	
 	if(!m_multiThreaded)
+	{
+		ProcessInitQueue();
 		ProcessBakeQueue();
+		Flush();
+	}
 }
 #pragma optimize("",on)
