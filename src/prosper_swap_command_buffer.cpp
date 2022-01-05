@@ -5,6 +5,7 @@
 #include "stdafx_prosper.h"
 #include "prosper_swap_command_buffer.hpp"
 #include "prosper_command_buffer.hpp"
+#include <sharedutils/util.h>
 
 using namespace prosper;
 
@@ -93,6 +94,7 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(prosper::IPrContext &context)
 			m_pending = false;
 		}
 	}};
+	::util::set_thread_name(m_thread,"prosper_cmd_buf");
 }
 
 MtSwapCommandBufferGroup::~MtSwapCommandBufferGroup()

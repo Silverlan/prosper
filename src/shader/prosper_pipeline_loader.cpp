@@ -5,6 +5,7 @@
 #include "stdafx_prosper.h"
 #include "shader/prosper_pipeline_loader.hpp"
 #include "shader/prosper_shader.hpp"
+#include <sharedutils/util.h>
 
 using namespace prosper;
 #pragma optimize("",off)
@@ -21,6 +22,9 @@ ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context)
 			while(m_running)
 				ProcessBakeQueue();
 		}};
+
+		::util::set_thread_name(m_initThread,"prosper_pipeline_loader_init");
+		::util::set_thread_name(m_bakeThread,"prosper_pipeline_loader_bake");
 	}
 }
 ShaderPipelineLoader::~ShaderPipelineLoader()
