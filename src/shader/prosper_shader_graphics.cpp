@@ -234,16 +234,14 @@ void prosper::ShaderGraphics::InitializePipeline()
 		if(samples != prosper::SampleCountFlags::e1Bit)
 			gfxPipelineInfo->SetMultisamplingProperties(samples,0.f,std::numeric_limits<SampleMask>::max());
 
-		m_currentPipelineIdx = pipelineIdx;
 		InitializeGfxPipeline(*gfxPipelineInfo,pipelineIdx);
-		InitializeDescriptorSetGroup(*gfxPipelineInfo);
+		InitializeDescriptorSetGroup(*gfxPipelineInfo,pipelineIdx);
 
 		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
 		for(auto &range : pipelineInitInfo.pushConstantRanges)
 			gfxPipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
 
 		PrepareGfxPipeline(*gfxPipelineInfo);
-		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 
 		if(prosper::util::are_dynamic_states_enabled(*gfxPipelineInfo,prosper::util::DynamicStateFlags::Scissor) == false)
 			gfxPipelineInfo->SetScissorBoxProperties(0u,0,0,std::numeric_limits<int32_t>::max(),std::numeric_limits<int32_t>::max());
@@ -394,38 +392,32 @@ const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderP
 	assert(pipelineInfo);
 	return pipelineInfo->renderPass;
 }
-bool prosper::ShaderGraphics::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
+bool prosper::ShaderGraphics::RecordBindRenderBuffer(ShaderBindState &bindState,const IRenderBuffer &renderBuffer) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer ? cmdBuffer->RecordBindRenderBuffer(renderBuffer) : false;
+	return bindState.commandBuffer.RecordBindRenderBuffer(renderBuffer);
 }
-bool prosper::ShaderGraphics::RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<prosper::DeviceSize> &offsets)
+bool prosper::ShaderGraphics::RecordBindVertexBuffers(ShaderBindState &bindState,const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<prosper::DeviceSize> &offsets) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer ? cmdBuffer->RecordBindVertexBuffers(*this,buffers,startBinding,offsets) : false;
+	return bindState.commandBuffer.RecordBindVertexBuffers(*this,buffers,startBinding,offsets);
 }
 
-bool prosper::ShaderGraphics::RecordBindVertexBuffer(prosper::IBuffer &buffer,uint32_t startBinding,DeviceSize offset)
+bool prosper::ShaderGraphics::RecordBindVertexBuffer(ShaderBindState &bindState,prosper::IBuffer &buffer,uint32_t startBinding,DeviceSize offset) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer ? cmdBuffer->RecordBindVertexBuffers(*this,{&buffer},startBinding,{offset}) : false;
+	return bindState.commandBuffer.RecordBindVertexBuffers(*this,{&buffer},startBinding,{offset});
 }
-bool prosper::ShaderGraphics::RecordBindIndexBuffer(prosper::IBuffer &indexBuffer,prosper::IndexType indexType,DeviceSize offset)
+bool prosper::ShaderGraphics::RecordBindIndexBuffer(ShaderBindState &bindState,prosper::IBuffer &indexBuffer,prosper::IndexType indexType,DeviceSize offset) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && cmdBuffer->RecordBindIndexBuffer(indexBuffer,indexType,offset);
+	return bindState.commandBuffer.RecordBindIndexBuffer(indexBuffer,indexType,offset);
 }
 
-bool prosper::ShaderGraphics::RecordDraw(uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance)
+bool prosper::ShaderGraphics::RecordDraw(ShaderBindState &bindState,uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && cmdBuffer->RecordDraw(vertCount,instanceCount,firstVertex,firstInstance);
+	return bindState.commandBuffer.RecordDraw(vertCount,instanceCount,firstVertex,firstInstance);
 }
 
-bool prosper::ShaderGraphics::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,uint32_t firstInstance)
+bool prosper::ShaderGraphics::RecordDrawIndexed(ShaderBindState &bindState,uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,uint32_t firstInstance) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && cmdBuffer->RecordDrawIndexed(indexCount,instanceCount,firstIndex,firstInstance);
+	return bindState.commandBuffer.RecordDrawIndexed(indexCount,instanceCount,firstIndex,firstInstance);
 }
 bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo,prosper::ShaderStageFlags stageFlags,uint32_t constantId,uint32_t numBytes,const void *data)
 {
@@ -437,7 +429,7 @@ bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelin
 	return true;
 }
 void prosper::ShaderGraphics::AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo,VertexAttribute &attr) {m_vertexAttributes.push_back(attr);}
-bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
+bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState,prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets) const
 {
 #if 0
 	if(GetContext().IsValidationEnabled())
@@ -485,15 +477,14 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(prosper::IDescriptorSet &d
 		}
 	}
 #endif
-	return prosper::Shader::RecordBindDescriptorSet(descSet,firstSet,dynamicOffsets);
+	return prosper::Shader::RecordBindDescriptorSet(bindState,descSet,firstSet,dynamicOffsets);
 }
-bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState,uint32_t width,uint32_t height,uint32_t pipelineIdx,RecordFlags recordFlags) const
 {
 	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo*>(GetPipelineCreateInfo(pipelineIdx));
 	if(info == nullptr)
 		return false;
-	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
-	if(b == false)
+	if(RecordBindPipeline(bindState,pipelineIdx) == false)
 		return false;
 #if 0
 	if(GetContext().IsValidationEnabled())
@@ -565,37 +556,40 @@ bool prosper::ShaderGraphics::BeginDrawViewport(const std::shared_ptr<prosper::I
 			prosper::Extent2D extents {width,height};
 			if(bScissor)
 			{
-				if(cmdBuffer->RecordSetScissor(extents.width,extents.height) == false)
+				if(bindState.commandBuffer.RecordSetScissor(extents.width,extents.height) == false)
 					return false;
 			}
 			if(bViewport)
 			{
-				if(cmdBuffer->RecordSetViewport(extents.width,extents.height,0,0,0.f /* minDepth */,1.f /* maxDepth */) == false)
+				if(bindState.commandBuffer.RecordSetViewport(extents.width,extents.height,0,0,0.f /* minDepth */,1.f /* maxDepth */) == false)
 					return false;
 			}
 		}
 	}
-	SetCurrentDrawCommandBuffer(cmdBuffer,pipelineIdx);
 	return true;
 }
-bool prosper::ShaderGraphics::BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx,RecordFlags recordFlags)
+bool prosper::ShaderGraphics::RecordBeginDraw(ShaderBindState &bindState,uint32_t pipelineIdx,RecordFlags recordFlags) const
 {
 	prosper::Extent2D extents;
-	if(cmdBuffer->IsPrimary())
+	if(bindState.commandBuffer.IsPrimary())
 	{
 		prosper::IImage *img;
-		if(cmdBuffer->GetPrimaryCommandBufferPtr()->GetActiveRenderPassTarget(nullptr,&img) == false || img == nullptr)
+		if(bindState.commandBuffer.GetPrimaryCommandBufferPtr()->GetActiveRenderPassTarget(nullptr,&img) == false || img == nullptr)
 			return false;
 		extents = img->GetExtents();
 	}
 	else
 	{
-		auto *fb = cmdBuffer->GetSecondaryCommandBufferPtr()->GetCurrentFramebuffer();
+		auto *fb = bindState.commandBuffer.GetSecondaryCommandBufferPtr()->GetCurrentFramebuffer();
 		if(fb == nullptr)
 			return false;
 		extents = {fb->GetWidth(),fb->GetHeight()};
 	}
-	return BeginDrawViewport(cmdBuffer,extents.width,extents.height,pipelineIdx,recordFlags);
+	return RecordBeginDrawViewport(bindState,extents.width,extents.height,pipelineIdx,recordFlags);
 }
-bool prosper::ShaderGraphics::Draw() {return true;}
-void prosper::ShaderGraphics::EndDraw() {UnbindPipeline(); SetCurrentDrawCommandBuffer(nullptr);}
+bool prosper::ShaderGraphics::RecordDraw(ShaderBindState &bindState) const {return true;}
+void prosper::ShaderGraphics::RecordEndDraw(ShaderBindState &bindState) const
+{
+	// Reset bind state
+	bindState.pipelineIdx = std::numeric_limits<uint32_t>::max();
+}

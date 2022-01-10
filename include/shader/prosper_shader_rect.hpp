@@ -16,7 +16,7 @@ namespace prosper
 	public:
 		ShaderRect(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
 		ShaderRect(prosper::IPrContext &context,const std::string &identifier);
-		bool Draw(const Mat4 &modelMatrix);
+		bool RecordDraw(ShaderBindState &bindState,const Mat4 &modelMatrix) const;
 	protected:
 		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
 	};

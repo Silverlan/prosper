@@ -340,7 +340,8 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetS
 	if(std::this_thread::get_id() != m_mainThreadId)
 	{
 		std::cout<<"WARNING: Attempted to create primary command buffer on non-main thread, this is not allowed!"<<std::endl;
-		return nullptr;
+		static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
+		return nptr;
 	}
 	if(m_setupCmdBuffer)
 		std::cout<<"WARNING: Setup command requested before previous setup command buffer has been flushed!"<<std::endl;

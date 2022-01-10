@@ -48,15 +48,12 @@ void prosper::ShaderRaytracing::InitializePipeline()
 		);
 		if(rtPipelineInfo == nullptr)
 			continue;
-		m_currentPipelineIdx = pipelineIdx;
 		InitializeRaytracingPipeline(*rtPipelineInfo,pipelineIdx);
-		InitializeDescriptorSetGroup(*rtPipelineInfo);
+		InitializeDescriptorSetGroup(*rtPipelineInfo,pipelineIdx);
 
 		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
 		for(auto &range : pipelineInitInfo.pushConstantRanges)
 			rtPipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
-
-		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 		
 		auto &pipelineInfo = pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = InitPipelineId(pipelineIdx);

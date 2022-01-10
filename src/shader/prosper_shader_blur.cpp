@@ -56,21 +56,21 @@ void ShaderBlurBase::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &
 	pipelineInfo.ToggleDynamicStates(true,{prosper::DynamicState::Scissor});
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_POSITION);
 	AddVertexAttribute(pipelineInfo,VERTEX_ATTRIBUTE_UV);
-	AddDescriptorSetGroup(pipelineInfo,DESCRIPTOR_SET_TEXTURE);
-	AttachPushConstantRange(pipelineInfo,0u,sizeof(PushConstants),prosper::ShaderStageFlags::FragmentBit);
+	AddDescriptorSetGroup(pipelineInfo,pipelineIdx,DESCRIPTOR_SET_TEXTURE);
+	AttachPushConstantRange(pipelineInfo,pipelineIdx,0u,sizeof(PushConstants),prosper::ShaderStageFlags::FragmentBit);
 }
 
-bool ShaderBlurBase::BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,Pipeline pipelineIdx)
+bool ShaderBlurBase::RecordBeginDraw(ShaderBindState &bindState,Pipeline pipelineIdx) const
 {
-	return ShaderGraphics::BeginDraw(cmdBuffer,umath::to_integral(pipelineIdx));
+	return ShaderGraphics::RecordBeginDraw(bindState,umath::to_integral(pipelineIdx));
 }
-bool ShaderBlurBase::Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants)
+bool ShaderBlurBase::RecordDraw(ShaderBindState &bindState,IDescriptorSet &descSetTexture,const PushConstants &pushConstants) const
 {
 	if(
-		RecordBindVertexBuffer(*GetContext().GetCommonBufferCache().GetSquareVertexUvBuffer()) == false ||
-		RecordBindDescriptorSet(static_cast<IDescriptorSet&>(descSetTexture)) == false ||
-		RecordPushConstants(pushConstants) == false ||
-		RecordDraw(GetContext().GetCommonBufferCache().GetSquareVertexCount()) == false
+		RecordBindVertexBuffer(bindState,*GetContext().GetCommonBufferCache().GetSquareVertexUvBuffer()) == false ||
+		RecordBindDescriptorSet(bindState,static_cast<IDescriptorSet&>(descSetTexture)) == false ||
+		RecordPushConstants(bindState,pushConstants) == false ||
+		ShaderGraphics::RecordDraw(bindState,GetContext().GetCommonBufferCache().GetSquareVertexCount()) == false
 	)
 		return false;
 	return true;
@@ -146,13 +146,14 @@ bool prosper::util::record_blur_image(
 		cmdBuffer->RecordImageBarrier(stagingImg,ImageLayout::ShaderReadOnlyOptimal,ImageLayout::ColorAttachmentOptimal);
 		if(cmdBuffer->RecordBeginRenderPass(stagingRt) == false)
 			return false;
-		if(shaderH.BeginDraw(cmdBuffer,pipelineId) == false)
+		ShaderBindState bindState {*cmdBuffer};
+		if(shaderH.RecordBeginDraw(bindState,pipelineId) == false)
 		{
 			cmdBuffer->RecordEndRenderPass();
 			return false;
 		}
-		shaderH.Draw(blurSet.GetFinalDescriptorSet(),pushConstants);
-		shaderH.EndDraw();
+		shaderH.RecordDraw(bindState,blurSet.GetFinalDescriptorSet(),pushConstants);
+		shaderH.RecordEndDraw(bindState);
 		cmdBuffer->RecordEndRenderPass();
 
 		cmdBuffer->RecordPostRenderPassImageBarrier(
@@ -166,10 +167,10 @@ bool prosper::util::record_blur_image(
 
 		if(cmdBuffer->RecordBeginRenderPass(finalRt) == false)
 			return false;
-		if(shaderV.BeginDraw(cmdBuffer,pipelineId) == false)
+		if(shaderV.RecordBeginDraw(bindState,pipelineId) == false)
 			return false;
-		shaderV.Draw(blurSet.GetStagingDescriptorSet(),pushConstants);
-		shaderV.EndDraw();
+		shaderV.RecordDraw(bindState,blurSet.GetStagingDescriptorSet(),pushConstants);
+		shaderV.RecordEndDraw(bindState);
 		auto success = cmdBuffer->RecordEndRenderPass();
 		if(success == false)
 			return success;

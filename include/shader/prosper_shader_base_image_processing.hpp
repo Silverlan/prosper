@@ -25,8 +25,8 @@ namespace prosper
 
 		ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
 		ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader);
-		bool Draw(prosper::IDescriptorSet &descSetTexture);
-		virtual bool Draw() override;
+		bool RecordDraw(ShaderBindState &bindState,prosper::IDescriptorSet &descSetTexture) const;
+		virtual bool RecordDraw(ShaderBindState &bindState) const override;
 	protected:
 		void AddDefaultVertexAttributes(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;

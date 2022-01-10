@@ -44,15 +44,19 @@ void ShaderBaseImageProcessing::InitializeGfxPipeline(prosper::GraphicsPipelineC
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo,pipelineIdx);
 
 	AddDefaultVertexAttributes(pipelineInfo);
-	AddDescriptorSetGroup(pipelineInfo,DESCRIPTOR_SET_TEXTURE);
+	AddDescriptorSetGroup(pipelineInfo,pipelineIdx,DESCRIPTOR_SET_TEXTURE);
 }
 
 uint32_t ShaderBaseImageProcessing::GetTextureDescriptorSetIndex() const {return DESCRIPTOR_SET_TEXTURE.setIndex;}
 
-bool ShaderBaseImageProcessing::Draw()
+bool ShaderBaseImageProcessing::RecordDraw(ShaderBindState &bindState) const
 {
-	return RecordBindRenderBuffer(*GetContext().GetCommonBufferCache().GetSquareVertexUvRenderBuffer()) && RecordDraw(GetContext().GetCommonBufferCache().GetSquareVertexCount());
+	return RecordBindRenderBuffer(bindState,*GetContext().GetCommonBufferCache().GetSquareVertexUvRenderBuffer()) &&
+		ShaderGraphics::RecordDraw(bindState,GetContext().GetCommonBufferCache().GetSquareVertexCount());
 }
 
-bool ShaderBaseImageProcessing::Draw(prosper::IDescriptorSet &descSetTexture) {return RecordBindDescriptorSet(descSetTexture) && Draw();}
+bool ShaderBaseImageProcessing::RecordDraw(ShaderBindState &bindState,prosper::IDescriptorSet &descSetTexture) const
+{
+	return RecordBindDescriptorSet(bindState,descSetTexture) && RecordDraw(bindState);
+}
 #pragma optimize("",on)

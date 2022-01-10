@@ -52,15 +52,12 @@ void prosper::ShaderCompute::InitializePipeline()
 		);
 		if(computePipelineInfo == nullptr)
 			continue;
-		m_currentPipelineIdx = pipelineIdx;
 		InitializeComputePipeline(*computePipelineInfo,pipelineIdx);
-		InitializeDescriptorSetGroup(*computePipelineInfo);
+		InitializeDescriptorSetGroup(*computePipelineInfo,pipelineIdx);
 
 		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
 		for(auto &range : pipelineInitInfo.pushConstantRanges)
 			computePipelineInfo->AttachPushConstantRange(range.offset,range.size,range.stages);
-
-		m_currentPipelineIdx = std::numeric_limits<decltype(m_currentPipelineIdx)>::max();
 		
 		auto &pipelineInfo = pipelineInfos.at(pipelineIdx);
 		pipelineInfo.id = InitPipelineId(pipelineIdx);
@@ -81,17 +78,17 @@ void prosper::ShaderCompute::InitializePipeline()
 	}
 }
 
-bool prosper::ShaderCompute::BeginCompute(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
+bool prosper::ShaderCompute::RecordBeginCompute(ShaderBindState &bindState,uint32_t pipelineIdx) const
 {
-	auto b = BindPipeline(*cmdBuffer,pipelineIdx);
-	if(b == true)
-		SetCurrentDrawCommandBuffer(cmdBuffer,pipelineIdx);
-	return b;
+	return RecordBindPipeline(bindState,pipelineIdx);
 }
-void prosper::ShaderCompute::Compute() {}
-void prosper::ShaderCompute::EndCompute() {UnbindPipeline(); SetCurrentDrawCommandBuffer(nullptr);}
-bool prosper::ShaderCompute::RecordDispatch(uint32_t x,uint32_t y,uint32_t z)
+void prosper::ShaderCompute::RecordCompute(ShaderBindState &bindState) const {}
+void prosper::ShaderCompute::RecordEndCompute(ShaderBindState &bindState) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && cmdBuffer->RecordDispatch(x,y,z);
+	// Reset bind state
+	bindState.pipelineIdx = std::numeric_limits<uint32_t>::max();
+}
+bool prosper::ShaderCompute::RecordDispatch(ShaderBindState &bindState,uint32_t x,uint32_t y,uint32_t z) const
+{
+	return bindState.commandBuffer.RecordDispatch(x,y,z);
 }

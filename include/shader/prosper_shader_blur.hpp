@@ -45,8 +45,8 @@ namespace prosper
 #pragma pack(pop)
 
 		ShaderBlurBase(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader);
-		bool BeginDraw(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,Pipeline pipelineIdx=Pipeline::R8G8B8A8Unorm);
-		bool Draw(IDescriptorSet &descSetTexture,const PushConstants &pushConstants);
+		bool RecordBeginDraw(ShaderBindState &bindState,Pipeline pipelineIdx=Pipeline::R8G8B8A8Unorm) const;
+		bool RecordDraw(ShaderBindState &bindState,IDescriptorSet &descSetTexture,const PushConstants &pushConstants) const;
 	protected:
 		virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx) override;
 		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;

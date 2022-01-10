@@ -15,6 +15,12 @@
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
 
+prosper::ShaderBindState::ShaderBindState(prosper::ICommandBuffer &cmdBuf)
+	: commandBuffer{cmdBuf}
+{}
+
+///////////////////////////
+
 prosper::DescriptorSetInfo::DescriptorSetInfo(const std::vector<Binding> &bindings)
 	: bindings(bindings)
 {}
@@ -143,8 +149,6 @@ bool prosper::Shader::InitializeSources(bool bReload)
 bool prosper::Shader::IsValid() const {return m_bValid;}
 
 void prosper::Shader::SetIdentifier(const std::string &identifier) {m_identifier = identifier;}
-uint32_t prosper::Shader::GetCurrentPipelineIndex() const {return m_currentPipelineIdx;}
-prosper::ICommandBuffer *prosper::Shader::GetCurrentCommandBuffer() const {return m_currentCmd;}
 
 uint32_t prosper::Shader::GetPipelineCount() const
 {
@@ -246,9 +250,9 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorS
 	return GetContext().CreateDescriptorSetGroup(*pipeline->descSetInfos.at(setIdx));
 }
 
-void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo)
+void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx)
 {
-	auto *pipeline = &GetPipelineInfos()[m_currentPipelineIdx];
+	auto *pipeline = &GetPipelineInfos()[pipelineIdx];
 	if(pipeline == nullptr)
 		return;
 	std::vector<const prosper::DescriptorSetCreateInfo*> dsInfos;
@@ -337,18 +341,17 @@ bool prosper::Shader::GetPipelineId(prosper::PipelineID &pipelineId,uint32_t pip
 }
 size_t prosper::Shader::GetBaseTypeHashCode() const {return typeid(Shader).hash_code();}
 
-bool prosper::Shader::RecordPushConstants(uint32_t size,const void *data,uint32_t offset)
+bool prosper::Shader::RecordPushConstants(ShaderBindState &bindState,uint32_t size,const void *data,uint32_t offset) const
 {
-	if(m_currentPipelineIdx == std::numeric_limits<uint32_t>::max())
+	if(bindState.pipelineIdx == std::numeric_limits<uint32_t>::max())
 		return false;
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	auto *info = GetPipelineInfo(m_currentPipelineIdx);
-	if(cmdBuffer == nullptr || info == nullptr)
+	auto *info = GetPipelineInfo(bindState.pipelineIdx);
+	if(info == nullptr)
 		return false;
 	for(auto &range : info->pushConstantRanges)
 	{
 		if(offset >= range.offset && (offset +size) <= (range.offset +range.size))
-			return cmdBuffer->RecordPushConstants(*this,m_currentPipelineIdx,range.stages,offset,size,data);
+			return bindState.commandBuffer.RecordPushConstants(const_cast<Shader&>(*this),bindState.pipelineIdx,range.stages,offset,size,data);
 	}
 	return false;
 }
@@ -369,13 +372,14 @@ prosper::BasePipelineCreateInfo *prosper::Shader::GetPipelineCreateInfo(Pipeline
 	return info ? info->createInfo.get() : nullptr;
 }
 
-bool prosper::Shader::RecordBindDescriptorSets(const std::vector<prosper::IDescriptorSet*> &descSets,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
+bool prosper::Shader::RecordBindDescriptorSets(
+	ShaderBindState &bindState,const std::vector<prosper::IDescriptorSet*> &descSets,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets
+) const
 {
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*this,m_currentPipelineIdx,firstSet,descSets,dynamicOffsets);
+	return bindState.commandBuffer.RecordBindDescriptorSets(GetPipelineBindPoint(),const_cast<prosper::Shader&>(*this),bindState.pipelineIdx,firstSet,descSets,dynamicOffsets);
 }
 
-bool prosper::Shader::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets)
+bool prosper::Shader::RecordBindDescriptorSet(ShaderBindState &bindState,prosper::IDescriptorSet &descSet,uint32_t firstSet,const std::vector<uint32_t> &dynamicOffsets) const
 {
 #if 0
 	if(GetContext().IsValidationEnabled())
@@ -423,9 +427,8 @@ bool prosper::Shader::RecordBindDescriptorSet(prosper::IDescriptorSet &descSet,u
 		}
 	}
 #endif
-	auto cmdBuffer = GetCurrentCommandBuffer();
 	auto *ptrDescSet = &descSet;
-	return cmdBuffer != nullptr && cmdBuffer->RecordBindDescriptorSets(GetPipelineBindPoint(),*this,m_currentPipelineIdx,firstSet,{ptrDescSet},dynamicOffsets);
+	return bindState.commandBuffer.RecordBindDescriptorSets(GetPipelineBindPoint(),const_cast<Shader&>(*this),bindState.pipelineIdx,firstSet,{ptrDescSet},dynamicOffsets);
 }
 
 static std::unordered_map<prosper::ICommandBuffer*,std::pair<prosper::Shader*,uint32_t>> s_boundShaderPipeline = {};
@@ -439,44 +442,13 @@ prosper::Shader *prosper::Shader::GetBoundPipeline(prosper::ICommandBuffer &cmdB
 	outPipelineIdx = it->second.second;
 	return it->second.first;
 }
-void prosper::Shader::SetCurrentDrawCommandBuffer(const std::shared_ptr<prosper::ICommandBuffer> &cmdBuffer,uint32_t pipelineIdx)
-{
-	if(cmdBuffer == nullptr)
-	{
-		m_currentCmd = nullptr;
-		return;
-	}
-	m_currentCmd = cmdBuffer.get();
-	s_boundShaderPipelineMutex.lock();
-		s_boundShaderPipeline[cmdBuffer.get()] = {std::pair<prosper::Shader*,uint32_t>{this,pipelineIdx}};
-	s_boundShaderPipelineMutex.unlock();
-}
-void prosper::Shader::UnbindPipeline()
-{
-	auto cmdBuffer = GetCurrentCommandBuffer();
-	if(cmdBuffer == nullptr)
-		return;
-
-	s_boundShaderPipelineMutex.lock();
-	auto it = s_boundShaderPipeline.find(cmdBuffer);
-	if(it != s_boundShaderPipeline.end())
-		s_boundShaderPipeline.erase(it);
-	s_boundShaderPipelineMutex.unlock();
-
-	m_currentPipelineIdx = std::numeric_limits<uint32_t>::max();
-	cmdBuffer->ClearBoundPipeline();
-	OnPipelineUnbound();
-}
-bool prosper::Shader::BindPipeline(prosper::ICommandBuffer&cmdBuffer,uint32_t pipelineIdx)
+bool prosper::Shader::RecordBindPipeline(ShaderBindState &bindState,uint32_t pipelineIdx) const
 {
 	auto *pipeline = GetPipelineInfo(pipelineIdx);
 	if(!pipeline)
 		return false;
-	m_currentPipelineIdx = pipelineIdx;
-	auto r = cmdBuffer.RecordBindShaderPipeline(*this,m_currentPipelineIdx);
-	if(r == true)
-		OnPipelineBound();
-	return r;
+	bindState.pipelineIdx = pipelineIdx;
+	return bindState.commandBuffer.RecordBindShaderPipeline(const_cast<Shader&>(*this),bindState.pipelineIdx);
 }
 void prosper::Shader::BakePipeline(uint32_t pipelineIdx) const
 {
@@ -557,7 +529,7 @@ prosper::PipelineID prosper::Shader::InitPipelineId(uint32_t pipelineIdx)
 	return m_cachedPipelineIds[pipelineIdx];
 }
 
-void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,DescriptorSetInfo &descSetInfo)
+void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx,DescriptorSetInfo &descSetInfo)
 {
 	if(descSetInfo.parent != nullptr)
 	{
@@ -570,7 +542,7 @@ void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pip
 		for(auto &childBinding : childBindings)
 			descSetInfo.bindings.push_back(childBinding);
 	}
-	auto &pipelineInitInfo = m_pipelineInfos.at(m_currentPipelineIdx);
+	auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
 	pipelineInitInfo.descSetInfos.emplace_back(descSetInfo.Bake());
 	descSetInfo.setIndex = pipelineInitInfo.descSetInfos.size() -1u;
 	if(pipelineInitInfo.descSetInfos.size() > 8)
@@ -580,9 +552,9 @@ void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pip
 ::util::WeakHandle<const prosper::Shader> prosper::Shader::GetHandle() const {return ::util::WeakHandle<const Shader>(shared_from_this());}
 ::util::WeakHandle<prosper::Shader> prosper::Shader::GetHandle() {return ::util::WeakHandle<Shader>(shared_from_this());}
 
-bool prosper::Shader::AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages)
+bool prosper::Shader::AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx,uint32_t offset,uint32_t size,prosper::ShaderStageFlags stages)
 {
-	auto &pipelineInitInfo = m_pipelineInfos.at(m_currentPipelineIdx);
+	auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
 	for(auto &range : pipelineInitInfo.pushConstantRanges)
 	{
 		if(range.stages != stages)

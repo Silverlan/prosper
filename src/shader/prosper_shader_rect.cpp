@@ -18,9 +18,9 @@ void ShaderRect::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipe
 {
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo,pipelineIdx);
 	AddDefaultVertexAttributes(pipelineInfo);
-	AttachPushConstantRange(pipelineInfo,0u,sizeof(Mat4),prosper::ShaderStageFlags::VertexBit);
+	AttachPushConstantRange(pipelineInfo,pipelineIdx,0u,sizeof(Mat4),prosper::ShaderStageFlags::VertexBit);
 }
-bool ShaderRect::Draw(const Mat4 &modelMatrix)
+bool ShaderRect::RecordDraw(ShaderBindState &bindState,const Mat4 &modelMatrix) const
 {
-	return RecordPushConstants(modelMatrix) && ShaderBaseImageProcessing::Draw();
+	return RecordPushConstants(bindState,modelMatrix) && ShaderBaseImageProcessing::RecordDraw(bindState);
 }
