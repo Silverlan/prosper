@@ -25,7 +25,7 @@ namespace prosper
 	class DLLPROSPER ISwapCommandBufferGroup
 	{
 	public:
-		ISwapCommandBufferGroup(prosper::IPrContext &context);
+		ISwapCommandBufferGroup(Window &window);
 		virtual ~ISwapCommandBufferGroup();
 		virtual void Record(const RenderThreadRecordCall &record)=0;
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf);
@@ -36,23 +36,24 @@ namespace prosper
 		bool GetOneTimeSubmit() const {return m_oneTimeSubmit;}
 
 		void Reuse();
-		prosper::IPrContext &GetContext() const {return m_context;}
+		prosper::IPrContext &GetContext() const;
 	protected:
 		void Initialize(uint32_t swapchainIdx);
 		virtual void Wait()=0;;
-		prosper::IPrContext &m_context;
 		std::vector<std::shared_ptr<prosper::ISecondaryCommandBuffer>> m_commandBuffers;
 		std::shared_ptr<prosper::ICommandBufferPool> m_cmdPool = nullptr;
 		prosper::ISecondaryCommandBuffer *m_curCommandBuffer = nullptr;
 		std::queue<RenderThreadRecordCall> m_recordCalls;
 		bool m_oneTimeSubmit = true;
+		std::weak_ptr<Window> m_window {};
+		Window *m_windowPtr = nullptr;
 	};
 
 	class DLLPROSPER MtSwapCommandBufferGroup
 		: public ISwapCommandBufferGroup
 	{
 	public:
-		MtSwapCommandBufferGroup(prosper::IPrContext &context);
+		MtSwapCommandBufferGroup(Window &window);
 		virtual ~MtSwapCommandBufferGroup() override;
 		virtual bool IsPending() const override {return m_pending;}
 	private:
@@ -70,7 +71,7 @@ namespace prosper
 		: public ISwapCommandBufferGroup
 	{
 	public:
-		StSwapCommandBufferGroup(prosper::IPrContext &context);
+		StSwapCommandBufferGroup(Window &window);
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf) override;
 		virtual bool IsPending() const override {return false;}
 	private:

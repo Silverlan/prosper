@@ -16,8 +16,8 @@ namespace prosper
 	{
 	public:
 		using SubBufferIndex = uint32_t;
-		static std::shared_ptr<SwapBuffer> Create(IUniformResizableBuffer &buffer,const void *data=nullptr);
-		static std::shared_ptr<SwapBuffer> Create(IDynamicResizableBuffer &buffer,DeviceSize size,uint32_t instanceCount);
+		static std::shared_ptr<SwapBuffer> Create(Window &window,IUniformResizableBuffer &buffer,const void *data=nullptr);
+		static std::shared_ptr<SwapBuffer> Create(Window &window,IDynamicResizableBuffer &buffer,DeviceSize size,uint32_t instanceCount);
 		IBuffer &GetBuffer(SubBufferIndex idx);
 		const IBuffer &GetBuffer(SubBufferIndex idx) const {return const_cast<SwapBuffer*>(this)->GetBuffer(idx);}
 		IBuffer &GetBuffer() const;
@@ -30,12 +30,14 @@ namespace prosper
 		IBuffer &operator*();
 		const IBuffer &operator*() const {return const_cast<SwapBuffer*>(this)->operator*();}
 	private:
-		SwapBuffer(std::vector<std::shared_ptr<IBuffer>> &&buffers);
+		SwapBuffer(Window &window,std::vector<std::shared_ptr<IBuffer>> &&buffers);
 		uint32_t GetCurrentBufferIndex() const;
 		uint32_t GetCurrentBufferFlag() const;
 		std::vector<std::shared_ptr<IBuffer>> m_buffers;
 		uint32_t m_currentBufferIndex = 0;
 		mutable uint8_t m_buffersDirty = 0;
+		std::weak_ptr<Window> m_window {};
+		Window *m_windowPtr = nullptr;
 	};
 };
 

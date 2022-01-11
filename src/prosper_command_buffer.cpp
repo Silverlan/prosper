@@ -46,7 +46,11 @@ bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,uint32_t swapchainI
 }
 bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,Window &window,uint32_t swapchainImgIndex)
 {
-	return RecordPresentImage(img,*window.GetSwapchainImage(swapchainImgIndex),*window.GetSwapchainFramebuffer(swapchainImgIndex));
+	auto *imgSc = window.GetSwapchainImage(swapchainImgIndex);
+	auto *fbSc = window.GetSwapchainFramebuffer(swapchainImgIndex);
+	if(!imgSc || !fbSc)
+		return false;
+	return RecordPresentImage(img,*imgSc,*fbSc);
 }
 bool prosper::ICommandBuffer::RecordPresentImage(IImage &img,Window &window)
 {

@@ -201,7 +201,7 @@ namespace prosper
 		uint32_t GetWindowWidth() const;
 		uint32_t GetWindowHeight() const;
 		const std::string &GetAppName() const;
-		uint32_t GetSwapchainImageCount() const;
+		uint32_t GetPrimaryWindowSwapchainImageCount() const;
 		prosper::IImage *GetSwapchainImage(uint32_t idx);
 		prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
@@ -317,7 +317,7 @@ namespace prosper
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)=0;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)=0;
-		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(bool allowMt=true)=0;
+		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window,bool allowMt=true)=0;
 		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments)=0;
 		virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader,uint32_t pipelineIdx=0u) const=0;
 		std::shared_ptr<Texture> CreateTexture(
@@ -361,7 +361,7 @@ namespace prosper
 		)=0;
 		prosper::Shader *GetShaderPipeline(PipelineID id,uint32_t &outPipelineIdx) const;
 		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId)=0;
-		uint32_t GetLastAcquiredSwapchainImageIndex() const;
+		uint32_t GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
 
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries)=0;
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries)=0;

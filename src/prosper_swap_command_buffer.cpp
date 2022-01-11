@@ -5,20 +5,28 @@
 #include "stdafx_prosper.h"
 #include "prosper_swap_command_buffer.hpp"
 #include "prosper_command_buffer.hpp"
+#include "prosper_window.hpp"
 #include <sharedutils/util.h>
 
 using namespace prosper;
-
-ISwapCommandBufferGroup::ISwapCommandBufferGroup(prosper::IPrContext &context)
-	: m_context{context}
+#pragma optimize("",off)
+ISwapCommandBufferGroup::ISwapCommandBufferGroup(Window &window)
+	: m_window{window.shared_from_this()},m_windowPtr{&window}
 {
-	m_cmdPool = m_context.CreateCommandBufferPool(prosper::QueueFamilyType::Universal);
+	m_cmdPool = window.GetContext().CreateCommandBufferPool(prosper::QueueFamilyType::Universal);
 }
 
 ISwapCommandBufferGroup::~ISwapCommandBufferGroup()
 {
 	m_commandBuffers.clear();
 	m_cmdPool = nullptr;
+}
+
+prosper::IPrContext &ISwapCommandBufferGroup::GetContext() const
+{
+	if(m_window.expired())
+		throw std::runtime_error{"Invalid swap command buffer group window!"};
+	return m_windowPtr->GetContext();
 }
 
 void ISwapCommandBufferGroup::Initialize(uint32_t swapchainIdx)
@@ -35,7 +43,11 @@ void ISwapCommandBufferGroup::Initialize(uint32_t swapchainIdx)
 }
 void ISwapCommandBufferGroup::StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb)
 {
-	auto swapchainIdx = m_context.GetLastAcquiredSwapchainImageIndex();
+	if(m_window.expired())
+		return;
+	auto swapchainIdx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
+	if(swapchainIdx == std::numeric_limits<decltype(swapchainIdx)>::max())
+		return; // TODO: This should be unreachable
 	Initialize(swapchainIdx);
 
 	auto *instance = m_commandBuffers[swapchainIdx].get();
@@ -54,7 +66,9 @@ void ISwapCommandBufferGroup::EndRecording()
 }
 void ISwapCommandBufferGroup::Reuse()
 {
-	auto swapchainIdx = m_context.GetLastAcquiredSwapchainImageIndex();
+	if(m_window.expired())
+		return;
+	auto swapchainIdx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
 	Initialize(swapchainIdx);
 
 	auto *instance = m_commandBuffers[swapchainIdx].get();
@@ -73,8 +87,8 @@ bool ISwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cm
 
 /////////////
 
-MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(prosper::IPrContext &context)
-	: ISwapCommandBufferGroup{context}
+MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window)
+	: ISwapCommandBufferGroup{window}
 {
 	m_thread = std::thread{[this]() {
 		while(!m_close)
@@ -84,11 +98,19 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(prosper::IPrContext &context)
 
 			if(m_close)
 				break;
-			while(m_recordCalls.empty() == false)
+			if(!m_curCommandBuffer)
 			{
-				auto &drawCall = m_recordCalls.front();
-				drawCall(*m_curCommandBuffer);
-				m_recordCalls.pop();
+				while(!m_recordCalls.empty())
+					m_recordCalls.pop();
+			}
+			else
+			{
+				while(m_recordCalls.empty() == false)
+				{
+					auto &drawCall = m_recordCalls.front();
+					drawCall(*m_curCommandBuffer);
+					m_recordCalls.pop();
+				}
 			}
 
 			m_pending = false;
@@ -121,8 +143,8 @@ void MtSwapCommandBufferGroup::Wait() {while(IsPending());}
 
 /////////////
 
-StSwapCommandBufferGroup::StSwapCommandBufferGroup(prosper::IPrContext &context)
-	: ISwapCommandBufferGroup{context}
+StSwapCommandBufferGroup::StSwapCommandBufferGroup(Window &window)
+	: ISwapCommandBufferGroup{window}
 {}
 
 void StSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record)
@@ -134,6 +156,8 @@ void StSwapCommandBufferGroup::Wait() {while(IsPending());}
 
 bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
 {
+	if(m_curCommandBuffer == nullptr)
+		return false;
 	while(m_recordCalls.empty() == false)
 	{
 		auto &drawCall = m_recordCalls.front();
@@ -142,3 +166,4 @@ bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &c
 	}
 	return ISwapCommandBufferGroup::ExecuteCommands(cmdBuf);
 }
+#pragma optimize("",on)

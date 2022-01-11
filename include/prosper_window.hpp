@@ -91,8 +91,10 @@ namespace prosper
 		Window(IPrContext &context,const WindowSettings &windowCreationInfo);
 		virtual void InitWindow()=0;
 		virtual void ReleaseWindow()=0;
-		virtual void InitSwapchain()=0;
-		virtual void ReleaseSwapchain()=0;
+		void InitSwapchain();
+		void ReleaseSwapchain();
+		virtual void DoInitSwapchain()=0;
+		virtual void DoReleaseSwapchain()=0;
 		virtual void Release();
 		virtual void OnWindowInitialized();
 		void ReloadWindow();

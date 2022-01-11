@@ -210,8 +210,8 @@ namespace prosper
 	{
 	public:
 		using SubDescriptorSetIndex = uint32_t;
-		static std::shared_ptr<SwapDescriptorSet> Create(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
-		static std::shared_ptr<SwapDescriptorSet> Create(IPrContext &context,const DescriptorSetInfo &descSetInfo);
+		static std::shared_ptr<SwapDescriptorSet> Create(Window &window,std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
+		static std::shared_ptr<SwapDescriptorSet> Create(Window &window,const DescriptorSetInfo &descSetInfo);
 		IDescriptorSet &GetDescriptorSet(SubDescriptorSetIndex idx);
 		const IDescriptorSet &GetDescriptorSet(SubDescriptorSetIndex idx) const {return const_cast<SwapDescriptorSet*>(this)->GetDescriptorSet(idx);}
 		IDescriptorSet &GetDescriptorSet();
@@ -238,8 +238,10 @@ namespace prosper
 		IDescriptorSet &operator*();
 		const IDescriptorSet &operator*() const {return const_cast<SwapDescriptorSet*>(this)->operator*();}
 	private:
-		SwapDescriptorSet(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
+		SwapDescriptorSet(Window &window,std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
 		std::vector<std::shared_ptr<IDescriptorSetGroup>> m_dsgs;
+		std::weak_ptr<Window> m_window {};
+		Window *m_windowPtr = nullptr;
 	};
 };
 #pragma warning(pop)

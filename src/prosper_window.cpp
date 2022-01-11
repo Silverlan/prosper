@@ -10,9 +10,7 @@ using namespace prosper;
 #pragma optimize("",off)
 prosper::Window::Window(IPrContext &context,const WindowSettings &windowCreationInfo)
 	: ContextObject{context},m_settings{windowCreationInfo}
-{
-	m_guiCommandBufferGroup = context.CreateSwapCommandBufferGroup();
-}
+{}
 Window::~Window() {}
 
 void Window::OnWindowInitialized()
@@ -153,8 +151,20 @@ void Window::UpdateWindow()
 	ReloadWindow();
 }
 
+void Window::InitSwapchain()
+{
+	DoInitSwapchain();
+	m_guiCommandBufferGroup = GetContext().CreateSwapCommandBufferGroup(*this);
+}
+void Window::ReleaseSwapchain()
+{
+	DoReleaseSwapchain();
+	m_guiCommandBufferGroup = nullptr;
+}
+
 void Window::ReloadSwapchain()
 {
+	GetContext().WaitIdle();
 	ReleaseSwapchain();
 	InitSwapchain();
 }

@@ -5,6 +5,7 @@
 #include "stdafx_prosper.h"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
+#include "prosper_window.hpp"
 #include "prosper_descriptor_set_group.hpp"
 #include "buffers/prosper_swap_buffer.hpp"
 #include "image/prosper_image_view.hpp"
@@ -580,31 +581,36 @@ DescriptorSetBindingStorageBuffer::DescriptorSetBindingStorageBuffer(IDescriptor
 
 ///////////////////
 
-std::shared_ptr<SwapDescriptorSet> prosper::SwapDescriptorSet::Create(IPrContext &context,const DescriptorSetInfo &descSetInfo)
+std::shared_ptr<SwapDescriptorSet> prosper::SwapDescriptorSet::Create(Window &window,const DescriptorSetInfo &descSetInfo)
 {
-	auto n = context.GetSwapchainImageCount();
+	auto n = window.GetSwapchainImageCount();
 	std::vector<std::shared_ptr<IDescriptorSetGroup>> dsgs;
 	dsgs.reserve(n);
 	for(auto i=decltype(n){0u};i<n;++i)
 	{
-		auto dsg = context.CreateDescriptorSetGroup(descSetInfo);
+		auto dsg = window.GetContext().CreateDescriptorSetGroup(descSetInfo);
 		dsgs.push_back(dsg);
 	}
-	return std::shared_ptr<SwapDescriptorSet>{new SwapDescriptorSet{std::move(dsgs)}};
+	return std::shared_ptr<SwapDescriptorSet>{new SwapDescriptorSet{window,std::move(dsgs)}};
 }
-std::shared_ptr<prosper::SwapDescriptorSet> prosper::SwapDescriptorSet::Create(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
+std::shared_ptr<prosper::SwapDescriptorSet> prosper::SwapDescriptorSet::Create(Window &window,std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
 {
 	assert(!dsgs.empty());
 	assert(dsgs.size() == dsgs[0]->GetContext().GetSwapchainImageCount());
-	if(dsgs.size() != dsgs[0]->GetContext().GetSwapchainImageCount())
+	if(dsgs.size() != window.GetSwapchainImageCount())
 		throw std::logic_error{"Swap descriptor set dsg count does not match number of swapchain images!"};
-	return std::shared_ptr<SwapDescriptorSet>{new SwapDescriptorSet{std::move(dsgs)}};
+	return std::shared_ptr<SwapDescriptorSet>{new SwapDescriptorSet{window,std::move(dsgs)}};
 }
 
-prosper::SwapDescriptorSet::SwapDescriptorSet(std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
-	: m_dsgs{std::move(dsgs)}
+prosper::SwapDescriptorSet::SwapDescriptorSet(Window &window,std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
+	: m_dsgs{std::move(dsgs)},m_window{window.shared_from_this()},m_windowPtr{&window}
 {}
-prosper::IDescriptorSet *prosper::SwapDescriptorSet::operator->() {return m_dsgs[m_dsgs[0]->GetContext().GetLastAcquiredSwapchainImageIndex()]->GetDescriptorSet();}
+prosper::IDescriptorSet *prosper::SwapDescriptorSet::operator->()
+{
+	if(m_window.expired())
+		return nullptr;
+	return m_dsgs[m_windowPtr->GetLastAcquiredSwapchainImageIndex()]->GetDescriptorSet();
+}
 prosper::IDescriptorSet &prosper::SwapDescriptorSet::operator*() {return *operator->();}
 IDescriptorSet &prosper::SwapDescriptorSet::GetDescriptorSet() {return operator*();}
 prosper::IDescriptorSet &prosper::SwapDescriptorSet::GetDescriptorSet(SubDescriptorSetIndex idx)

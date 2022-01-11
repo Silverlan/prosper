@@ -51,7 +51,7 @@ void prosper::IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateF
 bool prosper::IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
 
 const std::string &prosper::IPrContext::GetAppName() const {return m_appName;}
-uint32_t prosper::IPrContext::GetSwapchainImageCount() const {return GetWindow().GetSwapchainImageCount();}
+uint32_t prosper::IPrContext::GetPrimaryWindowSwapchainImageCount() const {return GetWindow().GetSwapchainImageCount();}
 
 prosper::IImage *prosper::IPrContext::GetSwapchainImage(uint32_t idx) {return GetWindow().GetSwapchainImage(idx);}
 prosper::IFramebuffer *prosper::IPrContext::GetSwapchainFramebuffer(uint32_t idx) {return GetWindow().GetSwapchainFramebuffer(idx);}
@@ -61,7 +61,7 @@ std::array<uint32_t,2> prosper::IPrContext::GetWindowSize() const {return {m_ini
 uint32_t prosper::IPrContext::GetWindowWidth() const {return m_initialWindowSettings.width;}
 uint32_t prosper::IPrContext::GetWindowHeight() const {return m_initialWindowSettings.height;}
 
-uint32_t prosper::IPrContext::GetLastAcquiredSwapchainImageIndex() const {return GetWindow().GetLastAcquiredSwapchainImageIndex();}
+uint32_t prosper::IPrContext::GetLastAcquiredPrimaryWindowSwapchainImageIndex() const {return GetWindow().GetLastAcquiredSwapchainImageIndex();}
 void prosper::IPrContext::InitWindow()
 {
 	auto oldSize = (m_window != nullptr) ? m_window->GetGlfwWindow().GetSize() : Vector2i();

@@ -6,38 +6,40 @@
 #include "buffers/prosper_swap_buffer.hpp"
 #include "buffers/prosper_uniform_resizable_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
+#include "prosper_window.hpp"
 
-
-std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IUniformResizableBuffer &buffer,const void *data)
+std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(Window &window,IUniformResizableBuffer &buffer,const void *data)
 {
-	auto numBuffers = buffer.GetContext().GetSwapchainImageCount();
+	auto numBuffers = window.GetSwapchainImageCount();
 	std::vector<std::shared_ptr<IBuffer>> buffers;
 	buffers.reserve(numBuffers);
 	for(auto i=decltype(numBuffers){0u};i<numBuffers;++i)
 		buffers.push_back(buffer.AllocateBuffer(data));
-	return std::shared_ptr<SwapBuffer>{new SwapBuffer{std::move(buffers)}};
+	return std::shared_ptr<SwapBuffer>{new SwapBuffer{window,std::move(buffers)}};
 }
 
-std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IDynamicResizableBuffer &buffer,DeviceSize size,uint32_t instanceCount)
+std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(Window &window,IDynamicResizableBuffer &buffer,DeviceSize size,uint32_t instanceCount)
 {
-	auto numBuffers = buffer.GetContext().GetSwapchainImageCount();
+	auto numBuffers = window.GetSwapchainImageCount();
 	auto alignedSize = util::get_aligned_size(size,buffer.GetAlignment());
 	std::vector<std::shared_ptr<IBuffer>> buffers;
 	buffers.reserve(numBuffers);
 	for(auto i=decltype(numBuffers){0u};i<numBuffers;++i)
 		buffers.push_back(buffer.AllocateBuffer(alignedSize *instanceCount));
-	return std::shared_ptr<SwapBuffer>{new SwapBuffer{std::move(buffers)}};
+	return std::shared_ptr<SwapBuffer>{new SwapBuffer{window,std::move(buffers)}};
 }
 
-prosper::SwapBuffer::SwapBuffer(std::vector<std::shared_ptr<IBuffer>> &&buffers)
-	: m_buffers{std::move(buffers)}
+prosper::SwapBuffer::SwapBuffer(Window &window,std::vector<std::shared_ptr<IBuffer>> &&buffers)
+	: m_buffers{std::move(buffers)},m_window{window.shared_from_this()},m_windowPtr{&window}
 {
 	assert(!m_buffers.empty());
 	assert(m_buffers[0]->GetContext().GetSwapchainImageCount() == m_buffers.size());
 }
 prosper::IBuffer *prosper::SwapBuffer::operator->()
 {
-	auto idx = m_buffers[0]->GetContext().GetLastAcquiredSwapchainImageIndex();
+	if(m_window.expired())
+		return nullptr;
+	auto idx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
 	return m_buffers[idx].get();
 }
 prosper::IBuffer &prosper::SwapBuffer::operator*() {return *operator->();}
@@ -57,8 +59,10 @@ prosper::IBuffer &prosper::SwapBuffer::GetBuffer(SubBufferIndex idx)
 prosper::IBuffer &prosper::SwapBuffer::GetBuffer() const {return *m_buffers[GetCurrentBufferIndex()];}
 prosper::IBuffer &prosper::SwapBuffer::Update(IBuffer::Offset offset,IBuffer::Size size,const void *data,bool flagAsDirty)
 {
+	if(m_window.expired())
+		throw std::runtime_error{"Invalid swap buffer window!"};
 	auto prevIdx = m_currentBufferIndex;
-	m_currentBufferIndex = m_buffers[0]->GetContext().GetLastAcquiredSwapchainImageIndex();
+	m_currentBufferIndex = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
 
 	if(flagAsDirty)
 	{
