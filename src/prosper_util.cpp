@@ -19,6 +19,7 @@
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_swap_command_buffer.hpp"
 #include "prosper_memory_tracker.hpp"
+#include <fsys/filesystem.h>
 #include <sharedutils/util.h>
 #include <util_image_buffer.hpp>
 #include <util_image.hpp>
@@ -2611,14 +2612,19 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 			return uimg::save_texture(fileName,layerMipmapData,saveInfo);
 		}
 		auto fullFileName = uimg::get_absolute_path(fileName,texInfo.containerFormat);
+		auto success = false;
 		switch(texInfo.containerFormat)
 		{
 		case uimg::TextureInfo::ContainerFormat::DDS:
-			return gli::save_dds(gliTex,fullFileName);
+			success = gli::save_dds(gliTex,fullFileName);
+			break;
 		case uimg::TextureInfo::ContainerFormat::KTX:
-			return gli::save_ktx(gliTex,fullFileName);
+			success = gli::save_ktx(gliTex,fullFileName);
+			break;
 		}
-		return false;
+		if(success)
+			filemanager::update_file_index_cache(fullFileName,true);
+		return success;
 	}
 	auto cubemap = imgRead->IsCubemap();
 	auto extents = imgRead->GetExtents();
