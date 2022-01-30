@@ -32,12 +32,15 @@ void prosper::IBuffer::SetPermanentlyMapped(bool b,MapFlags mapFlags)
 			return;
 		Unmap();
 	}
-	mapFlags |= prosper::IBuffer::MapFlags::PersistentBit;
 	if(b == true)
+	{
+		mapFlags |= prosper::IBuffer::MapFlags::PersistentBit;
 		Map(0ull,GetSize(),mapFlags);
-	else
-		Unmap();
-	m_permanentlyMapped = mapFlags;
+		m_permanentlyMapped = mapFlags;
+		return;
+	}
+	Unmap();
+	m_permanentlyMapped = {};
 }
 void prosper::IBuffer::SetParent(IBuffer &parent,SubBufferIndex baseIndex)
 {
