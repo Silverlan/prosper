@@ -12,6 +12,7 @@
 #include <chrono>
 #include <optional>
 #include <mutex>
+#include <thread>
 #include <iglfw/glfw_window.h>
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
