@@ -47,6 +47,19 @@ prosper::IPrContext::~IPrContext()
 
 prosper::ShaderPipelineLoader &prosper::IPrContext::GetPipelineLoader() {return *m_pipelineLoader;}
 
+std::optional<prosper::util::PhysicalDeviceImageFormatProperties> prosper::IPrContext::GetPhysicalDeviceImageFormatProperties(const util::ImageCreateInfo &imgCreateInfo)
+{
+	ImageFormatPropertiesQuery query {};
+	query.createFlags = ImageCreateFlags::None;
+	if(umath::is_flag_set(imgCreateInfo.flags,util::ImageCreateInfo::Flags::Cubemap))
+		query.createFlags |= ImageCreateFlags::CubeCompatibleBit;
+	query.format = imgCreateInfo.format;
+	query.imageType = imgCreateInfo.type;
+	query.tiling = imgCreateInfo.tiling;
+	query.usageFlags = imgCreateInfo.usage;
+	return GetPhysicalDeviceImageFormatProperties(query);
+}
+
 void prosper::IPrContext::SetValidationEnabled(bool b) {umath::set_flag(m_stateFlags,StateFlags::ValidationEnabled,b);}
 bool prosper::IPrContext::IsValidationEnabled() const {return umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled);}
 

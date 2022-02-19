@@ -45,25 +45,11 @@ bool prosper::ICommandBuffer::RecordCopyImage(const util::CopyInfo &copyInfo,IIm
 }
 bool prosper::ICommandBuffer::RecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst)
 {
-	uint32_t w,h;
-	w = imgDst.GetWidth();
-	h = imgDst.GetHeight();
-	if(copyInfo.width.has_value())
-		w = *copyInfo.width;
-	if(copyInfo.height.has_value())
-		h = *copyInfo.height;
-	return DoRecordCopyBufferToImage(copyInfo,bufferSrc,imgDst,w,h);
+	return DoRecordCopyBufferToImage(copyInfo,bufferSrc,imgDst);
 }
 bool prosper::ICommandBuffer::RecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst)
 {
-	uint32_t w,h;
-	w = imgSrc.GetWidth(copyInfo.mipLevel);
-	h = imgSrc.GetHeight(copyInfo.mipLevel);
-	if(copyInfo.width.has_value())
-		w = *copyInfo.width;
-	if(copyInfo.height.has_value())
-		h = *copyInfo.height;
-	return DoRecordCopyImageToBuffer(copyInfo,imgSrc,srcImageLayout,bufferDst,w,h);
+	return DoRecordCopyImageToBuffer(copyInfo,imgSrc,srcImageLayout,bufferDst);
 }
 
 bool prosper::ICommandBuffer::RecordUpdateGenericShaderReadBuffer(IBuffer &buffer,uint64_t offset,uint64_t size,const void *data)

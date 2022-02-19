@@ -2207,8 +2207,7 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 				copyInfo.baseArrayLayer = iLayer;
 				copyInfo.bufferOffset = bufferOffset;
 				copyInfo.dstImageLayout = ImageLayout::TransferSrcOptimal;
-				copyInfo.width = extents.width;
-				copyInfo.height = extents.height;
+				copyInfo.imageExtent = {extents.width,extents.height};
 				copyInfo.layerCount = 1;
 				copyInfo.mipLevel = iMipmap;
 				setupCmd->RecordCopyImageToBuffer(copyInfo,*imgRead,ImageLayout::TransferSrcOptimal,*buf);
@@ -2562,8 +2561,7 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 				copyInfo.baseArrayLayer = iLayer;
 				copyInfo.bufferOffset = bufferOffset;
 				copyInfo.dstImageLayout = ImageLayout::TransferSrcOptimal;
-				copyInfo.width = extents.width;
-				copyInfo.height = extents.height;
+				copyInfo.imageExtent = {extents.width,extents.height};
 				copyInfo.layerCount = 1;
 				copyInfo.mipLevel = iMipmap;
 				setupCmd->RecordCopyImageToBuffer(copyInfo,*imgRead,ImageLayout::TransferSrcOptimal,*buf);

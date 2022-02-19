@@ -213,6 +213,7 @@ namespace prosper
 		virtual uint32_t GetUniversalQueueFamilyIndex() const=0;
 		virtual util::Limits GetPhysicalDeviceLimits() const=0;
 		virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)=0;
+		std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const util::ImageCreateInfo &imgCreateInfo);
 		// If image tiling is not specified, return value will refer to buffer feature support
 		virtual prosper::FeatureSupport AreFormatFeaturesSupported(Format format,FormatFeatureFlags featureFlags,std::optional<ImageTiling> tiling) const=0;
 		virtual void BakeShaderPipeline(prosper::PipelineID pipelineId,prosper::PipelineBindPoint pipelineType)=0;

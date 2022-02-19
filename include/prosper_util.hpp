@@ -124,6 +124,7 @@ namespace prosper
 		struct DLLPROSPER PhysicalDeviceImageFormatProperties
 		{
 			SampleCountFlags sampleCount;
+			Extent3D maxExtent;
 		};
 
 		template<class T>
