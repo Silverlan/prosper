@@ -12,6 +12,7 @@
 #include "prosper_command_buffer.hpp"
 #include <sharedutils/scope_guard.h>
 #include <util_image.hpp>
+#include <util_image_buffer.hpp>
 #include <util_texture_info.hpp>
 
 using namespace prosper;
@@ -86,6 +87,21 @@ void IImage::SetSrgb(bool srgb) {return umath::set_flag(GetCreateInfo().flags,ut
 void IImage::SetNormalMap(bool normalMap) {return umath::set_flag(GetCreateInfo().flags,util::ImageCreateInfo::Flags::NormalMap,normalMap);}
 
 uint32_t IImage::GetPixelSize() const {return util::get_pixel_size(GetFormat());}
+uint32_t IImage::GetSize(uint32_t mipmap) const
+{
+	auto numMipmaps = GetMipmapCount();
+	if(mipmap >= numMipmaps)
+		return 0;
+	auto w = GetWidth();
+	auto h = GetHeight();
+	DeviceSize size = 0;
+	auto pixelSize = GetPixelSize();
+
+	uint32_t wm,hm;
+	util::calculate_mipmap_size(w,h,&wm,&hm,mipmap);
+	size += wm *hm *pixelSize;
+	return size;
+}
 uint32_t IImage::GetSize() const
 {
 	auto numMipmaps = GetMipmapCount();
@@ -129,6 +145,47 @@ static std::optional<uimg::TextureInfo::OutputFormat> get_texture_info_output_fo
 		return uimg::TextureInfo::OutputFormat::BC3;
 	}
 	return {};
+}
+
+std::shared_ptr<uimg::ImageBuffer> IImage::ToHostImageBuffer(uimg::Format format,prosper::ImageLayout curImgLayout) const
+{
+	if(!umath::is_flag_set(m_createInfo.usage,ImageUsageFlags::TransferSrcBit))
+		return nullptr;
+	auto &context = GetContext();
+	auto cmd = context.GetSetupCommandBuffer();
+	auto imgBuf = uimg::ImageBuffer::Create(GetWidth(),GetHeight(),format);
+
+	auto imgCreateInfo = prosper::util::get_image_create_info(*imgBuf);
+	imgCreateInfo.usage = prosper::ImageUsageFlags::ColorAttachmentBit | prosper::ImageUsageFlags::TransferSrcBit;
+	imgCreateInfo.postCreateLayout = ImageLayout::TransferDstOptimal;
+
+	auto tmpImg = context.CreateImage(imgCreateInfo);
+	cmd->RecordImageBarrier(const_cast<IImage&>(*this),curImgLayout,prosper::ImageLayout::TransferSrcOptimal);
+	cmd->RecordBlitImage({},const_cast<IImage&>(*this),*tmpImg);
+	cmd->RecordImageBarrier(const_cast<IImage&>(*this),prosper::ImageLayout::TransferSrcOptimal,curImgLayout);
+	
+	auto size = imgBuf->GetSize();
+	prosper::util::BufferCreateInfo bufCreateInfo {};
+	bufCreateInfo.size = size;
+	bufCreateInfo.memoryFeatures = MemoryFeatureFlags::GPUToCPU;
+	bufCreateInfo.usageFlags = BufferUsageFlags::TransferDstBit;
+	auto tmpBuf = context.CreateBuffer(bufCreateInfo);
+	
+	cmd->RecordImageBarrier(*tmpImg,prosper::ImageLayout::TransferDstOptimal,prosper::ImageLayout::TransferSrcOptimal);
+	util::BufferImageCopyInfo bufImgCopyInfo {};
+	bufImgCopyInfo.layerCount = 1;
+	bufImgCopyInfo.mipLevel = 0;
+	cmd->RecordCopyImageToBuffer(bufImgCopyInfo,*tmpImg,prosper::ImageLayout::TransferSrcOptimal,*tmpBuf);
+	cmd->RecordBufferBarrier(
+		*tmpBuf,
+		PipelineStageFlags::TransferBit,PipelineStageFlags::HostBit,
+		AccessFlags::TransferWriteBit,AccessFlags::HostReadBit
+	);
+	context.FlushSetupCommandBuffer();
+
+	if(!tmpBuf->Read(0,size,imgBuf->GetData()))
+		return nullptr;
+	return imgBuf;
 }
 
 std::shared_ptr<IImage> IImage::Copy(prosper::ICommandBuffer &cmd,const prosper::util::ImageCreateInfo &copyCreateInfo)

@@ -16,6 +16,12 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
+
+namespace uimg
+{
+	enum class Format : uint8_t;
+};
+
 namespace prosper
 {
 	class ICommandBuffer;
@@ -60,12 +66,14 @@ namespace prosper
 
 		uint32_t GetPixelSize() const;
 		uint32_t GetSize() const;
+		uint32_t GetSize(uint32_t mipmap) const;
 
 		virtual void Bake() {};
 
 		virtual bool WriteImageData(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32_t layerIndex,uint32_t mipLevel,uint64_t size,const uint8_t *data)=0;
 		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr)=0;
 		virtual bool Unmap()=0;
+		std::shared_ptr<uimg::ImageBuffer> ToHostImageBuffer(uimg::Format format,prosper::ImageLayout curImgLayout) const;
 		std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd,const util::ImageCreateInfo &copyCreateInfo);
 		std::shared_ptr<IImage> Convert(prosper::ICommandBuffer &cmd,Format newFormat);
 	protected:
