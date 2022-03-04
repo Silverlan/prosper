@@ -23,6 +23,8 @@ namespace prosper
 		std::shared_ptr<IBuffer> AllocateBuffer(const void *data=nullptr);
 
 		uint64_t GetInstanceSize() const;
+		uint32_t GetAlignment() const;
+		uint64_t GetStride() const;
 
 		// This is *not* thread-safe!
 		const std::vector<IBuffer*> &GetAllocatedSubBuffers() const;

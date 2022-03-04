@@ -26,8 +26,19 @@ IUniformResizableBuffer::IUniformResizableBuffer(
 
 uint64_t IUniformResizableBuffer::GetInstanceSize() const
 {
-	std::unique_lock lock {m_bufferMutex};
+	std::unique_lock lock {m_bufferMutex}; // TODO: Why do we need this lock?
 	return m_bufferInstanceSize;
+}
+
+uint32_t IUniformResizableBuffer::GetAlignment() const
+{
+	std::unique_lock lock {m_bufferMutex}; // TODO: Why do we need this lock?
+	return m_alignment;
+}
+uint64_t IUniformResizableBuffer::GetStride() const
+{
+	std::unique_lock lock {m_bufferMutex}; // TODO: Why do we need this lock?
+	return prosper::util::get_aligned_size(m_bufferInstanceSize,m_alignment);
 }
 
 const std::vector<IBuffer*> &IUniformResizableBuffer::GetAllocatedSubBuffers() const {return m_allocatedSubBuffers;}
