@@ -142,16 +142,24 @@ namespace prosper::util
 		template<typename T>
 			void GetArgumentValue(const PreparedCommand::Argument &arg,const PreparedCommandArgumentMap &drawArguments,T &outValue) const
 		{
-			if(arg.type == PreparedCommand::Argument::Type::DynamicValue)
+			if constexpr(std::is_enum_v<T>)
 			{
-				auto &nameHash = *static_cast<PreparedCommand::Argument::StringHash*>(arg.value);
-				auto res = drawArguments.GetArgumentValue<T>(nameHash,outValue);
-				if(res)
-					return;
-				dynamicArguments.GetArgumentValue<T>(nameHash,outValue);
-				return;
+				using TBase = std::underlying_type_t<T>;
+				return GetArgumentValue<TBase>(arg,drawArguments,reinterpret_cast<TBase&>(outValue));
 			}
-			arg.GetStaticValue<T>(outValue);
+			else
+			{
+				if(arg.type == PreparedCommand::Argument::Type::DynamicValue)
+				{
+					auto &nameHash = *static_cast<PreparedCommand::Argument::StringHash*>(arg.value);
+					auto res = drawArguments.GetArgumentValue<T>(nameHash,outValue);
+					if(res)
+						return;
+					dynamicArguments.GetArgumentValue<T>(nameHash,outValue);
+					return;
+				}
+				arg.GetStaticValue<T>(outValue);
+			}
 		}
 		template<typename T>
 			void SetDynamicArgument(const std::string &name,T &&value)
