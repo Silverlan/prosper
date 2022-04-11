@@ -401,6 +401,7 @@ void prosper::IPrContext::ClearKeepAliveResources(uint32_t n)
 		return;
 	}
 	auto idx = GetWindow().GetLastAcquiredSwapchainImageIndex();
+	std::scoped_lock lock {m_aliveResourceMutex};
 	if(idx >= m_keepAliveResources.size())
 		return;
 	auto &resources = m_keepAliveResources.at(idx);
@@ -417,11 +418,20 @@ void prosper::IPrContext::ClearKeepAliveResources()
 		return;
 	}
 	auto idx = GetWindow().GetLastAcquiredSwapchainImageIndex();
+	m_aliveResourceMutex.lock();
 	if(idx >= m_keepAliveResources.size())
+	{
+		m_aliveResourceMutex.unlock();
 		return;
+	}
 	if(umath::is_flag_set(m_stateFlags,StateFlags::ClearingKeepAliveResources))
+	{
+		m_aliveResourceMutex.unlock();
 		throw std::logic_error("ClearKeepAliveResources mustn't be called by a resource destructor!");
-	auto &resources = m_keepAliveResources.at(idx);
+	}
+	auto resources = std::move(m_keepAliveResources.at(idx));
+	m_keepAliveResources.at(idx).clear();
+	m_aliveResourceMutex.unlock();
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources);
 	resources.clear();
 	umath::set_flag(m_stateFlags,StateFlags::ClearingKeepAliveResources,false);
