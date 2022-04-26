@@ -31,6 +31,7 @@ namespace prosper
 			UniformBuffer,
 			DynamicUniformBuffer,
 			StorageBuffer,
+			DynamicStorageBuffer,
 
 			Count
 		};
@@ -125,6 +126,14 @@ namespace prosper
 		virtual Type GetType() const override {return Type::StorageBuffer;}
 	};
 
+	class DLLPROSPER DescriptorSetBindingDynamicStorageBuffer
+		: public DescriptorSetBindingBaseBuffer
+	{
+	public:
+		DescriptorSetBindingDynamicStorageBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size);
+		virtual Type GetType() const override {return Type::DynamicStorageBuffer;}
+	};
+
 	class IDescriptorSetGroup;
 	class DLLPROSPER IDescriptorSet
 	{
@@ -156,6 +165,7 @@ namespace prosper
 		bool SetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
 		bool SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
 		bool SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
+		bool SetBindingDynamicStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset=0ull,uint64_t size=std::numeric_limits<uint64_t>::max());
 
 		IDescriptorSetGroup &GetDescriptorSetGroup() const;
 
@@ -178,6 +188,7 @@ namespace prosper
 		virtual bool DoSetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
 		virtual bool DoSetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
 		virtual bool DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
+		virtual bool DoSetBindingDynamicStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)=0;
 		void *m_apiTypePtr = nullptr;
 	private:
 		IDescriptorSetGroup &m_dsg;

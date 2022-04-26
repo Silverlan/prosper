@@ -342,6 +342,12 @@ bool IDescriptorSet::SetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t b
 	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingStorageBuffer>(*this,bindingIdx,buffer,startOffset,size));
 	return DoSetBindingStorageBuffer(buffer,bindingIdx,startOffset,size);
 }
+bool IDescriptorSet::SetBindingDynamicStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	size = (size != std::numeric_limits<decltype(size)>::max()) ? size : buffer.GetSize();
+	SetBinding(bindingIdx,std::make_unique<DescriptorSetBindingDynamicStorageBuffer>(*this,bindingIdx,buffer,startOffset,size));
+	return DoSetBindingDynamicStorageBuffer(buffer,bindingIdx,startOffset,size);
+}
 
 void IDescriptorSet::ReloadBinding(uint32_t bindingIdx)
 {
@@ -411,8 +417,17 @@ void IDescriptorSet::ReloadBinding(uint32_t bindingIdx)
 		DoSetBindingStorageBuffer(*buf.lock(),binding.GetBindingIndex(),binding.GetStartOffset(),binding.GetSize());
 		break;
 	}
+	case DescriptorSetBinding::Type::DynamicStorageBuffer:
+	{
+		auto &binding = static_cast<DescriptorSetBindingDynamicStorageBuffer&>(*pbinding);
+		auto &buf = binding.GetBuffer();
+		if(buf.expired())
+			return;
+		DoSetBindingDynamicStorageBuffer(*buf.lock(),binding.GetBindingIndex(),binding.GetStartOffset(),binding.GetSize());
+		break;
 	}
-	static_assert(umath::to_integral(DescriptorSetBinding::Type::Count) == 6u,"Update this implementation when new types are added!");
+	}
+	static_assert(umath::to_integral(DescriptorSetBinding::Type::Count) == 7u,"Update this implementation when new types are added!");
 }
 
 prosper::IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex,uint64_t *outStartOffset,uint64_t *outSize)
@@ -576,6 +591,12 @@ DescriptorSetBindingDynamicUniformBuffer::DescriptorSetBindingDynamicUniformBuff
 ///
 
 DescriptorSetBindingStorageBuffer::DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
+	: DescriptorSetBindingBaseBuffer{descSet,bindingIdx,buffer,startOffset,size}
+{}
+
+///
+
+DescriptorSetBindingDynamicStorageBuffer::DescriptorSetBindingDynamicStorageBuffer(IDescriptorSet &descSet,uint32_t bindingIdx,prosper::IBuffer &buffer,uint64_t startOffset,uint64_t size)
 	: DescriptorSetBindingBaseBuffer{descSet,bindingIdx,buffer,startOffset,size}
 {}
 
