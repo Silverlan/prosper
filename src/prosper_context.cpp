@@ -152,10 +152,10 @@ prosper::FrameIndex prosper::IPrContext::GetLastFrameId() const {return m_frameI
 
 void prosper::IPrContext::EndFrame() {++m_frameId;}
 
-void prosper::IPrContext::DrawFrame()
+void prosper::IPrContext::DrawFrameCore()
 {
-	DrawFrame([this](const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t m_n_swapchain_image) {
-		Draw(m_n_swapchain_image);
+	DrawFrame([this]() {
+		Draw();
 	});
 	EndFrame();
 }
@@ -369,14 +369,6 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetS
 	return m_setupCmdBuffer;
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer() const {return m_commandBuffers.at(GetWindow().GetLastAcquiredSwapchainImageIndex());}
-
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetDrawCommandBuffer(uint32_t swapchainIdx) const
-{
-	static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
-	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
-}
-
 void prosper::IPrContext::FlushCommandBuffer(prosper::ICommandBuffer &cmd) {DoFlushCommandBuffer(cmd);}
 
 void prosper::IPrContext::FlushSetupCommandBuffer()
@@ -561,10 +553,10 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 
 void prosper::IPrContext::InitBuffers() {}
 
-void prosper::IPrContext::DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image)
+void prosper::IPrContext::DrawFrame()
 {
 	if(m_callbacks.drawFrame)
-		m_callbacks.drawFrame(cmd_buffer_ptr,n_current_swapchain_image);
+		m_callbacks.drawFrame();
 }
 
 prosper::ShaderManager &prosper::IPrContext::GetShaderManager() const {return *m_shaderManager;}
@@ -687,7 +679,7 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(
 
 	if(IsRecording())
 	{
-		auto &drawCmd = GetDrawCommandBuffer();
+		auto &drawCmd = GetWindow().GetDrawCommandBuffer();
 		if(drawCmd->GetActiveRenderPassTargetInfo() == nullptr) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);
@@ -741,7 +733,7 @@ void prosper::IPrContext::InitTemporaryBuffer()
 	m_tmpBuffer->SetPermanentlyMapped(true,prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
 }
 
-void prosper::IPrContext::Draw(uint32_t n_swapchain_image)
+void prosper::IPrContext::Draw()
 {
 	{
 #if 0
@@ -772,8 +764,8 @@ void prosper::IPrContext::Draw(uint32_t n_swapchain_image)
 			);
         }
 #endif // TODO
-		auto &cmd_buffer_ptr = m_commandBuffers.at(n_swapchain_image);
-		DrawFrame(*cmd_buffer_ptr,n_swapchain_image);
+
+	DrawFrame();
 
 #if 0
 		/* Change the swap-chain image's layout to presentable */
@@ -904,7 +896,7 @@ void prosper::IPrContext::Run()
 			bResChanged = true;
 			//ChangeResolution(1024,768);
 		}
-		DrawFrame();
+		DrawFrameCore();
 		GLFW::poll_events();
 	}
 }

@@ -64,6 +64,9 @@ namespace prosper
 		float GetAspectRatio() const;
 		void ReloadSwapchain();
 
+		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer() const;
+		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer(uint32_t swapchainIdx) const;
+
 		State GetState() const {return m_state;}
 		void SetState(State state) {m_state = state;}
 
@@ -91,6 +94,7 @@ namespace prosper
 		Window(IPrContext &context,const WindowSettings &windowCreationInfo);
 		virtual void InitWindow()=0;
 		virtual void ReleaseWindow()=0;
+		virtual void InitCommandBuffers()=0;
 		void InitSwapchain();
 		void ReleaseSwapchain();
 		virtual void DoInitSwapchain()=0;
@@ -101,6 +105,7 @@ namespace prosper
 
 		WindowChangeInfo &ScheduleWindowReload();
 		std::unique_ptr<WindowChangeInfo> m_scheduledWindowReloadInfo = nullptr;
+		std::vector<std::shared_ptr<prosper::IPrimaryCommandBuffer>> m_commandBuffers;
 
 		std::function<void()> m_initCallback = nullptr;
 		std::vector<std::function<void()>> m_closeListeners;

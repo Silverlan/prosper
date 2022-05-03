@@ -20,6 +20,13 @@ void Window::OnWindowInitialized()
 		m_initCallback();
 }
 
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer() const {return m_commandBuffers.at(GetLastAcquiredSwapchainImageIndex());}
+const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer(uint32_t swapchainIdx) const
+{
+	static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
+	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
+}
+
 void Window::Release()
 {
 	GetContext().WaitIdle();
@@ -154,6 +161,7 @@ void Window::UpdateWindow()
 void Window::InitSwapchain()
 {
 	DoInitSwapchain();
+	InitCommandBuffers();
 	m_guiCommandBufferGroup = GetContext().CreateSwapCommandBufferGroup(*this);
 }
 void Window::ReleaseSwapchain()

@@ -116,7 +116,7 @@ namespace prosper
 		std::function<void()> onWindowInitialized = nullptr;
 		std::function<void()> onClose = nullptr;
 		std::function<void(uint32_t,uint32_t)> onResolutionChanged = nullptr;
-		std::function<void(prosper::IPrimaryCommandBuffer&,uint32_t)> drawFrame = nullptr;
+		std::function<void()> drawFrame = nullptr;
 	};
 
 	namespace detail
@@ -242,10 +242,8 @@ namespace prosper
 		virtual void GetGLSLDefinitions(glsl::Definitions &outDef) const=0;
 
 		FrameIndex GetLastFrameId() const;
-		void Draw(uint32_t n_swapchain_image);
+		void Draw();
 		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetSetupCommandBuffer();
-		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer() const;
-		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer(uint32_t swapchainIdx) const;
 		void FlushCommandBuffer(prosper::ICommandBuffer &cmd);
 		void FlushSetupCommandBuffer();
 
@@ -291,7 +289,7 @@ namespace prosper
 		virtual void Flush()=0;
 		virtual Result WaitForFence(const IFence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const=0;
 		virtual Result WaitForFences(const std::vector<IFence*> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const=0;
-		virtual void DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)=0;
+		virtual void DrawFrame(const std::function<void()> &drawFrame)=0;
 		virtual bool Submit(ICommandBuffer &cmdBuf,bool shouldBlock=false,IFence *optFence=nullptr)=0;
 
 		void RegisterResource(const std::shared_ptr<void> &resource);
@@ -373,7 +371,7 @@ namespace prosper
 		virtual bool QueryResult(const Query &query,uint64_t &r) const=0;
 
 		void SetCallbacks(const Callbacks &callbacks);
-		virtual void DrawFrame();
+		virtual void DrawFrameCore();
 		virtual void EndFrame();
 		void SetPresentMode(prosper::PresentModeKHR presentMode);
 
@@ -472,7 +470,7 @@ namespace prosper
 		virtual void OnSwapchainInitialized();
 		virtual void ReloadSwapchain()=0;
 
-		virtual void DrawFrame(prosper::IPrimaryCommandBuffer &cmd_buffer_ptr,uint32_t n_current_swapchain_image);
+		virtual void DrawFrame();
 	protected: // private: // TODO
 		IPrContext(const IPrContext&)=delete;
 		IPrContext &operator=(const IPrContext&)=delete;
@@ -505,7 +503,6 @@ namespace prosper
 		std::mutex m_aliveResourceMutex;
 
 		std::queue<std::function<void(prosper::IPrimaryCommandBuffer&)>> m_scheduledBufferUpdates;
-		std::vector<std::shared_ptr<prosper::IPrimaryCommandBuffer>> m_commandBuffers;
 		
 		WindowSettings m_initialWindowSettings {};
 
