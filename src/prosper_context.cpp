@@ -219,9 +219,10 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateTemporaryBuffer(p
 	std::unique_lock lock {m_tmpBufferMutex};
 	if(m_tmpBuffer == nullptr)
 		return nullptr;
-	auto allocatedBuffer = m_tmpBuffer->AllocateBuffer(size,alignment,data);
+	auto allocatedBuffer = m_tmpBuffer->AllocateBuffer(size,alignment,data,false);
 	if(allocatedBuffer)
 		return allocatedBuffer;
+	lock.unlock();
 	lock.release();
 	// Couldn't allocate from temp buffer, request size was most likely too large. Fall back to creating a completely new buffer.
 	util::BufferCreateInfo createInfo {};
@@ -469,7 +470,10 @@ prosper::Shader *prosper::IPrContext::GetShaderPipeline(PipelineID id,uint32_t &
 
 void prosper::IPrContext::WaitIdle()
 {
-	FlushSetupCommandBuffer();
+	// TODO: Make this thread-safe!
+
+	if(m_setupCmdBuffer)
+		FlushSetupCommandBuffer();
 	DoWaitIdle();
 	umath::set_flag(m_stateFlags,StateFlags::Idle);
 	ClearKeepAliveResources();
