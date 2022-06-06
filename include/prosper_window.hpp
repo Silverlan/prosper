@@ -80,6 +80,7 @@ namespace prosper
 		const std::vector<std::function<void()>> &GetClosedListeners() const {return m_closedListeners;}
 
 		prosper::ISwapCommandBufferGroup &GetSwapCommandBufferGroup() {return *m_guiCommandBufferGroup;}
+		bool ScheduledForClose() const;
 	protected:
 		struct WindowChangeInfo
 		{
@@ -91,7 +92,9 @@ namespace prosper
 			std::optional<GLFW::Monitor> monitor = {};
 			std::optional<prosper::PresentModeKHR> presentMode = {};
 		};
+		friend IPrContext;
 		Window(IPrContext &context,const WindowSettings &windowCreationInfo);
+		void DoClose();
 		virtual void InitWindow()=0;
 		virtual void ReleaseWindow()=0;
 		virtual void InitCommandBuffers()=0;

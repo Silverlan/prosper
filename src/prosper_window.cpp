@@ -45,7 +45,13 @@ void Window::Close()
 	if(m_closed)
 		return;
 	m_closed = true;
+	GetContext().SetWindowScheduledForClosing();
+}
 
+bool Window::ScheduledForClose() const {return m_closed;}
+
+void Window::DoClose()
+{
 	for(auto &cb : m_closeListeners)
 		cb();
 	m_closeListeners.clear();

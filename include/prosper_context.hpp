@@ -149,7 +149,8 @@ namespace prosper
 			Idle = Initialized<<1u,
 			Closed = Idle<<1u,
 			ClearingKeepAliveResources = Closed<<1u,
-			EnableMultiThreadedRendering = ClearingKeepAliveResources<<1u
+			EnableMultiThreadedRendering = ClearingKeepAliveResources<<1u,
+			WindowScheduledForClosing = EnableMultiThreadedRendering<<1u
 		};
 
 		using BufferUpdateInfo = detail::BufferUpdateInfo; // Workaround for gcc bug, see https://stackoverflow.com/a/53423881/2482983
@@ -196,8 +197,8 @@ namespace prosper
 
 		Window &GetWindow();
 		const Window &GetWindow() const {return const_cast<IPrContext*>(this)->GetWindow();}
-		const std::vector<std::weak_ptr<Window>> &GetWindows() const {return const_cast<IPrContext*>(this)->GetWindows();}
-		std::vector<std::weak_ptr<Window>> &GetWindows() {return m_windows;}
+		const std::vector<std::shared_ptr<Window>> &GetWindows() const {return const_cast<IPrContext*>(this)->GetWindows();}
+		std::vector<std::shared_ptr<Window>> &GetWindows() {return m_windows;}
 		std::array<uint32_t,2> GetWindowSize() const;
 		uint32_t GetWindowWidth() const;
 		uint32_t GetWindowHeight() const;
@@ -443,6 +444,8 @@ namespace prosper
 
 		// Internal use only
 		PipelineID ReserveShaderPipeline();
+		void SetWindowScheduledForClosing();
+		void CloseWindowsScheduledForClosing();
 	protected:
 		IPrContext(const std::string &appName,bool bEnableValidation=false);
 		void CalcAlignedSizes(uint64_t instanceSize,uint64_t &bufferBaseSize,uint64_t &maxTotalSize,uint32_t &alignment,prosper::BufferUsageFlags usageFlags);
@@ -496,7 +499,7 @@ namespace prosper
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;
 		std::unique_ptr<ShaderManager> m_shaderManager = nullptr;
 		std::shared_ptr<Window> m_window = nullptr;
-		std::vector<std::weak_ptr<Window>> m_windows {};
+		std::vector<std::shared_ptr<Window>> m_windows {};
 		std::shared_ptr<IDynamicResizableBuffer> m_tmpBuffer = nullptr;
 		std::mutex m_tmpBufferMutex;
 		std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};

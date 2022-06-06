@@ -145,6 +145,7 @@ void prosper::IPrContext::Release()
 		m_scheduledBufferUpdates.pop();
 
 	m_window = nullptr;
+	m_windows.clear();
 	m_stateFlags |= StateFlags::Closed;
 }
 
@@ -158,6 +159,29 @@ void prosper::IPrContext::DrawFrameCore()
 		Draw();
 	});
 	EndFrame();
+
+	CloseWindowsScheduledForClosing();
+}
+void prosper::IPrContext::CloseWindowsScheduledForClosing()
+{
+	if(!umath::is_flag_set(m_stateFlags,StateFlags::WindowScheduledForClosing))
+		return;
+	umath::set_flag(m_stateFlags,StateFlags::WindowScheduledForClosing,false);
+	for(auto it=m_windows.begin();it!=m_windows.end();)
+	{
+		auto &window = *it;
+		if(window->ScheduledForClose() == false)
+		{
+			++it;
+			continue;
+		}
+		window->DoClose();
+		it = m_windows.erase(it);
+	}
+}
+void prosper::IPrContext::SetWindowScheduledForClosing()
+{
+	umath::set_flag(m_stateFlags,StateFlags::WindowScheduledForClosing);
 }
 
 void prosper::IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img,const void *data)
