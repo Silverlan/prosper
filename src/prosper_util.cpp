@@ -2184,11 +2184,14 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 		setupCmd->StartRecording();
 
 		gli::extent2d gliExtents {extents.width,extents.height};
-		gli::texture2d gliTex {static_cast<gli::texture::format_type>(imgRead->GetFormat()),gliExtents,numLevels};
+		std::vector<gli::texture2d> gliTex;
+		gliTex.reserve(numLayers);
+		for(auto i=decltype(numLayers){0u};i<numLayers;++i)
+			gliTex.push_back(gli::texture2d {static_cast<gli::texture::format_type>(imgRead->GetFormat()),gliExtents,numLevels});
 
 		prosper::util::BufferCreateInfo bufCreateInfo {};
 		bufCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUToCPU;
-		bufCreateInfo.size = gliTex.size();
+		bufCreateInfo.size = gliTex[0].size() *gliTex.size();
 		bufCreateInfo.usageFlags = prosper::BufferUsageFlags::TransferDstBit;
 		bufCreateInfo.flags |= prosper::util::BufferCreateInfo::Flags::Persistent;
 		auto buf = context.CreateBuffer(bufCreateInfo);
@@ -2202,7 +2205,7 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 			for(auto iMipmap=decltype(numLevels){0u};iMipmap<numLevels;++iMipmap)
 			{
 				auto extents = imgRead->GetExtents(iMipmap);
-				auto mipmapSize = gliTex.size(iMipmap);
+				auto mipmapSize = gliTex[iLayer].size(iMipmap);
 				prosper::util::BufferImageCopyInfo copyInfo {};
 				copyInfo.baseArrayLayer = iLayer;
 				copyInfo.bufferOffset = bufferOffset;
@@ -2225,8 +2228,8 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 			for(auto iMipmap=decltype(numLevels){0u};iMipmap<numLevels;++iMipmap)
 			{
 				auto extents = imgRead->GetExtents(iMipmap);
-				auto mipmapSize = gliTex.size(iMipmap);
-				auto *dstData = gliTex.data(iLayer,0u /* face */,iMipmap);
+				auto mipmapSize = gliTex[iLayer].size(iMipmap);
+				auto *dstData = gliTex[iLayer].data(0u,0u /* face */,iMipmap);
 				memset(dstData,1,mipmapSize);
 				buf->Read(bufferOffset,mipmapSize,dstData);
 				bufferOffset += mipmapSize;
@@ -2243,18 +2246,18 @@ std::function<const uint8_t*(uint32_t,uint32_t,std::function<void(void)>&)> pros
 				mipmapData.reserve(numLevels);
 				for(auto iMipmap=decltype(numLevels){0u};iMipmap<numLevels;++iMipmap)
 				{
-					auto *dstData = gliTex.data(iLayer,0u /* face */,iMipmap);
+					auto *dstData = gliTex[iLayer].data(0u,0u /* face */,iMipmap);
 					mipmapData.push_back(dstData);
 				}
 			}
-			return [layerMipmapData,gliTex](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
+			return [layerMipmapData](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
 				outDeleter = nullptr;
 				return static_cast<const uint8_t*>(layerMipmapData[iLayer][iMipmap]);
 			};
 		}
-		return [gliTex](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
+		return [gliTex=std::move(gliTex)](uint32_t iLayer,uint32_t iMipmap,std::function<void(void)> &outDeleter) -> const uint8_t* {
 			outDeleter = nullptr;
-			return static_cast<const uint8_t*>(gliTex.data(iLayer,0u /* face */,iMipmap));
+			return static_cast<const uint8_t*>(gliTex[iLayer].data(0u,0u /* face */,iMipmap));
 		};
 		/*auto fullFileName = uimg::get_absolute_path(fileName,texInfo.containerFormat);
 		switch(texInfo.containerFormat)
