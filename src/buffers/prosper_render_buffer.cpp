@@ -8,9 +8,12 @@
 using namespace prosper;
 
 IRenderBuffer::IRenderBuffer(
-	prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::optional<IndexBufferInfo> &indexBufferInfo
+	prosper::IPrContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,
+	const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,
+	const std::optional<IndexBufferInfo> &indexBufferInfo
 )
-	: prosper::ContextObject{context},m_indexBufferInfo{indexBufferInfo}
+	: prosper::ContextObject{context},m_indexBufferInfo{indexBufferInfo},m_offsets{offsets},
+	m_pipelineCreateInfo{pipelineCreateInfo}
 {
 	m_buffers.reserve(buffers.size());
 	m_reallocationCallbacks.reserve(buffers.size());

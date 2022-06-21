@@ -22,17 +22,23 @@ namespace prosper
 	public:
 		virtual ~IRenderBuffer() override;
 		const std::vector<std::shared_ptr<prosper::IBuffer>> &GetBuffers() const;
+		const std::vector<prosper::DeviceSize> &GetOffsets() const {return m_offsets;}
+		const prosper::GraphicsPipelineCreateInfo &GetPipelineCreateInfo() const {return m_pipelineCreateInfo;}
 		const IndexBufferInfo *GetIndexBufferInfo() const;
 		IndexBufferInfo *GetIndexBufferInfo();
 	protected:
 		IRenderBuffer(
-			prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::optional<IndexBufferInfo> &indexBufferInfo={}
+			prosper::IPrContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,
+			const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,
+			const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
 		virtual void Reload()=0;
 
 		std::vector<std::shared_ptr<prosper::IBuffer>> m_buffers;
+		std::vector<prosper::DeviceSize> m_offsets;
 		std::optional<IndexBufferInfo> m_indexBufferInfo {};
 		std::vector<CallbackHandle> m_reallocationCallbacks {};
+		const prosper::GraphicsPipelineCreateInfo &m_pipelineCreateInfo;
 	};
 };
 #pragma warning(pop)
