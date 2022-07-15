@@ -9,7 +9,7 @@
 #include <sharedutils/util.h>
 
 using namespace prosper;
-#pragma optimize("",off)
+
 ISwapCommandBufferGroup::ISwapCommandBufferGroup(Window &window)
 	: m_window{window.shared_from_this()},m_windowPtr{&window}
 {
@@ -166,4 +166,3 @@ bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &c
 	}
 	return ISwapCommandBufferGroup::ExecuteCommands(cmdBuf);
 }
-#pragma optimize("",on)

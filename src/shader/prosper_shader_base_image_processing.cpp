@@ -10,7 +10,7 @@
 #include "buffers/prosper_buffer.hpp"
 
 using namespace prosper;
-#pragma optimize("",off)
+
 decltype(ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX) ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
 decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX,CommonBufferCache::GetSquareVertexFormat()};
 
@@ -59,4 +59,3 @@ bool ShaderBaseImageProcessing::RecordDraw(ShaderBindState &bindState,prosper::I
 {
 	return RecordBindDescriptorSet(bindState,descSetTexture) && RecordDraw(bindState);
 }
-#pragma optimize("",on)

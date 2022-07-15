@@ -30,7 +30,7 @@
 #ifdef DEBUG_VERBOSE
 #include <iostream>
 #endif
-#pragma optimize("",off)
+
 bool prosper::util::RenderPassCreateInfo::AttachmentInfo::operator==(const AttachmentInfo &other) const
 {
 	return format == other.format &&
@@ -2641,4 +2641,3 @@ bool prosper::util::save_texture(const std::string &fileName,prosper::IImage &im
 	saveInfo.channelMask = channelMask;
 	return uimg::save_texture(fileName,prosper::util::image_to_data(*imgRead,dstFormat),saveInfo,errorHandler);
 }
-#pragma optimize("",on)

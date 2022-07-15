@@ -11,7 +11,7 @@
 #include <cassert>
 
 using namespace prosper;
-#pragma optimize("",off)
+
 /*
 static void test_dynamic_resizable_buffer()
 {
@@ -335,4 +335,3 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 	m_allocatedSubBuffers.push_back(subBuffer.get());
 	return subBuffer;
 }
-#pragma optimize("",on)

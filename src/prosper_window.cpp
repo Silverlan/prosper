@@ -7,7 +7,7 @@
 #include "image/prosper_render_target.hpp"
 
 using namespace prosper;
-#pragma optimize("",off)
+
 prosper::Window::Window(IPrContext &context,const WindowSettings &windowCreationInfo)
 	: ContextObject{context},m_settings{windowCreationInfo}
 {}
@@ -285,4 +285,3 @@ prosper::IFramebuffer *Window::GetSwapchainFramebuffer(uint32_t idx)
 {
 	return (idx < m_swapchainFramebuffers.size()) ? m_swapchainFramebuffers.at(idx).get() : nullptr;
 }
-#pragma optimize("",on)

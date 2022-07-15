@@ -26,7 +26,7 @@
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
-#pragma optimize("",off)
+
 prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader,uint32_t pipeline)
 	: shader{shader.GetHandle()},pipeline{pipeline}
 {}
@@ -946,4 +946,3 @@ bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader,bool b
 	}
 	return true;
 }
-#pragma optimize("",on)

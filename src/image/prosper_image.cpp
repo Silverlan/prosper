@@ -17,7 +17,7 @@
 
 using namespace prosper;
 
-#pragma optimize("",off)
+
 IImage::IImage(IPrContext &context,const prosper::util::ImageCreateInfo &createInfo)
 	: ContextObject(context),std::enable_shared_from_this<IImage>(),m_createInfo{createInfo}
 {}
@@ -297,4 +297,3 @@ std::shared_ptr<IImage> IImage::Copy(prosper::ICommandBuffer &cmd,const prosper:
 	cmd.RecordImageBarrier(*imgCopy,ImageLayout::TransferDstOptimal,finalLayout);
 	return imgCopy;
 }
-#pragma optimize("",on)

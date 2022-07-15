@@ -8,7 +8,7 @@
 #include <sharedutils/util.h>
 
 using namespace prosper;
-#pragma optimize("",off)
+
 ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context)
 	: m_context{context},m_multiThreaded{context.IsMultiThreadedRenderingEnabled()}
 {
@@ -214,4 +214,3 @@ void ShaderPipelineLoader::Bake(ShaderIndex shaderIndex,prosper::PipelineID id,p
 		Flush();
 	}
 }
-#pragma optimize("",on)
