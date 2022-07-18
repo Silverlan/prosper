@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <sharedutils/util.h>
-#include "stdafx_prosper.h"
 #include "prosper_context.hpp"
 #include "image/prosper_texture.hpp"
 #include "prosper_util.hpp"

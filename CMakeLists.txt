@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
 
-include(${CMAKE_CURRENT_LIST_DIR}/cotire.cmake)
-
 set(INCLUDE_DIRS)
 function(add_include_dir IDENTIFIER)
 	set(PRETTYNAME ${IDENTIFIER})
@@ -127,8 +125,35 @@ endforeach(INCLUDE_PATH)
 
 set(TARGET_PROPERTIES LINKER_LANGUAGE CXX)
 
-if(DEFINED PRECOMPILED_HEADER)
-	set_target_properties(${PROJ_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "src/${PRECOMPILED_HEADER}.h")
-endif()
-cotire(${PROJ_NAME})
+target_precompile_headers(
+	${PROJ_NAME} PRIVATE
+	include/prosper_definitions.hpp
+	include/prosper_enums.hpp
+	include/prosper_includes.hpp
+	include/prosper_context.hpp
+	include/prosper_context_object.hpp
+	include/prosper_structs.hpp
+	include/prosper_util.hpp
+	include/prosper_window.hpp
+	include/prosper_command_buffer.hpp
+	include/buffers/prosper_buffer.hpp
+	include/image/prosper_image.hpp
+	include/image/prosper_image_view.hpp
+	include/image/prosper_render_target.hpp
+	include/image/prosper_sampler.hpp
+	include/image/prosper_texture.hpp
+	include/shader/prosper_shader.hpp
+	include/shader/prosper_shader_manager.hpp
+	include/prosper_framebuffer.hpp
+	include/prosper_render_pass.hpp
+
+	include/mathutil/glmutil.h
+	include/mathutil/transform.hpp
+	include/mathutil/umath.h
+	include/mathutil/uquat.h
+	include/mathutil/uvec.h
+	include/mathutil/mathutildefinitions.h
+	include/mathutil/color.h
+	include/mathutil/umat.h
+)
 set_target_properties(${PROJ_NAME} PROPERTIES ${TARGET_PROPERTIES})

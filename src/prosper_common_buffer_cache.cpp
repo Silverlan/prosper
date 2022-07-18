@@ -2,7 +2,6 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "stdafx_prosper.h"
 #include "prosper_common_buffer_cache.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"

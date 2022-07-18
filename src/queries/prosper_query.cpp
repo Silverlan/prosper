@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "stdafx_prosper.h"
+
 #include "queries/prosper_query.hpp"
 #include "prosper_context.hpp"
 #include "prosper_command_buffer.hpp"
