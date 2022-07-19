@@ -146,14 +146,5 @@ target_precompile_headers(
 	include/shader/prosper_shader_manager.hpp
 	include/prosper_framebuffer.hpp
 	include/prosper_render_pass.hpp
-
-	include/mathutil/glmutil.h
-	include/mathutil/transform.hpp
-	include/mathutil/umath.h
-	include/mathutil/uquat.h
-	include/mathutil/uvec.h
-	include/mathutil/mathutildefinitions.h
-	include/mathutil/color.h
-	include/mathutil/umat.h
 )
 set_target_properties(${PROJ_NAME} PROPERTIES ${TARGET_PROPERTIES})
