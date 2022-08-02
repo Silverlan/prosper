@@ -63,6 +63,7 @@ namespace prosper
 		bool IsNormalMap() const;
 		void SetSrgb(bool srgb);
 		void SetNormalMap(bool normalMap);
+		virtual std::optional<size_t> GetStorageSize() const=0;
 
 		uint32_t GetPixelSize() const;
 		uint32_t GetSize() const;
