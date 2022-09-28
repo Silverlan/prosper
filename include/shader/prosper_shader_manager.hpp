@@ -4,6 +4,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_context_object.hpp"
 #include <sharedutils/util_weak_handle.hpp>
+#include <shader/prosper_shader.hpp>
 #include <unordered_map>
 #include <functional>
 #include <string>
