@@ -5,6 +5,7 @@
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "shader/prosper_pipeline_loader.hpp"
+#include "shader/prosper_shader_t.hpp"
 #include "prosper_util.hpp"
 #include "image/prosper_render_target.hpp"
 #include "image/prosper_texture.hpp"

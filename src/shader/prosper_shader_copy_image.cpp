@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "shader/prosper_shader_copy_image.hpp"
+#include "shader/prosper_shader_t.hpp"
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "buffers/prosper_buffer.hpp"

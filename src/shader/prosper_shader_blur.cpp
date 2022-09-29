@@ -4,6 +4,7 @@
 
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
+#include "shader/prosper_shader_t.hpp"
 #include "prosper_context.hpp"
 #include "prosper_util.hpp"
 #include "image/prosper_render_target.hpp"
