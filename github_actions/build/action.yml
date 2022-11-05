@@ -45,11 +45,13 @@ runs:
         root_dir: "${{inputs.working-directory}}/external_libs/util_udm"
         working-directory: ${{inputs.working-directory}}
 
-    - name: Build
-      id: build
-      uses: Silverlan/prosper/github_actions/build@master
+    - uses: Silverlan/common_actions/build_cmake@main
+      name: CMake Build
       with:
-        root_dir: "${{inputs.working-directory}}"
-        should_checkout: "0"
-        dir: '${{ inputs.dir }}/prosper'
-        working-directory: ${{inputs.working-directory}}
+        build_type: ${{ matrix.config.build_type }}
+        build_generator: ${{ matrix.config.generators }}
+        cmake_var: 'DEPENDENCY_PROSPER_LIBRARY'
+        build_target: wgui
+        build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
+        cmake_script_location: '${{ inputs.dir }}'
+        
