@@ -1,61 +1,86 @@
 name: Build
 description: 'Build library'
 inputs:
-  root_dir:
-    description: 'Root directory'
+  repo-directory:
+    description: 'Specifies source code location. If empty, source code will be downloaded to working-directory.'
     required: true
-  should_checkout:
-    description: 'Checkout the core library?'
+    default: ''
+  working-directory:
+    description: 'Working Directory'
     required: true
-    default: '1'
-  dir:
-    description: 'Library directory'
+    default: '${{ github.workspace }}'
+  build-directory:
+    description: 'Build Directory'
     required: true
-    default: 'external_libs/prosper'
+    default: './build'
 runs:
   using: "composite"
   steps:
+    - uses: Silverlan/common_actions/action_start@main
+      with:
+        name: "prosper > build"
+        input_values: "repo-directory: ${{inputs.repo-directory}},working-directory: ${{inputs.working-directory}},build-directory: ${{inputs.build-directory}}"
+        
     - name: Initialize Env
       id: init-env
       uses: Silverlan/common_actions/set_common_env_vars@main
-      
+      with:
+        working-directory: ${{inputs.working-directory}}
+        
     - uses: ChristopherHX/conditional@b4a9649204f81002ec9a4ef7d4bf7d6b2ab7fa55
       name: CMake Build
       with:
-        if: ${{inputs.should_checkout == '1'}}
+        if: ${{inputs.repo-directory == ''}}
         step: |
-          uses: Silverlan/common_actions/get_submodule@main
+          uses: Silverlan/common_actions/get_submodule_simple@main
           with:
             repo: 'Silverlan/prosper'
-            repo_name: 'prosper'
             cmake_var: 'DEPENDENCY_PROSPER_INCLUDE'
-            dir: 'external_libs'
-            
+            working-directory: ${{inputs.working-directory}}
+        
+    - name: Create directories
+      shell: bash
+      working-directory: ${{inputs.working-directory}}
+      run: |
+        mkdir -p ./iglfw
+        mkdir -p ./util_image
+        mkdir -p ./util_udm
+        
+    - name: Build iglfw
+      uses: Silverlan/iglfw/github_actions/build@master
+      with:
+        working-directory: '${{inputs.working-directory}}/iglfw'
+      
+    - name: Build util_image
+      uses: Silverlan/util_image/github_actions/build@master
+      with:
+        working-directory: '${{inputs.working-directory}}/util_image'
+
+    - name: Build submodule - util_udm
+      uses: Silverlan/util_udm/github_actions/build@master
+      with:
+        working-directory: '${{inputs.working-directory}}/util_udm'
+
+    - name: Build muparserx
+      shell: bash
+      working-directory: ${{inputs.working-directory}}
+      run: |
+        git clone --recursive https://github.com/Silverlan/muparserx.git muparserx
+        cd muparserx
+        cmake -G "Unix Makefiles"
+        cmake --build ./ --verbose
+
+    - name: Define muparserx CMake variables
+      uses: Silverlan/common_actions/define_cmake_var@main
+      with:
+        cmake_var: " -DDEPENDENCY_MUPARSERX_INCLUDE=\"${{inputs.working-directory}}/muparserx/parser/\" -DDEPENDENCY_MUPARSERX_LIBRARY=\"${{inputs.working-directory}}/muparserx/libmuparserx.a\" "
+
     - name: Download GLI
       uses: Silverlan/common_actions/get_gli@main
       with:
         cmake_var: 'DEPENDENCY_GLI_INCLUDE'
-
-    - name: Build submodule - muparserx
-      uses: Silverlan/common_actions/build_submodule@main
-      with:
-        repo: 'https://github.com/Silverlan/muparserx.git'
-        repo_name: 'muparserx'
-        build_target: 'muparserx'
-        cmake_var: 'DEPENDENCY_MUPARSERX_INCLUDE'
-        cmake_var_lib: 'DEPENDENCY_MUPARSERX_LIBRARY'
-        include_dir: 'parser'
-        static_library: '1'
-            
-    - name: Build submodule - iglfw
-      uses: Silverlan/iglfw/github_actions/build@master
-      with:
-        root_dir: "${{ env.GA_ROOT_DIR }}/external_libs/iglfw"
-
-    - name: Build submodule - util_image
-      uses: Silverlan/util_image/github_actions/build@master
-      with:
-        root_dir: "${{ env.GA_ROOT_DIR }}/external_libs/util_image"
+        cmake_definitions: ${{ env.cmake_definitions }}
+        working-directory: ${{inputs.working-directory}}
 
     - uses: Silverlan/common_actions/build_cmake@main
       name: CMake Build
@@ -64,5 +89,8 @@ runs:
         build_generator: ${{ matrix.config.generators }}
         cmake_var: 'DEPENDENCY_PROSPER_LIBRARY'
         build_target: prosper
-        build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
-        cmake_script_location: '${{ inputs.dir }}'
+        build_dir: '${{ inputs.build-directory }}'
+        cmake_script_location: '.'
+        working-directory: ${{inputs.working-directory}}
+
+    - uses: Silverlan/common_actions/action_end@main
