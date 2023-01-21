@@ -47,6 +47,9 @@ namespace prosper
 	enum class PhysicalDeviceType : uint8_t;
 	namespace util
 	{
+		struct BufferCreateInfo;
+		struct ImageCreateInfo;
+
 		DLLPROSPER Format get_prosper_format(const uimg::ImageBuffer &imgBuffer);
 		DLLPROSPER prosper::util::ImageCreateInfo get_image_create_info(const uimg::ImageBuffer &imgBuffer,bool cubemap=false);
 
@@ -75,6 +78,8 @@ namespace prosper
 		DLLPROSPER std::string to_string(PhysicalDeviceType type);
 		DLLPROSPER std::string to_string(Vendor type);
 		DLLPROSPER std::string to_string(SampleCountFlags samples);
+		DLLPROSPER void to_string(const BufferCreateInfo &createInfo,std::stringstream &out);
+		DLLPROSPER void to_string(const ImageCreateInfo &createInfo,std::stringstream &out);
 		DLLPROSPER bool has_alpha(Format format);
 		DLLPROSPER bool is_depth_format(Format format);
 		DLLPROSPER bool is_compressed_format(Format format);

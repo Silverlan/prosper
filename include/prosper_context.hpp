@@ -14,6 +14,7 @@
 #include <mutex>
 #include <thread>
 #include <iglfw/glfw_window.h>
+#include <sharedutils/util_log.hpp>
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
 #include "shader/prosper_shader_manager.hpp"
@@ -185,6 +186,10 @@ namespace prosper
 		virtual std::string GetAPIAbbreviation() const=0;
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)=0;
 		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo)=0;
+
+		void SetLogHandler(const ::util::LogHandler &logHandler,const std::function<bool(::util::LogSeverity)> &getLevel=nullptr);
+		bool ShouldLog() const;
+		bool ShouldLog(::util::LogSeverity level) const;
 
 		void Run();
 		void Close();
@@ -504,6 +509,8 @@ namespace prosper
 		std::mutex m_tmpBufferMutex;
 		std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};
 		std::mutex m_aliveResourceMutex;
+		::util::LogHandler m_logHandler;
+		std::function<bool(::util::LogSeverity)> m_logHandlerLevel;
 
 		std::queue<std::function<void(prosper::IPrimaryCommandBuffer&)>> m_scheduledBufferUpdates;
 		

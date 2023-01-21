@@ -910,6 +910,21 @@ prosper::WindowSettings &prosper::IPrContext::GetInitialWindowSettings() {return
 
 void prosper::IPrContext::SetCallbacks(const Callbacks &callbacks) {m_callbacks = callbacks;}
 
+void prosper::IPrContext::SetLogHandler(const ::util::LogHandler &logHandler,const std::function<bool(::util::LogSeverity)> &getLevel)
+{
+	m_logHandler = logHandler;
+	m_logHandlerLevel = getLevel;
+}
+bool prosper::IPrContext::ShouldLog() const {return m_logHandler != nullptr;}
+bool prosper::IPrContext::ShouldLog(::util::LogSeverity level) const
+{
+	if(!ShouldLog())
+		return false;
+	if(!m_logHandlerLevel)
+		return true;
+	return m_logHandlerLevel(level);
+}
+
 void prosper::IPrContext::Run()
 {
 	auto t = ::util::Clock::now();
