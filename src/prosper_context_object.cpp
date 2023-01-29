@@ -7,11 +7,9 @@
 
 using namespace prosper;
 
-ContextObject::ContextObject(IPrContext &context)
-	: m_wpContext(context.shared_from_this())
-{}
+ContextObject::ContextObject(IPrContext &context) : m_wpContext(context.shared_from_this()) {}
 
-IPrContext &ContextObject::GetContext() const {return *(m_wpContext.lock());}
+IPrContext &ContextObject::GetContext() const { return *(m_wpContext.lock()); }
 
 void prosper::ContextObject::SetDebugName(const std::string &name)
 {
@@ -21,4 +19,4 @@ void prosper::ContextObject::SetDebugName(const std::string &name)
 		m_dbgName += ",";
 	m_dbgName += name;
 }
-const std::string &prosper::ContextObject::GetDebugName() const {return m_dbgName;}
+const std::string &prosper::ContextObject::GetDebugName() const { return m_dbgName; }

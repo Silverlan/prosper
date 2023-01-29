@@ -11,18 +11,14 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
-namespace prosper
-{
+namespace prosper {
 	class Texture;
 	class ISampler;
 	class IImageView;
-	class DLLPROSPER Texture
-		: public ContextObject,
-		public std::enable_shared_from_this<Texture>
-	{
-	public:
-		Texture(const Texture&)=delete;
-		Texture &operator=(const Texture&)=delete;
+	class DLLPROSPER Texture : public ContextObject, public std::enable_shared_from_this<Texture> {
+	  public:
+		Texture(const Texture &) = delete;
+		Texture &operator=(const Texture &) = delete;
 
 		const IImage &GetImage() const;
 		IImage &GetImage();
@@ -39,14 +35,10 @@ namespace prosper
 
 		virtual bool IsMSAATexture() const;
 		virtual void SetDebugName(const std::string &name) override;
-	protected:
-		friend std::shared_ptr<Texture> IPrContext::CreateTexture(
-			const util::TextureCreateInfo &createInfo,IImage &img,
-			const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo,
-			const std::optional<util::SamplerCreateInfo> &samplerCreateInfo
-		);
+	  protected:
+		friend std::shared_ptr<Texture> IPrContext::CreateTexture(const util::TextureCreateInfo &createInfo, IImage &img, const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo, const std::optional<util::SamplerCreateInfo> &samplerCreateInfo);
 
-		Texture(IPrContext &context,IImage &img,const std::vector<std::shared_ptr<IImageView>> &imgViews,ISampler *sampler=nullptr);
+		Texture(IPrContext &context, IImage &img, const std::vector<std::shared_ptr<IImageView>> &imgViews, ISampler *sampler = nullptr);
 		std::shared_ptr<IImage> m_image = nullptr;
 		std::vector<std::shared_ptr<IImageView>> m_imageViews = {};
 		std::shared_ptr<ISampler> m_sampler = nullptr;

@@ -11,21 +11,17 @@
 
 #undef max
 
-namespace prosper
-{
-	class DLLPROSPER IFence
-		: public ContextObject,
-		public std::enable_shared_from_this<IFence>
-	{
-	public:
-		IFence(const IFence&)=delete;
-		IFence &operator=(const IFence&)=delete;
+namespace prosper {
+	class DLLPROSPER IFence : public ContextObject, public std::enable_shared_from_this<IFence> {
+	  public:
+		IFence(const IFence &) = delete;
+		IFence &operator=(const IFence &) = delete;
 		virtual ~IFence() override;
-		virtual const void *GetInternalHandle() const {return nullptr;}
+		virtual const void *GetInternalHandle() const { return nullptr; }
 
-		virtual bool IsSet() const=0;
-		virtual bool Reset() const=0;
-	protected:
+		virtual bool IsSet() const = 0;
+		virtual bool Reset() const = 0;
+	  protected:
 		IFence(IPrContext &context);
 	};
 };

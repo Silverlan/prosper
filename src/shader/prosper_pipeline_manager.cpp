@@ -7,9 +7,7 @@
 using namespace prosper;
 
 // TODO: Remove this file/class
-IPipelineManager::IPipelineManager(IPrContext &context)
-	: ContextObject{context}
-{}
+IPipelineManager::IPipelineManager(IPrContext &context) : ContextObject {context} {}
 
 #if 0
 bool VlkPipelineManager::ClearPipeline(PipelineID id)

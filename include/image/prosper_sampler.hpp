@@ -16,17 +16,13 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
-namespace prosper
-{
-	class DLLPROSPER ISampler
-		: public ContextObject,
-		public std::enable_shared_from_this<ISampler>
-	{
-	public:
-		ISampler(const ISampler&)=delete;
-		ISampler &operator=(const ISampler&)=delete;
+namespace prosper {
+	class DLLPROSPER ISampler : public ContextObject, public std::enable_shared_from_this<ISampler> {
+	  public:
+		ISampler(const ISampler &) = delete;
+		ISampler &operator=(const ISampler &) = delete;
 		virtual ~ISampler() override;
-		virtual const void *GetInternalHandle() const {return nullptr;}
+		virtual const void *GetInternalHandle() const { return nullptr; }
 
 		void SetMinFilter(Filter filter);
 		void SetMagFilter(Filter filter);
@@ -60,9 +56,9 @@ namespace prosper
 		// bool GetUseUnnormalizedCoordinates() const;
 
 		bool Update();
-	protected:
-		ISampler(IPrContext &context,const util::SamplerCreateInfo &samplerCreateInfo);
-		virtual bool DoUpdate()=0;
+	  protected:
+		ISampler(IPrContext &context, const util::SamplerCreateInfo &samplerCreateInfo);
+		virtual bool DoUpdate() = 0;
 		util::SamplerCreateInfo m_createInfo = {};
 	};
 };

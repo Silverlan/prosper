@@ -10,18 +10,13 @@
 
 using namespace prosper;
 
-ShaderCopyImage::ShaderCopyImage(prosper::IPrContext &context,const std::string &identifier)
-	: ShaderBaseImageProcessing(context,identifier,"screen/fs_screen")
+ShaderCopyImage::ShaderCopyImage(prosper::IPrContext &context, const std::string &identifier) : ShaderBaseImageProcessing(context, identifier, "screen/fs_screen") { SetPipelineCount(umath::to_integral(Pipeline::Count)); }
+bool ShaderCopyImage::RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx) const { return ShaderGraphics::RecordBeginDraw(bindState, umath::to_integral(pipelineIdx)); }
+void ShaderCopyImage::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx)
 {
-	SetPipelineCount(umath::to_integral(Pipeline::Count));
-}
-bool ShaderCopyImage::RecordBeginDraw(ShaderBindState &bindState,Pipeline pipelineIdx) const {return ShaderGraphics::RecordBeginDraw(bindState,umath::to_integral(pipelineIdx));}
-void ShaderCopyImage::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass,uint32_t pipelineIdx)
-{
-	if(pipelineIdx == 0u)
-	{
-		ShaderBaseImageProcessing::InitializeRenderPass(outRenderPass,pipelineIdx);
+	if(pipelineIdx == 0u) {
+		ShaderBaseImageProcessing::InitializeRenderPass(outRenderPass, pipelineIdx);
 		return;
 	}
-	CreateCachedRenderPass<ShaderCopyImage>({{}},outRenderPass,pipelineIdx);
+	CreateCachedRenderPass<ShaderCopyImage>({{}}, outRenderPass, pipelineIdx);
 }

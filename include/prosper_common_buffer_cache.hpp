@@ -8,13 +8,11 @@
 #include "prosper_definitions.hpp"
 #include <mathutil/uvec.h>
 
-namespace prosper
-{
+namespace prosper {
 	class IRenderBuffer;
 	class IPrContext;
-	class DLLPROSPER CommonBufferCache
-	{
-	public:
+	class DLLPROSPER CommonBufferCache {
+	  public:
 		CommonBufferCache(IPrContext &context);
 
 		std::shared_ptr<IRenderBuffer> GetSquareVertexUvRenderBuffer();
@@ -36,7 +34,7 @@ namespace prosper
 
 		// For internal use only
 		void Release();
-	private:
+	  private:
 		IPrContext &m_context;
 
 		std::shared_ptr<IRenderBuffer> m_squareVertexUvRenderBuffer {};

@@ -11,8 +11,7 @@
 #include <atomic>
 #include <condition_variable>
 
-namespace prosper
-{
+namespace prosper {
 	class IPrContext;
 	class IPrimaryCommandBuffer;
 	class IRenderPass;
@@ -20,26 +19,26 @@ namespace prosper
 	class ISecondaryCommandBuffer;
 	class ICommandBufferPool;
 
-	using RenderThreadRecordCall = std::function<void(prosper::ISecondaryCommandBuffer&)>;
+	using RenderThreadRecordCall = std::function<void(prosper::ISecondaryCommandBuffer &)>;
 	class SwapCommandBufferGroup;
-	class DLLPROSPER ISwapCommandBufferGroup
-	{
-	public:
+	class DLLPROSPER ISwapCommandBufferGroup {
+	  public:
 		ISwapCommandBufferGroup(Window &window);
 		virtual ~ISwapCommandBufferGroup();
-		virtual void Record(const RenderThreadRecordCall &record)=0;
+		virtual void Record(const RenderThreadRecordCall &record) = 0;
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf);
-		virtual bool IsPending() const=0;
-		void StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb);
+		virtual bool IsPending() const = 0;
+		void StartRecording(prosper::IRenderPass &rp, prosper::IFramebuffer &fb);
 		void EndRecording();
-		void SetOneTimeSubmit(bool oneTimeSubmit) {m_oneTimeSubmit = oneTimeSubmit;}
-		bool GetOneTimeSubmit() const {return m_oneTimeSubmit;}
+		void SetOneTimeSubmit(bool oneTimeSubmit) { m_oneTimeSubmit = oneTimeSubmit; }
+		bool GetOneTimeSubmit() const { return m_oneTimeSubmit; }
 
 		void Reuse();
 		prosper::IPrContext &GetContext() const;
-	protected:
+	  protected:
 		void Initialize(uint32_t swapchainIdx);
-		virtual void Wait()=0;;
+		virtual void Wait() = 0;
+		;
 		std::vector<std::shared_ptr<prosper::ISecondaryCommandBuffer>> m_commandBuffers;
 		std::shared_ptr<prosper::ICommandBufferPool> m_cmdPool = nullptr;
 		prosper::ISecondaryCommandBuffer *m_curCommandBuffer = nullptr;
@@ -49,16 +48,15 @@ namespace prosper
 		Window *m_windowPtr = nullptr;
 	};
 
-	class DLLPROSPER MtSwapCommandBufferGroup
-		: public ISwapCommandBufferGroup
-	{
-	public:
+	class DLLPROSPER MtSwapCommandBufferGroup : public ISwapCommandBufferGroup {
+	  public:
 		MtSwapCommandBufferGroup(Window &window);
 		virtual ~MtSwapCommandBufferGroup() override;
-		virtual bool IsPending() const override {return m_pending;}
-	private:
+		virtual bool IsPending() const override { return m_pending; }
+	  private:
 		virtual void Record(const RenderThreadRecordCall &record) override;
-		virtual void Wait() override;;
+		virtual void Wait() override;
+		;
 
 		std::thread m_thread;
 		std::condition_variable m_conditionVar;
@@ -67,16 +65,15 @@ namespace prosper
 		std::atomic<bool> m_pending = false;
 	};
 
-	class DLLPROSPER StSwapCommandBufferGroup
-		: public ISwapCommandBufferGroup
-	{
-	public:
+	class DLLPROSPER StSwapCommandBufferGroup : public ISwapCommandBufferGroup {
+	  public:
 		StSwapCommandBufferGroup(Window &window);
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf) override;
-		virtual bool IsPending() const override {return false;}
-	private:
+		virtual bool IsPending() const override { return false; }
+	  private:
 		virtual void Record(const RenderThreadRecordCall &record) override;
-		virtual void Wait() override;;
+		virtual void Wait() override;
+		;
 	};
 };
 

@@ -10,17 +10,13 @@
 
 using namespace prosper;
 
-IUniformResizableBuffer::IUniformResizableBuffer(
-	IPrContext &context,IBuffer &buffer,
-	uint64_t bufferInstanceSize,uint64_t alignedBufferBaseSize,
-	uint64_t maxTotalSize,uint32_t alignment
-)
-	: IResizableBuffer{buffer,maxTotalSize},m_bufferInstanceSize{bufferInstanceSize},m_alignment{alignment}
+IUniformResizableBuffer::IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint64_t maxTotalSize, uint32_t alignment)
+    : IResizableBuffer {buffer, maxTotalSize}, m_bufferInstanceSize {bufferInstanceSize}, m_alignment {alignment}
 {
 	m_createInfo.size = alignedBufferBaseSize;
 
-	auto numMaxBuffers = buffer.GetCreateInfo().size /bufferInstanceSize;
-	m_allocatedSubBuffers.resize(numMaxBuffers,nullptr);
+	auto numMaxBuffers = buffer.GetCreateInfo().size / bufferInstanceSize;
+	m_allocatedSubBuffers.resize(numMaxBuffers, nullptr);
 }
 
 uint64_t IUniformResizableBuffer::GetInstanceSize() const
@@ -37,35 +33,32 @@ uint32_t IUniformResizableBuffer::GetAlignment() const
 uint64_t IUniformResizableBuffer::GetStride() const
 {
 	std::unique_lock lock {m_bufferMutex}; // TODO: Why do we need this lock?
-	return prosper::util::get_aligned_size(m_bufferInstanceSize,m_alignment);
+	return prosper::util::get_aligned_size(m_bufferInstanceSize, m_alignment);
 }
 
-const std::vector<IBuffer*> &IUniformResizableBuffer::GetAllocatedSubBuffers() const {return m_allocatedSubBuffers;}
+const std::vector<IBuffer *> &IUniformResizableBuffer::GetAllocatedSubBuffers() const { return m_allocatedSubBuffers; }
 uint64_t IUniformResizableBuffer::GetAssignedMemory() const
 {
 	std::unique_lock lock {m_bufferMutex};
 	return m_assignedMemory;
 }
-uint32_t IUniformResizableBuffer::GetTotalInstanceCount() const {return m_allocatedSubBuffers.size();}
+uint32_t IUniformResizableBuffer::GetTotalInstanceCount() const { return m_allocatedSubBuffers.size(); }
 
 std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *data)
 {
 	std::unique_lock lock {m_bufferMutex};
 	auto offset = 0ull;
 	auto bUseExistingSlot = false;
-	auto baseAlignedInstanceSize = prosper::util::get_aligned_size(m_bufferInstanceSize,m_alignment);
-	auto alignedInstanceSize = baseAlignedInstanceSize;// *numInstances;
-	if(m_freeOffsets.empty() == false)
-	{
+	auto baseAlignedInstanceSize = prosper::util::get_aligned_size(m_bufferInstanceSize, m_alignment);
+	auto alignedInstanceSize = baseAlignedInstanceSize; // *numInstances;
+	if(m_freeOffsets.empty() == false) {
 		offset = m_freeOffsets.front();
 		m_freeOffsets.pop();
 		bUseExistingSlot = true;
 	}
-	else
-	{
-		if(m_assignedMemory +alignedInstanceSize > m_baseSize)
-		{
-			if(m_assignedMemory +alignedInstanceSize > m_maxTotalSize)
+	else {
+		if(m_assignedMemory + alignedInstanceSize > m_baseSize) {
+			if(m_assignedMemory + alignedInstanceSize > m_maxTotalSize)
 				return nullptr; // Total capacity has been reached
 			GetContext().WaitIdle();
 			// Re-allocate buffer; Increase previous size by additional factor
@@ -76,25 +69,22 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 			auto newBuffer = GetContext().CreateBuffer(createInfo);
 			assert(newBuffer);
 			std::vector<uint8_t> data(oldSize);
-			Read(0ull,data.size(),data.data());
-			for(auto *subBuffer : m_allocatedSubBuffers)
-			{
+			Read(0ull, data.size(), data.data());
+			for(auto *subBuffer : m_allocatedSubBuffers) {
 				if(subBuffer == nullptr)
 					continue;
 				subBuffer->RecreateInternalSubBuffer(*newBuffer);
 			}
-			newBuffer->Write(0ull,data.size(),data.data());
+			newBuffer->Write(0ull, data.size(), data.data());
 			MoveInternalBuffer(*newBuffer);
 			newBuffer = nullptr;
-			auto numMaxBuffers = createInfo.size /baseAlignedInstanceSize;
-			m_allocatedSubBuffers.resize(numMaxBuffers,nullptr);
+			auto numMaxBuffers = createInfo.size / baseAlignedInstanceSize;
+			m_allocatedSubBuffers.resize(numMaxBuffers, nullptr);
 
-			for(auto *subBuffer : m_allocatedSubBuffers)
-			{
+			for(auto *subBuffer : m_allocatedSubBuffers) {
 				if(subBuffer == nullptr)
 					continue;
-				for(auto &cb : subBuffer->m_reallocationCallbacks)
-				{
+				for(auto &cb : subBuffer->m_reallocationCallbacks) {
 					if(cb.IsValid() == false)
 						continue;
 					cb();
@@ -107,17 +97,17 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 		offset = m_assignedMemory;
 	}
 
-	auto idx = offset /baseAlignedInstanceSize;
+	auto idx = offset / baseAlignedInstanceSize;
 	auto pThis = std::dynamic_pointer_cast<IUniformResizableBuffer>(shared_from_this());
-	auto subBuffer = CreateSubBuffer(offset,m_bufferInstanceSize,[pThis,idx](IBuffer &subBuffer) {
+	auto subBuffer = CreateSubBuffer(offset, m_bufferInstanceSize, [pThis, idx](IBuffer &subBuffer) {
 		std::unique_lock lock {pThis->m_bufferMutex};
 		pThis->m_freeOffsets.push(subBuffer.GetStartOffset());
 		pThis->m_allocatedSubBuffers.at(idx) = nullptr;
 	});
 	assert(subBuffer);
-	subBuffer->SetParent(*this,idx);
+	subBuffer->SetParent(*this, idx);
 	if(data != nullptr)
-		subBuffer->Write(0ull,m_bufferInstanceSize,data);
+		subBuffer->Write(0ull, m_bufferInstanceSize, data);
 	m_allocatedSubBuffers.at(idx) = subBuffer.get();
 	if(bUseExistingSlot == false)
 		m_assignedMemory += alignedInstanceSize;

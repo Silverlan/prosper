@@ -12,29 +12,20 @@
 
 #undef max
 
-namespace prosper
-{
-	class DLLPROSPER Profiler
-		: public ContextObject,
-		public std::enable_shared_from_this<Profiler>
-	{
-	public:
+namespace prosper {
+	class DLLPROSPER Profiler : public ContextObject, public std::enable_shared_from_this<Profiler> {
+	  public:
 		using Stage = uint32_t;
-		enum class Device : uint8_t
-		{
-			GPU = 0u,
-			CPU
-		};
+		enum class Device : uint8_t { GPU = 0u, CPU };
 
 		static std::shared_ptr<Profiler> Create(IPrContext &context);
 		virtual ~Profiler() override;
 
-		void StartStage(Device device,Stage stage);
-		void EndStage(Device device,Stage stage);
+		void StartStage(Device device, Stage stage);
+		void EndStage(Device device, Stage stage);
 
-		std::chrono::nanoseconds GetResult(Device device,Stage stage) const;
-	private:
-
+		std::chrono::nanoseconds GetResult(Device device, Stage stage) const;
+	  private:
 	};
 };
 

@@ -12,14 +12,12 @@
 #include "prosper_definitions.hpp"
 #include "prosper_includes.hpp"
 
-namespace Anvil
-{
+namespace Anvil {
 	class BaseDevice;
 	class Image;
 };
 
-namespace prosper::util
-{
+namespace prosper::util {
 	DLLPROSPER prosper::Format get_vk_format(uimg::Format format);
 };
 

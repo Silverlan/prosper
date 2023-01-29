@@ -11,27 +11,23 @@
 #include <functional>
 #include <queue>
 
-namespace prosper
-{
+namespace prosper {
 	class IQueryPool;
 	class OcclusionQuery;
 	class PipelineStatisticsQuery;
 	class TimestampQuery;
 	class TimerQuery;
-	class DLLPROSPER IQueryPool
-		: public ContextObject,
-		public std::enable_shared_from_this<IQueryPool>
-	{
-	public:
-		virtual bool RequestQuery(uint32_t &queryId,QueryType type);
+	class DLLPROSPER IQueryPool : public ContextObject, public std::enable_shared_from_this<IQueryPool> {
+	  public:
+		virtual bool RequestQuery(uint32_t &queryId, QueryType type);
 		void FreeQuery(uint32_t queryId);
 
 		std::shared_ptr<OcclusionQuery> CreateOcclusionQuery();
 		std::shared_ptr<PipelineStatisticsQuery> CreatePipelineStatisticsQuery();
 		std::shared_ptr<TimestampQuery> CreateTimestampQuery(PipelineStageFlags pipelineStage);
-		std::shared_ptr<TimerQuery> CreateTimerQuery(PipelineStageFlags pipelineStageStart,PipelineStageFlags pipelineStageEnd);
-	protected:
-		IQueryPool(IPrContext &context,QueryType type,uint32_t queryCount);
+		std::shared_ptr<TimerQuery> CreateTimerQuery(PipelineStageFlags pipelineStageStart, PipelineStageFlags pipelineStageEnd);
+	  protected:
+		IQueryPool(IPrContext &context, QueryType type, uint32_t queryCount);
 
 		QueryType m_type = {};
 		uint32_t m_queryCount = 0u;

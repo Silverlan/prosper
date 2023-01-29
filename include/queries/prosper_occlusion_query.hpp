@@ -8,19 +8,16 @@
 #include "queries/prosper_query.hpp"
 #include <chrono>
 
-namespace prosper
-{
+namespace prosper {
 	class IQueryPool;
 	class OcclusionQuery;
 	class ICommandBuffer;
-	class DLLPROSPER OcclusionQuery
-		: public Query
-	{
-	public:
+	class DLLPROSPER OcclusionQuery : public Query {
+	  public:
 		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer) const;
 		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
-	private:
-		OcclusionQuery(IQueryPool &queryPool,uint32_t queryId);
+	  private:
+		OcclusionQuery(IQueryPool &queryPool, uint32_t queryId);
 		friend IQueryPool;
 	};
 };

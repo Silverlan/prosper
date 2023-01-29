@@ -15,27 +15,23 @@
 
 #undef max
 
-namespace prosper
-{
+namespace prosper {
 	class IPrContext;
-	class DLLPROSPER ShaderPipelineLoader
-	{
-	public:
+	class DLLPROSPER ShaderPipelineLoader {
+	  public:
 		ShaderPipelineLoader(prosper::IPrContext &context);
 		~ShaderPipelineLoader();
 		void Flush();
 		void Stop();
-		void Init(ShaderIndex shaderIndex,const std::function<bool()> &job);
-		void Bake(ShaderIndex shaderIndex,prosper::PipelineID id,prosper::PipelineBindPoint pipelineType);
+		void Init(ShaderIndex shaderIndex, const std::function<bool()> &job);
+		void Bake(ShaderIndex shaderIndex, prosper::PipelineID id, prosper::PipelineBindPoint pipelineType);
 		bool IsShaderQueued(ShaderIndex shaderIndex) const;
-	private:
-		struct InitItem
-		{
+	  private:
+		struct InitItem {
 			ShaderIndex shaderIndex;
 			std::function<bool()> init;
 		};
-		struct BakeItem
-		{
+		struct BakeItem {
 			ShaderIndex shaderIndex;
 			prosper::PipelineID pipelineId;
 			prosper::PipelineBindPoint pipelineBindPoint;
@@ -43,7 +39,7 @@ namespace prosper
 		void ProcessInitQueue();
 		void ProcessBakeQueue();
 		prosper::IPrContext &m_context;
-		void AddPendingShaderJobCount(ShaderIndex shaderIndex,int32_t i);
+		void AddPendingShaderJobCount(ShaderIndex shaderIndex, int32_t i);
 
 		bool m_multiThreaded = true;
 		std::mutex m_initQueueMutex;
@@ -62,7 +58,7 @@ namespace prosper
 		std::mutex m_pendingWorkMutex;
 
 		mutable std::mutex m_pendingShaderJobsMutex;
-		std::unordered_map<ShaderIndex,uint32_t> m_pendingShaderJobs;
+		std::unordered_map<ShaderIndex, uint32_t> m_pendingShaderJobs;
 
 		std::unordered_set<ShaderIndex> m_shadersPendingForFinalization;
 	};

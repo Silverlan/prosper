@@ -8,19 +8,16 @@
 #include "prosper_definitions.hpp"
 #include <mathutil/umath.h>
 
-namespace prosper
-{
+namespace prosper {
 	constexpr uint32_t QUEUE_FAMILY_IGNORED = ~0u;
-	enum class QueueFamilyFlags : uint32_t
-	{
+	enum class QueueFamilyFlags : uint32_t {
 		None = 0u,
 		GraphicsBit = 1u,
-		ComputeBit = GraphicsBit<<1u,
-		DMABit = ComputeBit<<1u,
+		ComputeBit = GraphicsBit << 1u,
+		DMABit = ComputeBit << 1u,
 	};
 
-	enum class BufferUsageFlags
-	{
+	enum class BufferUsageFlags {
 		// These map to Anvil/Vulkan enums
 		None = 0,
 		IndexBufferBit = 0x00000040,
@@ -34,81 +31,41 @@ namespace prosper
 		VertexBufferBit = 0x00000080
 	};
 
-	enum class MemoryFeatureFlags : uint32_t
-	{
+	enum class MemoryFeatureFlags : uint32_t {
 		// Note: These flags are merely hints and may be ignored or changed by the API if they're not supported by the GPU!
 		None = 0u,
 		DeviceLocal = 1u,
-		HostCached = DeviceLocal<<1u,
-		HostCoherent = HostCached<<1u,
-		LazilyAllocated = HostCoherent<<1u,
-		HostAccessable = LazilyAllocated<<1u,
+		HostCached = DeviceLocal << 1u,
+		HostCoherent = HostCached << 1u,
+		LazilyAllocated = HostCoherent << 1u,
+		HostAccessable = LazilyAllocated << 1u,
 
-		Stream = HostAccessable<<1u, // Data is modified once and only used rarely
-		Static = Stream<<1u, // Data is modified once and used frequently
-		Dynamic = Static<<1u, // Data is modified repeatedly and used frequently
+		Stream = HostAccessable << 1u, // Data is modified once and only used rarely
+		Static = Stream << 1u,         // Data is modified once and used frequently
+		Dynamic = Static << 1u,        // Data is modified repeatedly and used frequently
 
-		WriteOnly = Dynamic<<1u,
-		ReadOnly = WriteOnly<<1u,
-		CopyOnly = ReadOnly<<1u,
+		WriteOnly = Dynamic << 1u,
+		ReadOnly = WriteOnly << 1u,
+		CopyOnly = ReadOnly << 1u,
 
-		GPUBulk = DeviceLocal | Static | WriteOnly, // Usage: GPU memory that is rarely (if ever) updated by the CPU
-		CPUToGPU = DeviceLocal | HostAccessable | Dynamic, // Usage: Memory that has to be frequently (e.g. every frame) updated by the CPU
+		GPUBulk = DeviceLocal | Static | WriteOnly,                     // Usage: GPU memory that is rarely (if ever) updated by the CPU
+		CPUToGPU = DeviceLocal | HostAccessable | Dynamic,              // Usage: Memory that has to be frequently (e.g. every frame) updated by the CPU
 		GPUToCPU = HostAccessable | HostCoherent | HostCached | Dynamic // Usage: Memory written to by the GPU, which needs to be readable by the CPU
 	};
 
-	enum class Filter : uint32_t
-	{
-		Nearest = 0,
-		Linear = 1
-	};
+	enum class Filter : uint32_t { Nearest = 0, Linear = 1 };
 
-	enum class SamplerMipmapMode : uint32_t
-	{
-		Nearest = 0,
-		Linear = 1
-	};
+	enum class SamplerMipmapMode : uint32_t { Nearest = 0, Linear = 1 };
 
-	enum class SamplerAddressMode : uint32_t
-	{
-		Repeat = 0,
-		MirroredRepeat = 1,
-		ClampToEdge = 2,
-		ClampToBorder = 3,
-		MirrorClampToEdge = 4
-	};
+	enum class SamplerAddressMode : uint32_t { Repeat = 0, MirroredRepeat = 1, ClampToEdge = 2, ClampToBorder = 3, MirrorClampToEdge = 4 };
 
-	enum class CompareOp : uint32_t
-	{
-		Never = 0,
-		Less = 1,
-		Equal = 2,
-		LessOrEqual = 3,
-		Greater = 4,
-		NotEqual = 5,
-		GreaterOrEqual = 6,
-		Always = 7
-	};
+	enum class CompareOp : uint32_t { Never = 0, Less = 1, Equal = 2, LessOrEqual = 3, Greater = 4, NotEqual = 5, GreaterOrEqual = 6, Always = 7 };
 
-	enum class BorderColor : uint32_t
-	{
-		FloatTransparentBlack = 0,
-		IntTransparentBlack = 1,
-		FloatOpaqueBlack = 2,
-		IntOpaqueBlack = 3,
-		FloatOpaqueWhite = 4,
-		IntOpaqueWhite = 5
-	};
+	enum class BorderColor : uint32_t { FloatTransparentBlack = 0, IntTransparentBlack = 1, FloatOpaqueBlack = 2, IntOpaqueBlack = 3, FloatOpaqueWhite = 4, IntOpaqueWhite = 5 };
 
-	enum class ImageType : uint8_t
-	{
-		e1D = 0,
-		e2D = 1,
-		e3D = 2
-	};
+	enum class ImageType : uint8_t { e1D = 0, e2D = 1, e3D = 2 };
 
-	enum class ImageUsageFlags : uint32_t
-	{
+	enum class ImageUsageFlags : uint32_t {
 		None = 0,
 		TransferDstBit = 0x00000002,
 		TransferSrcBit = 0x00000001,
@@ -120,14 +77,9 @@ namespace prosper
 		InputAttachmentBit = 0x00000080
 	};
 
-	enum class ImageTiling : uint8_t
-	{
-		Optimal = 0,
-		Linear = 1
-	};
+	enum class ImageTiling : uint8_t { Optimal = 0, Linear = 1 };
 
-	enum class Format : uint32_t
-	{
+	enum class Format : uint32_t {
 		// Commented formats have poor coverage (<90%, see https://vulkan.gpuinfo.org/listformats.php)
 		Unknown = 0,
 		R4G4_UNorm_Pack8 = 1,
@@ -316,20 +268,9 @@ namespace prosper
 		ASTC_12x12_SRGB_Block_PoorCoverage = 184
 	};
 
-	enum class SampleCountFlags : uint32_t
-	{
-		None = 0,
-		e1Bit = 0x00000001,
-		e2Bit = 0x00000002,
-		e4Bit = 0x00000004,
-		e8Bit = 0x00000008,
-		e16Bit = 0x00000010,
-		e32Bit = 0x00000020,
-		e64Bit = 0x00000040
-	};
+	enum class SampleCountFlags : uint32_t { None = 0, e1Bit = 0x00000001, e2Bit = 0x00000002, e4Bit = 0x00000004, e8Bit = 0x00000008, e16Bit = 0x00000010, e32Bit = 0x00000020, e64Bit = 0x00000040 };
 
-	enum class ImageCreateFlags : uint32_t
-	{
+	enum class ImageCreateFlags : uint32_t {
 		None = 0,
 		SparseBindingBit = 0x00000001,
 		SparseResidencyBit = 0x00000002,
@@ -348,25 +289,11 @@ namespace prosper
 		// SubsampledEXTBit = 0x00004000
 	};
 
-	enum class SharingMode : uint8_t
-	{
-		Exclusive = 0,
-		Concurrent = 1
-	};
+	enum class SharingMode : uint8_t { Exclusive = 0, Concurrent = 1 };
 
-	enum class ImageAspectFlags : uint32_t
-	{
-		ColorBit = 0x00000001,
-		DepthBit = 0x00000002,
-		StencilBit = 0x00000004,
-		MetadataBit = 0x00000008,
-		Plane0Bit = 0x00000010,
-		Plane1Bit = 0x00000020,
-		Plane2Bit = 0x00000040
-	};
+	enum class ImageAspectFlags : uint32_t { ColorBit = 0x00000001, DepthBit = 0x00000002, StencilBit = 0x00000004, MetadataBit = 0x00000008, Plane0Bit = 0x00000010, Plane1Bit = 0x00000020, Plane2Bit = 0x00000040 };
 
-	enum class ImageLayout : uint32_t
-	{
+	enum class ImageLayout : uint32_t {
 		Undefined = 0,
 		ColorAttachmentOptimal = 2,
 		DepthStencilAttachmentOptimal = 3,
@@ -381,8 +308,7 @@ namespace prosper
 		PresentSrcKHR = 1000001002
 	};
 
-	enum class AccessFlags : uint32_t
-	{
+	enum class AccessFlags : uint32_t {
 		IndirectCommandReadBit = 0x00000001,
 		IndexReadBit = 0x00000002,
 		VertexAttributeReadBit = 0x00000004,
@@ -413,8 +339,7 @@ namespace prosper
 		// FragmentDensityMapReadEXT = 0x01000000
 	};
 
-	enum class PipelineStageFlags : uint32_t
-	{
+	enum class PipelineStageFlags : uint32_t {
 		None = 0,
 		TopOfPipeBit = 0x00000001,
 		DrawIndirectBit = 0x00000002,
@@ -444,30 +369,11 @@ namespace prosper
 		// FragmentDensityProcessEXT = 0x00800000
 	};
 
-	enum class ImageViewType : uint8_t
-	{
-		e1D = 0,
-		e2D = 1,
-		e3D = 2,
-		Cube = 3,
-		e1DArray = 4,
-		e2DArray = 5,
-		CubeArray = 6
-	};
+	enum class ImageViewType : uint8_t { e1D = 0, e2D = 1, e3D = 2, Cube = 3, e1DArray = 4, e2DArray = 5, CubeArray = 6 };
 
-	enum class ComponentSwizzle : uint8_t
-	{
-		Identity = 0,
-		Zero = 1,
-		One = 2,
-		R = 3,
-		G = 4,
-		B = 5,
-		A = 6
-	};
+	enum class ComponentSwizzle : uint8_t { Identity = 0, Zero = 1, One = 2, R = 3, G = 4, B = 5, A = 6 };
 
-	enum class ShaderStage : uint8_t
-	{
+	enum class ShaderStage : uint8_t {
 		Compute = 0,
 		Fragment = 1,
 		Geometry = 2,
@@ -479,8 +385,7 @@ namespace prosper
 		Unknown = Count
 	};
 
-	enum class DescriptorType : uint32_t
-	{
+	enum class DescriptorType : uint32_t {
 		Sampler = 0,
 		CombinedImageSampler = 1,
 		SampledImage = 2,
@@ -497,8 +402,7 @@ namespace prosper
 		Unknown = std::numeric_limits<uint32_t>::max()
 	};
 
-	enum class ShaderStageFlags : uint32_t
-	{
+	enum class ShaderStageFlags : uint32_t {
 		ComputeBit = 0x00000020,
 		FragmentBit = 0x00000010,
 		GeometryBit = 0x00000008,
@@ -512,36 +416,20 @@ namespace prosper
 		NONE = 0
 	};
 
-	enum class PipelineBindPoint : uint32_t
-	{
-		Graphics = 0,
-		Compute = 1,
-		RayTracingKHR = 1'000'165'000
-	};
+	enum class PipelineBindPoint : uint32_t { Graphics = 0, Compute = 1, RayTracingKHR = 1'000'165'000 };
 
-	enum class AttachmentLoadOp : uint8_t
-	{
-		Load = 0,
-		Clear = 1,
-		DontCare = 2
-	};
+	enum class AttachmentLoadOp : uint8_t { Load = 0, Clear = 1, DontCare = 2 };
 
-	enum class AttachmentStoreOp : uint8_t
-	{
-		Store = 0,
-		DontCare = 1
-	};
+	enum class AttachmentStoreOp : uint8_t { Store = 0, DontCare = 1 };
 
-	enum class VertexInputRate : uint8_t
-	{
+	enum class VertexInputRate : uint8_t {
 		Vertex = 0,
 		Instance = 1,
 
 		Unknown = std::numeric_limits<uint8_t>::max()
 	};
 
-	enum class QueueFamilyType : uint8_t
-	{
+	enum class QueueFamilyType : uint8_t {
 		Compute = 0,
 		Transfer,
 		Universal,
@@ -549,71 +437,21 @@ namespace prosper
 		Count
 	};
 
-	enum class IndexType : uint8_t
-	{
-		UInt16 = 0,
-		UInt32 = 1
-	};
+	enum class IndexType : uint8_t { UInt16 = 0, UInt32 = 1 };
 
-	enum class StencilFaceFlags : uint8_t
-	{
-		None = 0,
-		BackBit  = 0x00000002,
-		FrontBit = 0x00000001,
-		FrontAndBack = 0x00000003
-	};
+	enum class StencilFaceFlags : uint8_t { None = 0, BackBit = 0x00000002, FrontBit = 0x00000001, FrontAndBack = 0x00000003 };
 
-	enum class QueryResultFlags : uint8_t
-	{
-		None = 0,
-		e64Bit = 0x00000001,
-		WaitBit = 0x00000002,
-		WithAvailabilityBit = 0x00000004,
-		PartialBit = 0x00000008
-	};
+	enum class QueryResultFlags : uint8_t { None = 0, e64Bit = 0x00000001, WaitBit = 0x00000002, WithAvailabilityBit = 0x00000004, PartialBit = 0x00000008 };
 
-	enum class PresentModeKHR : uint32_t
-	{
-		Immediate = 0,
-		Mailbox = 1,
-		Fifo = 2,
-		FifoRelaxed = 3,
-		SharedDemandRefresh = 1000111000,
-		SharedContinuousRefresh = 1000111001
-	};
+	enum class PresentModeKHR : uint32_t { Immediate = 0, Mailbox = 1, Fifo = 2, FifoRelaxed = 3, SharedDemandRefresh = 1000111000, SharedContinuousRefresh = 1000111001 };
 
-	enum class DescriptorBindingFlags : uint32_t
-	{
-		None = 0,
-		UpdateAfterBindBit = 0x00000001,
-		UpdateUnusedWhilePendingBit = 0x00000002,
-		PartiallyBoundBit = 0x00000004,
-		VariableDescriptorCountBit = 0x00000008
-	};
+	enum class DescriptorBindingFlags : uint32_t { None = 0, UpdateAfterBindBit = 0x00000001, UpdateUnusedWhilePendingBit = 0x00000002, PartiallyBoundBit = 0x00000004, VariableDescriptorCountBit = 0x00000008 };
 
-	enum class PipelineCreateFlags : uint32_t
-	{
-		None = 0,
-		AllowDerivativesBit = 2,
-		DisableOptimizationBit = 1,
-		DerivativeBit = 4
-	};
+	enum class PipelineCreateFlags : uint32_t { None = 0, AllowDerivativesBit = 2, DisableOptimizationBit = 1, DerivativeBit = 4 };
 
-	enum class DynamicState : uint32_t
-	{
-		Viewport = 0,
-		Scissor = 1,
-		LineWidth = 2,
-		DepthBias = 3,
-		BlendConstants = 4,
-		DepthBounds = 5,
-		StencilCompareMask = 6,
-		StencilWriteMask = 7,
-		StencilReference = 8
-	};
+	enum class DynamicState : uint32_t { Viewport = 0, Scissor = 1, LineWidth = 2, DepthBias = 3, BlendConstants = 4, DepthBounds = 5, StencilCompareMask = 6, StencilWriteMask = 7, StencilReference = 8 };
 
-	enum class CullModeFlags : uint8_t
-	{
+	enum class CullModeFlags : uint8_t {
 		None = 0,
 		BackBit = 2,
 		FrontBit = 1,
@@ -621,77 +459,19 @@ namespace prosper
 		FrontAndBack = 3,
 	};
 
-	enum class PolygonMode : uint8_t
-	{
-		Fill = 0,
-		Line = 1,
-		Point = 2
-	};
+	enum class PolygonMode : uint8_t { Fill = 0, Line = 1, Point = 2 };
 
-	enum class FrontFace : uint8_t
-	{
-		CounterClockwise = 0,
-		Clockwise = 1
-	};
+	enum class FrontFace : uint8_t { CounterClockwise = 0, Clockwise = 1 };
 
-	enum class LogicOp : uint8_t
-	{
-		Clear = 0,
-		And = 1,
-		AndReverse = 2,
-		Copy = 3,
-		AndInverted = 4,
-		NoOp = 5,
-		Xor = 6,
-		Or = 7,
-		Nor = 8,
-		Equivalent = 9,
-		Invert = 10,
-		OrReverse = 11,
-		CopyInverted = 12,
-		OrInverted = 13,
-		Nand = 14,
-		Set = 15
-	};
+	enum class LogicOp : uint8_t { Clear = 0, And = 1, AndReverse = 2, Copy = 3, AndInverted = 4, NoOp = 5, Xor = 6, Or = 7, Nor = 8, Equivalent = 9, Invert = 10, OrReverse = 11, CopyInverted = 12, OrInverted = 13, Nand = 14, Set = 15 };
 
-	enum class PrimitiveTopology : uint8_t
-	{
-		PointList = 0,
-		LineList = 1,
-		LineStrip = 2,
-		TriangleList = 3,
-		TriangleStrip = 4,
-		TriangleFan = 5,
-		LineListWithAdjacency = 6,
-		LineStripWithAdjacency = 7,
-		TriangleListWithAdjacency = 8,
-		TriangleStripWithAdjacency = 9,
-		PatchList = 10
-	};
+	enum class PrimitiveTopology : uint8_t { PointList = 0, LineList = 1, LineStrip = 2, TriangleList = 3, TriangleStrip = 4, TriangleFan = 5, LineListWithAdjacency = 6, LineStripWithAdjacency = 7, TriangleListWithAdjacency = 8, TriangleStripWithAdjacency = 9, PatchList = 10 };
 
-	enum StencilOp : uint8_t
-	{
-		Keep = 0,
-		Zero = 1,
-		Replace = 2,
-		IncrementAndClamp = 3,
-		DecrementAndClamp = 4,
-		Invert = 5,
-		IncrementAndWrap = 6,
-		DecrementAndWrap = 7
-	};
+	enum StencilOp : uint8_t { Keep = 0, Zero = 1, Replace = 2, IncrementAndClamp = 3, DecrementAndClamp = 4, Invert = 5, IncrementAndWrap = 6, DecrementAndWrap = 7 };
 
-	enum class BlendOp : uint8_t
-	{
-		Add = 0,
-		Subtract = 1,
-		ReverseSubtract = 2,
-		Min = 3,
-		Max = 4
-	};
+	enum class BlendOp : uint8_t { Add = 0, Subtract = 1, ReverseSubtract = 2, Min = 3, Max = 4 };
 
-	enum class BlendFactor : uint8_t
-	{
+	enum class BlendFactor : uint8_t {
 		Zero = 0,
 		One = 1,
 		SrcColor = 2,
@@ -713,8 +493,7 @@ namespace prosper
 		OneMinusSrc1Alpha = 18
 	};
 
-	enum class ColorComponentFlags
-	{
+	enum class ColorComponentFlags {
 		None = 0,
 		RBit = 1,
 		GBit = 2,
@@ -722,8 +501,7 @@ namespace prosper
 		ABit = 8,
 	};
 
-	enum class AttachmentType : uint8_t
-	{
+	enum class AttachmentType : uint8_t {
 		Color = 0,
 		DepthStencil,
 		Input,
@@ -734,43 +512,19 @@ namespace prosper
 		Unknown = Count
 	};
 
-	struct MemoryRequirements
-	{
+	struct MemoryRequirements {
 		DeviceSize size = 0;
 		DeviceSize alignment = 0;
 		uint32_t memoryTypeBits = 0;
 	};
 
-	enum class DebugMessageSeverityFlags : uint32_t
-	{
-		None = 0,
-		VerboseBit = 0x00000001,
-		InfoBit = 0x00000010,
-		WarningBit = 0x00000100,
-		ErrorBit = 0x00001000
-	};
+	enum class DebugMessageSeverityFlags : uint32_t { None = 0, VerboseBit = 0x00000001, InfoBit = 0x00000010, WarningBit = 0x00000100, ErrorBit = 0x00001000 };
 
-	enum class MemoryPropertyFlags : uint32_t
-	{
-		DeviceLocalBit = 0x00000001,
-		HostVisibleBit = 0x00000002,
-		HostCoherentBit = 0x00000004,
-		HostCachedBit = 0x00000008,
-		LazilyAllocatedBit = 0x00000010,
-		ProtectedBit = 0x00000020
-	};
+	enum class MemoryPropertyFlags : uint32_t { DeviceLocalBit = 0x00000001, HostVisibleBit = 0x00000002, HostCoherentBit = 0x00000004, HostCachedBit = 0x00000008, LazilyAllocatedBit = 0x00000010, ProtectedBit = 0x00000020 };
 
-	enum class PhysicalDeviceType : uint8_t
-	{
-		Other = 0,
-		IntegratedGPU = 1,
-		DiscreteGPU = 2,
-		VirtualGPU = 3,
-		CPU = 4
-	};
+	enum class PhysicalDeviceType : uint8_t { Other = 0, IntegratedGPU = 1, DiscreteGPU = 2, VirtualGPU = 3, CPU = 4 };
 
-	enum class QueryPipelineStatisticFlags : uint32_t
-	{
+	enum class QueryPipelineStatisticFlags : uint32_t {
 		None = 0,
 		ClippingInvocationsBit = 0x00000020,
 		ClippingPrimitivesBit = 0x00000040,
@@ -785,15 +539,9 @@ namespace prosper
 		VertexShaderInvocationsBit = 0x00000004
 	};
 
-	enum class QueryType : uint32_t
-	{
-		Occlusion = 0,
-		PipelineStatistics = 1,
-		Timestamp = 2
-	};
+	enum class QueryType : uint32_t { Occlusion = 0, PipelineStatistics = 1, Timestamp = 2 };
 
-	enum class Result : int32_t
-	{
+	enum class Result : int32_t {
 		Success = 0,
 		NotReady = 1,
 		Timeout = 2,
@@ -828,8 +576,7 @@ namespace prosper
 		ErrorFullScreenExclusiveModeLostEXT = -1000255000
 	};
 
-	enum class DebugReportObjectTypeEXT : uint32_t
-	{
+	enum class DebugReportObjectTypeEXT : uint32_t {
 		Unknown = 0,
 		Instance = 1,
 		PhysicalDevice = 2,
@@ -869,35 +616,22 @@ namespace prosper
 		AccelerationStructureNV = 1000165000
 	};
 
-	enum class DebugReportFlags : uint32_t
-	{
-		InformationBit = 0x00000001,
-		WarningBit = 0x00000002,
-		PerformanceWarningBit = 0x00000004,
-		ErrorBit = 0x00000008,
-		DebugBit = 0x00000010
-	};
+	enum class DebugReportFlags : uint32_t { InformationBit = 0x00000001, WarningBit = 0x00000002, PerformanceWarningBit = 0x00000004, ErrorBit = 0x00000008, DebugBit = 0x00000010 };
 
 	using PipelineID = uint32_t;
 	using BindingIndex = uint32_t;
 	using SampleMask = uint32_t;
 
-	enum class FeatureSupport : uint8_t
-	{
-		Supported = 0,
-		Unsupported,
-		Unknown
-	};
-	enum class FormatFeatureFlags : uint16_t
-	{
+	enum class FeatureSupport : uint8_t { Supported = 0, Unsupported, Unknown };
+	enum class FormatFeatureFlags : uint16_t {
 		BlitDstBit = 1,
-		BlitSrcBit = BlitDstBit<<1u,
-		ColorAttachmentBit = BlitSrcBit<<1u,
-		DepthStencilAttachmentBit = ColorAttachmentBit<<1u,
-		SampledImageBit = DepthStencilAttachmentBit<<1u,
-		StorageTexelBufferBit = SampledImageBit<<1u,
-		UniformTexelBufferBit = StorageTexelBufferBit<<1u,
-		VertexBufferBit = UniformTexelBufferBit<<1u
+		BlitSrcBit = BlitDstBit << 1u,
+		ColorAttachmentBit = BlitSrcBit << 1u,
+		DepthStencilAttachmentBit = ColorAttachmentBit << 1u,
+		SampledImageBit = DepthStencilAttachmentBit << 1u,
+		StorageTexelBufferBit = SampledImageBit << 1u,
+		UniformTexelBufferBit = StorageTexelBufferBit << 1u,
+		VertexBufferBit = UniformTexelBufferBit << 1u
 	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryFeatureFlags)

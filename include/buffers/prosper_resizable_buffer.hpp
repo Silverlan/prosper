@@ -10,17 +10,14 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
-namespace prosper
-{
-	class DLLPROSPER IResizableBuffer
-		: virtual public IBuffer
-	{
-	public:
-		IResizableBuffer(IBuffer &parent,uint64_t maxTotalSize);
+namespace prosper {
+	class DLLPROSPER IResizableBuffer : virtual public IBuffer {
+	  public:
+		IResizableBuffer(IBuffer &parent, uint64_t maxTotalSize);
 
 		void AddReallocationCallback(const std::function<void()> &fCallback);
-	protected:
-		virtual void MoveInternalBuffer(IBuffer &other)=0;
+	  protected:
+		virtual void MoveInternalBuffer(IBuffer &other) = 0;
 
 		uint64_t m_baseSize = 0ull; // Un-aligned size of m_buffer
 		uint64_t m_maxTotalSize = 0ull;

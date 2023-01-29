@@ -8,15 +8,7 @@
 
 using namespace prosper;
 
-OcclusionQuery::OcclusionQuery(IQueryPool &queryPool,uint32_t queryId)
-	: Query(queryPool,queryId)
-{}
+OcclusionQuery::OcclusionQuery(IQueryPool &queryPool, uint32_t queryId) : Query(queryPool, queryId) {}
 
-bool OcclusionQuery::RecordBegin(prosper::ICommandBuffer &cmdBuffer) const
-{
-	return cmdBuffer.RecordBeginOcclusionQuery(*this);
-}
-bool OcclusionQuery::RecordEnd(prosper::ICommandBuffer &cmdBuffer) const
-{
-	return cmdBuffer.RecordEndOcclusionQuery(*this);
-}
+bool OcclusionQuery::RecordBegin(prosper::ICommandBuffer &cmdBuffer) const { return cmdBuffer.RecordBeginOcclusionQuery(*this); }
+bool OcclusionQuery::RecordEnd(prosper::ICommandBuffer &cmdBuffer) const { return cmdBuffer.RecordEndOcclusionQuery(*this); }

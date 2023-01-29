@@ -11,24 +11,16 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
-namespace prosper
-{
+namespace prosper {
 	class IRenderPass;
 	class IFramebuffer;
 	class IImageView;
 	class Texture;
-	class DLLPROSPER RenderTarget
-		: public ContextObject,
-		public std::enable_shared_from_this<RenderTarget>
-	{
-	public:
-		RenderTarget(const RenderTarget&)=delete;
-		RenderTarget &operator=(const RenderTarget&)=delete;
-		RenderTarget(
-			IPrContext &context,const std::vector<std::shared_ptr<Texture>> &textures,
-			const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers,
-			IRenderPass &renderPass
-		);
+	class DLLPROSPER RenderTarget : public ContextObject, public std::enable_shared_from_this<RenderTarget> {
+	  public:
+		RenderTarget(const RenderTarget &) = delete;
+		RenderTarget &operator=(const RenderTarget &) = delete;
+		RenderTarget(IPrContext &context, const std::vector<std::shared_ptr<Texture>> &textures, const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers, IRenderPass &renderPass);
 
 		void Bake();
 
@@ -49,7 +41,7 @@ namespace prosper
 		IRenderPass &GetRenderPass();
 
 		virtual void SetDebugName(const std::string &name) override;
-	private:
+	  private:
 		std::vector<std::shared_ptr<Texture>> m_textures = {};
 		std::vector<std::shared_ptr<IFramebuffer>> m_framebuffers = {};
 		std::shared_ptr<IRenderPass> m_renderPass = nullptr;

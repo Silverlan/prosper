@@ -6,32 +6,31 @@
 #define __PROSPER_DEFINITIONS_HPP__
 
 #ifdef SHPROSPER_STATIC
-	#define DLLPROSPER
+#define DLLPROSPER
 #elif SHPROSPER_DLL
-	#ifdef __linux__
-		#define DLLPROSPER __attribute__((visibility("default")))
-	#else
-		#define DLLPROSPER __declspec(dllexport)
-	#endif
+#ifdef __linux__
+#define DLLPROSPER __attribute__((visibility("default")))
 #else
-	#ifdef __linux__
-		#define DLLPROSPER
-	#else
-		#define DLLPROSPER __declspec(dllimport)
-	#endif
+#define DLLPROSPER __declspec(dllexport)
+#endif
+#else
+#ifdef __linux__
+#define DLLPROSPER
+#else
+#define DLLPROSPER __declspec(dllimport)
+#endif
 #endif
 #ifndef UNUSED
-	#define UNUSED(x) x
+#define UNUSED(x) x
 #endif
 
 #include <cinttypes>
 
-namespace prosper
-{
+namespace prosper {
 	// These have to match Vulkan's types
 	using DeviceSize = uint64_t;
 };
 
-// #define DEBUG_VERBOSE
+	// #define DEBUG_VERBOSE
 
 #endif

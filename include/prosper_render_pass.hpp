@@ -12,21 +12,17 @@
 
 #undef max
 
-namespace prosper
-{
-	class DLLPROSPER IRenderPass
-		: public ContextObject,
-		public std::enable_shared_from_this<IRenderPass>
-	{
-	public:
-		IRenderPass(const IRenderPass&)=delete;
-		IRenderPass &operator=(const IRenderPass&)=delete;
+namespace prosper {
+	class DLLPROSPER IRenderPass : public ContextObject, public std::enable_shared_from_this<IRenderPass> {
+	  public:
+		IRenderPass(const IRenderPass &) = delete;
+		IRenderPass &operator=(const IRenderPass &) = delete;
 		virtual ~IRenderPass() override;
 		const util::RenderPassCreateInfo &GetCreateInfo() const;
 		virtual void Bake() {}
-		virtual const void *GetInternalHandle() const {return nullptr;}
-	protected:
-		IRenderPass(IPrContext &context,const util::RenderPassCreateInfo &createInfo);
+		virtual const void *GetInternalHandle() const { return nullptr; }
+	  protected:
+		IRenderPass(IPrContext &context, const util::RenderPassCreateInfo &createInfo);
 		util::RenderPassCreateInfo m_createInfo {};
 	};
 };

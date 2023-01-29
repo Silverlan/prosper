@@ -17,32 +17,29 @@
 
 #undef max
 
-namespace prosper
-{
-	namespace detail {struct DLLPROSPER DescriptorSetInfoBinding;};
+namespace prosper {
+	namespace detail {
+		struct DLLPROSPER DescriptorSetInfoBinding;
+	};
 	class IDescriptorSet;
 	class IDescriptorSetGroup;
 	class IPrContext;
-	class DLLPROSPER DescriptorArrayManager
-		: public std::enable_shared_from_this<DescriptorArrayManager>
-	{
-	public:
+	class DLLPROSPER DescriptorArrayManager : public std::enable_shared_from_this<DescriptorArrayManager> {
+	  public:
 		template<class TDescriptorArrayManager>
-			static std::shared_ptr<TDescriptorArrayManager> Create(prosper::IPrContext &context,prosper::ShaderStageFlags shaderStages);
+		static std::shared_ptr<TDescriptorArrayManager> Create(prosper::IPrContext &context, prosper::ShaderStageFlags shaderStages);
 		template<class TDescriptorArrayManager>
-			static std::shared_ptr<TDescriptorArrayManager> Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg,uint32_t bindingIndex);
+		static std::shared_ptr<TDescriptorArrayManager> Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, uint32_t bindingIndex);
 		using ArrayIndex = uint32_t;
 		static const auto INVALID_ARRAY_INDEX = std::numeric_limits<ArrayIndex>::max();
 
-		virtual ~DescriptorArrayManager()=default;
+		virtual ~DescriptorArrayManager() = default;
 		void RemoveItem(ArrayIndex index);
-	protected:
-		DescriptorArrayManager(
-			const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg,ArrayIndex maxArrayLayers,uint32_t bindingIndex=0
-		);
-		std::optional<ArrayIndex> AddItem(const std::function<bool(prosper::IDescriptorSet&,ArrayIndex,uint32_t)> &fAddBinding);
+	  protected:
+		DescriptorArrayManager(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, ArrayIndex maxArrayLayers, uint32_t bindingIndex = 0);
+		std::optional<ArrayIndex> AddItem(const std::function<bool(prosper::IDescriptorSet &, ArrayIndex, uint32_t)> &fAddBinding);
 		virtual void Initialize(prosper::IPrContext &context) {}
-	private:
+	  private:
 		std::optional<ArrayIndex> PopFreeIndex();
 		void PushFreeIndex(ArrayIndex index);
 		std::shared_ptr<prosper::IDescriptorSetGroup> m_dsgArray = nullptr;
@@ -54,31 +51,22 @@ namespace prosper
 };
 
 template<class TDescriptorArrayManager>
-	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context,prosper::ShaderStageFlags shaderStages)
+std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context, prosper::ShaderStageFlags shaderStages)
 {
 	auto limits = context.GetPhysicalDeviceLimits();
 	auto maxArrayLayers = limits.maxImageArrayLayers;
-	auto matArrayDsg = context.CreateDescriptorSetGroup({
-		{
-			prosper::detail::DescriptorSetInfoBinding {
-				prosper::DescriptorType::CombinedImageSampler,
-				shaderStages,
-				maxArrayLayers,
-				0
-			}
-		}
-	});
-	return Create<TDescriptorArrayManager>(matArrayDsg,0u);
+	auto matArrayDsg = context.CreateDescriptorSetGroup({{prosper::detail::DescriptorSetInfoBinding {prosper::DescriptorType::CombinedImageSampler, shaderStages, maxArrayLayers, 0}}});
+	return Create<TDescriptorArrayManager>(matArrayDsg, 0u);
 }
 
 template<class TDescriptorArrayManager>
-	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg,uint32_t bindingIndex)
+std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, uint32_t bindingIndex)
 {
 	uint32_t arraySize;
 	auto &createInfo = matArrayDsg->GetDescriptorSetCreateInfo();
-	if(createInfo.GetBindingPropertiesByBindingIndex(bindingIndex,nullptr,&arraySize) == false)
+	if(createInfo.GetBindingPropertiesByBindingIndex(bindingIndex, nullptr, &arraySize) == false)
 		return nullptr;
-	auto arrayManager =  std::shared_ptr<TDescriptorArrayManager>{new TDescriptorArrayManager{matArrayDsg,arraySize}};
+	auto arrayManager = std::shared_ptr<TDescriptorArrayManager> {new TDescriptorArrayManager {matArrayDsg, arraySize}};
 	arrayManager->Initialize(matArrayDsg->GetContext());
 	return arrayManager;
 }

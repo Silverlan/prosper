@@ -8,13 +8,10 @@
 #include "shader/prosper_shader.hpp"
 #include <mathutil/uvec.h>
 
-namespace prosper
-{
+namespace prosper {
 	class RenderTarget;
-	class DLLPROSPER ShaderBaseImageProcessing
-		: public ShaderGraphics
-	{
-	public:
+	class DLLPROSPER ShaderBaseImageProcessing : public ShaderGraphics {
+	  public:
 		static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_VERTEX;
 		static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_POSITION;
 
@@ -23,13 +20,13 @@ namespace prosper
 
 		static prosper::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
 
-		ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
-		ShaderBaseImageProcessing(prosper::IPrContext &context,const std::string &identifier,const std::string &fsShader);
-		bool RecordDraw(ShaderBindState &bindState,prosper::IDescriptorSet &descSetTexture) const;
+		ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader);
+		ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader);
+		bool RecordDraw(ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture) const;
 		virtual bool RecordDraw(ShaderBindState &bindState) const override;
-	protected:
+	  protected:
 		void AddDefaultVertexAttributes(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
-		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
+		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
 		virtual uint32_t GetTextureDescriptorSetIndex() const;
 	};
 };

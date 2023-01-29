@@ -7,10 +7,8 @@
 
 #include "prosper_enums.hpp"
 
-namespace prosper
-{
-	namespace util
-	{
+namespace prosper {
+	namespace util {
 		const auto PIPELINE_STAGE_SHADER_INPUT_FLAGS = PipelineStageFlags::ComputeShaderBit | PipelineStageFlags::FragmentShaderBit | PipelineStageFlags::VertexShaderBit | PipelineStageFlags::GeometryShaderBit;
 	};
 };

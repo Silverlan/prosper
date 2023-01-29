@@ -6,7 +6,5 @@
 
 using namespace prosper;
 
-IEvent::IEvent(IPrContext &context)
-	: ContextObject{context}
-{}
+IEvent::IEvent(IPrContext &context) : ContextObject {context} {}
 IEvent::~IEvent() {}

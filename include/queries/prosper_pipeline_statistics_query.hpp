@@ -8,13 +8,11 @@
 #include "queries/prosper_query.hpp"
 #include <chrono>
 
-namespace prosper
-{
+namespace prosper {
 	class IQueryPool;
 	class PipelineStatisticsQuery;
-#pragma pack(push,1)
-	struct DLLPROSPER PipelineStatistics
-	{
+#pragma pack(push, 1)
+	struct DLLPROSPER PipelineStatistics {
 		uint64_t inputAssemblyVertices;
 		uint64_t inputAssemblyPrimitives;
 		uint64_t vertexShaderInvocations;
@@ -28,19 +26,17 @@ namespace prosper
 		uint64_t computeShaderInvocations;
 	};
 #pragma pack(pop)
-	class DLLPROSPER PipelineStatisticsQuery
-		: public Query
-	{
-	public:
+	class DLLPROSPER PipelineStatisticsQuery : public Query {
+	  public:
 		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer);
 		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
 		bool QueryResult(PipelineStatistics &outStatistics) const;
 		bool IsReset() const;
-	private:
-		PipelineStatisticsQuery(IQueryPool &queryPool,uint32_t queryId);
+	  private:
+		PipelineStatisticsQuery(IQueryPool &queryPool, uint32_t queryId);
 		virtual void OnReset(prosper::ICommandBuffer &cmdBuffer) override;
 		bool m_bReset = true;
-	private:
+	  private:
 		friend IQueryPool;
 	};
 };

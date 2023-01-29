@@ -7,18 +7,15 @@
 
 #include "shader/prosper_shader_base_image_processing.hpp"
 
-namespace prosper
-{
+namespace prosper {
 	class RenderTarget;
-	class DLLPROSPER ShaderRect
-		: public ShaderBaseImageProcessing
-	{
-	public:
-		ShaderRect(prosper::IPrContext &context,const std::string &identifier,const std::string &vsShader,const std::string &fsShader);
-		ShaderRect(prosper::IPrContext &context,const std::string &identifier);
-		bool RecordDraw(ShaderBindState &bindState,const Mat4 &modelMatrix) const;
-	protected:
-		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo,uint32_t pipelineIdx) override;
+	class DLLPROSPER ShaderRect : public ShaderBaseImageProcessing {
+	  public:
+		ShaderRect(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader);
+		ShaderRect(prosper::IPrContext &context, const std::string &identifier);
+		bool RecordDraw(ShaderBindState &bindState, const Mat4 &modelMatrix) const;
+	  protected:
+		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
 	};
 };
 

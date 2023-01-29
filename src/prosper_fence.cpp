@@ -9,8 +9,6 @@
 
 using namespace prosper;
 
-IFence::IFence(IPrContext &context)
-	: ContextObject(context),std::enable_shared_from_this<IFence>()
-{}
+IFence::IFence(IPrContext &context) : ContextObject(context), std::enable_shared_from_this<IFence>() {}
 
 IFence::~IFence() {}

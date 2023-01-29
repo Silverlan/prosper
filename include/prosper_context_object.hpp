@@ -11,14 +11,12 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
-namespace prosper
-{
+namespace prosper {
 	class IPrContext;
-	class DLLPROSPER ContextObject
-	{
-	public:
+	class DLLPROSPER ContextObject {
+	  public:
 		ContextObject(IPrContext &context);
-		virtual ~ContextObject()=default;
+		virtual ~ContextObject() = default;
 
 		IPrContext &GetContext() const;
 
@@ -27,7 +25,7 @@ namespace prosper
 
 		// For internal use only
 		virtual void OnRelease() {}
-	private:
+	  private:
 		mutable std::weak_ptr<IPrContext> m_wpContext = {};
 		std::string m_dbgName;
 	};
