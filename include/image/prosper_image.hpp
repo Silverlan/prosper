@@ -73,6 +73,7 @@ namespace prosper {
 		virtual bool Unmap() = 0;
 		std::shared_ptr<uimg::ImageBuffer> ToHostImageBuffer(uimg::Format format, prosper::ImageLayout curImgLayout) const;
 		std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd, const util::ImageCreateInfo &copyCreateInfo);
+		bool Copy(prosper::ICommandBuffer &cmd, IImage &imgDst);
 		std::shared_ptr<IImage> Convert(prosper::ICommandBuffer &cmd, Format newFormat);
 	  protected:
 		IImage(IPrContext &context, const util::ImageCreateInfo &createInfo);

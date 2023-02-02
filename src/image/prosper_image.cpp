@@ -170,6 +170,20 @@ std::shared_ptr<uimg::ImageBuffer> IImage::ToHostImageBuffer(uimg::Format format
 	return imgBuf;
 }
 
+bool IImage::Copy(prosper::ICommandBuffer &cmd, IImage &imgDst)
+{
+	prosper::util::BlitInfo blitInfo {};
+	blitInfo.dstSubresourceLayer.layerCount = blitInfo.srcSubresourceLayer.layerCount = umath::min(imgDst.GetLayerCount(), GetLayerCount());
+
+	auto numMipmaps = umath::min(imgDst.GetMipmapCount(), GetMipmapCount());
+	for(auto i = decltype(numMipmaps) {0u}; i < numMipmaps; ++i) {
+		blitInfo.dstSubresourceLayer.mipLevel = blitInfo.srcSubresourceLayer.mipLevel = i;
+		if(cmd.RecordBlitImage(blitInfo, *this, imgDst) == false)
+			return false;
+	}
+	return true;
+}
+
 std::shared_ptr<IImage> IImage::Copy(prosper::ICommandBuffer &cmd, const prosper::util::ImageCreateInfo &copyCreateInfo)
 {
 	auto &context = GetContext();
@@ -265,15 +279,8 @@ std::shared_ptr<IImage> IImage::Copy(prosper::ICommandBuffer &cmd, const prosper
 	auto imgCopy = GetContext().CreateImage(createInfo);
 	if(imgCopy == nullptr)
 		return nullptr;
-	prosper::util::BlitInfo blitInfo {};
-	blitInfo.dstSubresourceLayer.layerCount = blitInfo.srcSubresourceLayer.layerCount = umath::min(imgCopy->GetLayerCount(), GetLayerCount());
-
-	auto numMipmaps = umath::min(imgCopy->GetMipmapCount(), GetMipmapCount());
-	for(auto i = decltype(numMipmaps) {0u}; i < numMipmaps; ++i) {
-		blitInfo.dstSubresourceLayer.mipLevel = blitInfo.srcSubresourceLayer.mipLevel = i;
-		if(cmd.RecordBlitImage(blitInfo, *this, *imgCopy) == false)
-			return nullptr;
-	}
+	if(!Copy(cmd, *imgCopy))
+		return nullptr;
 	cmd.RecordImageBarrier(*imgCopy, ImageLayout::TransferDstOptimal, finalLayout);
 	return imgCopy;
 }
