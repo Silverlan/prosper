@@ -455,10 +455,11 @@ prosper::Shader *prosper::IPrContext::GetShaderPipeline(PipelineID id, uint32_t 
 	return info.shader.get();
 }
 
-void prosper::IPrContext::WaitIdle()
+void prosper::IPrContext::WaitIdle(bool forceWait)
 {
-	// TODO: Make this thread-safe!
-
+	std::unique_lock lock {m_waitIdleMutex};
+	if(!forceWait && umath::is_flag_set(m_stateFlags, StateFlags::Idle))
+		return;
 	if(m_setupCmdBuffer)
 		FlushSetupCommandBuffer();
 	DoWaitIdle();
