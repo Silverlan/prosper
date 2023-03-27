@@ -85,14 +85,14 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, std
 	return true;
 }
 
-static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, bool bHlsl = false)
+static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId,
+  std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
 {
 	lineId = 0;
 	auto r = glsl_preprocessing(path, shader, &err, includeLines, lineId, 0, true);
 	if(r == false)
 		return false;
 	// Custom definitions
-	std::unordered_map<std::string, std::string> definitions;
 	prosper::glsl::Definitions glslDefinitions {};
 	context.GetGLSLDefinitions(glslDefinitions);
 	definitions["LAYOUT_ID(setIndex,bindingIndex)"] = glslDefinitions.layoutId;
@@ -484,7 +484,8 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	return load_glsl(context, stage, fileName, infoLog, debugInfoLog, includeLines, lineOffset);
 }
 
-std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset, bool applyPreprocessing)
+std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset,
+  const std::unordered_map<std::string, std::string> &definitions, bool applyPreprocessing)
 {
 	std::string ext;
 	auto optFileName = find_shader_file("shaders/" + fileName, &ext);
@@ -506,7 +507,7 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	std::vector<IncludeLine> includeLines;
 	unsigned int lineOffset = 0;
 	std::string err;
-	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, includeLines, lineOffset, hlsl) == false) {
+	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, includeLines, lineOffset, definitions, hlsl) == false) {
 		if(infoLog != nullptr)
 			*infoLog = std::string("Module: \"") + fileName + "\"\n" + err;
 		return {};

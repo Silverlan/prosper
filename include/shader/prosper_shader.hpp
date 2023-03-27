@@ -149,6 +149,8 @@ namespace prosper {
 		bool InitializeSources(bool bReload = false);
 		void InitializeStages();
 
+		virtual void GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions);
+
 		std::array<std::shared_ptr<ShaderStageData>, umath::to_integral(prosper::ShaderStage::Count)> m_stages;
 		bool m_bValid = false;
 		bool m_bFirstTimeInit = true;

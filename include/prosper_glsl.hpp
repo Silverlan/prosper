@@ -9,6 +9,7 @@
 #include <cinttypes>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <optional>
 
 namespace prosper {
@@ -36,7 +37,8 @@ namespace prosper {
 		};
 		DLLPROSPER std::optional<std::string> find_shader_file(const std::string &fileName, std::string *optOutExt = nullptr);
 		DLLPROSPER void dump_parsed_shader(IPrContext &context, uint32_t stage, const std::string &shaderFile, const std::string &fileName);
-		DLLPROSPER std::optional<std::string> load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset, bool applyPreprocessing = true);
+		DLLPROSPER std::optional<std::string> load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset,
+		  const std::unordered_map<std::string, std::string> &definitions = {}, bool applyPreprocessing = true);
 		DLLPROSPER std::optional<std::string> load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog);
 	};
 };

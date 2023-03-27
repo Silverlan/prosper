@@ -161,7 +161,7 @@ namespace prosper {
 
 		virtual void Initialize(const CreateInfo &createInfo);
 		virtual bool ApplyGLSLPostProcessing(std::string &inOutGlslCode, std::string &outErrMsg) const { return true; }
-		virtual bool InitializeShaderSources(prosper::Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage) const;
+		virtual bool InitializeShaderSources(prosper::Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage, const std::unordered_map<std::string, std::string> &definitions = {}) const;
 		virtual std::string GetAPIIdentifier() const = 0;
 		virtual std::string GetAPIAbbreviation() const = 0;
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
@@ -298,7 +298,7 @@ namespace prosper {
 		virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {}, const std::optional<IndexBufferInfo> &indexBufferInfo = {})
 		  = 0;
 		virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, prosper::ShaderStage stage, const std::string &entrypointName = "main") = 0;
-		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false) = 0;
+		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false, const std::unordered_map<std::string, std::string> &definitions = {}) = 0;
 		virtual std::optional<std::unordered_map<prosper::ShaderStage, std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage, std::string> &shaderStages, std::string &outInfoLog) { return {}; }
 		virtual bool GetParsedShaderSourceCode(prosper::Shader &shader, std::vector<std::string> &outGlslCodePerStage, std::vector<prosper::ShaderStage> &outGlslCodeStages, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage) const = 0;
 		std::optional<std::string> FindShaderFile(const std::string &fileName, std::string *optOutExt = nullptr);
