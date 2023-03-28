@@ -83,9 +83,10 @@ std::optional<std::string> prosper::Shader::GetStageSourceFilePath(ShaderStage s
 
 const std::string &prosper::Shader::GetIdentifier() const { return m_identifier; }
 
-void prosper::Shader::SetPipelineCount(uint32_t count)
+void prosper::Shader::SetPipelineCount(uint32_t count, bool flushLoad)
 {
-	FlushLoad();
+	if(flushLoad)
+		FlushLoad();
 	m_pipelineInfos.resize(count, {});
 	m_cachedPipelineIds.resize(count, std::numeric_limits<PipelineID>::max());
 }

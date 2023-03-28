@@ -88,7 +88,13 @@ namespace prosper {
 	};
 
 	namespace util {
-		DLLPROSPER bool record_blur_image(prosper::IPrContext &context, const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer, const BlurSet &blurSet, const ShaderBlurBase::PushConstants &pushConstants, uint32_t blurStrength = 1u);
+		struct DLLPROSPER ShaderInfo {
+			ShaderBlurBase *shaderH = nullptr;
+			uint32_t shaderHPipeline = 0u;
+			ShaderBlurBase *shaderV = nullptr;
+			uint32_t shaderVPipeline = 0u;
+		};
+		DLLPROSPER bool record_blur_image(prosper::IPrContext &context, const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer, const BlurSet &blurSet, const ShaderBlurBase::PushConstants &pushConstants, uint32_t blurStrength = 1u, const ShaderInfo *shaderInfo = nullptr);
 	};
 };
 

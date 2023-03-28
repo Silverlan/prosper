@@ -122,8 +122,9 @@ namespace prosper {
 	  protected:
 		friend ShaderManager;
 		void SetIdentifier(const std::string &identifier);
-		void SetPipelineCount(uint32_t count);
+		void SetPipelineCount(uint32_t count, bool flushLoad = true);
 		virtual void InitializePipeline();
+		virtual void OnInitializePipelines() {}
 		virtual void OnPipelineInitialized(uint32_t pipelineIdx);
 		// Called when the pipelines have been initialized for the first time
 		virtual void OnInitialized();

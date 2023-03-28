@@ -13,6 +13,8 @@ bool prosper::ShaderCompute::AddSpecializationConstant(prosper::ComputePipelineC
 void prosper::ShaderCompute::InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) {}
 void prosper::ShaderCompute::InitializePipeline()
 {
+	OnInitializePipelines();
+
 	// Reset pipeline infos (in case the shader is being reloaded)
 	auto &pipelineInfos = GetPipelineInfos();
 	for(auto &pipelineInfo : pipelineInfos)

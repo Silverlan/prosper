@@ -71,32 +71,39 @@ ShaderBlurV::~ShaderBlurV() { s_blurShaderV = nullptr; }
 
 /////////////////////////
 
-bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer, const BlurSet &blurSet, const ShaderBlurBase::PushConstants &pushConstants, uint32_t blurStrength)
+bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer, const BlurSet &blurSet, const ShaderBlurBase::PushConstants &pushConstants, uint32_t blurStrength, const ShaderInfo *shaderInfo)
 {
 	if(s_blurShaderH == nullptr || s_blurShaderV == nullptr)
 		return false;
-	auto &shaderH = *s_blurShaderH;
-	auto &shaderV = *s_blurShaderV;
+	auto &shaderH = shaderInfo ? *shaderInfo->shaderH : *s_blurShaderH;
+	auto &shaderV = shaderInfo ? *shaderInfo->shaderV : *s_blurShaderV;
 	if(shaderH.IsValid() == false || shaderV.IsValid() == false)
 		return false;
 	auto &stagingRt = *blurSet.GetStagingRenderTarget();
 	auto &stagingImg = stagingRt.GetTexture().GetImage();
 	auto imgFormat = stagingImg.GetFormat();
-	auto pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
-	switch(imgFormat) {
-	case prosper::Format::R8G8B8A8_UNorm:
-	case prosper::Format::BC1_RGBA_UNorm_Block:
-	case prosper::Format::BC2_UNorm_Block:
-	case prosper::Format::BC3_UNorm_Block:
-		pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
-		break;
-	case prosper::Format::R8_UNorm:
-		pipelineId = ShaderBlurBase::Pipeline::R8Unorm;
-		break;
-	case prosper::Format::R16G16B16A16_SFloat:
-		pipelineId = ShaderBlurBase::Pipeline::R16G16B16A16Sfloat;
-		break;
-	/*case prosper::Format::BC1_RGBA_UNorm_Block:
+	ShaderBlurBase::Pipeline pipelineIdH = static_cast<ShaderBlurBase::Pipeline>(0);
+	ShaderBlurBase::Pipeline pipelineIdV = static_cast<ShaderBlurBase::Pipeline>(0);
+	if(shaderInfo) {
+		pipelineIdH = static_cast<ShaderBlurBase::Pipeline>(shaderInfo->shaderHPipeline);
+		pipelineIdV = static_cast<ShaderBlurBase::Pipeline>(shaderInfo->shaderVPipeline);
+	}
+	else {
+		auto pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
+		switch(imgFormat) {
+		case prosper::Format::R8G8B8A8_UNorm:
+		case prosper::Format::BC1_RGBA_UNorm_Block:
+		case prosper::Format::BC2_UNorm_Block:
+		case prosper::Format::BC3_UNorm_Block:
+			pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
+			break;
+		case prosper::Format::R8_UNorm:
+			pipelineId = ShaderBlurBase::Pipeline::R8Unorm;
+			break;
+		case prosper::Format::R16G16B16A16_SFloat:
+			pipelineId = ShaderBlurBase::Pipeline::R16G16B16A16Sfloat;
+			break;
+		/*case prosper::Format::BC1_RGBA_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC1;
 			break;
 		case prosper::Format::BC2_UNorm_Block:
@@ -105,8 +112,11 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::s
 		case prosper::Format::BC3_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::BC3;
 			break;*/
-	default:
-		throw std::logic_error("Unsupported image format for blur input image!");
+		default:
+			throw std::logic_error("Unsupported image format for blur input image!");
+		}
+		pipelineIdH = pipelineId;
+		pipelineIdV = pipelineId;
 	}
 	auto &finalRt = *blurSet.GetFinalRenderTarget();
 	for(auto i = decltype(blurStrength) {0u}; i < blurStrength; ++i) {
@@ -114,7 +124,7 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::s
 		if(cmdBuffer->RecordBeginRenderPass(stagingRt) == false)
 			return false;
 		ShaderBindState bindState {*cmdBuffer};
-		if(shaderH.RecordBeginDraw(bindState, pipelineId) == false) {
+		if(shaderH.RecordBeginDraw(bindState, pipelineIdH) == false) {
 			cmdBuffer->RecordEndRenderPass();
 			return false;
 		}
@@ -127,7 +137,7 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::s
 
 		if(cmdBuffer->RecordBeginRenderPass(finalRt) == false)
 			return false;
-		if(shaderV.RecordBeginDraw(bindState, pipelineId) == false)
+		if(shaderV.RecordBeginDraw(bindState, pipelineIdV) == false)
 			return false;
 		shaderV.RecordDraw(bindState, blurSet.GetStagingDescriptorSet(), pushConstants);
 		shaderV.RecordEndDraw(bindState);
