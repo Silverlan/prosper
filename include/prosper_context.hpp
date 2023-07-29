@@ -262,7 +262,7 @@ namespace prosper {
 		template<typename T>
 		bool ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo = {});
 
-		void WaitIdle(bool forceWait = false);
+		void WaitIdle(bool forceWait = true);
 		virtual void Flush() = 0;
 		virtual Result WaitForFence(const IFence &fence, uint64_t timeout = std::numeric_limits<uint64_t>::max()) const = 0;
 		virtual Result WaitForFences(const std::vector<IFence *> &fences, bool waitAll = true, uint64_t timeout = std::numeric_limits<uint64_t>::max()) const = 0;
