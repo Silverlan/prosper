@@ -862,14 +862,14 @@ void prosper::IPrContext::Run()
 	}
 }
 
-bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage) const
+bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage, const std::unordered_map<std::string, std::string> &definitions) const
 {
 	auto &stages = shader.GetStages();
 	for(auto i = decltype(stages.size()) {0}; i < stages.size(); ++i) {
 		auto &stage = stages.at(i);
 		if(stage == nullptr || stage->path.empty())
 			continue;
-		stage->program = const_cast<IPrContext *>(this)->CompileShader(static_cast<prosper::ShaderStage>(i), stage->path, outInfoLog, outDebugInfoLog, bReload);
+		stage->program = const_cast<IPrContext *>(this)->CompileShader(static_cast<prosper::ShaderStage>(i), stage->path, outInfoLog, outDebugInfoLog, bReload, definitions);
 		if(stage->program == nullptr) {
 			outErrStage = stage->stage;
 			return false;

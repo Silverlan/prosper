@@ -83,9 +83,10 @@ std::optional<std::string> prosper::Shader::GetStageSourceFilePath(ShaderStage s
 
 const std::string &prosper::Shader::GetIdentifier() const { return m_identifier; }
 
-void prosper::Shader::SetPipelineCount(uint32_t count)
+void prosper::Shader::SetPipelineCount(uint32_t count, bool flushLoad)
 {
-	FlushLoad();
+	if(flushLoad)
+		FlushLoad();
 	m_pipelineInfos.resize(count, {});
 	m_cachedPipelineIds.resize(count, std::numeric_limits<PipelineID>::max());
 }
@@ -115,13 +116,19 @@ static std::string g_shaderLocation = "shaders";
 void prosper::Shader::SetRootShaderLocation(const std::string &location) { g_shaderLocation = location; }
 const std::string &prosper::Shader::GetRootShaderLocation() { return g_shaderLocation; }
 
+void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions) {}
+
 bool prosper::Shader::InitializeSources(bool bReload)
 {
 	auto &context = GetContext();
 	std::string infoLog;
 	std::string debugInfoLog;
+
+	std::unordered_map<std::string, std::string> definitions;
+	GetShaderPreprocessorDefinitions(definitions);
+
 	prosper::ShaderStage stage;
-	if(context.InitializeShaderSources(*this, bReload, infoLog, debugInfoLog, stage) == false) {
+	if(context.InitializeShaderSources(*this, bReload, infoLog, debugInfoLog, stage, definitions) == false) {
 		if(s_logCallback != nullptr)
 			s_logCallback(*this, stage, infoLog, debugInfoLog);
 		return false;

@@ -12,6 +12,8 @@ prosper::ShaderRaytracing::ShaderRaytracing(prosper::IPrContext &context, const 
 void prosper::ShaderRaytracing::InitializeRaytracingPipeline(prosper::RayTracingPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) {}
 void prosper::ShaderRaytracing::InitializePipeline()
 {
+	OnInitializePipelines();
+
 	// Reset pipeline infos (in case the shader is being reloaded)
 	auto &pipelineInfos = GetPipelineInfos();
 	for(auto &pipelineInfo : pipelineInfos)

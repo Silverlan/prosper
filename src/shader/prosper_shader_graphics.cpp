@@ -138,6 +138,7 @@ void prosper::ShaderGraphics::InitializeGfxPipeline(prosper::GraphicsPipelineCre
 
 void prosper::ShaderGraphics::InitializePipeline()
 {
+	OnInitializePipelines();
 	// Reset pipeline infos (in case the shader is being reloaded)
 	auto &pipelineInfos = GetPipelineInfos();
 	for(auto &pipelineInfo : pipelineInfos)
