@@ -518,6 +518,8 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 	// TODO: Check if resolution is supported
 	m_initialWindowSettings.width = createInfo.width;
 	m_initialWindowSettings.height = createInfo.height;
+	if(createInfo.windowless)
+		m_initialWindowSettings.flags |= GLFW::WindowCreationInfo::Flags::Windowless;
 	if(umath::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled))
 		m_validationData = std::unique_ptr<ValidationData> {new ValidationData {}};
 	ChangePresentMode(createInfo.presentMode);

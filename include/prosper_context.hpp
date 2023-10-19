@@ -148,6 +148,7 @@ namespace prosper {
 			uint32_t width = 0u;
 			uint32_t height = 0u;
 			prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
+			bool windowless = false;
 			std::optional<DeviceInfo> device = {};
 		};
 
