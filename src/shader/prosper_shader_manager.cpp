@@ -46,6 +46,8 @@ util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(c
 	m_shaderNameToIndex.insert(std::make_pair(identifier, m_shaders.size() - 1));
 	auto wpShader = ::util::WeakHandle<Shader>(shader);
 	wpShaderInfo.get()->SetShader(std::make_shared<::util::WeakHandle<Shader>>(wpShader));
+	auto &context = GetContext();
+	context.Log("Initializing shader '" +identifier +"...");
 	shader->Initialize();
 	return wpShader;
 }

@@ -171,6 +171,7 @@ namespace prosper {
 		void SetLogHandler(const ::util::LogHandler &logHandler, const std::function<bool(::util::LogSeverity)> &getLevel = nullptr);
 		bool ShouldLog() const;
 		bool ShouldLog(::util::LogSeverity level) const;
+		void Log(const std::string &msg, ::util::LogSeverity level = ::util::LogSeverity::Info) const;
 
 		void Run();
 		void Close();

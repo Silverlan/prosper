@@ -837,6 +837,12 @@ void prosper::IPrContext::SetLogHandler(const ::util::LogHandler &logHandler, co
 	m_logHandler = logHandler;
 	m_logHandlerLevel = getLevel;
 }
+void prosper::IPrContext::Log(const std::string &msg, ::util::LogSeverity level) const
+{
+	if(!ShouldLog(level))
+		return;
+	m_logHandler(msg, level);
+}
 bool prosper::IPrContext::ShouldLog() const { return m_logHandler != nullptr; }
 bool prosper::IPrContext::ShouldLog(::util::LogSeverity level) const
 {
