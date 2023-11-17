@@ -154,6 +154,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 
 	static std::chrono::high_resolution_clock::duration accTime {0};
 	auto t = std::chrono::high_resolution_clock::now();
+	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...");
 	for(auto pipelineIdx = decltype(pipelineInfos.size()) {0}; pipelineIdx < pipelineInfos.size(); ++pipelineIdx) {
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;

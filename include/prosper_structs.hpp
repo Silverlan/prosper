@@ -62,6 +62,11 @@ namespace prosper {
 		int32_t z;
 	};
 
+	enum class PrDescriptorSetBindingFlags : uint32_t {
+		None = 0u,
+		Cubemap = 1u,
+	};
+
 	class IImage;
 	class IBuffer;
 	class ISampler;
@@ -355,8 +360,8 @@ namespace prosper {
 		struct DLLPROSPER Binding {
 			Binding() = default;
 			Binding(const Binding &other) = default;
-			Binding(uint32_t descriptorArraySize, DescriptorType descriptorType, ShaderStageFlags stageFlags, const ISampler *const *immutableSamplerPtrs, DescriptorBindingFlags flags)
-			    : descriptorArraySize {descriptorArraySize}, descriptorType {descriptorType}, stageFlags {stageFlags}, flags {flags}
+			Binding(uint32_t descriptorArraySize, DescriptorType descriptorType, ShaderStageFlags stageFlags, const ISampler *const *immutableSamplerPtrs, DescriptorBindingFlags flags, PrDescriptorSetBindingFlags prFlags)
+			    : descriptorArraySize {descriptorArraySize}, descriptorType {descriptorType}, stageFlags {stageFlags}, flags {flags}, prFlags {prFlags}
 			{
 				if(immutableSamplerPtrs != nullptr) {
 					for(uint32_t n_sampler = 0; n_sampler < descriptorArraySize; ++n_sampler) {
@@ -367,9 +372,13 @@ namespace prosper {
 			uint32_t descriptorArraySize = 0;
 			DescriptorType descriptorType = DescriptorType::Unknown;
 			DescriptorBindingFlags flags {};
+			PrDescriptorSetBindingFlags prFlags = PrDescriptorSetBindingFlags::None;
 			std::vector<const ISampler *> immutableSamplers {};
 			ShaderStageFlags stageFlags {};
-			bool operator==(const Binding &binding) const { return binding.descriptorArraySize == descriptorArraySize && binding.descriptorType == descriptorType && binding.flags == flags && binding.immutableSamplers == immutableSamplers && binding.stageFlags == stageFlags; }
+			bool operator==(const Binding &binding) const
+			{
+				return binding.descriptorArraySize == descriptorArraySize && binding.descriptorType == descriptorType && binding.flags == flags && binding.immutableSamplers == immutableSamplers && binding.stageFlags == stageFlags && binding.prFlags == prFlags;
+			}
 			bool operator!=(const Binding &binding) const { return !operator==(binding); }
 		};
 		DescriptorSetCreateInfo(const DescriptorSetCreateInfo &other);
@@ -378,11 +387,11 @@ namespace prosper {
 		DescriptorSetCreateInfo &operator=(DescriptorSetCreateInfo &&other);
 
 		bool GetBindingPropertiesByBindingIndex(uint32_t bindingIndex, DescriptorType *outOptDescriptorType = nullptr, uint32_t *outOptDescriptorArraySize = nullptr, ShaderStageFlags *outOptStageFlags = nullptr, bool *outOptImmutableSamplersEnabled = nullptr,
-		  DescriptorBindingFlags *outOptFlags = nullptr) const;
+		  DescriptorBindingFlags *outOptFlags = nullptr, PrDescriptorSetBindingFlags *outOptPrFlags = nullptr) const;
 		bool GetBindingPropertiesByIndexNumber(uint32_t nBinding, uint32_t *out_opt_binding_index_ptr = nullptr, DescriptorType *outOptDescriptorType = nullptr, uint32_t *outOptDescriptorArraySize = nullptr, ShaderStageFlags *outOptStageFlags = nullptr,
-		  bool *outOptImmutableSamplersEnabled = nullptr, DescriptorBindingFlags *outOptFlags = nullptr);
+		  bool *outOptImmutableSamplersEnabled = nullptr, DescriptorBindingFlags *outOptFlags = nullptr, PrDescriptorSetBindingFlags *outOptPrFlags = nullptr);
 		bool AddBinding(uint32_t in_binding_index, DescriptorType in_descriptor_type, uint32_t in_descriptor_array_size, ShaderStageFlags in_stage_flags, const DescriptorBindingFlags &in_flags = DescriptorBindingFlags::None,
-		  const ISampler *const *in_opt_immutable_sampler_ptr_ptr = nullptr);
+		  const PrDescriptorSetBindingFlags &in_pr_flags = PrDescriptorSetBindingFlags::None, const ISampler *const *in_opt_immutable_sampler_ptr_ptr = nullptr);
 		uint32_t GetBindingCount() const { return static_cast<uint32_t>(m_bindings.size()); }
 	  private:
 		using BindingIndexToBindingMap = std::map<BindingIndex, Binding>;
@@ -703,11 +712,13 @@ namespace prosper {
 		struct DLLPROSPER DescriptorSetInfoBinding {
 			DescriptorSetInfoBinding() = default;
 			// If 'bindingIndex' is not specified, it will use the index of the previous binding, incremented by the previous array size
-			DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, uint32_t descriptorArraySize = 1u, uint32_t bindingIndex = std::numeric_limits<uint32_t>::max());
+			DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, uint32_t descriptorArraySize = 1u, uint32_t bindingIndex = std::numeric_limits<uint32_t>::max(), PrDescriptorSetBindingFlags flags = PrDescriptorSetBindingFlags::None);
+			DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, PrDescriptorSetBindingFlags flags);
 			DescriptorType type = {};
 			ShaderStageFlags shaderStages = ShaderStageFlags::All;
 			uint32_t bindingIndex = std::numeric_limits<uint32_t>::max();
 			uint32_t descriptorArraySize = 1u;
+			PrDescriptorSetBindingFlags flags = PrDescriptorSetBindingFlags::None;
 		};
 	};
 	struct DLLPROSPER DescriptorSetInfo {
@@ -744,5 +755,7 @@ namespace prosper {
 		std::vector<std::shared_ptr<DescriptorSetCreateInfo>> descSetInfos {};
 	};
 };
+
+REGISTER_BASIC_BITWISE_OPERATORS(prosper::PrDescriptorSetBindingFlags)
 
 #endif

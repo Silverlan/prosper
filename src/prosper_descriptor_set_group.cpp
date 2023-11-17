@@ -59,7 +59,8 @@ DescriptorSetCreateInfo &DescriptorSetCreateInfo::operator=(DescriptorSetCreateI
 	m_variableDescriptorCountBindingSize = other.m_variableDescriptorCountBindingSize;
 	return *this;
 }
-bool DescriptorSetCreateInfo::GetBindingPropertiesByBindingIndex(uint32_t bindingIndex, DescriptorType *outOptDescriptorType, uint32_t *outOptDescriptorArraySize, ShaderStageFlags *outOptStageFlags, bool *outOptImmutableSamplersEnabled, DescriptorBindingFlags *outOptFlags) const
+bool DescriptorSetCreateInfo::GetBindingPropertiesByBindingIndex(uint32_t bindingIndex, DescriptorType *outOptDescriptorType, uint32_t *outOptDescriptorArraySize, ShaderStageFlags *outOptStageFlags, bool *outOptImmutableSamplersEnabled, DescriptorBindingFlags *outOptFlags,
+  PrDescriptorSetBindingFlags *outOptPrFlags) const
 {
 	auto binding_iterator = m_bindings.find(bindingIndex);
 	bool result = false;
@@ -88,13 +89,17 @@ bool DescriptorSetCreateInfo::GetBindingPropertiesByBindingIndex(uint32_t bindin
 		*outOptFlags = binding_iterator->second.flags;
 	}
 
+	if(outOptPrFlags != nullptr) {
+		*outOptPrFlags = binding_iterator->second.prFlags;
+	}
+
 	result = true;
 
 end:
 	return result;
 }
 bool DescriptorSetCreateInfo::GetBindingPropertiesByIndexNumber(uint32_t nBinding, uint32_t *out_opt_binding_index_ptr, DescriptorType *outOptDescriptorType, uint32_t *outOptDescriptorArraySize, ShaderStageFlags *outOptStageFlags, bool *outOptImmutableSamplersEnabled,
-  DescriptorBindingFlags *outOptFlags)
+  DescriptorBindingFlags *outOptFlags, PrDescriptorSetBindingFlags *outOptPrFlags)
 {
 	auto binding_iterator = m_bindings.begin();
 	bool result = false;
@@ -132,13 +137,18 @@ bool DescriptorSetCreateInfo::GetBindingPropertiesByIndexNumber(uint32_t nBindin
 			*outOptFlags = binding_iterator->second.flags;
 		}
 
+		if(outOptPrFlags != nullptr) {
+			*outOptPrFlags = binding_iterator->second.prFlags;
+		}
+
 		result = true;
 	}
 
 end:
 	return result;
 }
-bool DescriptorSetCreateInfo::AddBinding(uint32_t in_binding_index, DescriptorType in_descriptor_type, uint32_t in_descriptor_array_size, ShaderStageFlags in_stage_flags, const DescriptorBindingFlags &in_flags, const ISampler *const *in_immutable_sampler_ptrs)
+bool DescriptorSetCreateInfo::AddBinding(uint32_t in_binding_index, DescriptorType in_descriptor_type, uint32_t in_descriptor_array_size, ShaderStageFlags in_stage_flags, const DescriptorBindingFlags &in_flags, const PrDescriptorSetBindingFlags &in_pr_flags,
+  const ISampler *const *in_immutable_sampler_ptrs)
 {
 	bool result = false;
 
@@ -176,7 +186,7 @@ bool DescriptorSetCreateInfo::AddBinding(uint32_t in_binding_index, DescriptorTy
 
 	/* Add a new binding entry and mark the layout as dirty, so that it is re-baked next time
 	* the user calls the getter func */
-	m_bindings[in_binding_index] = Binding(in_descriptor_array_size, in_descriptor_type, in_stage_flags, in_immutable_sampler_ptrs, in_flags);
+	m_bindings[in_binding_index] = Binding(in_descriptor_array_size, in_descriptor_type, in_stage_flags, in_immutable_sampler_ptrs, in_flags, in_pr_flags);
 
 	result = true;
 end:

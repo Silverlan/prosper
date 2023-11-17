@@ -22,7 +22,12 @@ prosper::DescriptorSetInfo::DescriptorSetInfo(const std::vector<Binding> &bindin
 prosper::DescriptorSetInfo::DescriptorSetInfo(DescriptorSetInfo *parent, const std::vector<Binding> &bindings) : parent(parent), bindings(bindings) {}
 bool prosper::DescriptorSetInfo::WasBaked() const { return m_bWasBaked; }
 bool prosper::DescriptorSetInfo::IsValid() const { return WasBaked(); }
-prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, uint32_t descriptorArraySize, uint32_t bindingIndex) : bindingIndex(bindingIndex), type(type), shaderStages(shaderStages), descriptorArraySize(descriptorArraySize) {}
+prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, uint32_t descriptorArraySize, uint32_t bindingIndex, PrDescriptorSetBindingFlags flags)
+    : bindingIndex(bindingIndex), type(type), shaderStages(shaderStages), descriptorArraySize(descriptorArraySize), flags {flags}
+{
+}
+
+prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, PrDescriptorSetBindingFlags flags) : DescriptorSetInfoBinding {type, shaderStages, 1u, std::numeric_limits<uint32_t>::max(), flags} {}
 
 ///////////////////////////
 
@@ -445,7 +450,7 @@ std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::To
 {
 	auto dsInfo = DescriptorSetCreateInfo::Create();
 	for(auto &binding : bindings) {
-		dsInfo->AddBinding(binding.bindingIndex, binding.type, binding.descriptorArraySize, binding.shaderStages);
+		dsInfo->AddBinding(binding.bindingIndex, binding.type, binding.descriptorArraySize, binding.shaderStages, prosper::DescriptorBindingFlags::None, binding.flags);
 	}
 	return dsInfo;
 }
@@ -467,8 +472,8 @@ std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::Ba
 
 prosper::ShaderModule::ShaderModule(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, const std::string &in_opt_cs_entrypoint_name, const std::string &in_opt_fs_entrypoint_name, const std::string &in_opt_gs_entrypoint_name, const std::string &in_opt_tc_entrypoint_name,
   const std::string &in_opt_te_entrypoint_name, const std::string &in_opt_vs_entrypoint_name)
-    : m_csEntrypointName(in_opt_cs_entrypoint_name), m_fsEntrypointName(in_opt_fs_entrypoint_name), m_gsEntrypointName(in_opt_gs_entrypoint_name), m_tcEntrypointName(in_opt_tc_entrypoint_name), m_teEntrypointName(in_opt_te_entrypoint_name),
-      m_vsEntrypointName(in_opt_vs_entrypoint_name), m_shaderStageProgram {shaderStageProgram}
+    : m_csEntrypointName(in_opt_cs_entrypoint_name), m_fsEntrypointName(in_opt_fs_entrypoint_name), m_gsEntrypointName(in_opt_gs_entrypoint_name), m_tcEntrypointName(in_opt_tc_entrypoint_name), m_teEntrypointName(in_opt_te_entrypoint_name), m_vsEntrypointName(in_opt_vs_entrypoint_name),
+      m_shaderStageProgram {shaderStageProgram}
 {
 }
 
