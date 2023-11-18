@@ -164,6 +164,9 @@ void Window::InitSwapchain()
 {
 	GetContext().WaitIdle();
 	DoInitSwapchain();
+}
+void Window::OnSwapchainInitialized()
+{
 	InitCommandBuffers();
 	m_guiCommandBufferGroup = GetContext().CreateSwapCommandBufferGroup(*this);
 }

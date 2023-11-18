@@ -91,6 +91,7 @@ namespace prosper {
 		virtual void InitCommandBuffers() = 0;
 		void InitSwapchain();
 		void ReleaseSwapchain();
+		virtual void OnSwapchainInitialized();
 		virtual void DoInitSwapchain() = 0;
 		virtual void DoReleaseSwapchain() = 0;
 		virtual void Release();
