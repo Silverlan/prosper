@@ -402,6 +402,27 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState
 #endif
 	return prosper::Shader::RecordBindDescriptorSet(bindState, descSet, firstSet, dynamicOffsets);
 }
+bool prosper::ShaderGraphics::RecordViewportScissor(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t scissorX, uint32_t scissorY, uint32_t scissorW, uint32_t scissorH, uint32_t pipelineIdx) const
+{
+	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo *>(GetPipelineCreateInfo(pipelineIdx));
+	if(info == nullptr)
+		return false;
+	auto nDynamicScissors = info->GetDynamicScissorBoxesCount();
+	auto nDynamicViewports = info->GetDynamicViewportsCount();
+	auto bScissor = (nDynamicScissors > 0u) ? true : false;
+	auto bViewport = (nDynamicViewports > 0u) ? true : false;
+	if(bScissor || bViewport) {
+		if(bScissor) {
+			if(bindState.commandBuffer.RecordSetScissor(scissorW, scissorH, scissorX, scissorY) == false)
+				return false;
+		}
+		if(bViewport) {
+			if(bindState.commandBuffer.RecordSetViewport(width, height, 0, 0, 0.f /* minDepth */, 1.f /* maxDepth */) == false)
+				return false;
+		}
+	}
+	return true;
+}
 bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t pipelineIdx, RecordFlags recordFlags) const
 {
 	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo *>(GetPipelineCreateInfo(pipelineIdx));

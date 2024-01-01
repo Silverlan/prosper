@@ -231,6 +231,7 @@ namespace prosper {
 		template<class TShader>
 		static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context, uint32_t pipelineIdx = 0u);
 	  protected:
+		bool RecordViewportScissor(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t scissorX, uint32_t scissorY, uint32_t scissorW, uint32_t scissorH, uint32_t pipelineIdx = 0u) const;
 		bool RecordBeginDrawViewport(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t pipelineIdx = 0u, RecordFlags recordFlags = RecordFlags::RenderPassTargetAsViewportAndScissor) const;
 		void SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 		void ToggleDynamicViewportState(prosper::GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable);
