@@ -32,12 +32,12 @@ namespace prosper {
 		void EndRecording();
 		void SetOneTimeSubmit(bool oneTimeSubmit) { m_oneTimeSubmit = oneTimeSubmit; }
 		bool GetOneTimeSubmit() const { return m_oneTimeSubmit; }
+		virtual void Wait() = 0;
 
 		void Reuse();
 		prosper::IPrContext &GetContext() const;
 	  protected:
 		void Initialize(uint32_t swapchainIdx);
-		virtual void Wait() = 0;
 		;
 		std::vector<std::shared_ptr<prosper::ISecondaryCommandBuffer>> m_commandBuffers;
 		std::shared_ptr<prosper::ICommandBufferPool> m_cmdPool = nullptr;
@@ -54,9 +54,9 @@ namespace prosper {
 		MtSwapCommandBufferGroup(Window &window, const std::string &debugName = {});
 		virtual ~MtSwapCommandBufferGroup() override;
 		virtual bool IsPending() const override { return m_pending; }
+		virtual void Wait() override;
 	  private:
 		virtual void Record(const RenderThreadRecordCall &record) override;
-		virtual void Wait() override;
 
 		std::thread m_thread;
 		std::condition_variable m_conditionVar;
@@ -70,9 +70,9 @@ namespace prosper {
 		StSwapCommandBufferGroup(Window &window, const std::string &debugName = {});
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf) override;
 		virtual bool IsPending() const override { return false; }
+		virtual void Wait() override;
 	  private:
 		virtual void Record(const RenderThreadRecordCall &record) override;
-		virtual void Wait() override;
 		;
 	};
 };
