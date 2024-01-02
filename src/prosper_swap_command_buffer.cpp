@@ -39,6 +39,7 @@ void ISwapCommandBufferGroup::StartRecording(prosper::IRenderPass &rp, prosper::
 {
 	if(m_window.expired())
 		return;
+	Wait();
 	auto swapchainIdx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
 	if(swapchainIdx == std::numeric_limits<decltype(swapchainIdx)>::max())
 		return; // TODO: This should be unreachable
@@ -60,6 +61,7 @@ void ISwapCommandBufferGroup::Reuse()
 {
 	if(m_window.expired())
 		return;
+	Wait();
 	auto swapchainIdx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
 	Initialize(swapchainIdx);
 
