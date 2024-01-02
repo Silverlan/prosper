@@ -9,7 +9,7 @@
 
 using namespace prosper;
 
-ISwapCommandBufferGroup::ISwapCommandBufferGroup(Window &window) : m_window {window.shared_from_this()}, m_windowPtr {&window} { m_cmdPool = window.GetContext().CreateCommandBufferPool(prosper::QueueFamilyType::Universal); }
+ISwapCommandBufferGroup::ISwapCommandBufferGroup(Window &window, const std::string &debugName) : m_window {window.shared_from_this()}, m_debugName {debugName}, m_windowPtr {&window} { m_cmdPool = window.GetContext().CreateCommandBufferPool(prosper::QueueFamilyType::Universal); }
 
 ISwapCommandBufferGroup::~ISwapCommandBufferGroup()
 {
@@ -79,7 +79,7 @@ bool ISwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cm
 
 /////////////
 
-MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window) : ISwapCommandBufferGroup {window}
+MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window, const std::string &debugName) : ISwapCommandBufferGroup {window, debugName}
 {
 	m_thread = std::thread {[this]() {
 		while(!m_close) {
@@ -134,7 +134,7 @@ void MtSwapCommandBufferGroup::Wait()
 
 /////////////
 
-StSwapCommandBufferGroup::StSwapCommandBufferGroup(Window &window) : ISwapCommandBufferGroup {window} {}
+StSwapCommandBufferGroup::StSwapCommandBufferGroup(Window &window, const std::string &debugName) : ISwapCommandBufferGroup {window, debugName} {}
 
 void StSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record) { m_recordCalls.push(record); }
 

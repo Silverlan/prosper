@@ -121,6 +121,7 @@ namespace prosper {
 		IDescriptorSet(IDescriptorSetGroup &dsg);
 		IDescriptorSet(const IDescriptorSet &) = delete;
 		IDescriptorSet &operator=(const IDescriptorSet &) = delete;
+		virtual ~IDescriptorSet() = default;
 
 		uint32_t GetBindingCount() const;
 		DescriptorSetBinding *GetBinding(uint32_t bindingIndex);

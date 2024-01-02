@@ -23,7 +23,7 @@ namespace prosper {
 	class SwapCommandBufferGroup;
 	class DLLPROSPER ISwapCommandBufferGroup {
 	  public:
-		ISwapCommandBufferGroup(Window &window);
+		ISwapCommandBufferGroup(Window &window, const std::string &debugName = {});
 		virtual ~ISwapCommandBufferGroup();
 		virtual void Record(const RenderThreadRecordCall &record) = 0;
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf);
@@ -46,17 +46,17 @@ namespace prosper {
 		bool m_oneTimeSubmit = true;
 		std::weak_ptr<Window> m_window {};
 		Window *m_windowPtr = nullptr;
+		std::string m_debugName;
 	};
 
 	class DLLPROSPER MtSwapCommandBufferGroup : public ISwapCommandBufferGroup {
 	  public:
-		MtSwapCommandBufferGroup(Window &window);
+		MtSwapCommandBufferGroup(Window &window, const std::string &debugName = {});
 		virtual ~MtSwapCommandBufferGroup() override;
 		virtual bool IsPending() const override { return m_pending; }
 	  private:
 		virtual void Record(const RenderThreadRecordCall &record) override;
 		virtual void Wait() override;
-		;
 
 		std::thread m_thread;
 		std::condition_variable m_conditionVar;
@@ -67,7 +67,7 @@ namespace prosper {
 
 	class DLLPROSPER StSwapCommandBufferGroup : public ISwapCommandBufferGroup {
 	  public:
-		StSwapCommandBufferGroup(Window &window);
+		StSwapCommandBufferGroup(Window &window, const std::string &debugName = {});
 		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf) override;
 		virtual bool IsPending() const override { return false; }
 	  private:
