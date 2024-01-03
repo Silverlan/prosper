@@ -105,7 +105,7 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window, const std::st
 			m_pending = false;
 		}
 	}};
-	::util::set_thread_name(m_thread, "prosper_cmd_buf");
+	::util::set_thread_name(m_thread, debugName);
 }
 
 MtSwapCommandBufferGroup::~MtSwapCommandBufferGroup()
