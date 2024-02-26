@@ -31,7 +31,7 @@ std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(Window &window,
 prosper::SwapBuffer::SwapBuffer(Window &window, std::vector<std::shared_ptr<IBuffer>> &&buffers) : m_buffers {std::move(buffers)}, m_window {window.shared_from_this()}, m_windowPtr {&window}
 {
 	assert(!m_buffers.empty());
-	assert(m_buffers[0]->GetContext().GetSwapchainImageCount() == m_buffers.size());
+    assert(window.GetSwapchainImageCount() == m_buffers.size());
 }
 prosper::IBuffer *prosper::SwapBuffer::operator->()
 {

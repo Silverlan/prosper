@@ -70,8 +70,7 @@ void ISwapCommandBufferGroup::Reuse()
 }
 bool ISwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
 {
-	Wait();
-	assert(m_curInstance);
+    Wait();
 	if(m_curCommandBuffer == nullptr)
 		return false;
 	auto result = cmdBuf.ExecuteCommands(*m_curCommandBuffer);

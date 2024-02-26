@@ -543,7 +543,7 @@ std::shared_ptr<SwapDescriptorSet> prosper::SwapDescriptorSet::Create(Window &wi
 std::shared_ptr<prosper::SwapDescriptorSet> prosper::SwapDescriptorSet::Create(Window &window, std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs)
 {
 	assert(!dsgs.empty());
-	assert(dsgs.size() == dsgs[0]->GetContext().GetSwapchainImageCount());
+    assert(dsgs.size() == window.GetSwapchainImageCount());
 	if(dsgs.size() != window.GetSwapchainImageCount())
 		throw std::logic_error {"Swap descriptor set dsg count does not match number of swapchain images!"};
 	return std::shared_ptr<SwapDescriptorSet> {new SwapDescriptorSet {window, std::move(dsgs)}};

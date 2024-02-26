@@ -11,13 +11,15 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
+
+
 namespace prosper {
-	class IRenderPass;
 	class IFramebuffer;
 	class IImageView;
 	class Texture;
 	class DLLPROSPER RenderTarget : public ContextObject, public std::enable_shared_from_this<RenderTarget> {
-	  public:
+      public:
+
 		RenderTarget(const RenderTarget &) = delete;
 		RenderTarget &operator=(const RenderTarget &) = delete;
 		RenderTarget(IPrContext &context, const std::vector<std::shared_ptr<Texture>> &textures, const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers, IRenderPass &renderPass);
