@@ -122,8 +122,28 @@ std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const std::vec
 prosper::Format prosper::util::get_prosper_format(const uimg::ImageBuffer &imgBuffer)
 {
 	auto format = imgBuffer.GetFormat();
-	prosper::Format prosperFormat;
+	prosper::Format prosperFormat = prosper::Format::Unknown;
 	switch(format) {
+	case uimg::Format::R8:
+		prosperFormat = prosper::Format::R8_UNorm;
+		break;
+	case uimg::Format::R16:
+		prosperFormat = prosper::Format::R16_SFloat;
+		break;
+	case uimg::Format::R32:
+		prosperFormat = prosper::Format::R32_SFloat;
+		break;
+
+	case uimg::Format::RG8:
+		prosperFormat = prosper::Format::R8G8_UNorm;
+		break;
+	case uimg::Format::RG16:
+		prosperFormat = prosper::Format::R16G16_SFloat;
+		break;
+	case uimg::Format::RG32:
+		prosperFormat = prosper::Format::R32G32_SFloat;
+		break;
+
 	case uimg::Format::RGB8:
 		prosperFormat = prosper::Format::R8G8B8_UNorm_PoorCoverage;
 		break;
@@ -133,6 +153,7 @@ prosper::Format prosper::util::get_prosper_format(const uimg::ImageBuffer &imgBu
 	case uimg::Format::RGB32:
 		prosperFormat = prosper::Format::R32G32B32_SFloat;
 		break;
+
 	case uimg::Format::RGBA8:
 		prosperFormat = prosper::Format::R8G8B8A8_UNorm;
 		break;
