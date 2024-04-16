@@ -554,7 +554,10 @@ prosper::IDescriptorSet *prosper::SwapDescriptorSet::operator->()
 {
 	if(m_window.expired())
 		return nullptr;
-	return m_dsgs[m_windowPtr->GetLastAcquiredSwapchainImageIndex()]->GetDescriptorSet();
+	auto idx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
+	if(idx >= m_dsgs.size())
+		return nullptr;
+	return m_dsgs[idx]->GetDescriptorSet();
 }
 prosper::IDescriptorSet &prosper::SwapDescriptorSet::operator*() { return *operator->(); }
 IDescriptorSet &prosper::SwapDescriptorSet::GetDescriptorSet() { return operator*(); }
