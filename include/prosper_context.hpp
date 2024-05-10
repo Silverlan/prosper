@@ -415,6 +415,7 @@ namespace prosper {
 		void InitTemporaryBuffer();
 		void InitWindow();
 		virtual void InitAPI(const CreateInfo &createInfo) = 0;
+		virtual void OnSwapchainResourcesCleared(uint32_t swapchainIdx) {}
 
 		prosper::PresentModeKHR m_presentMode = prosper::PresentModeKHR::Immediate;
 		StateFlags m_stateFlags = StateFlags::Idle;

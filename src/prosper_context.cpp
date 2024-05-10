@@ -415,6 +415,8 @@ void prosper::IPrContext::ClearKeepAliveResources()
 	umath::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources);
 	resources.clear();
 	umath::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources, false);
+
+	OnSwapchainResourcesCleared(idx);
 }
 void prosper::IPrContext::SetMultiThreadedRenderingEnabled(bool enabled)
 {
