@@ -9,7 +9,8 @@
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include <sharedutils/util_string.h>
-#include <udm.hpp>
+
+import udm;
 
 namespace prosper {
 	struct ShaderBindState;

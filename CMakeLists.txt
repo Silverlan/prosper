@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.28)
 
 set(INCLUDE_DIRS)
 function(add_include_dir IDENTIFIER)
@@ -111,6 +111,8 @@ if(WIN32)
 	target_compile_options(${PROJ_NAME} PRIVATE /wd4996)
 endif()
 def_vs_filters("${SRC_FILES}")
+
+target_link_libraries(${PROJ_NAME} util_udm)
 
 foreach(LIB IN LISTS LIBRARIES)
 	target_link_libraries(${PROJ_NAME} ${${LIB}})
