@@ -14,6 +14,7 @@
 #include <memory>
 #include <cinttypes>
 #include <functional>
+#include <optional>
 
 #undef max
 

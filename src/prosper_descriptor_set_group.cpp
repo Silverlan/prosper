@@ -9,7 +9,9 @@
 #include "buffers/prosper_swap_buffer.hpp"
 #include "image/prosper_image_view.hpp"
 #include "image/prosper_sampler.hpp"
+#include "image/prosper_texture.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
+#include <cassert>
 
 using namespace prosper;
 

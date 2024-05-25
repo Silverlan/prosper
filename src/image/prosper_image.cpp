@@ -7,12 +7,14 @@
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "debug/prosper_debug.hpp"
+#include "buffers/prosper_buffer.hpp"
 #include "prosper_memory_tracker.hpp"
 #include "prosper_command_buffer.hpp"
 #include <sharedutils/scope_guard.h>
 #include <util_image.hpp>
 #include <util_image_buffer.hpp>
 #include <util_texture_info.hpp>
+#include <cassert>
 
 using namespace prosper;
 

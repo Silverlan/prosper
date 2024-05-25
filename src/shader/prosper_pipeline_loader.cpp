@@ -4,6 +4,7 @@
 
 #include "shader/prosper_pipeline_loader.hpp"
 #include "shader/prosper_shader.hpp"
+#include "prosper_context.hpp"
 #include <sharedutils/util.h>
 
 using namespace prosper;

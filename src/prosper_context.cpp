@@ -22,6 +22,7 @@
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
 #include <thread>
+#include <cassert>
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING

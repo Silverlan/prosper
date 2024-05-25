@@ -5,6 +5,8 @@
 #include "prosper_common_buffer_cache.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
+#include "buffers/prosper_buffer.hpp"
+#include "prosper_context.hpp"
 
 prosper::CommonBufferCache::CommonBufferCache(IPrContext &context) : m_context {context} {}
 void prosper::CommonBufferCache::Release()

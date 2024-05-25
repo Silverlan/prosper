@@ -10,6 +10,7 @@
 #include <memory>
 #include <queue>
 #include <cinttypes>
+#include <mutex>
 #include <functional>
 #include <list>
 

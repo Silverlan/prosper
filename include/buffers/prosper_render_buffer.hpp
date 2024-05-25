@@ -8,6 +8,7 @@
 #include "prosper_definitions.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_structs.hpp"
+#include <sharedutils/functioncallback.h>
 #include <vector>
 
 #pragma warning(push)

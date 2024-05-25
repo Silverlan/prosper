@@ -5,7 +5,9 @@
 #include "shader/prosper_shader.hpp"
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "shader/prosper_pipeline_loader.hpp"
+#include "prosper_context.hpp"
 #include "prosper_command_buffer.hpp"
+#include <cassert>
 
 prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context, const std::string &identifier, const std::string &csShader) : Shader(context, identifier, csShader) {}
 

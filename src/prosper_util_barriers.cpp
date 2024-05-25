@@ -8,6 +8,7 @@
 #include "prosper_framebuffer.hpp"
 #include "image/prosper_render_target.hpp"
 #include "prosper_render_pass.hpp"
+#include "buffers/prosper_buffer.hpp"
 #include "shader/prosper_shader.hpp"
 #include <sharedutils/util.h>
 

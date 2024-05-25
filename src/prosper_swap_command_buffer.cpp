@@ -5,6 +5,7 @@
 #include "prosper_swap_command_buffer.hpp"
 #include "prosper_command_buffer.hpp"
 #include "prosper_window.hpp"
+#include "prosper_context.hpp"
 #include <sharedutils/util.h>
 
 using namespace prosper;

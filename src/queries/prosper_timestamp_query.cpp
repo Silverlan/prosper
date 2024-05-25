@@ -5,6 +5,7 @@
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_query_pool.hpp"
 #include "prosper_command_buffer.hpp"
+#include "prosper_context.hpp"
 
 using namespace prosper;
 

@@ -6,6 +6,7 @@
 #include "prosper_util.hpp"
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
+#include "image/prosper_image.hpp"
 
 using namespace prosper;
 

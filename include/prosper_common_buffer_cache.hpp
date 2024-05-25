@@ -9,6 +9,7 @@
 #include <mathutil/uvec.h>
 
 namespace prosper {
+	class IBuffer;
 	class IRenderBuffer;
 	class IPrContext;
 	class DLLPROSPER CommonBufferCache {

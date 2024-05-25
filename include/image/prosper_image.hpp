@@ -19,6 +19,7 @@
 
 namespace uimg {
 	enum class Format : uint8_t;
+	class ImageBuffer;
 };
 
 namespace prosper {

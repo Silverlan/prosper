@@ -16,6 +16,7 @@
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_window.hpp"
+#include <cassert>
 
 prosper::ICommandBuffer::ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType) : ContextObject(context), std::enable_shared_from_this<ICommandBuffer>(), m_queueFamilyType {queueFamilyType} {}
 

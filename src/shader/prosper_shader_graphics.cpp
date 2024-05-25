@@ -16,6 +16,7 @@
 #include "prosper_command_buffer.hpp"
 #include <sharedutils/util.h>
 #include <queue>
+#include <cassert>
 #include <unordered_map>
 
 prosper::ShaderGraphics::VertexBinding::VertexBinding(prosper::VertexInputRate inputRate, uint32_t stride) : stride(stride), inputRate(inputRate) {}

@@ -9,6 +9,7 @@
 #include "prosper_util.hpp"
 #include "prosper_glsl.hpp"
 #include "prosper_command_buffer.hpp"
+#include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include <iostream>
 #include <fsys/filesystem.h>
