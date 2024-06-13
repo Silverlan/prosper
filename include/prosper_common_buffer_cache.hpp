@@ -6,7 +6,9 @@
 #define __PROSPER_COMMON_BUFFER_CACHE_HPP__
 
 #include "prosper_definitions.hpp"
+#include "prosper_types.hpp"
 #include <mathutil/uvec.h>
+#include <memory>
 
 namespace prosper {
 	class IBuffer;
