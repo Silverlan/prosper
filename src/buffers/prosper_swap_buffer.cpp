@@ -6,6 +6,7 @@
 #include "buffers/prosper_uniform_resizable_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
 #include "prosper_window.hpp"
+#include <cassert>
 
 std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(Window &window, IUniformResizableBuffer &buffer, const void *data)
 {

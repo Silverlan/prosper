@@ -386,6 +386,7 @@ namespace prosper {
 		void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, prosper::BufferUsageFlags usageFlags);
 		virtual void UpdateMultiThreadedRendering(bool mtEnabled);
 		void ReloadPipelineLoader();
+		void CheckDeviceLimits();
 
 		std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer, const std::optional<util::ImageCreateInfo> &createInfo = {});
 		virtual std::shared_ptr<IImageView> DoCreateImageView(const util::ImageViewCreateInfo &createInfo, IImage &img, Format format, ImageViewType imgViewType, prosper::ImageAspectFlags aspectMask, uint32_t numLayers) = 0;

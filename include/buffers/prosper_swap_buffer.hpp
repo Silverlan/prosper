@@ -8,6 +8,7 @@
 #include "prosper_buffer.hpp"
 
 namespace prosper {
+	class Window;
 	class IUniformResizableBuffer;
 	class IDynamicResizableBuffer;
 	class DLLPROSPER SwapBuffer : public std::enable_shared_from_this<SwapBuffer> {

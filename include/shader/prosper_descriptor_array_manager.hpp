@@ -7,6 +7,7 @@
 
 #include "prosper_definitions.hpp"
 #include "prosper_util.hpp"
+#include "prosper_context.hpp"
 #include <memory>
 #include <queue>
 #include <optional>

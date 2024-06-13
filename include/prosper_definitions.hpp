@@ -24,7 +24,7 @@
 #define UNUSED(x) x
 #endif
 
-#include <cinttypes>
+#include "prosper_types.hpp"
 
 namespace prosper {
 	// These have to match Vulkan's types

@@ -7,6 +7,7 @@
 #ifdef VK_ENABLE_GLSLANG
 #include "prosper_includes.hpp"
 #include "prosper_glsl.hpp"
+#include "prosper_context.hpp"
 #include "shader/prosper_shader.hpp"
 #include <fsys/filesystem.h>
 #include <sharedutils/util_file.h>

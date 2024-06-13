@@ -9,6 +9,7 @@
 #include <functional>
 #include <thread>
 #include <atomic>
+#include <queue>
 #include <condition_variable>
 
 namespace prosper {

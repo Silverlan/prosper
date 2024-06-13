@@ -9,6 +9,7 @@
 #include "buffers/prosper_resizable_buffer.hpp"
 #include <memory>
 #include <queue>
+#include <mutex>
 #include <cinttypes>
 #include <functional>
 

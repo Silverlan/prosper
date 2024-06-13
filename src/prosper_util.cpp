@@ -18,13 +18,13 @@
 #include "shader/prosper_pipeline_create_info.hpp"
 #include "prosper_swap_command_buffer.hpp"
 #include "prosper_memory_tracker.hpp"
+#include "prosper_util_gli.hpp"
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
 #include <sharedutils/magic_enum.hpp>
 #include <util_image_buffer.hpp>
 #include <util_image.hpp>
 #include <util_texture_info.hpp>
-#include <gli/gli.hpp>
 #include <sstream>
 
 #ifdef DEBUG_VERBOSE
@@ -1686,11 +1686,11 @@ uint32_t prosper::util::get_byte_size(Format format)
 	return numBits / 8;
 }
 
-uint32_t prosper::util::get_block_size(Format format) { return gli::block_size(static_cast<gli::texture::format_type>(format)); }
+uint32_t prosper::util::get_block_size(Format format) { return gli_wrapper::get_block_size(format); }
 
 uint32_t prosper::util::get_pixel_size(Format format) { return is_compressed_format(format) ? get_block_size(format) : get_byte_size(format); }
 
-uint32_t prosper::util::get_component_count(Format format) { return gli::component_count(static_cast<gli::texture::format_type>(format)); }
+uint32_t prosper::util::get_component_count(Format format) { return gli_wrapper::get_component_count(format); }
 
 bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &outChannelMask)
 {
@@ -2270,11 +2270,10 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal, famIdx);
 		setupCmd->StartRecording();
 
-		gli::extent2d gliExtents {extents.width, extents.height};
-		std::vector<gli::texture2d> gliTex;
+		std::vector<gli_wrapper::GliTextureWrapper> gliTex;
 		gliTex.reserve(numLayers);
 		for(auto i = decltype(numLayers) {0u}; i < numLayers; ++i)
-			gliTex.push_back(gli::texture2d {static_cast<gli::texture::format_type>(imgRead->GetFormat()), gliExtents, numLevels});
+			gliTex.push_back(gli_wrapper::GliTextureWrapper {extents.width, extents.height, imgRead->GetFormat(), numLevels});
 
 		prosper::util::BufferCreateInfo bufCreateInfo {};
 		bufCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUToCPU;
@@ -2602,8 +2601,7 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 		auto &context = imgRead->GetContext();
 		auto &setupCmd = context.GetSetupCommandBuffer();
 
-		gli::extent2d gliExtents {extents.width, extents.height};
-		gli::texture2d gliTex {static_cast<gli::texture::format_type>(imgRead->GetFormat()), gliExtents, numLevels};
+		gli_wrapper::GliTextureWrapper gliTex {extents.width, extents.height, imgRead->GetFormat(), numLevels};
 
 		prosper::util::BufferCreateInfo bufCreateInfo {};
 		bufCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUToCPU;
@@ -2671,10 +2669,10 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 		auto success = false;
 		switch(texInfo.containerFormat) {
 		case uimg::TextureInfo::ContainerFormat::DDS:
-			success = gli::save_dds(gliTex, fullFileName);
+			success = gliTex.save_dds(fullFileName);
 			break;
 		case uimg::TextureInfo::ContainerFormat::KTX:
-			success = gli::save_ktx(gliTex, fullFileName);
+			success = gliTex.save_ktx(fullFileName);
 			break;
 		}
 		if(success)

@@ -116,6 +116,7 @@ namespace prosper {
 			uint32_t maxSurfaceImageCount = 0;
 			uint32_t maxImageArrayLayers = 0;
 			DeviceSize maxStorageBufferRange = 0;
+			std::optional<uint32_t> maxBoundDescriptorSets {};
 		};
 
 		struct DLLPROSPER PhysicalDeviceImageFormatProperties {

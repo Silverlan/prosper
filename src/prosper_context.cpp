@@ -22,6 +22,7 @@
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
 #include <thread>
+#include <cassert>
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
@@ -511,6 +512,16 @@ void prosper::IPrContext::ReloadPipelineLoader()
 {
 	m_pipelineLoader = nullptr;
 	m_pipelineLoader = std::make_unique<ShaderPipelineLoader>(*this);
+}
+void prosper::IPrContext::CheckDeviceLimits()
+{
+	auto limits = GetPhysicalDeviceLimits();
+	constexpr uint32_t reqMaxBoundDescriptorSets = 8; // TODO: This should be specified by the application
+	if(limits.maxBoundDescriptorSets && limits.maxBoundDescriptorSets < reqMaxBoundDescriptorSets) {
+		std::string msg = "maxBoundDescriptorSets is " + std::to_string(*limits.maxBoundDescriptorSets) + ", but minimum of " + std::to_string(reqMaxBoundDescriptorSets) + " is required!";
+		Log(msg);
+		throw std::logic_error(msg);
+	}
 }
 
 void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
