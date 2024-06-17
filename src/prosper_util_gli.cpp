@@ -14,7 +14,7 @@ namespace gli_wrapper {
 
 gli_wrapper::GliTextureWrapper::GliTextureWrapper(uint32_t width, uint32_t height, prosper::Format format, uint32_t numLevels)
 {
-	texture = std::unique_ptr<GliTexture>();
+	texture = std::make_unique<GliTexture>();
 	texture->extents = gli::extent2d {width, height};
 	texture->gliTex = gli::texture2d {static_cast<gli::texture::format_type>(format), texture->extents, numLevels};
 }
