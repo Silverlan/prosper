@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <functional>
 #include <string>
+#include <algorithm>
 
 namespace util {
 	class ShaderInfo;

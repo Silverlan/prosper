@@ -4,6 +4,7 @@
 
 #include "shader/prosper_pipeline_create_info.hpp"
 #include <cassert>
+#include <algorithm>
 
 void prosper::BasePipelineCreateInfo::CopyStateFrom(const BasePipelineCreateInfo *in_src_pipeline_create_info_ptr)
 {
