@@ -71,7 +71,7 @@ void ISwapCommandBufferGroup::Reuse()
 }
 bool ISwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
 {
-    Wait();
+	Wait();
 	if(m_curCommandBuffer == nullptr)
 		return false;
 	auto result = cmdBuf.ExecuteCommands(*m_curCommandBuffer);
@@ -86,6 +86,10 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window, const std::st
 	m_thread = std::thread {[this]() {
 		while(!m_close) {
 			std::unique_lock<std::mutex> lock {m_waitMutex};
+			if(m_recordCalls.empty() && m_pending) {
+				m_pending = false;
+				m_conditionVar.notify_all();
+			}
 			m_conditionVar.wait(lock, [this] { return !m_recordCalls.empty() || m_close; });
 
 			if(m_close)
@@ -95,14 +99,12 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window, const std::st
 					m_recordCalls.pop();
 			}
 			else {
-				while(m_recordCalls.empty() == false) {
-					auto &drawCall = m_recordCalls.front();
-					drawCall(*m_curCommandBuffer);
-					m_recordCalls.pop();
-				}
-			}
+				auto drawCall = std::move(m_recordCalls.front());
+				m_recordCalls.pop();
+				lock.unlock();
 
-			m_pending = false;
+				drawCall(*m_curCommandBuffer);
+			}
 		}
 	}};
 	::util::set_thread_name(m_thread, debugName);
@@ -120,6 +122,7 @@ MtSwapCommandBufferGroup::~MtSwapCommandBufferGroup()
 void MtSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record)
 {
 	m_waitMutex.lock();
+
 	m_pending = true;
 	m_recordCalls.push(record);
 	m_conditionVar.notify_one();
@@ -130,8 +133,8 @@ void MtSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record)
 
 void MtSwapCommandBufferGroup::Wait()
 {
-	while(IsPending())
-		;
+	std::unique_lock<std::mutex> lock {m_waitMutex};
+	m_conditionVar.wait(lock, [this] { return !m_pending; });
 }
 
 /////////////
@@ -140,11 +143,7 @@ StSwapCommandBufferGroup::StSwapCommandBufferGroup(Window &window, const std::st
 
 void StSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record) { m_recordCalls.push(record); }
 
-void StSwapCommandBufferGroup::Wait()
-{
-	while(IsPending())
-		;
-}
+void StSwapCommandBufferGroup::Wait() { assert(IsPending() == false); }
 
 bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
 {
