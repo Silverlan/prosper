@@ -364,9 +364,6 @@ void prosper::IPrContext::ParseShaderUniforms(const std::string &glslShader, std
 
 void prosper::glsl::translate_error(const std::string &shaderCode, const std::string &errorMsg, const std::string &pathMainShader, const std::vector<prosper::glsl::IncludeLine> &includeLines, Int32 lineOffset, std::string *err)
 {
-	std::vector<std::string> codeLines;
-	ustring::explode(shaderCode, "\n", codeLines);
-
 	std::vector<std::string> errorLines;
 	ustring::explode(errorMsg, "\n", errorLines);
 	auto numLines = errorLines.size();
@@ -422,16 +419,26 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 					file = FileManager::GetCanonicalizedPath(file);
 					std::stringstream msgOut;
 					msgOut << msg.substr(0, st) << std::to_string(line) << ((bAMD == true) ? (std::string(": '") + file + std::string("':")) : (std::string(")('") + file + std::string("')"))) << msg.substr(end + 1);
-					lineInternal += lineOffset;
-					if(lineInternal <= codeLines.size()) {
-						auto lineInternalId = lineInternal - 1;
-						for(Int32 iline = umath::max(lineInternalId - 2, 0); iline <= umath::min(lineInternalId + 2, static_cast<Int32>(codeLines.size() - 1)); iline++) {
-							if(iline == lineInternalId)
-								msgOut << "\n  > " << codeLines[iline];
-							else
-								msgOut << "\n    " << codeLines[iline];
+					lineInternal = line;
+
+					auto contents = filemanager::read_file(file);
+					if(contents) {
+						std::vector<std::string> codeLines;
+						ustring::explode(*contents, "\n", codeLines);
+						if(lineInternal <= codeLines.size()) {
+							auto lineInternalId = lineInternal - 1;
+							for(Int32 iline = umath::max(lineInternalId - 2, 0); iline <= umath::min(lineInternalId + 2, static_cast<Int32>(codeLines.size() - 1)); iline++) {
+								if(iline == lineInternalId)
+									msgOut << "\n  > " << codeLines[iline];
+								else
+									msgOut << "\n    " << codeLines[iline];
+							}
 						}
+						else
+							msgOut << "\nUnable to display shader contents: Erroneous line " << lineInternal << " exceeds number of lines in file '" << file << "' (" << codeLines.size() << ")!";
 					}
+					else
+						msgOut << "\nUnable to display shader contents: Failed to open file '" << file << "' for reading!";
 					msg = msgOut.str();
 				}
 			}
@@ -505,10 +512,9 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	if(ustring::compare<std::string>(ext, "hls", false))
 		hlsl = true;
 	auto shaderCode = f->ReadString();
-	std::vector<IncludeLine> includeLines;
 	unsigned int lineOffset = 0;
 	std::string err;
-	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, includeLines, lineOffset, definitions, hlsl) == false) {
+	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, outIncludeLines, lineOffset, definitions, hlsl) == false) {
 		if(infoLog != nullptr)
 			*infoLog = std::string("Module: \"") + fileName + "\"\n" + err;
 		return {};
