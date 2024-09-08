@@ -314,8 +314,6 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreate
 		if(pipelineInfo.AddVertexBinding(vertexBindingInfo.binding, vertexBindingInfo.stepRate, vertexBindingInfo.strideInBytes, vertexBindingInfo.attributes.size(), vertexBindingInfo.attributes.data()) == false)
 			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " + std::to_string(vertexBindingInfo.binding));
 	}
-	m_vertexAttributes = {};
-	//
 }
 void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<prosper::ShaderGraphics>({{prosper::util::RenderPassCreateInfo::AttachmentInfo {}}}, outRenderPass, pipelineIdx); }
 void prosper::ShaderGraphics::SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo) { prosper::util::set_generic_alpha_color_blend_attachment_properties(pipelineInfo); }
