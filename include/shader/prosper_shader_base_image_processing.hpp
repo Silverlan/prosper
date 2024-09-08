@@ -25,8 +25,8 @@ namespace prosper {
 		bool RecordDraw(ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture) const;
 		virtual bool RecordDraw(ShaderBindState &bindState) const override;
 	  protected:
-		void AddDefaultVertexAttributes(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
-		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
+		void AddDefaultVertexAttributes();
+		virtual void InitializeShaderResources() override;
 		virtual uint32_t GetTextureDescriptorSetIndex() const;
 	};
 };

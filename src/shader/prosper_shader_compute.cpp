@@ -46,10 +46,9 @@ void prosper::ShaderCompute::InitializePipeline()
 		if(computePipelineInfo == nullptr)
 			continue;
 		InitializeComputePipeline(*computePipelineInfo, pipelineIdx);
-		InitializeDescriptorSetGroup(*computePipelineInfo, pipelineIdx);
+		InitializeDescriptorSetGroups(*computePipelineInfo);
 
-		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
-		for(auto &range : pipelineInitInfo.pushConstantRanges)
+		for(auto &range : m_shaderResources.pushConstantRanges)
 			computePipelineInfo->AttachPushConstantRange(range.offset, range.size, range.stages);
 
 		auto &pipelineInfo = pipelineInfos.at(pipelineIdx);

@@ -35,7 +35,10 @@ namespace prosper {
 			std::string apiScreenSpaceTransform = "T"; // Arguments: T (mat4)
 			std::string apiDepthTransform = "T";       // Arguments: T (mat4)
 		};
-		DLLPROSPER std::optional<std::string> find_shader_file(const std::string &fileName, std::string *optOutExt = nullptr);
+		DLLPROSPER const std::vector<std::string> &get_glsl_file_extensions();
+		DLLPROSPER std::string get_shader_file_extension(prosper::ShaderStage stage);
+		DLLPROSPER bool is_glsl_file_extension(const std::string &ext);
+		DLLPROSPER std::optional<std::string> find_shader_file(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt = nullptr);
 		DLLPROSPER void dump_parsed_shader(IPrContext &context, uint32_t stage, const std::string &shaderFile, const std::string &fileName);
 		DLLPROSPER std::optional<std::string> load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset,
 		  const std::unordered_map<std::string, std::string> &definitions = {}, bool applyPreprocessing = true);

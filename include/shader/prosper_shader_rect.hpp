@@ -16,6 +16,7 @@ namespace prosper {
 		bool RecordDraw(ShaderBindState &bindState, const Mat4 &modelMatrix) const;
 	  protected:
 		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
+		virtual void InitializeShaderResources() override;
 	};
 };
 

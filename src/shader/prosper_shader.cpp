@@ -14,21 +14,22 @@
 #include <iostream>
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
-
+#include <sharedutils/util_string.h>
 prosper::ShaderBindState::ShaderBindState(prosper::ICommandBuffer &cmdBuf) : commandBuffer {cmdBuf} {}
 
 ///////////////////////////
 
-prosper::DescriptorSetInfo::DescriptorSetInfo(const std::vector<Binding> &bindings) : bindings(bindings) {}
-prosper::DescriptorSetInfo::DescriptorSetInfo(DescriptorSetInfo *parent, const std::vector<Binding> &bindings) : parent(parent), bindings(bindings) {}
+prosper::DescriptorSetInfo::DescriptorSetInfo(const char *name, const std::vector<Binding> &bindings) : m_name {name}, bindings(bindings) {}
+prosper::DescriptorSetInfo::DescriptorSetInfo(DescriptorSetInfo *parent, const std::vector<Binding> &bindings) : m_name {nullptr}, parent(parent), bindings(bindings) {}
 bool prosper::DescriptorSetInfo::WasBaked() const { return m_bWasBaked; }
 bool prosper::DescriptorSetInfo::IsValid() const { return WasBaked(); }
-prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, uint32_t descriptorArraySize, uint32_t bindingIndex, PrDescriptorSetBindingFlags flags)
-    : bindingIndex(bindingIndex), type(type), shaderStages(shaderStages), descriptorArraySize(descriptorArraySize), flags {flags}
+const char *prosper::DescriptorSetInfo::GetName() const { return parent ? parent->GetName() : m_name; }
+prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(const char *name, DescriptorType type, ShaderStageFlags shaderStages, uint32_t descriptorArraySize, uint32_t bindingIndex, PrDescriptorSetBindingFlags flags)
+    : name {name}, bindingIndex(bindingIndex), type(type), shaderStages(shaderStages), descriptorArraySize(descriptorArraySize), flags {flags}
 {
 }
 
-prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(DescriptorType type, ShaderStageFlags shaderStages, PrDescriptorSetBindingFlags flags) : DescriptorSetInfoBinding {type, shaderStages, 1u, std::numeric_limits<uint32_t>::max(), flags} {}
+prosper::detail::DescriptorSetInfoBinding::DescriptorSetInfoBinding(const char *name, DescriptorType type, ShaderStageFlags shaderStages, PrDescriptorSetBindingFlags flags) : DescriptorSetInfoBinding {name, type, shaderStages, 1u, std::numeric_limits<uint32_t>::max(), flags} {}
 
 ///////////////////////////
 
@@ -122,7 +123,23 @@ static std::string g_shaderLocation = "shaders";
 void prosper::Shader::SetRootShaderLocation(const std::string &location) { g_shaderLocation = location; }
 const std::string &prosper::Shader::GetRootShaderLocation() { return g_shaderLocation; }
 
-void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions) {}
+void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions)
+{
+	for(size_t iSet = 0; auto &dsInfo : m_shaderResources.descSetInfos) {
+		std::string dsName {dsInfo->GetName()};
+		ustring::to_upper(dsName);
+		auto glslDsName = "DESCRIPTOR_SET_" + dsName;
+		outDefinitions[glslDsName] = std::to_string(iSet);
+		auto numBindings = dsInfo->GetBindingCount();
+		for(size_t iBinding = 0; iBinding < numBindings; ++iBinding) {
+			std::string bindingName {dsInfo->GetBindingName(iBinding)};
+			ustring::to_upper(bindingName);
+			auto glslBindingName = glslDsName + "_BINDING_" + bindingName;
+			outDefinitions[glslBindingName] = std::to_string(iBinding);
+		}
+		++iSet;
+	}
+}
 
 bool prosper::Shader::InitializeSources(bool bReload)
 {
@@ -165,6 +182,9 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 	m_loading = true;
 	ClearPipelines();
 
+	ClearShaderResources();
+	InitializeShaderResources();
+
 	auto fInit = [this, bReloadSourceCode, bValidation]() -> bool {
 		if(bValidation)
 			std::cout << "[PR] Initializing shader sources..." << std::endl;
@@ -200,6 +220,7 @@ void prosper::Shader::FinalizeInitialization()
 void prosper::Shader::OnInitialized() {}
 void prosper::Shader::OnPipelinesInitialized() {}
 bool prosper::Shader::ShouldInitializePipeline(uint32_t pipelineIdx) { return true; }
+void prosper::Shader::ClearShaderResources() { m_shaderResources = {}; }
 
 void prosper::Shader::InitializePipeline() {}
 
@@ -224,27 +245,22 @@ void prosper::Shader::InitializeStages()
 	}
 }
 
-std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorSetGroup(uint32_t setIdx, uint32_t pipelineIdx) const
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::Shader::CreateDescriptorSetGroup(uint32_t setIdx) const
 {
-	auto *pipeline = GetPipelineInfo(pipelineIdx);
-	if(pipeline == nullptr)
+	if(setIdx >= m_shaderResources.descSetInfos.size())
 		return nullptr;
-	if(setIdx >= pipeline->descSetInfos.size())
-		return nullptr;
-	return GetContext().CreateDescriptorSetGroup(*pipeline->descSetInfos.at(setIdx));
+	return GetContext().CreateDescriptorSetGroup(*m_shaderResources.descSetInfos.at(setIdx));
 }
 
-void prosper::Shader::InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx)
+void prosper::Shader::InitializeDescriptorSetGroups(prosper::BasePipelineCreateInfo &pipelineInfo)
 {
-	auto *pipeline = &GetPipelineInfos()[pipelineIdx];
-	if(pipeline == nullptr)
-		return;
 	std::vector<const prosper::DescriptorSetCreateInfo *> dsInfos;
-	dsInfos.reserve(pipeline->descSetInfos.size());
-	for(auto &dsInfo : pipeline->descSetInfos)
+	dsInfos.reserve(m_shaderResources.descSetInfos.size());
+	for(auto &dsInfo : m_shaderResources.descSetInfos)
 		dsInfos.push_back(dsInfo.get());
 	pipelineInfo.SetDescriptorSetCreateInfo(&dsInfos);
 }
+
 void prosper::Shader::SetDebugName(uint32_t pipelineIdx, const std::string &name)
 {
 	auto &infos = GetPipelineInfos();
@@ -327,10 +343,7 @@ bool prosper::Shader::RecordPushConstants(ShaderBindState &bindState, uint32_t s
 {
 	if(bindState.pipelineIdx == std::numeric_limits<uint32_t>::max())
 		return false;
-	auto *info = GetPipelineInfo(bindState.pipelineIdx);
-	if(info == nullptr)
-		return false;
-	for(auto &range : info->pushConstantRanges) {
+	for(auto &range : m_shaderResources.pushConstantRanges) {
 		if(offset >= range.offset && (offset + size) <= (range.offset + range.size))
 			return bindState.commandBuffer.RecordPushConstants(const_cast<Shader &>(*this), bindState.pipelineIdx, range.stages, offset, size, data);
 	}
@@ -449,9 +462,9 @@ void prosper::Shader::BakePipelines() const
 }
 std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::ToProsperDescriptorSetInfo() const
 {
-	auto dsInfo = DescriptorSetCreateInfo::Create();
+	auto dsInfo = DescriptorSetCreateInfo::Create(GetName());
 	for(auto &binding : bindings) {
-		dsInfo->AddBinding(binding.bindingIndex, binding.type, binding.descriptorArraySize, binding.shaderStages, prosper::DescriptorBindingFlags::None, binding.flags);
+		dsInfo->AddBinding(binding.name, binding.bindingIndex, binding.type, binding.descriptorArraySize, binding.shaderStages, prosper::DescriptorBindingFlags::None, binding.flags);
 	}
 	return dsInfo;
 }
@@ -488,32 +501,31 @@ prosper::PipelineID prosper::Shader::InitPipelineId(uint32_t pipelineIdx)
 	return m_cachedPipelineIds[pipelineIdx];
 }
 
-void prosper::Shader::AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx, DescriptorSetInfo &descSetInfo)
+void prosper::Shader::AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo)
 {
 	if(descSetInfo.parent != nullptr) {
 		auto &parent = *descSetInfo.parent;
 		descSetInfo.parent = nullptr;
 		auto childBindings = descSetInfo.bindings;
 		descSetInfo.bindings = parent.bindings;
+		descSetInfo.m_name = parent.m_name;
 
 		descSetInfo.bindings.reserve(descSetInfo.bindings.size() + childBindings.size());
 		for(auto &childBinding : childBindings)
 			descSetInfo.bindings.push_back(childBinding);
 	}
-	auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
-	pipelineInitInfo.descSetInfos.emplace_back(descSetInfo.Bake());
-	descSetInfo.setIndex = pipelineInitInfo.descSetInfos.size() - 1u;
-	if(pipelineInitInfo.descSetInfos.size() > 8)
+	m_shaderResources.descSetInfos.emplace_back(descSetInfo.Bake());
+	descSetInfo.setIndex = m_shaderResources.descSetInfos.size() - 1u;
+	if(m_shaderResources.descSetInfos.size() > 8)
 		throw std::logic_error("Attempted to add more than 8 descriptor sets to shader. This exceeds the limit on some GPUs!");
 }
 
 ::util::WeakHandle<const prosper::Shader> prosper::Shader::GetHandle() const { return ::util::WeakHandle<const Shader>(shared_from_this()); }
 ::util::WeakHandle<prosper::Shader> prosper::Shader::GetHandle() { return ::util::WeakHandle<Shader>(shared_from_this()); }
 
-bool prosper::Shader::AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx, uint32_t offset, uint32_t size, prosper::ShaderStageFlags stages)
+bool prosper::Shader::AttachPushConstantRange(uint32_t offset, uint32_t size, prosper::ShaderStageFlags stages)
 {
-	auto &pipelineInitInfo = m_pipelineInfos.at(pipelineIdx);
-	for(auto &range : pipelineInitInfo.pushConstantRanges) {
+	for(auto &range : m_shaderResources.pushConstantRanges) {
 		if(range.stages != stages)
 			continue;
 		if((range.offset + range.size) == offset) {
@@ -525,7 +537,7 @@ bool prosper::Shader::AttachPushConstantRange(prosper::BasePipelineCreateInfo &p
 			break;
 		}
 	}
-	pipelineInitInfo.pushConstantRanges.push_back({offset, size, stages});
+	m_shaderResources.pushConstantRanges.push_back({offset, size, stages});
 	return true; // pipelineInfo.AttachPushConstantRange(offset,size,stages);
 }
 

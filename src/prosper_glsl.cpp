@@ -12,6 +12,7 @@
 #include <fsys/filesystem.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
+#include <sharedutils/util_path.hpp>
 #include <unordered_set>
 #include <sstream>
 #include <cassert>
@@ -25,8 +26,83 @@ static unsigned int get_line_break(std::string &str, int pos = 0)
 	return pos;
 }
 
-static bool glsl_preprocessing(const std::string &path, std::string &shader, std::string *err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, UInt32 depth = 0, bool = false)
+static void print_available_shader_descriptor_set_bindings(const std::unordered_map<std::string, std::string> &definitions, std::stringstream &ss)
 {
+	std::unordered_map<std::string, std::vector<std::string>> descSetInfos;
+	for(auto &[id, val] : definitions) {
+		const char *descSetPrefix = "DESCRIPTOR_SET_";
+		if(!ustring::compare(id.c_str(), descSetPrefix, true, strlen(descSetPrefix)))
+			continue;
+		auto sub = id.substr(strlen(descSetPrefix));
+		std::string dsName;
+		std::optional<std::string> bindingName {};
+		const char *bindingPrefix = "_BINDING_";
+		auto posBinding = sub.find(bindingPrefix);
+		if(posBinding != std::string::npos) {
+			dsName = sub.substr(0, posBinding);
+			bindingName = sub.substr(posBinding + strlen(bindingPrefix));
+		}
+		else
+			dsName = sub;
+		auto it = descSetInfos.find(dsName);
+		if(it == descSetInfos.end())
+			it = descSetInfos.insert(std::make_pair(dsName, std::vector<std::string> {})).first;
+		if(bindingName)
+			it->second.push_back(*bindingName);
+	}
+
+	ss << "Available descriptor set bindings for this shader:\r\n";
+	for(auto &[descSet, bindings] : descSetInfos) {
+		ss << std::left << std::setw(20) << descSet << ": ";
+		auto first = true;
+		for(auto &binding : bindings) {
+			if(first)
+				first = false;
+			else
+				ss << ", ";
+			ss << binding;
+		}
+		ss << "\r\n";
+	}
+}
+
+static bool translate_layout_ids(std::string &shader, const std::unordered_map<std::string, std::string> &definitions, std::string &outErr)
+{
+	const char *LAYOUT_ID = "LAYOUT_ID(";
+	auto startPos = shader.find("#line 1");
+	if(startPos == std::string::npos)
+		startPos = 0;
+	auto pos = shader.find(LAYOUT_ID, startPos);
+	while(pos != std::string::npos) {
+		pos += strlen(LAYOUT_ID);
+		auto endPos = shader.find(')', pos);
+		auto innerContents = shader.substr(pos, endPos - pos);
+		std::vector<std::string> args;
+		ustring::explode(innerContents, ",", args);
+		if(args.size() == 2 && !ustring::is_integer(args[0])) {
+			auto dsId = args[0];
+			dsId = "DESCRIPTOR_SET_" + dsId;
+
+			auto bindingId = args[1];
+			uint32_t bindingIndex = 0;
+			bindingId = dsId + "_BINDING_" + bindingId;
+
+			innerContents = dsId + "," + bindingId;
+			shader = shader.substr(0, pos) + innerContents + shader.substr(endPos);
+			endPos = pos + innerContents.size();
+		}
+		pos = shader.find(LAYOUT_ID, endPos);
+	}
+	return true;
+}
+
+static bool glsl_preprocessing(const std::string &path, std::string &shader, const std::unordered_map<std::string, std::string> &definitions, std::string &outErr, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, std::stack<std::string> &includeStack,
+  bool = false)
+{
+	if(!translate_layout_ids(shader, definitions, outErr))
+		return false;
+
+	auto depth = includeStack.size();
 	if(!includeLines.empty() && includeLines.back().lineId == lineId)
 		includeLines.back() = prosper::glsl::IncludeLine(lineId, path, depth);
 	else
@@ -46,15 +122,18 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, std
 				std::string inc = l.substr(8, l.length());
 				ustring::remove_whitespace(inc);
 				ustring::remove_quotes(inc);
-				std::string includePath = "";
+				util::Path includePath {};
 				if(inc.empty() == false && inc.front() == '/')
 					includePath = inc;
 				else
 					includePath = sub.substr(sub.find_first_of("/\\") + 1) + inc;
-				includePath = prosper::Shader::GetRootShaderLocation() + "\\" + FileManager::GetCanonicalizedPath(includePath);
-				if(includePath.substr(includePath.length() - 4) != ".gls")
-					includePath += ".gls";
-				auto f = FileManager::OpenFile(includePath.c_str(), "rb");
+				includePath = util::Path::CreatePath(prosper::Shader::GetRootShaderLocation()) + includePath;
+				auto ext = ufile::get_file_extension(includePath.GetString(), prosper::glsl::get_glsl_file_extensions());
+				if(!ext) {
+					if(includePath.GetString().substr(includePath.GetString().length() - 5) != ".glsl")
+						includePath += ".glsl";
+				}
+				auto f = filemanager::open_file(includePath.GetString(), filemanager::FileMode::Read | filemanager::FileMode::Binary);
 				if(f != NULL) {
 					unsigned long long flen = f->GetSize();
 					std::vector<char> data(flen + 1);
@@ -62,8 +141,10 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, std
 					data[flen] = '\0';
 					std::string subShader = data.data();
 					lineId++; // #include-directive
-					if(glsl_preprocessing(includePath, subShader, err, includeLines, lineId, depth + 1) == false)
+					includeStack.push(includePath.GetString());
+					if(glsl_preprocessing(includePath.GetString(), subShader, definitions, outErr, includeLines, lineId, includeStack) == false)
 						return false;
+					includeStack.pop();
 					includeLines.push_back(prosper::glsl::IncludeLine(lineId, path, depth, true));
 					lineId--; // Why?
 					          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +std::to_string(lineId) +std::string("\n");
@@ -71,8 +152,7 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, std
 					br = CUInt32(brLast) + CUInt32(l.length()) + 3 + CUInt32(subShader.length());
 				}
 				else {
-					if(err != NULL)
-						*err = "Unable to include file '" + includePath + "' (In: '" + path + "'): File not found!";
+					outErr = "Unable to include file '" + includePath.GetString() + "' (In: '" + path + "'): File not found!";
 					shader = shader.substr(0, brLast) + shader.substr(br);
 					br = brLast;
 					return false;
@@ -86,11 +166,11 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, std
 	return true;
 }
 
-static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId,
+static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, std::stack<std::string> &includeStack,
   std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
 {
 	lineId = 0;
-	auto r = glsl_preprocessing(path, shader, &err, includeLines, lineId, 0, true);
+	auto r = glsl_preprocessing(path, shader, definitions, err, includeLines, lineId, includeStack, true);
 	if(r == false)
 		return false;
 	// Custom definitions
@@ -276,7 +356,8 @@ static size_t parse_layout_binding(const std::string &glslShader, const std::uno
 		setIndex = ustring::to_int(set);
 	else {
 		// Set is a definition
-		auto itSet = definitions.find(set);
+		auto defName = "DESCRIPTOR_SET_" + set;
+		auto itSet = definitions.find(defName);
 		if(itSet != definitions.end())
 			setIndex = itSet->second;
 	}
@@ -284,7 +365,8 @@ static size_t parse_layout_binding(const std::string &glslShader, const std::uno
 		bindingIndex = ustring::to_int(binding);
 	else {
 		// Binding is a definition
-		auto itBinding = definitions.find(binding);
+		auto defName = "DESCRIPTOR_SET_" + set + "_BINDING_" + binding;
+		auto itBinding = definitions.find(defName);
 		if(itBinding != definitions.end())
 			bindingIndex = itBinding->second;
 	}
@@ -458,7 +540,8 @@ void prosper::glsl::dump_parsed_shader(IPrContext &context, uint32_t stage, cons
 	std::vector<IncludeLine> includeLines;
 	unsigned int lineOffset = 0;
 	std::string err;
-	if(glsl_preprocessing(context, static_cast<prosper::ShaderStage>(stage), fileName, shaderCode, err, includeLines, lineOffset) == false)
+	std::stack<std::string> includeStack;
+	if(glsl_preprocessing(context, static_cast<prosper::ShaderStage>(stage), fileName, shaderCode, err, includeLines, lineOffset, includeStack) == false)
 		return;
 	auto fOut = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
 	if(fOut == nullptr)
@@ -466,23 +549,64 @@ void prosper::glsl::dump_parsed_shader(IPrContext &context, uint32_t stage, cons
 	fOut->WriteString(shaderCode);
 }
 
-std::optional<std::string> prosper::glsl::find_shader_file(const std::string &fileName, std::string *optOutExt)
+const std::vector<std::string> &prosper::glsl::get_glsl_file_extensions()
+{
+	static std::vector<std::string> exts {"comp", "frag", "geom", "tesc", "tese", "vert"};
+	static_assert(umath::to_integral(prosper::ShaderStage::Count) == 6, "Update this list when new stages are added!");
+	return exts;
+}
+
+bool prosper::glsl::is_glsl_file_extension(const std::string &ext)
+{
+	using namespace ustring::string_switch_ci;
+	switch(hash(ext)) {
+	case "comp"_:
+	case "frag"_:
+	case "geom"_:
+	case "tesc"_:
+	case "tese"_:
+	case "vert"_:
+		return true;
+	default:
+		return false;
+	}
+	static_assert(umath::to_integral(prosper::ShaderStage::Count) == 6, "Update this list when new stages are added!");
+	return false;
+}
+
+std::string prosper::glsl::get_shader_file_extension(prosper::ShaderStage stage)
+{
+	switch(stage) {
+	case prosper::ShaderStage::Compute:
+		return "comp";
+	case prosper::ShaderStage::Fragment:
+		return "frag";
+	case prosper::ShaderStage::Geometry:
+		return "geom";
+	case prosper::ShaderStage::TessellationControl:
+		return "tesc";
+	case prosper::ShaderStage::TessellationEvaluation:
+		return "tese";
+	case prosper::ShaderStage::Vertex:
+		return "vert";
+	}
+	static_assert(umath::to_integral(prosper::ShaderStage::Count) == 6, "Update this list when new stages are added!");
+	return "glsl";
+}
+
+std::optional<std::string> prosper::glsl::find_shader_file(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt)
 {
 	std::string ext;
 	if(ufile::get_extension(fileName, &ext) == false) {
-		auto fileNameGls = fileName + ".gls";
-		if(FileManager::Exists(fileNameGls))
-			return fileNameGls;
-		auto fileNameHls = fileName + ".hls";
-		if(FileManager::Exists(fileNameHls))
-			return fileNameHls;
-		return {};
+		ext = get_shader_file_extension(stage);
+		auto fullFileName = fileName + '.' + ext;
+		return filemanager::exists(fullFileName) ? fullFileName : std::optional<std::string> {};
 	}
 	else {
 		if(optOutExt)
 			*optOutExt = ext;
 	}
-	return FileManager::Exists(fileName) ? fileName : std::optional<std::string> {};
+	return filemanager::exists(fileName) ? fileName : std::optional<std::string> {};
 }
 
 std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog)
@@ -496,7 +620,7 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
   const std::unordered_map<std::string, std::string> &definitions, bool applyPreprocessing)
 {
 	std::string ext;
-	auto optFileName = find_shader_file("shaders/" + fileName, &ext);
+	auto optFileName = find_shader_file(stage, "shaders/" + fileName, &ext);
 	if(optFileName.has_value() == false) {
 		if(infoLog)
 			*infoLog = "File not found: " + fileName;
@@ -514,9 +638,30 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	auto shaderCode = f->ReadString();
 	unsigned int lineOffset = 0;
 	std::string err;
-	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, outIncludeLines, lineOffset, definitions, hlsl) == false) {
-		if(infoLog != nullptr)
+	std::stack<std::string> includeStack;
+	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, outIncludeLines, lineOffset, includeStack, definitions, hlsl) == false) {
+		if(infoLog != nullptr) {
 			*infoLog = std::string("Module: \"") + fileName + "\"\n" + err;
+
+			if(!includeStack.empty()) {
+				std::vector<std::string> includeList;
+				includeList.reserve(includeStack.size());
+				while(!includeStack.empty()) {
+					includeList.push_back(std::move(includeStack.top()));
+					includeStack.pop();
+				}
+
+				std::stringstream ssIncludeStack;
+				ssIncludeStack << "Include Stack:\r\n";
+				std::string t = "  ";
+				for(auto it = includeList.rbegin(); it != includeList.rend(); ++it) {
+					auto &path = *it;
+					ssIncludeStack << t << path << "\r\n";
+					t += "  ";
+				}
+				*infoLog += "\r\n" + ssIncludeStack.str();
+			}
+		}
 		return {};
 	}
 	return shaderCode;

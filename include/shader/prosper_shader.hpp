@@ -94,8 +94,8 @@ namespace prosper {
 		bool RecordPushConstants(ShaderBindState &bindState, const T &data, uint32_t offset = 0u) const;
 		bool RecordPushConstants(ShaderBindState &bindState, uint32_t size, const void *data, uint32_t offset = 0u) const;
 		bool RecordBindDescriptorSets(ShaderBindState &bindState, const std::vector<prosper::IDescriptorSet *> &descSets, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
-		void AddDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx, DescriptorSetInfo &descSetInfo);
-		bool AttachPushConstantRange(prosper::BasePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx, uint32_t offset, uint32_t size, prosper::ShaderStageFlags stages);
+		void AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo);
+		bool AttachPushConstantRange(uint32_t offset, uint32_t size, prosper::ShaderStageFlags stages);
 		virtual bool RecordBindDescriptorSet(ShaderBindState &bindState, prosper::IDescriptorSet &descSet, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
 
 		prosper::ShaderModule *GetModule(ShaderStage stage);
@@ -110,7 +110,7 @@ namespace prosper {
 		bool GetSourceFilePath(ShaderStage stage, std::string &sourceFilePath) const;
 		std::vector<std::string> GetSourceFilePaths() const;
 
-		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(uint32_t setIdx, uint32_t pipelineIdx = 0u) const;
+		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(uint32_t setIdx) const;
 
 		std::array<std::shared_ptr<ShaderStageData>, umath::to_integral(prosper::ShaderStage::Count)> &GetStages();
 
@@ -130,6 +130,8 @@ namespace prosper {
 		virtual void OnInitialized();
 		virtual void OnPipelinesInitialized();
 		virtual bool ShouldInitializePipeline(uint32_t pipelineIdx);
+		virtual void InitializeShaderResources() {};
+		virtual void ClearShaderResources();
 		void ClearPipelines();
 		prosper::PipelineID InitPipelineId(uint32_t pipelineIdx);
 		void FlushLoad() const;
@@ -137,10 +139,11 @@ namespace prosper {
 
 		ShaderStageData *GetStage(ShaderStage stage);
 		const ShaderStageData *GetStage(ShaderStage stage) const;
-		void InitializeDescriptorSetGroup(prosper::BasePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
+		void InitializeDescriptorSetGroups(prosper::BasePipelineCreateInfo &pipelineInfo);
 		// Pipeline this pipeline is derived from
 		std::weak_ptr<Shader> m_basePipeline = {};
 		mutable bool m_loading = false;
+		ShaderResources m_shaderResources;
 
 		void SetIndex(ShaderIndex shaderIndex) { m_shaderIndex = shaderIndex; }
 	  private:
@@ -216,7 +219,7 @@ namespace prosper {
 		bool RecordBindIndexBuffer(ShaderBindState &bindState, prosper::IBuffer &indexBuffer, prosper::IndexType indexType = prosper::IndexType::UInt16, DeviceSize offset = 0ull) const;
 		bool RecordDraw(ShaderBindState &bindState, uint32_t vertCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const;
 		bool RecordDrawIndexed(ShaderBindState &bindState, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, uint32_t firstInstance = 0u) const;
-		void AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo, VertexAttribute &attr);
+		void AddVertexAttribute(VertexAttribute &attr);
 		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::ShaderStageFlags stageFlags, uint32_t constantId, uint32_t numBytes, const void *data);
 		template<typename T>
 		bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::ShaderStageFlags stageFlags, uint32_t constantId, const T &value)
@@ -238,6 +241,7 @@ namespace prosper {
 		void ToggleDynamicScissorState(prosper::GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable);
 		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
 		virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx);
+		virtual void ClearShaderResources() override;
 
 		void CreateCachedRenderPass(size_t hashCode, const prosper::util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx, const std::string &debugName = "");
 		template<class TShader>

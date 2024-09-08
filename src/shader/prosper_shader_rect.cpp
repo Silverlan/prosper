@@ -9,11 +9,12 @@
 using namespace prosper;
 
 ShaderRect::ShaderRect(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader) : ShaderBaseImageProcessing(context, identifier, vsShader, fsShader) {}
-ShaderRect::ShaderRect(prosper::IPrContext &context, const std::string &identifier) : ShaderRect(context, identifier, "screen/vs_screen_uv_cheap", "screen/fs_screen") {}
-void ShaderRect::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx)
-{
-	ShaderGraphics::InitializeGfxPipeline(pipelineInfo, pipelineIdx);
-	AddDefaultVertexAttributes(pipelineInfo);
-	AttachPushConstantRange(pipelineInfo, pipelineIdx, 0u, sizeof(Mat4), prosper::ShaderStageFlags::VertexBit);
-}
+ShaderRect::ShaderRect(prosper::IPrContext &context, const std::string &identifier) : ShaderRect(context, identifier, "programs/image/noop_uv_cheap", "programs/image/noop") {}
+void ShaderRect::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) { ShaderGraphics::InitializeGfxPipeline(pipelineInfo, pipelineIdx); }
 bool ShaderRect::RecordDraw(ShaderBindState &bindState, const Mat4 &modelMatrix) const { return RecordPushConstants(bindState, modelMatrix) && ShaderBaseImageProcessing::RecordDraw(bindState); }
+void ShaderRect::InitializeShaderResources()
+{
+	ShaderGraphics::InitializeShaderResources();
+	AddDefaultVertexAttributes();
+	AttachPushConstantRange(0u, sizeof(Mat4), prosper::ShaderStageFlags::VertexBit);
+}

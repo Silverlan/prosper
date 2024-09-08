@@ -149,7 +149,7 @@ bool DescriptorSetCreateInfo::GetBindingPropertiesByIndexNumber(uint32_t nBindin
 end:
 	return result;
 }
-bool DescriptorSetCreateInfo::AddBinding(uint32_t in_binding_index, DescriptorType in_descriptor_type, uint32_t in_descriptor_array_size, ShaderStageFlags in_stage_flags, const DescriptorBindingFlags &in_flags, const PrDescriptorSetBindingFlags &in_pr_flags,
+bool DescriptorSetCreateInfo::AddBinding(const char *name, uint32_t in_binding_index, DescriptorType in_descriptor_type, uint32_t in_descriptor_array_size, ShaderStageFlags in_stage_flags, const DescriptorBindingFlags &in_flags, const PrDescriptorSetBindingFlags &in_pr_flags,
   const ISampler *const *in_immutable_sampler_ptrs)
 {
 	bool result = false;
@@ -188,11 +188,18 @@ bool DescriptorSetCreateInfo::AddBinding(uint32_t in_binding_index, DescriptorTy
 
 	/* Add a new binding entry and mark the layout as dirty, so that it is re-baked next time
 	* the user calls the getter func */
-	m_bindings[in_binding_index] = Binding(in_descriptor_array_size, in_descriptor_type, in_stage_flags, in_immutable_sampler_ptrs, in_flags, in_pr_flags);
+	m_bindings[in_binding_index] = Binding(name, in_descriptor_array_size, in_descriptor_type, in_stage_flags, in_immutable_sampler_ptrs, in_flags, in_pr_flags);
 
 	result = true;
 end:
 	return result;
+}
+const char *DescriptorSetCreateInfo::GetBindingName(uint32_t in_binding_index) const
+{
+	auto it = m_bindings.find(in_binding_index);
+	if(it == m_bindings.end())
+		return "";
+	return it->second.name;
 }
 
 /////////////////

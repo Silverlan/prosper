@@ -137,6 +137,12 @@ void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode, const pros
 }
 void prosper::ShaderGraphics::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) { pipelineInfo.ToggleDynamicStates(true, {prosper::DynamicState::Viewport}); }
 
+void prosper::ShaderGraphics::ClearShaderResources()
+{
+	Shader::ClearShaderResources();
+	m_vertexAttributes.clear();
+}
+
 void prosper::ShaderGraphics::InitializePipeline()
 {
 	OnInitializePipelines();
@@ -197,10 +203,9 @@ void prosper::ShaderGraphics::InitializePipeline()
 			gfxPipelineInfo->SetMultisamplingProperties(samples, 0.f, std::numeric_limits<SampleMask>::max());
 
 		InitializeGfxPipeline(*gfxPipelineInfo, pipelineIdx);
-		InitializeDescriptorSetGroup(*gfxPipelineInfo, pipelineIdx);
+		InitializeDescriptorSetGroups(*gfxPipelineInfo);
 
-		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
-		for(auto &range : pipelineInitInfo.pushConstantRanges)
+		for(auto &range : m_shaderResources.pushConstantRanges)
 			gfxPipelineInfo->AttachPushConstantRange(range.offset, range.size, range.stages);
 
 		PrepareGfxPipeline(*gfxPipelineInfo);
@@ -352,7 +357,7 @@ bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelin
 	}
 	return true;
 }
-void prosper::ShaderGraphics::AddVertexAttribute(prosper::GraphicsPipelineCreateInfo &pipelineInfo, VertexAttribute &attr) { m_vertexAttributes.push_back(attr); }
+void prosper::ShaderGraphics::AddVertexAttribute(VertexAttribute &attr) { m_vertexAttributes.push_back(attr); }
 bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState, prosper::IDescriptorSet &descSet, uint32_t firstSet, const std::vector<uint32_t> &dynamicOffsets) const
 {
 #if 0

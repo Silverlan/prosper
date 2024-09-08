@@ -559,7 +559,7 @@ void prosper::IPrContext::DrawFrame()
 
 prosper::ShaderManager &prosper::IPrContext::GetShaderManager() const { return *m_shaderManager; }
 
-std::optional<std::string> prosper::IPrContext::FindShaderFile(const std::string &fileName, std::string *optOutExt) { return prosper::glsl::find_shader_file(fileName, optOutExt); }
+std::optional<std::string> prosper::IPrContext::FindShaderFile(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt) { return prosper::glsl::find_shader_file(stage, fileName, optOutExt); }
 
 void prosper::IPrContext::RegisterShader(const std::string &identifier, const std::function<Shader *(IPrContext &, const std::string &)> &fFactory) { return m_shaderManager->RegisterShader(identifier, fFactory); }
 ::util::WeakHandle<prosper::Shader> prosper::IPrContext::GetShader(const std::string &identifier) const { return m_shaderManager->GetShader(identifier); }

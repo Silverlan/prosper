@@ -44,10 +44,9 @@ void prosper::ShaderRaytracing::InitializePipeline()
 		if(rtPipelineInfo == nullptr)
 			continue;
 		InitializeRaytracingPipeline(*rtPipelineInfo, pipelineIdx);
-		InitializeDescriptorSetGroup(*rtPipelineInfo, pipelineIdx);
+		InitializeDescriptorSetGroups(*rtPipelineInfo);
 
-		auto &pipelineInitInfo = pipelineInfos.at(pipelineIdx);
-		for(auto &range : pipelineInitInfo.pushConstantRanges)
+		for(auto &range : m_shaderResources.pushConstantRanges)
 			rtPipelineInfo->AttachPushConstantRange(range.offset, range.size, range.stages);
 
 		auto &pipelineInfo = pipelineInfos.at(pipelineIdx);

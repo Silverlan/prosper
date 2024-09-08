@@ -20,7 +20,7 @@ decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_V
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION) ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX, CommonBufferCache::GetSquareVertexFormat()};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_VERTEX, CommonBufferCache::GetSquareUvFormat()};
 
-decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {{prosper::DescriptorSetInfo::Binding {DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
+decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {prosper::DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
 
 static constexpr std::array<prosper::Format, umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
   prosper::Format::R8G8B8A8_UNorm, prosper::Format::R8_UNorm, prosper::Format::R16G16B16A16_SFloat,
@@ -29,7 +29,7 @@ static constexpr std::array<prosper::Format, umath::to_integral(prosper::ShaderB
   //prosper::Format::BC3_UNorm_Block
 };
 
-ShaderBlurBase::ShaderBlurBase(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderGraphics(context, identifier, "screen/vs_screen_uv", fsShader) { SetPipelineCount(umath::to_integral(Pipeline::Count)); }
+ShaderBlurBase::ShaderBlurBase(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderGraphics(context, identifier, "programs/image/noop_uv", fsShader) { SetPipelineCount(umath::to_integral(Pipeline::Count)); }
 
 void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<prosper::Format>(g_pipelineFormats.at(pipelineIdx))}}}, outRenderPass, pipelineIdx); }
 
@@ -38,10 +38,14 @@ void ShaderBlurBase::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo, pipelineIdx);
 
 	pipelineInfo.ToggleDynamicStates(true, {prosper::DynamicState::Scissor});
-	AddVertexAttribute(pipelineInfo, VERTEX_ATTRIBUTE_POSITION);
-	AddVertexAttribute(pipelineInfo, VERTEX_ATTRIBUTE_UV);
-	AddDescriptorSetGroup(pipelineInfo, pipelineIdx, DESCRIPTOR_SET_TEXTURE);
-	AttachPushConstantRange(pipelineInfo, pipelineIdx, 0u, sizeof(PushConstants), prosper::ShaderStageFlags::FragmentBit);
+}
+
+void ShaderBlurBase::InitializeShaderResources()
+{
+	AddVertexAttribute(VERTEX_ATTRIBUTE_POSITION);
+	AddVertexAttribute(VERTEX_ATTRIBUTE_UV);
+	AddDescriptorSetGroup(DESCRIPTOR_SET_TEXTURE);
+	AttachPushConstantRange(0u, sizeof(PushConstants), prosper::ShaderStageFlags::FragmentBit);
 }
 
 bool ShaderBlurBase::RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx) const { return ShaderGraphics::RecordBeginDraw(bindState, umath::to_integral(pipelineIdx)); }
@@ -56,13 +60,13 @@ bool ShaderBlurBase::RecordDraw(ShaderBindState &bindState, IDescriptorSet &desc
 /////////////////////////
 
 static ShaderBlurH *s_blurShaderH = nullptr;
-ShaderBlurH::ShaderBlurH(prosper::IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "screen/fs_gaussianblur_horizontal") { s_blurShaderH = this; }
+ShaderBlurH::ShaderBlurH(prosper::IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "programs/effects/gaussianblur_horizontal") { s_blurShaderH = this; }
 ShaderBlurH::~ShaderBlurH() { s_blurShaderH = nullptr; }
 
 /////////////////////////
 
 static ShaderBlurV *s_blurShaderV = nullptr;
-ShaderBlurV::ShaderBlurV(prosper::IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "screen/fs_gaussianblur_vertical")
+ShaderBlurV::ShaderBlurV(prosper::IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "programs/effects/gaussianblur_vertical")
 {
 	s_blurShaderV = this;
 	SetBaseShader<ShaderBlurH>();
