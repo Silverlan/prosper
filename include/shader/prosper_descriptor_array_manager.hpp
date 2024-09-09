@@ -28,7 +28,7 @@ namespace prosper {
 	class DLLPROSPER DescriptorArrayManager : public std::enable_shared_from_this<DescriptorArrayManager> {
 	  public:
 		template<class TDescriptorArrayManager>
-		static std::shared_ptr<TDescriptorArrayManager> Create(prosper::IPrContext &context, prosper::ShaderStageFlags shaderStages);
+		static std::shared_ptr<TDescriptorArrayManager> Create(prosper::IPrContext &context, const char *setName, const char *bindingName, prosper::ShaderStageFlags shaderStages);
 		template<class TDescriptorArrayManager>
 		static std::shared_ptr<TDescriptorArrayManager> Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, uint32_t bindingIndex);
 		using ArrayIndex = uint32_t;
@@ -52,11 +52,11 @@ namespace prosper {
 };
 
 template<class TDescriptorArrayManager>
-std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context, prosper::ShaderStageFlags shaderStages)
+std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context, const char *setName, const char *bindingName, prosper::ShaderStageFlags shaderStages)
 {
 	auto limits = context.GetPhysicalDeviceLimits();
 	auto maxArrayLayers = limits.maxImageArrayLayers;
-	auto matArrayDsg = context.CreateDescriptorSetGroup({{prosper::detail::DescriptorSetInfoBinding {prosper::DescriptorType::CombinedImageSampler, shaderStages, maxArrayLayers, 0}}});
+	auto matArrayDsg = context.CreateDescriptorSetGroup(prosper::DescriptorSetCreateInfo {setName, {prosper::detail::DescriptorSetInfoBinding {bindingName, prosper::DescriptorType::CombinedImageSampler, shaderStages, maxArrayLayers, 0}}});
 	return Create<TDescriptorArrayManager>(matArrayDsg, 0u);
 }
 
