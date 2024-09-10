@@ -56,7 +56,9 @@ std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create
 {
 	auto limits = context.GetPhysicalDeviceLimits();
 	auto maxArrayLayers = limits.maxImageArrayLayers;
-	auto matArrayDsg = context.CreateDescriptorSetGroup(prosper::DescriptorSetCreateInfo {setName, {prosper::detail::DescriptorSetInfoBinding {bindingName, prosper::DescriptorType::CombinedImageSampler, shaderStages, maxArrayLayers, 0}}});
+	auto createInfo = prosper::DescriptorSetCreateInfo::Create(setName);
+	createInfo->AddBinding(bindingName, 0u, prosper::DescriptorType::CombinedImageSampler, maxArrayLayers, shaderStages);
+	auto matArrayDsg = context.CreateDescriptorSetGroup(*createInfo);
 	return Create<TDescriptorArrayManager>(matArrayDsg, 0u);
 }
 
