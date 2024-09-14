@@ -123,7 +123,7 @@ static std::string g_shaderLocation = "shaders";
 void prosper::Shader::SetRootShaderLocation(const std::string &location) { g_shaderLocation = location; }
 const std::string &prosper::Shader::GetRootShaderLocation() { return g_shaderLocation; }
 
-void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions)
+void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions, std::string &outPrefixCode)
 {
 	for(size_t iSet = 0; auto &dsInfo : m_shaderResources.descSetInfos) {
 		std::string dsName {dsInfo->GetName()};
@@ -148,10 +148,11 @@ bool prosper::Shader::InitializeSources(bool bReload)
 	std::string debugInfoLog;
 
 	std::unordered_map<std::string, std::string> definitions;
-	GetShaderPreprocessorDefinitions(definitions);
+	std::string prefixCode;
+	GetShaderPreprocessorDefinitions(definitions, prefixCode);
 
 	prosper::ShaderStage stage;
-	if(context.InitializeShaderSources(*this, bReload, infoLog, debugInfoLog, stage, definitions) == false) {
+	if(context.InitializeShaderSources(*this, bReload, infoLog, debugInfoLog, stage, prefixCode, definitions) == false) {
 		if(s_logCallback != nullptr)
 			s_logCallback(*this, stage, infoLog, debugInfoLog);
 		return false;

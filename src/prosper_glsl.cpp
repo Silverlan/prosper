@@ -167,7 +167,7 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 }
 
 static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, std::stack<std::string> &includeStack,
-  std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
+  const std::string &prefixCode = {}, std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
 {
 	lineId = 0;
 	auto r = glsl_preprocessing(path, shader, definitions, err, includeLines, lineId, includeStack, true);
@@ -215,10 +215,15 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 
 	lineId = static_cast<unsigned int>(definitions.size() + 1);
 	std::string def;
-	std::unordered_map<std::string, std::string>::iterator itDef;
-	for(itDef = definitions.begin(); itDef != definitions.end(); itDef++)
-		def += "#define " + itDef->first + " " + itDef->second + "\n";
-	def += "#line 1\n";
+	for(auto &[key, val] : definitions)
+		def += "#define " + key + " " + val + "\n";
+
+	// This is additional code that should be inserted to the top of the glsl file.
+	auto prefixCodeTranslated = prefixCode;
+	if(!translate_layout_ids(prefixCodeTranslated, definitions, err))
+		return false;
+	def += prefixCodeTranslated;
+	def += "\n#line 1\n";
 
 	// Can't add anything before #version, so look for it first
 	size_t posAppend = 0;
@@ -304,7 +309,7 @@ static void parse_definitions(const std::string &glslShader, std::unordered_map<
 			if(expr.parser.IsConstDefined(var))
 				continue;
 			try {
-				expr.parser.DefineConst(var, *it->second.value);
+				expr.parser.DefineConst(var, mup::int_type {*it->second.value});
 			}
 			catch(const mup::ParserError &err) {
 				return false;
@@ -616,7 +621,7 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	return load_glsl(context, stage, fileName, infoLog, debugInfoLog, includeLines, lineOffset);
 }
 
-std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset,
+std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::string *infoLog, std::string *debugInfoLog, std::vector<IncludeLine> &outIncludeLines, uint32_t &outLineOffset, const std::string &prefixCode,
   const std::unordered_map<std::string, std::string> &definitions, bool applyPreprocessing)
 {
 	std::string ext;
@@ -639,7 +644,7 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	unsigned int lineOffset = 0;
 	std::string err;
 	std::stack<std::string> includeStack;
-	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, outIncludeLines, lineOffset, includeStack, definitions, hlsl) == false) {
+	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, outIncludeLines, lineOffset, includeStack, prefixCode, definitions, hlsl) == false) {
 		if(infoLog != nullptr) {
 			*infoLog = std::string("Module: \"") + fileName + "\"\n" + err;
 

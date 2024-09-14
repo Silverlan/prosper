@@ -132,7 +132,7 @@ namespace prosper {
 		virtual bool ShouldInitializePipeline(uint32_t pipelineIdx);
 		virtual void InitializeShaderResources() {};
 		virtual void ClearShaderResources();
-		virtual void GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions);
+		virtual void GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions, std::string &outPrefixCode);
 		void ClearPipelines();
 		prosper::PipelineID InitPipelineId(uint32_t pipelineIdx);
 		void FlushLoad() const;
