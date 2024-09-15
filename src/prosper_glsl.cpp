@@ -218,9 +218,15 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 	for(auto &[key, val] : definitions)
 		def += "#define " + key + " " + val + "\n";
 
+	// See http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+	static const std::string STANDARD_PREFIX_CODE = "const float GAMMA = 2.2;\n"
+	                                                "const float INV_GAMMA = 1.0 / GAMMA;\n"
+	                                                "vec3 linear_to_srgb(vec3 color) { return pow(color, vec3(INV_GAMMA)); }\n"
+	                                                "vec3 srgb_to_linear(vec3 srgbIn) { return pow(srgbIn.xyz, vec3(GAMMA)); }\n";
+
 	// This is additional code that should be inserted to the top of the glsl file.
-	auto prefixCodeTranslated = prefixCode;
-	if(!translate_layout_ids(prefixCodeTranslated, definitions, err))
+	auto prefixCodeTranslated = STANDARD_PREFIX_CODE + prefixCode;
+	if(!glsl_preprocessing("", prefixCodeTranslated, definitions, err, includeLines, lineId, includeStack, true))
 		return false;
 	def += prefixCodeTranslated;
 	def += "\n#line 1\n";
