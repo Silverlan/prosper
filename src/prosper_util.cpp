@@ -1026,20 +1026,7 @@ static std::string to_string(prosper::ImageType value)
 	}
 }
 std::string prosper::util::to_string(prosper::ImageType type) { return ::to_string(type); }
-std::string prosper::util::to_string(prosper::ShaderStage stage)
-{
-	auto values = umath::get_power_of_2_values(umath::to_integral(stage));
-	std::stringstream ss;
-	auto bFirst = true;
-	for(auto &v : values) {
-		if(bFirst == false)
-			ss << " | ";
-		else
-			bFirst = false;
-		ss << ::to_string(static_cast<prosper::ShaderStageFlags>(v));
-	}
-	return ss.str();
-}
+std::string prosper::util::to_string(prosper::ShaderStage stage) { return std::string {magic_enum::enum_name(stage)}; }
 static std::string to_string(prosper::PipelineStageFlags value)
 {
 	switch(value) {
