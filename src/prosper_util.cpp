@@ -2540,6 +2540,43 @@ bool prosper::util::is_packed_format(Format format)
 	return false;
 }
 
+bool prosper::util::is_srgb_format(Format format)
+{
+	switch(format) {
+	case Format::R8_SRGB:
+	case Format::R8G8_SRGB_PoorCoverage:
+	case Format::R8G8B8_SRGB_PoorCoverage:
+	case Format::B8G8R8_SRGB_PoorCoverage:
+	case Format::R8G8B8A8_SRGB:
+	case Format::B8G8R8A8_SRGB:
+	case Format::A8B8G8R8_SRGB_Pack32:
+	case Format::BC1_RGB_SRGB_Block:
+	case Format::BC1_RGBA_SRGB_Block:
+	case Format::BC2_SRGB_Block:
+	case Format::BC3_SRGB_Block:
+	case Format::BC7_SRGB_Block:
+	case Format::ETC2_R8G8B8_SRGB_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8A1_SRGB_Block_PoorCoverage:
+	case Format::ETC2_R8G8B8A8_SRGB_Block_PoorCoverage:
+	case Format::ASTC_4x4_SRGB_Block_PoorCoverage:
+	case Format::ASTC_5x4_SRGB_Block_PoorCoverage:
+	case Format::ASTC_5x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_6x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_6x6_SRGB_Block_PoorCoverage:
+	case Format::ASTC_8x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_8x6_SRGB_Block_PoorCoverage:
+	case Format::ASTC_8x8_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x5_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x6_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x8_SRGB_Block_PoorCoverage:
+	case Format::ASTC_10x10_SRGB_Block_PoorCoverage:
+	case Format::ASTC_12x10_SRGB_Block_PoorCoverage:
+	case Format::ASTC_12x12_SRGB_Block_PoorCoverage:
+		return true;
+	}
+	return false;
+}
+
 bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &image, const uimg::TextureInfo &texInfo, const std::function<void(const std::string &)> &errorHandler)
 {
 	std::shared_ptr<prosper::IImage> imgRead = image.shared_from_this();

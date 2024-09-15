@@ -82,6 +82,7 @@ namespace prosper {
 		DLLPROSPER bool is_32bit_format(Format format);
 		DLLPROSPER bool is_64bit_format(Format format);
 		DLLPROSPER bool is_packed_format(Format format);
+		DLLPROSPER bool is_srgb_format(Format format);
 		DLLPROSPER uint32_t get_bit_size(Format format);
 		DLLPROSPER uint32_t get_byte_size(Format format);
 		DLLPROSPER uint32_t get_block_size(Format format);
