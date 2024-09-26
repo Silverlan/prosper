@@ -107,6 +107,7 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 		includeLines.back() = prosper::glsl::IncludeLine(lineId, path, depth);
 	else
 		includeLines.push_back(prosper::glsl::IncludeLine(lineId, path, depth));
+	includeLines.back().includeStack = includeStack;
 	//auto incIdx = includeLines.size() -1;
 	std::string sub = FileManager::GetPath(const_cast<std::string &>(path));
 	auto len = shader.length();
@@ -144,8 +145,9 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 					includeStack.push(includePath.GetString());
 					if(glsl_preprocessing(includePath.GetString(), subShader, definitions, outErr, includeLines, lineId, includeStack) == false)
 						return false;
-					includeStack.pop();
 					includeLines.push_back(prosper::glsl::IncludeLine(lineId, path, depth, true));
+					includeLines.back().includeStack = includeStack;
+					includeStack.pop();
 					lineId--; // Why?
 					          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +std::to_string(lineId) +std::string("\n");
 					shader = shader.substr(0, brLast) + std::string("//") + l + std::string("\n") + subShader + shader.substr(br);
@@ -480,6 +482,7 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 					auto line = atoi(msg.substr(st, end - st).c_str());
 					auto lineInternal = line;
 					std::string file;
+					std::stack<std::string> includeStack;
 					auto bFound = false;
 					auto numIncludeLines = includeLines.size();
 					for(UInt idx = 0; idx < numIncludeLines; idx++) {
@@ -503,6 +506,7 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 							}
 							line = errLine;
 							file = it->line;
+							includeStack = it->includeStack;
 							bFound = true;
 						}
 						break;
@@ -529,6 +533,22 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 						}
 						else
 							msgOut << "\nUnable to display shader contents: Erroneous line " << lineInternal << " exceeds number of lines in file '" << file << "' (" << codeLines.size() << ")!";
+
+						if(!includeStack.empty()) {
+							msgOut << "\nInclude Stack:\n";
+							std::vector<std::string> list;
+							list.reserve(includeStack.size());
+							while(!includeStack.empty()) {
+								list.push_back(includeStack.top());
+								includeStack.pop();
+							}
+							std::string prefix = "  ";
+							for(auto it = list.rbegin(); it != list.rend(); ++it) {
+								auto &item = *it;
+								msgOut << prefix << item << "\n";
+								prefix += "  ";
+							}
+						}
 					}
 					else
 						msgOut << "\nUnable to display shader contents: Failed to open file '" << file << "' for reading!";

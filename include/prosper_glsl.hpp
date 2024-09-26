@@ -9,6 +9,7 @@
 #include <cinttypes>
 #include <string>
 #include <vector>
+#include <stack>
 #include <unordered_map>
 #include <optional>
 
@@ -24,6 +25,7 @@ namespace prosper {
 			std::string line;
 			bool ret;
 			uint32_t depth;
+			std::stack<std::string> includeStack;
 		};
 		DLLPROSPER void translate_error(const std::string &shaderCode, const std::string &errorMsg, const std::string &pathMainShader, const std::vector<IncludeLine> &includeLines, int32_t lineOffset, std::string *err);
 		struct DLLPROSPER Definitions {
