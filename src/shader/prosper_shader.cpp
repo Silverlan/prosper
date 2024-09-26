@@ -502,7 +502,7 @@ prosper::PipelineID prosper::Shader::InitPipelineId(uint32_t pipelineIdx)
 	return m_cachedPipelineIds[pipelineIdx];
 }
 
-void prosper::Shader::AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo)
+uint32_t prosper::Shader::AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo)
 {
 	if(descSetInfo.parent != nullptr) {
 		auto &parent = *descSetInfo.parent;
@@ -519,6 +519,7 @@ void prosper::Shader::AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo)
 	descSetInfo.setIndex = m_shaderResources.descSetInfos.size() - 1u;
 	if(m_shaderResources.descSetInfos.size() > 8)
 		throw std::logic_error("Attempted to add more than 8 descriptor sets to shader. This exceeds the limit on some GPUs!");
+	return descSetInfo.setIndex;
 }
 
 ::util::WeakHandle<const prosper::Shader> prosper::Shader::GetHandle() const { return ::util::WeakHandle<const Shader>(shared_from_this()); }

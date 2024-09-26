@@ -94,7 +94,7 @@ namespace prosper {
 		bool RecordPushConstants(ShaderBindState &bindState, const T &data, uint32_t offset = 0u) const;
 		bool RecordPushConstants(ShaderBindState &bindState, uint32_t size, const void *data, uint32_t offset = 0u) const;
 		bool RecordBindDescriptorSets(ShaderBindState &bindState, const std::vector<prosper::IDescriptorSet *> &descSets, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
-		void AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo);
+		uint32_t AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo);
 		bool AttachPushConstantRange(uint32_t offset, uint32_t size, prosper::ShaderStageFlags stages);
 		virtual bool RecordBindDescriptorSet(ShaderBindState &bindState, prosper::IDescriptorSet &descSet, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
 
