@@ -150,6 +150,7 @@ namespace prosper::util {
 		}
 		void PushCommand(PreparedCommandFunction &&cmd, std::vector<PreparedCommand::Argument> &&args = {});
 		bool RecordCommands(prosper::ICommandBuffer &cmdBuf, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData) const;
+		void Reset();
 		std::vector<PreparedCommand> commands;
 		PreparedCommandArgumentMap dynamicArguments;
 		bool enableDrawArgs = true;

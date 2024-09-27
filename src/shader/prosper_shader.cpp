@@ -522,6 +522,12 @@ uint32_t prosper::Shader::AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo)
 	return descSetInfo.setIndex;
 }
 
+std::optional<uint32_t> prosper::Shader::FindDescriptorSetIndex(const std::string &name) const
+{
+	auto it = std::find_if(m_shaderResources.descSetInfos.begin(), m_shaderResources.descSetInfos.end(), [&name](const std::shared_ptr<DescriptorSetCreateInfo> &dsInfo) { return ustring::compare(name.c_str(), dsInfo->GetName(), false); });
+	return (it != m_shaderResources.descSetInfos.end()) ? (it - m_shaderResources.descSetInfos.begin()) : std::optional<uint32_t> {};
+}
+
 ::util::WeakHandle<const prosper::Shader> prosper::Shader::GetHandle() const { return ::util::WeakHandle<const Shader>(shared_from_this()); }
 ::util::WeakHandle<prosper::Shader> prosper::Shader::GetHandle() { return ::util::WeakHandle<Shader>(shared_from_this()); }
 

@@ -74,3 +74,9 @@ bool prosper::util::PreparedCommandBuffer::RecordCommands(prosper::ICommandBuffe
 	}
 	return true;
 }
+void prosper::util::PreparedCommandBuffer::Reset()
+{
+	commands.clear();
+	dynamicArguments = {};
+	enableDrawArgs = true;
+}
