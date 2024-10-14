@@ -172,13 +172,14 @@ uint32_t prosper::Shader::GetPipelineCount() const
 void prosper::Shader::ReloadPipelines(bool bReloadSourceCode) { Initialize(bReloadSourceCode); }
 void prosper::Shader::Initialize(bool bReloadSourceCode)
 {
-	auto &loader = GetContext().GetPipelineLoader();
+	auto &context = GetContext();
+	auto &loader = context.GetPipelineLoader();
 	if(loader.IsShaderQueued(GetIndex()))
 		FlushLoad();
 
-	auto bValidation = GetContext().IsValidationEnabled();
-	if(bValidation)
-		std::cout << "[PR] Initializing shader '" << GetIdentifier() << "'" << std::endl;
+	auto shouldLog = context.ShouldLog(::util::LogSeverity::Debug);
+	if(shouldLog)
+		context.Log("Initializing shader '" + GetIdentifier() + "'", ::util::LogSeverity::Debug);
 	m_bValid = false;
 	m_loading = true;
 	ClearPipelines();
@@ -186,18 +187,20 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 	ClearShaderResources();
 	InitializeShaderResources();
 
-	auto fInit = [this, bReloadSourceCode, bValidation]() -> bool {
-		if(bValidation)
-			std::cout << "[PR] Initializing shader sources..." << std::endl;
+	auto fInit = [this, shouldLog, &context, bReloadSourceCode]() -> bool {
+		if(shouldLog)
+			context.Log("Initializing shader sources for '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
 		if(InitializeSources(bReloadSourceCode) == false)
 			return false;
-		if(bValidation)
-			std::cout << "[PR] Initializing shader stages..." << std::endl;
+		if(shouldLog)
+			context.Log("Initializing shader stages for '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
 		InitializeStages();
-		if(bValidation)
-			std::cout << "[PR] Initializing shader pipeline..." << std::endl;
+		if(shouldLog)
+			context.Log("Initializing shader pipelines for '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
 		if(m_enableMultiThreadedPipelineInitialization)
 			InitializePipeline();
+		if(shouldLog)
+			context.Log("Initialization of shader '" + GetIdentifier() + "' is complete.", ::util::LogSeverity::Debug);
 		return true;
 	};
 	loader.Init(GetIndex(), fInit);
