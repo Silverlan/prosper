@@ -180,6 +180,7 @@ namespace prosper {
 		void SetValidationEnabled(bool b);
 		bool IsValidationEnabled() const;
 
+		virtual bool ShouldFlipTexturesOnLoad() const { return false; }
 		std::thread::id GetMainThreadId() const { return m_mainThreadId; }
 
 		Window &GetWindow();
