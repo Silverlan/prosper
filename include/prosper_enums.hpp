@@ -6,6 +6,7 @@
 #define __PROSPER_ENUMS_HPP__
 
 #include "prosper_definitions.hpp"
+#include <optional>
 #include <mathutil/umath.h>
 
 namespace prosper {
@@ -401,6 +402,38 @@ namespace prosper {
 
 		Unknown = std::numeric_limits<uint32_t>::max()
 	};
+
+	enum class DescriptorResourceType : uint8_t {
+		TextureSampler = 0,
+		ImageUnit,
+		BufferTexture,
+		UniformBufferObject,
+		StorageBufferObject,
+
+		Count,
+		Unknown = std::numeric_limits<uint8_t>::max(),
+	};
+	constexpr std::optional<DescriptorResourceType> get_descriptor_resource_type(DescriptorType descType)
+	{
+		switch(descType) {
+		case DescriptorType::Sampler:
+		case DescriptorType::CombinedImageSampler:
+		case DescriptorType::SampledImage:
+			return DescriptorResourceType::TextureSampler;
+		case DescriptorType::StorageImage:
+			return DescriptorResourceType::ImageUnit;
+		case DescriptorType::UniformTexelBuffer:
+		case DescriptorType::StorageTexelBuffer:
+			return DescriptorResourceType::BufferTexture;
+		case DescriptorType::UniformBuffer:
+		case DescriptorType::UniformBufferDynamic:
+			return DescriptorResourceType::UniformBufferObject;
+		case DescriptorType::StorageBuffer:
+		case DescriptorType::StorageBufferDynamic:
+			return DescriptorResourceType::StorageBufferObject;
+		}
+		return {};
+	}
 
 	enum class ShaderStageFlags : uint32_t {
 		ComputeBit = 0x00000020,
