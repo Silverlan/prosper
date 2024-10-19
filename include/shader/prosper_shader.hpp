@@ -111,6 +111,7 @@ namespace prosper {
 		bool GetSourceFilePath(ShaderStage stage, std::string &sourceFilePath) const;
 		std::vector<std::string> GetSourceFilePaths() const;
 
+		const ShaderResources &GetShaderResources() const { return m_shaderResources; }
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(uint32_t setIdx) const;
 
 		std::array<std::shared_ptr<ShaderStageData>, umath::to_integral(prosper::ShaderStage::Count)> &GetStages();
