@@ -9,6 +9,7 @@
 #include "prosper_glsl.hpp"
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
+#include "shader/prosper_shader_flip_image.hpp"
 #include "shader/prosper_pipeline_loader.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
@@ -545,6 +546,7 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 
 	auto &shaderManager = GetShaderManager();
 	shaderManager.RegisterShader("copy_image", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderCopyImage(context, identifier); });
+	shaderManager.RegisterShader("flip_image", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderFlipImage(context, identifier); });
 	shaderManager.RegisterShader("blur_horizontal", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderBlurH(context, identifier); });
 	shaderManager.RegisterShader("blur_vertical", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderBlurV(context, identifier); });
 }
