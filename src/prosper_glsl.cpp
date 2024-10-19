@@ -85,9 +85,10 @@ static bool translate_layout_ids(std::string &shader, const std::unordered_map<s
 
 			auto bindingId = args[1];
 			uint32_t bindingIndex = 0;
+			auto resBindingId = dsId + "_RESOURCE_BINDING_" + bindingId;
 			bindingId = dsId + "_BINDING_" + bindingId;
 
-			innerContents = dsId + "," + bindingId;
+			innerContents = dsId + "," + bindingId + "," + resBindingId;
 			shader = shader.substr(0, pos) + innerContents + shader.substr(endPos);
 			endPos = pos + innerContents.size();
 		}
@@ -178,7 +179,7 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 	// Custom definitions
 	prosper::glsl::Definitions glslDefinitions {};
 	context.GetGLSLDefinitions(glslDefinitions);
-	definitions["LAYOUT_ID(setIndex,bindingIndex)"] = glslDefinitions.layoutId;
+	definitions["LAYOUT_ID(setIndex,bindingIndex,resourceBindingIndex)"] = glslDefinitions.layoutId;
 	definitions["LAYOUT_PUSH_CONSTANTS()"] = glslDefinitions.layoutPushConstants;
 	definitions["SH_VERTEX_INDEX"] = glslDefinitions.vertexIndex;
 	definitions["SH_INSTANCE_INDEX"] = glslDefinitions.instanceIndex;

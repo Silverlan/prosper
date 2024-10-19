@@ -125,6 +125,10 @@ const std::string &prosper::Shader::GetRootShaderLocation() { return g_shaderLoc
 
 void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions, std::string &outPrefixCode)
 {
+	auto &context = GetContext();
+	std::array<uint32_t, umath::to_integral(DescriptorResourceType::Count)> resourceBindingIndices;
+	for(size_t i = 0; i < resourceBindingIndices.size(); ++i)
+		resourceBindingIndices[i] = context.GetReservedDescriptorResourceCount(static_cast<DescriptorResourceType>(i));
 	for(size_t iSet = 0; auto &dsInfo : m_shaderResources.descSetInfos) {
 		std::string dsName {dsInfo->GetName()};
 		ustring::to_upper(dsName);
@@ -136,6 +140,18 @@ void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::s
 			ustring::to_upper(bindingName);
 			auto glslBindingName = glslDsName + "_BINDING_" + bindingName;
 			outDefinitions[glslBindingName] = std::to_string(iBinding);
+
+			prosper::DescriptorType descType;
+			uint32_t arraySize;
+			if(dsInfo->GetBindingPropertiesByBindingIndex(iBinding, &descType, &arraySize)) {
+				auto resType = get_descriptor_resource_type(descType);
+				if(resType) {
+					auto &idx = resourceBindingIndices[umath::to_integral(*resType)];
+					auto glslRecBindingName = glslDsName + "_RESOURCE_BINDING_" + bindingName;
+					outDefinitions[glslRecBindingName] = std::to_string(idx);
+					idx += arraySize;
+				}
+			}
 		}
 		++iSet;
 	}

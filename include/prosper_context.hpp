@@ -53,6 +53,7 @@ namespace prosper {
 		uint32_t pipeline = 0;
 	};
 	enum class Vendor : uint32_t { AMD = 4098, Nvidia = 4318, Intel = 32902, Unknown = std::numeric_limits<uint32_t>::max() };
+	enum class DescriptorResourceType : uint8_t;
 	namespace util {
 		struct BufferCreateInfo;
 		struct SamplerCreateInfo;
@@ -181,6 +182,8 @@ namespace prosper {
 		bool IsValidationEnabled() const;
 
 		virtual bool ShouldFlipTexturesOnLoad() const { return false; }
+		virtual uint32_t GetReservedDescriptorResourceCount(DescriptorResourceType resType) const { return 0; }
+
 		std::thread::id GetMainThreadId() const { return m_mainThreadId; }
 
 		Window &GetWindow();
