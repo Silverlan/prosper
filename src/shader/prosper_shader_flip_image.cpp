@@ -44,18 +44,12 @@ bool ShaderFlipImage::RecordDraw(prosper::ICommandBuffer &cmd, prosper::IDescrip
 	return res;
 }
 
-bool ShaderFlipImage::RecordDraw(prosper::ICommandBuffer &cmd, bool flipHorizontally, bool flipVertically) const
+bool ShaderFlipImage::RecordDraw(ShaderBindState &bindState, bool flipHorizontally, bool flipVertically) const
 {
-	prosper::ShaderBindState bindState {cmd};
-	if(RecordBeginDraw(bindState) == false)
-		return false;
-
 	PushConstants pushConstants {};
 	pushConstants.flipHorizontally = static_cast<uint32_t>(flipHorizontally);
 	pushConstants.flipVertically = static_cast<uint32_t>(flipVertically);
-	auto res = RecordPushConstants(bindState, pushConstants) && ShaderBaseImageProcessing::RecordDraw(bindState);
-	RecordEndDraw(bindState);
-	return res;
+	return RecordPushConstants(bindState, pushConstants) && ShaderBaseImageProcessing::RecordDraw(bindState);
 }
 
 bool ShaderFlipImage::RecordDraw(prosper::ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const { return RecordPushConstants(bindState, pushConstants) && prosper::ShaderBaseImageProcessing::RecordDraw(bindState, descSetTexture); }

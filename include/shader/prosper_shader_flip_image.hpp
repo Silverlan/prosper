@@ -24,7 +24,7 @@ namespace prosper {
 		virtual ~ShaderFlipImage() override;
 		bool RecordDraw(prosper::ICommandBuffer &cmd, prosper::IDescriptorSet &descSetTexture, bool flipHorizontally, bool flipVertically) const;
 		// This overload assumes that the texture has already been bound!
-		bool RecordDraw(prosper::ICommandBuffer &cmd, bool flipHorizontally, bool flipVertically) const;
+		bool RecordDraw(ShaderBindState &bindState, bool flipHorizontally, bool flipVertically) const;
 	  protected:
 		bool RecordDraw(prosper::ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const;
 		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
