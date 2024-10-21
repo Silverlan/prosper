@@ -183,6 +183,13 @@ void Window::ReloadSwapchain()
 	InitSwapchain();
 }
 
+void Window::DoReloadWindow()
+{
+	ReleaseWindow();
+	InitWindow();
+	ReloadSwapchain();
+}
+
 void Window::ReloadWindow()
 {
 	std::optional<GLFW::CallbackInterface> callbacks {};
@@ -191,9 +198,7 @@ void Window::ReloadWindow()
 		callbacks = m_glfwWindow->GetCallbacks();
 		cursorPosOverride = m_glfwWindow->GetCursorPosOverride();
 	}
-	ReleaseWindow();
-	InitWindow();
-	ReloadSwapchain();
+	DoReloadWindow();
 	// Restore callbacks and override position
 	if(m_glfwWindow && callbacks.has_value()) {
 		m_glfwWindow->SetCallbacks(*callbacks);

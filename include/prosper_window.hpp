@@ -97,6 +97,7 @@ namespace prosper {
 		virtual void Release();
 		virtual void OnWindowInitialized();
 		void ReloadWindow();
+		virtual void DoReloadWindow();
 
 		WindowChangeInfo &ScheduleWindowReload();
 		std::unique_ptr<WindowChangeInfo> m_scheduledWindowReloadInfo = nullptr;
