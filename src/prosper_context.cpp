@@ -87,6 +87,8 @@ void prosper::IPrContext::InitWindow()
 			}
 		}
 	};
+	if(ShouldLog(::util::LogSeverity::Debug))
+		m_logHandler("Creating window...", ::util::LogSeverity::Debug);
 	auto newWindow = CreateWindow(m_initialWindowSettings);
 	assert(newWindow != nullptr);
 	auto it = std::find_if(m_windows.begin(), m_windows.end(), [&newWindow](const std::weak_ptr<prosper::Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == newWindow; });
@@ -538,17 +540,28 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 		m_validationData = std::unique_ptr<ValidationData> {new ValidationData {}};
 	ChangePresentMode(createInfo.presentMode);
 	InitAPI(createInfo);
+	if(ShouldLog(::util::LogSeverity::Debug))
+		Log("Initializing buffers...", ::util::LogSeverity::Debug);
 	InitBuffers();
+	if(ShouldLog(::util::LogSeverity::Debug))
+		Log("Initializing graphics pipelines...", ::util::LogSeverity::Debug);
 	InitGfxPipelines();
+	if(ShouldLog(::util::LogSeverity::Debug))
+		Log("Initializing dummy resources...", ::util::LogSeverity::Debug);
 	InitDummyTextures();
 	InitDummyBuffer();
 	umath::set_flag(m_stateFlags, StateFlags::Initialized);
 
+	if(ShouldLog(::util::LogSeverity::Debug))
+		Log("Registering core shaders...", ::util::LogSeverity::Debug);
 	auto &shaderManager = GetShaderManager();
 	shaderManager.RegisterShader("copy_image", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderCopyImage(context, identifier); });
 	shaderManager.RegisterShader("flip_image", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderFlipImage(context, identifier); });
 	shaderManager.RegisterShader("blur_horizontal", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderBlurH(context, identifier); });
 	shaderManager.RegisterShader("blur_vertical", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderBlurV(context, identifier); });
+
+	if(ShouldLog(::util::LogSeverity::Debug))
+		Log("Initialization complete!", ::util::LogSeverity::Debug);
 }
 
 void prosper::IPrContext::InitBuffers() {}
