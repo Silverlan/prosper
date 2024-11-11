@@ -139,6 +139,12 @@ namespace prosper {
 			WindowScheduledForClosing = EnableMultiThreadedRendering << 1u
 		};
 
+		enum class ExtensionAvailability : uint8_t {
+			EnableIfAvailable,
+			Ignore,
+			Require,
+		};
+
 		using BufferUpdateInfo = detail::BufferUpdateInfo; // Workaround for gcc bug, see https://stackoverflow.com/a/53423881/2482983
 		struct DLLPROSPER CreateInfo {
 			struct DLLPROSPER DeviceInfo {
@@ -151,6 +157,8 @@ namespace prosper {
 			prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
 			bool windowless = false;
 			std::optional<DeviceInfo> device = {};
+
+			std::unordered_map<std::string, ExtensionAvailability> extensions;
 		};
 
 		using ImageMipmapData = const uint8_t *;
