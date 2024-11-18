@@ -262,13 +262,19 @@ void prosper::IPrContext::ChangeResolution(uint32_t width, uint32_t height)
 
 void prosper::IPrContext::OnResolutionChanged(uint32_t width, uint32_t height)
 {
-	if(m_callbacks.onResolutionChanged)
+	if(m_callbacks.onResolutionChanged) {
+		if(ShouldLog(::util::LogSeverity::Debug))
+			Log("Running 'onResolutionChanged' callback...", ::util::LogSeverity::Debug);
 		m_callbacks.onResolutionChanged(width, height);
+	}
 }
 void prosper::IPrContext::OnWindowInitialized()
 {
-	if(m_callbacks.onWindowInitialized)
+	if(m_callbacks.onWindowInitialized) {
+		if(ShouldLog(::util::LogSeverity::Debug))
+			Log("Running 'onWindowInitialized' callback...", ::util::LogSeverity::Debug);
 		m_callbacks.onWindowInitialized();
+	}
 }
 void prosper::IPrContext::OnSwapchainInitialized() {}
 

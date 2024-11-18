@@ -13,8 +13,12 @@ Window::~Window() {}
 void Window::OnWindowInitialized()
 {
 	m_scheduledWindowReloadInfo = nullptr;
-	if(m_initCallback)
+	if(m_initCallback) {
+		auto &context = GetContext();
+		if(context.ShouldLog(::util::LogSeverity::Debug))
+			context.Log("Running window initialization callback...", ::util::LogSeverity::Debug);
 		m_initCallback();
+	}
 }
 
 const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer() const { return m_commandBuffers.at(GetLastAcquiredSwapchainImageIndex()); }
