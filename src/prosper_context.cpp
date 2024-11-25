@@ -871,6 +871,21 @@ void prosper::IPrContext::SetLogHandler(const ::util::LogHandler &logHandler, co
 	m_logHandler = logHandler;
 	m_logHandlerLevel = getLevel;
 }
+void prosper::IPrContext::SetProfilingHandler(const std::function<void(const char *)> &startProfling, const std::function<void()> &endProfling)
+{
+	m_startProfiling = startProfling;
+	m_endProfiling = endProfling;
+}
+void prosper::IPrContext::StartProfiling(const char *name) const
+{
+	if(m_startProfiling)
+		m_startProfiling(name);
+}
+void prosper::IPrContext::EndProfiling() const
+{
+	if(m_endProfiling)
+		m_endProfiling();
+}
 void prosper::IPrContext::Log(const std::string &msg, ::util::LogSeverity level) const
 {
 	if(!ShouldLog(level))

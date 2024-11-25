@@ -206,15 +206,23 @@ void prosper::Shader::Initialize(bool bReloadSourceCode)
 	auto fInit = [this, shouldLog, &context, bReloadSourceCode]() -> bool {
 		if(shouldLog)
 			context.Log("Initializing shader sources for '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
-		if(InitializeSources(bReloadSourceCode) == false)
+		context.StartProfiling("Initialize shader sources");
+		auto res = InitializeSources(bReloadSourceCode);
+		context.EndProfiling();
+		if(res == false)
 			return false;
 		if(shouldLog)
 			context.Log("Initializing shader stages for '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
+		context.StartProfiling("Initialize shader stages");
 		InitializeStages();
+		context.EndProfiling();
 		if(shouldLog)
 			context.Log("Initializing shader pipelines for '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
-		if(m_enableMultiThreadedPipelineInitialization)
+		if(m_enableMultiThreadedPipelineInitialization) {
+			context.StartProfiling("Initialize shader pipelines");
 			InitializePipeline();
+			context.EndProfiling();
+		}
 		if(shouldLog)
 			context.Log("Initialization of shader '" + GetIdentifier() + "' is complete.", ::util::LogSeverity::Debug);
 		return true;

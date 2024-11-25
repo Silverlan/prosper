@@ -182,6 +182,10 @@ namespace prosper {
 		bool ShouldLog(::util::LogSeverity level) const;
 		void Log(const std::string &msg, ::util::LogSeverity level = ::util::LogSeverity::Info) const;
 
+		void SetProfilingHandler(const std::function<void(const char *)> &startProfling, const std::function<void()> &endProfling);
+		void StartProfiling(const char *name) const;
+		void EndProfiling() const;
+
 		void Run();
 		void Close();
 
@@ -452,6 +456,8 @@ namespace prosper {
 		std::mutex m_aliveResourceMutex;
 		::util::LogHandler m_logHandler;
 		std::function<bool(::util::LogSeverity)> m_logHandlerLevel;
+		std::function<void(const char *)> m_startProfiling;
+		std::function<void()> m_endProfiling;
 
 		std::queue<std::function<void(prosper::IPrimaryCommandBuffer &)>> m_scheduledBufferUpdates;
 
