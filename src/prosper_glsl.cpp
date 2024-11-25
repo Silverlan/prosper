@@ -97,8 +97,12 @@ static bool translate_layout_ids(std::string &shader, const std::unordered_map<s
 	return true;
 }
 
-static bool glsl_preprocessing(const std::string &path, std::string &shader, const std::unordered_map<std::string, std::string> &definitions, std::string &outErr, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, std::stack<std::string> &includeStack,
-  bool = false)
+// Including shader files can be expensive, so we cache all included files for the future
+static std::unordered_map<std::string, std::string> g_globalIncludeFileCache;
+static std::mutex g_globalIncludeFileCacheMutex;
+
+static bool glsl_preprocessing(const std::string &path, std::string &shader, const std::unordered_map<std::string, std::string> &definitions, std::string &outErr, std::unordered_set<std::string> &includeCache, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId,
+  std::stack<std::string> &includeStack, bool = false)
 {
 	if(!translate_layout_ids(shader, definitions, outErr))
 		return false;
@@ -135,30 +139,53 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 					if(includePath.GetString().substr(includePath.GetString().length() - 5) != ".glsl")
 						includePath += ".glsl";
 				}
-				auto f = filemanager::open_file(includePath.GetString(), filemanager::FileMode::Read | filemanager::FileMode::Binary);
-				if(f != NULL) {
-					unsigned long long flen = f->GetSize();
-					std::vector<char> data(flen + 1);
-					f->Read(data.data(), flen);
-					data[flen] = '\0';
-					std::string subShader = data.data();
-					lineId++; // #include-directive
-					includeStack.push(includePath.GetString());
-					if(glsl_preprocessing(includePath.GetString(), subShader, definitions, outErr, includeLines, lineId, includeStack) == false)
+				auto &strPath = includePath.GetString();
+				constexpr auto useIncludeCache = false;
+				if(!useIncludeCache || includeCache.find(strPath) == includeCache.end()) {
+					includeCache.insert(strPath);
+
+					g_globalIncludeFileCacheMutex.lock();
+					auto it = g_globalIncludeFileCache.find(strPath);
+					auto isInCache = it != g_globalIncludeFileCache.end();
+					g_globalIncludeFileCacheMutex.unlock();
+					if(isInCache) {
+						shader = shader.substr(0, brLast) + it->second + shader.substr(br);
+						br = brLast + it->second.length();
+						len = shader.length();
+						continue;
+					}
+					auto f = filemanager::open_file(includePath.GetString(), filemanager::FileMode::Read | filemanager::FileMode::Binary);
+					if(f != NULL) {
+						unsigned long long flen = f->GetSize();
+						std::vector<char> data(flen + 1);
+						f->Read(data.data(), flen);
+						data[flen] = '\0';
+						std::string subShader = data.data();
+						lineId++; // #include-directive
+						includeStack.push(includePath.GetString());
+						if(glsl_preprocessing(includePath.GetString(), subShader, definitions, outErr, includeCache, includeLines, lineId, includeStack) == false)
+							return false;
+						includeLines.push_back(prosper::glsl::IncludeLine(lineId, path, depth, true));
+						includeLines.back().includeStack = includeStack;
+						includeStack.pop();
+						lineId--; // Why?
+						          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +std::to_string(lineId) +std::string("\n");
+						g_globalIncludeFileCacheMutex.lock();
+						g_globalIncludeFileCache[strPath] = subShader;
+						g_globalIncludeFileCacheMutex.unlock();
+						shader = shader.substr(0, brLast) + std::string("//") + l + std::string("\n") + subShader + shader.substr(br);
+						br = CUInt32(brLast) + CUInt32(l.length()) + 3 + CUInt32(subShader.length());
+					}
+					else {
+						outErr = "Unable to include file '" + includePath.GetString() + "' (In: '" + path + "'): File not found!";
+						shader = shader.substr(0, brLast) + shader.substr(br);
+						br = brLast;
 						return false;
-					includeLines.push_back(prosper::glsl::IncludeLine(lineId, path, depth, true));
-					includeLines.back().includeStack = includeStack;
-					includeStack.pop();
-					lineId--; // Why?
-					          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +std::to_string(lineId) +std::string("\n");
-					shader = shader.substr(0, brLast) + std::string("//") + l + std::string("\n") + subShader + shader.substr(br);
-					br = CUInt32(brLast) + CUInt32(l.length()) + 3 + CUInt32(subShader.length());
+					}
 				}
 				else {
-					outErr = "Unable to include file '" + includePath.GetString() + "' (In: '" + path + "'): File not found!";
 					shader = shader.substr(0, brLast) + shader.substr(br);
 					br = brLast;
-					return false;
 				}
 				len = shader.length();
 			}
@@ -169,11 +196,11 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 	return true;
 }
 
-static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId, std::stack<std::string> &includeStack,
-  const std::string &prefixCode = {}, std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
+static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &path, std::string &shader, std::string &err, std::unordered_set<std::string> &includeCache, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId,
+  std::stack<std::string> &includeStack, const std::string &prefixCode = {}, std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
 {
 	lineId = 0;
-	auto r = glsl_preprocessing(path, shader, definitions, err, includeLines, lineId, includeStack, true);
+	auto r = glsl_preprocessing(path, shader, definitions, err, includeCache, includeLines, lineId, includeStack, true);
 	if(r == false)
 		return false;
 	// Custom definitions
@@ -229,7 +256,8 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 
 	// This is additional code that should be inserted to the top of the glsl file.
 	auto prefixCodeTranslated = STANDARD_PREFIX_CODE + prefixCode;
-	if(!glsl_preprocessing("", prefixCodeTranslated, definitions, err, includeLines, lineId, includeStack, true))
+	includeCache.clear();
+	if(!glsl_preprocessing("", prefixCodeTranslated, definitions, err, includeCache, includeLines, lineId, includeStack, true))
 		return false;
 	def += prefixCodeTranslated;
 	def += "\n#line 1\n";
@@ -573,7 +601,8 @@ void prosper::glsl::dump_parsed_shader(IPrContext &context, uint32_t stage, cons
 	unsigned int lineOffset = 0;
 	std::string err;
 	std::stack<std::string> includeStack;
-	if(glsl_preprocessing(context, static_cast<prosper::ShaderStage>(stage), fileName, shaderCode, err, includeLines, lineOffset, includeStack) == false)
+	std::unordered_set<std::string> includeCache;
+	if(glsl_preprocessing(context, static_cast<prosper::ShaderStage>(stage), fileName, shaderCode, err, includeCache, includeLines, lineOffset, includeStack) == false)
 		return;
 	auto fOut = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
 	if(fOut == nullptr)
@@ -671,7 +700,8 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 	unsigned int lineOffset = 0;
 	std::string err;
 	std::stack<std::string> includeStack;
-	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, outIncludeLines, lineOffset, includeStack, prefixCode, definitions, hlsl) == false) {
+	std::unordered_set<std::string> includeCache;
+	if(applyPreprocessing && glsl_preprocessing(context, stage, *optFileName, shaderCode, err, includeCache, outIncludeLines, lineOffset, includeStack, prefixCode, definitions, hlsl) == false) {
 		if(infoLog != nullptr) {
 			*infoLog = std::string("Module: \"") + fileName + "\"\n" + err;
 
