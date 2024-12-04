@@ -13,8 +13,12 @@ std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(Window &window,
 	auto numBuffers = window.GetSwapchainImageCount();
 	std::vector<std::shared_ptr<IBuffer>> buffers;
 	buffers.reserve(numBuffers);
-	for(auto i = decltype(numBuffers) {0u}; i < numBuffers; ++i)
-		buffers.push_back(buffer.AllocateBuffer(data));
+	for(auto i = decltype(numBuffers) {0u}; i < numBuffers; ++i) {
+		auto subBuf = buffer.AllocateBuffer(data);
+		if(!subBuf)
+			return nullptr;
+		buffers.push_back(subBuf);
+	}
 	return std::shared_ptr<SwapBuffer> {new SwapBuffer {window, std::move(buffers)}};
 }
 
@@ -32,7 +36,7 @@ std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(Window &window,
 prosper::SwapBuffer::SwapBuffer(Window &window, std::vector<std::shared_ptr<IBuffer>> &&buffers) : m_buffers {std::move(buffers)}, m_window {window.shared_from_this()}, m_windowPtr {&window}
 {
 	assert(!m_buffers.empty());
-    assert(window.GetSwapchainImageCount() == m_buffers.size());
+	assert(window.GetSwapchainImageCount() == m_buffers.size());
 }
 prosper::IBuffer *prosper::SwapBuffer::operator->()
 {
