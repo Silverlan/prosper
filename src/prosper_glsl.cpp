@@ -264,9 +264,14 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 
 	// Can't add anything before #version, so look for it first
 	size_t posAppend = 0;
-	size_t posVersion = shader.find("#version");
-	if(posVersion != std::string::npos) {
-		size_t posNl = shader.find("\n", posVersion);
+	size_t posStart = shader.find("#version");
+	auto posExt = shader.find("#extension", posStart);
+	while(posExt != std::string::npos) {
+		posStart = posExt;
+		posExt = shader.find("#extension", posStart + 1);
+	}
+	if(posStart != std::string::npos) {
+		size_t posNl = shader.find("\n", posStart);
 		if(posNl != std::string::npos)
 			posAppend = posNl;
 		else
