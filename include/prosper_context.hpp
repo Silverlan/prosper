@@ -345,6 +345,12 @@ namespace prosper {
 
 		virtual std::optional<std::string> DumpMemoryBudget() const { return {}; }
 		virtual std::optional<std::string> DumpMemoryStats() const { return {}; }
+		virtual std::optional<std::string> DumpLimits() const { return {}; }
+		virtual std::optional<std::string> DumpFeatures() const { return {}; }
+		virtual std::optional<std::string> DumpFormatProperties() const { return {}; }
+		virtual std::optional<std::string> DumpImageFormatProperties() const { return {}; }
+		virtual std::optional<std::string> DumpLayers() const { return {}; }
+		virtual std::optional<std::string> DumpExtensions() const { return {}; }
 		virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const { return {}; }
 		virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const { return {}; }
 		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const { return {}; }

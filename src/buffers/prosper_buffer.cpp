@@ -9,7 +9,7 @@
 #include "prosper_command_buffer.hpp"
 #include "prosper_memory_tracker.hpp"
 #include <iostream>
-
+#pragma optimize("", off)
 prosper::IBuffer::IBuffer(IPrContext &context, const prosper::util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size) : ContextObject(context), std::enable_shared_from_this<IBuffer>(), m_createInfo {bufCreateInfo}, m_startOffset {startOffset}, m_size {size} {}
 
 prosper::IBuffer::~IBuffer() {}
