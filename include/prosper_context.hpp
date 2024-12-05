@@ -159,6 +159,7 @@ namespace prosper {
 			std::optional<DeviceInfo> device = {};
 
 			std::unordered_map<std::string, ExtensionAvailability> extensions;
+			std::vector<std::string> layers;
 		};
 
 		using ImageMipmapData = const uint8_t *;
