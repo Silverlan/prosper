@@ -10,6 +10,7 @@
 #include "shader/prosper_shader_blur.hpp"
 #include "shader/prosper_shader_copy_image.hpp"
 #include "shader/prosper_shader_flip_image.hpp"
+#include "shader/prosper_shader_crash.hpp"
 #include "shader/prosper_pipeline_loader.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "buffers/prosper_buffer.hpp"
@@ -933,4 +934,31 @@ bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader, bool 
 		}
 	}
 	return true;
+}
+
+void prosper::IPrContext::Crash()
+{
+	auto &shaderManager = GetShaderManager();
+	shaderManager.RegisterShader("crash", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderCrash(context, identifier); });
+	auto *crash = dynamic_cast<ShaderCrash *>(shaderManager.GetShader("crash").get());
+	if(crash) {
+		prosper::util::ImageCreateInfo imgCreateInfo {};
+		imgCreateInfo.format = Format::R32_SFloat;
+		imgCreateInfo.height = 1u;
+		imgCreateInfo.width = 1u;
+		imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+		imgCreateInfo.postCreateLayout = ImageLayout::ColorAttachmentOptimal;
+		imgCreateInfo.usage = ImageUsageFlags::ColorAttachmentBit;
+		auto img = CreateImage(imgCreateInfo);
+		prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
+		prosper::util::SamplerCreateInfo samplerCreateInfo {};
+		auto tex = CreateTexture({}, *img, imgViewCreateInfo, samplerCreateInfo);
+		auto rt = CreateRenderTarget({tex}, crash->GetRenderPass());
+
+		auto &setupCmd = GetSetupCommandBuffer();
+		setupCmd->RecordBeginRenderPass(*rt);
+		crash->RecordDraw(*setupCmd);
+		setupCmd->RecordEndRenderPass();
+	}
+	FlushSetupCommandBuffer();
 }

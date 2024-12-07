@@ -195,6 +195,9 @@ namespace prosper {
 		void SetValidationEnabled(bool b);
 		bool IsValidationEnabled() const;
 
+		// Invoke a crash intentionally to test crash handling
+		void Crash();
+
 		virtual bool ShouldFlipTexturesOnLoad() const { return false; }
 		virtual uint32_t GetReservedDescriptorResourceCount(DescriptorResourceType resType) const { return 0; }
 
