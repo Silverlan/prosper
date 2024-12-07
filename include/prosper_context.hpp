@@ -160,6 +160,7 @@ namespace prosper {
 
 			std::unordered_map<std::string, ExtensionAvailability> extensions;
 			std::vector<std::string> layers;
+			std::vector<LayerSetting> layerSettings;
 		};
 
 		using ImageMipmapData = const uint8_t *;

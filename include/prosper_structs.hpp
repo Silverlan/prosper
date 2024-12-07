@@ -764,6 +764,64 @@ namespace prosper {
 		std::vector<PushConstantRange> pushConstantRanges {};
 		std::vector<std::shared_ptr<DescriptorSetCreateInfo>> descSetInfos {};
 	};
+
+	struct DLLPROSPER LayerSetting {
+		LayerSetting() = default;
+		template<typename T>
+		    requires(std::is_same_v<T, bool> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, const char *>)
+		void SetValues(uint32_t valueCount, const T *values)
+		{
+			using TVal = std::conditional_t<std::is_same_v<T, bool>, int32_t, T>;
+			auto *v = new TVal[valueCount];
+			std::function<void(TVal *)> deleter = [](TVal *v) { delete[] v; };
+			if constexpr(std::is_same_v<T, bool>) {
+				for(uint32_t n = 0; n < valueCount; ++n)
+					v[n] = values[n] ? 1 : 0;
+			}
+			else if constexpr(std::is_same_v<T, const char *>) {
+				// Copy the strings
+				for(uint32_t n = 0; n < valueCount; ++n) {
+					auto str = values[n];
+					auto len = strlen(str);
+					auto *strCopy = new char[len + 1];
+					memcpy(strCopy, str, len);
+					strCopy[len] = '\0';
+					v[n] = strCopy;
+				}
+				deleter = [valueCount](TVal *v) {
+					for(uint32_t n = 0; n < valueCount; ++n)
+						delete[] v[n];
+					delete[] v;
+				};
+			}
+			else
+				memcpy(v, values, valueCount * sizeof(TVal));
+			std::shared_ptr<TVal> ptr(v, deleter);
+			this->values = ptr;
+			if constexpr(std::is_same_v<T, bool>)
+				type = LayerSettingType::Bool32;
+			else if constexpr(std::is_same_v<T, int32_t>)
+				type = LayerSettingType::Int32;
+			else if constexpr(std::is_same_v<T, int64_t>)
+				type = LayerSettingType::Int64;
+			else if constexpr(std::is_same_v<T, uint32_t>)
+				type = LayerSettingType::Uint32;
+			else if constexpr(std::is_same_v<T, uint64_t>)
+				type = LayerSettingType::Uint64;
+			else if constexpr(std::is_same_v<T, float>)
+				type = LayerSettingType::Float32;
+			else if constexpr(std::is_same_v<T, double>)
+				type = LayerSettingType::Float64;
+			else if constexpr(std::is_same_v<T, const char *>)
+				type = LayerSettingType::String;
+			this->valueCount = valueCount;
+		}
+		std::string layerName;
+		std::string settingName;
+		LayerSettingType type = LayerSettingType::Bool32;
+		uint32_t valueCount = 0;
+		std::shared_ptr<void> values = nullptr;
+	};
 };
 
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::PrDescriptorSetBindingFlags)
