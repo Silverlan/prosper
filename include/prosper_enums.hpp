@@ -667,7 +667,16 @@ namespace prosper {
 		VertexBufferBit = UniformTexelBufferBit << 1u
 	};
 
-	enum class LayerSettingType : uint32_t { Bool32 = 0, Int32, Int64, Uint32, Uint64, Float32, Float64, String };
+	enum class LayerSettingType : uint32_t {
+		Bool32 = 0,
+		Int32,
+		Int64,
+		Uint32,
+		Uint64,
+		Float32,
+		Float64,
+		String,
+	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryFeatureFlags)
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::QueueFamilyFlags)

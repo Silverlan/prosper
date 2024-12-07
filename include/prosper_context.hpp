@@ -13,6 +13,7 @@
 #include <optional>
 #include <mutex>
 #include <thread>
+#include <functional>
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util_log.hpp>
 #include "prosper_includes.hpp"
@@ -178,6 +179,8 @@ namespace prosper {
 		virtual std::string GetAPIAbbreviation() const = 0;
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
 		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) = 0;
+
+		void SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback);
 
 		void SetLogHandler(const ::util::LogHandler &logHandler, const std::function<bool(::util::LogSeverity)> &getLevel = nullptr);
 		bool ShouldLog() const;
@@ -455,6 +458,8 @@ namespace prosper {
 		std::shared_ptr<prosper::IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 		std::vector<ShaderPipeline> m_shaderPipelines;
 		std::unique_ptr<ShaderPipelineLoader> m_pipelineLoader;
+
+		std::function<void(const prosper::util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
 
 		Callbacks m_callbacks {};
 		std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;

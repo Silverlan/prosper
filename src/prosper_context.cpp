@@ -867,6 +867,8 @@ prosper::WindowSettings &prosper::IPrContext::GetInitialWindowSettings() { retur
 
 void prosper::IPrContext::SetCallbacks(const Callbacks &callbacks) { m_callbacks = callbacks; }
 
+void prosper::IPrContext::SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback) { m_preDeviceCreationCallback = callback; }
+
 void prosper::IPrContext::SetLogHandler(const ::util::LogHandler &logHandler, const std::function<bool(::util::LogSeverity)> &getLevel)
 {
 	m_logHandler = logHandler;
