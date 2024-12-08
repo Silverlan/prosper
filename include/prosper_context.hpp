@@ -137,7 +137,8 @@ namespace prosper {
 			Closed = Idle << 1u,
 			ClearingKeepAliveResources = Closed << 1u,
 			EnableMultiThreadedRendering = ClearingKeepAliveResources << 1u,
-			WindowScheduledForClosing = EnableMultiThreadedRendering << 1u
+			WindowScheduledForClosing = EnableMultiThreadedRendering << 1u,
+			DiagnosticsEnabled = WindowScheduledForClosing << 1u,
 		};
 
 		enum class ExtensionAvailability : uint8_t {
@@ -157,6 +158,7 @@ namespace prosper {
 			uint32_t height = 0u;
 			prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
 			bool windowless = false;
+			bool enableDiagnostics = false;
 			std::optional<DeviceInfo> device = {};
 
 			std::unordered_map<std::string, ExtensionAvailability> extensions;
@@ -179,6 +181,8 @@ namespace prosper {
 		virtual std::string GetAPIAbbreviation() const = 0;
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
 		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) = 0;
+
+		bool IsDiagnosticsModeEnabled() const;
 
 		void SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback);
 

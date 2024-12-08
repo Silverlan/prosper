@@ -536,6 +536,9 @@ void prosper::IPrContext::CheckDeviceLimits()
 
 void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
+	if(createInfo.enableDiagnostics)
+		m_stateFlags |= StateFlags::DiagnosticsEnabled;
+
 	ReloadPipelineLoader();
 
 	// TODO: Check if resolution is supported
@@ -578,6 +581,8 @@ void prosper::IPrContext::DrawFrame()
 	if(m_callbacks.drawFrame)
 		m_callbacks.drawFrame();
 }
+
+bool prosper::IPrContext::IsDiagnosticsModeEnabled() const { return umath::is_flag_set(m_stateFlags, StateFlags::DiagnosticsEnabled); }
 
 prosper::ShaderManager &prosper::IPrContext::GetShaderManager() const { return *m_shaderManager; }
 
