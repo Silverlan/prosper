@@ -69,7 +69,7 @@ static void print_available_shader_descriptor_set_bindings(const std::unordered_
 static bool translate_layout_ids(std::string &shader, const std::unordered_map<std::string, std::string> &definitions, std::string &outErr)
 {
 	const char *LAYOUT_ID = "LAYOUT_ID(";
-	auto startPos = shader.find("#line 1");
+	auto startPos = shader.find("// BODY_START");
 	if(startPos == std::string::npos)
 		startPos = 0;
 	auto pos = shader.find(LAYOUT_ID, startPos);
@@ -114,7 +114,7 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 		includeLines.push_back(prosper::glsl::IncludeLine(lineId, path, depth));
 	includeLines.back().includeStack = includeStack;
 	//auto incIdx = includeLines.size() -1;
-	std::string sub = FileManager::GetPath(const_cast<std::string &>(path));
+	std::string sub = filemanager::get_path(const_cast<std::string &>(path));
 	auto len = shader.length();
 	unsigned int br;
 	unsigned int brLast = 0;
@@ -200,6 +200,15 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
   std::stack<std::string> &includeStack, const std::string &prefixCode = {}, std::unordered_map<std::string, std::string> definitions = {}, bool bHlsl = false)
 {
 	lineId = 0;
+	if(!prefixCode.empty()) {
+		uint32_t numPrefixLines = 0;
+		for(auto c : prefixCode) {
+			if(c == '\n')
+				numPrefixLines++;
+		}
+		lineId = numPrefixLines;
+		includeLines.push_back({});
+	}
 	auto r = glsl_preprocessing(path, shader, definitions, err, includeCache, includeLines, lineId, includeStack, true);
 	if(r == false)
 		return false;
@@ -260,7 +269,8 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 	if(!glsl_preprocessing("", prefixCodeTranslated, definitions, err, includeCache, includeLines, lineId, includeStack, true))
 		return false;
 	def += prefixCodeTranslated;
-	def += "\n#line 1\n";
+	//def += "\n#line 1\n";
+	def += "\n// BODY_START\n";
 
 	// Can't add anything before #version, so look for it first
 	size_t posAppend = 0;
@@ -491,6 +501,59 @@ void prosper::IPrContext::ParseShaderUniforms(const std::string &glslShader, std
 		nextPos = parse_layout_binding(glslShader, definitions, outDescSetInfos, outMacroLocations, nextPos);
 }
 
+static std::optional<uint32_t> determine_line_index(const std::string &line, size_t &outEnd)
+{
+	auto bAMD = false;
+	auto bWarning = false;
+	if(line.substr(0, 9) == "ERROR: 0:")
+		bAMD = true;
+	else if(line.substr(0, 11) == "WARNING: 0:") {
+		bAMD = true;
+		bWarning = true;
+	}
+	auto bNvidia = (!bAMD && line.substr(0, 2) == "0(") ? true : false;
+	if(bAMD == true || bNvidia == true) {
+		auto st = (bAMD == true) ? ((bWarning == true) ? 11 : 9) : 2;
+		auto end = (bAMD == true) ? line.find_first_of(':', st) : line.find_first_of(')', st);
+		if(end != ustring::NOT_FOUND) {
+			outEnd = end;
+			return atoi(line.substr(st, end - st).c_str());
+		}
+		return {};
+	}
+	if(line.substr(0, 7) == "ERROR: ") {
+		auto st = line.find_first_of(':', 7);
+		auto en = (st != std::string::npos) ? line.find_first_of(':', st + 1) : std::string::npos;
+		if(en != std::string::npos) {
+			outEnd = en;
+			return atoi(line.substr(st + 1, en - st - 1).c_str());
+		}
+	}
+	return {};
+}
+
+static void print_snippet(const std::string &filePath, uint32_t lineId, std::stringstream &out)
+{
+	auto contents = filemanager::read_file(filePath);
+	if(contents) {
+		std::vector<std::string> codeLines;
+		ustring::explode(*contents, "\n", codeLines);
+		if(lineId <= codeLines.size()) {
+			auto lineInternalId = lineId - 1;
+			for(Int32 iline = umath::max(static_cast<int32_t>(lineInternalId - 2), 0); iline <= umath::min(static_cast<int32_t>(lineInternalId + 2), static_cast<Int32>(codeLines.size() - 1)); iline++) {
+				if(iline == lineInternalId)
+					out << "\n  > " << codeLines[iline];
+				else
+					out << "\n    " << codeLines[iline];
+			}
+		}
+		else
+			out << "\nUnable to display shader contents: Erroneous line " << lineId << " exceeds number of lines in file '" << filePath << "' (" << codeLines.size() << ")!";
+	}
+	else
+		out << "\nUnable to display shader contents: Failed to open file '" << filePath << "' for reading!";
+}
+
 void prosper::glsl::translate_error(const std::string &shaderCode, const std::string &errorMsg, const std::string &pathMainShader, const std::vector<prosper::glsl::IncludeLine> &includeLines, Int32 lineOffset, std::string *err)
 {
 	std::vector<std::string> errorLines;
@@ -500,94 +563,95 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 		auto &msg = errorLines[i];
 		ustring::remove_whitespace(msg);
 		if(!msg.empty()) {
-			auto bAMD = false;
-			auto bWarning = false;
-			if(msg.substr(0, 9) == "ERROR: 0:")
-				bAMD = true;
-			else if(msg.substr(0, 11) == "WARNING: 0:") {
-				bAMD = true;
-				bWarning = true;
-			}
-			auto bNvidia = (!bAMD && msg.substr(0, 2) == "0(") ? true : false;
-			if(bAMD == true || bNvidia == true) {
-				auto st = (bAMD == true) ? ((bWarning == true) ? 11 : 9) : 2;
-				auto end = (bAMD == true) ? msg.find_first_of(':', st) : msg.find_first_of(')', st);
-				if(end != ustring::NOT_FOUND) {
-					auto line = atoi(msg.substr(st, end - st).c_str());
-					auto lineInternal = line;
-					std::string file;
-					std::stack<std::string> includeStack;
-					auto bFound = false;
-					auto numIncludeLines = includeLines.size();
-					for(UInt idx = 0; idx < numIncludeLines; idx++) {
-						auto it = includeLines.begin() + idx;
-						if(CUInt32(line) >= it->lineId && idx < CUInt32(numIncludeLines - 1))
-							continue;
-						if(it != includeLines.begin()) {
-							if(idx < CUInt32(numIncludeLines - 1) || CUInt32(line) < it->lineId) {
-								it--;
-								idx--;
-							}
-							auto errLine = line - it->lineId + 1;
-							for(auto idx2 = idx; idx2 > 0;) {
-								idx2--;
-								auto it2 = includeLines.begin() + idx2;
-								if(it2->line == it->line && it2->depth == it->depth) {
-									errLine += includeLines[idx2 + 1].lineId - it2->lineId;
-									if(it2->ret == false)
-										break;
-								}
-							}
-							line = errLine;
-							file = it->line;
-							includeStack = it->includeStack;
-							bFound = true;
+			size_t end;
+			auto lineId = determine_line_index(msg, end);
+			if(lineId) {
+				std::stringstream msgOut;
+				// Ideally the error message should display the actual glsl file which caused the error.
+				// If the error happened in an #include, we have to translate the line index accordingly.
+				// The commented code below is supposed to do just that, but does not work properly, so for now
+				// we just print the error line for the full preprocessed shader file.
+#if 0
+				auto line = *lineId;
+				auto lineInternal = line;
+				std::string file;
+				std::stack<std::string> includeStack;
+				auto bFound = false;
+				auto numIncludeLines = includeLines.size();
+				for(UInt idx = 0; idx < numIncludeLines; idx++) {
+					auto it = includeLines.begin() + idx;
+					if(CUInt32(line) >= it->lineId && idx < CUInt32(numIncludeLines - 1))
+						continue;
+					if(it != includeLines.begin()) {
+						if(idx < CUInt32(numIncludeLines - 1) || CUInt32(line) < it->lineId) {
+							it--;
+							idx--;
 						}
-						break;
+						auto errLine = line - it->lineId;
+						if(includeLines.front().line.empty() && it != includeLines.begin()) {
+							// If the first entry does not refer to a shader file, then it should be the header code,
+							// which has no corresponding #include.
+							// Otherwise we need to increment errLine to skip the #include.
+							++errLine;
+						}
+						for(auto idx2 = idx; idx2 > 0;) {
+							idx2--;
+							auto it2 = includeLines.begin() + idx2;
+							if(it2->line == it->line && it2->depth == it->depth) {
+								errLine += includeLines[idx2 + 1].lineId - it2->lineId;
+								if(it2->ret == false)
+									break;
+							}
+						}
+						line = errLine;
+						file = it->line;
+						includeStack = it->includeStack;
+						bFound = true;
 					}
-					if(bFound == false)
-						file = pathMainShader;
-					file = FileManager::GetCanonicalizedPath(file);
-					std::stringstream msgOut;
-					msgOut << msg.substr(0, st) << std::to_string(line) << ((bAMD == true) ? (std::string(": '") + file + std::string("':")) : (std::string(")('") + file + std::string("')"))) << msg.substr(end + 1);
-					lineInternal = line;
-
-					auto contents = filemanager::read_file(file);
-					if(contents) {
-						std::vector<std::string> codeLines;
-						ustring::explode(*contents, "\n", codeLines);
-						if(lineInternal <= codeLines.size()) {
-							auto lineInternalId = lineInternal - 1;
-							for(Int32 iline = umath::max(lineInternalId - 2, 0); iline <= umath::min(lineInternalId + 2, static_cast<Int32>(codeLines.size() - 1)); iline++) {
-								if(iline == lineInternalId)
-									msgOut << "\n  > " << codeLines[iline];
-								else
-									msgOut << "\n    " << codeLines[iline];
-							}
-						}
-						else
-							msgOut << "\nUnable to display shader contents: Erroneous line " << lineInternal << " exceeds number of lines in file '" << file << "' (" << codeLines.size() << ")!";
-
-						if(!includeStack.empty()) {
-							msgOut << "\nInclude Stack:\n";
-							std::vector<std::string> list;
-							list.reserve(includeStack.size());
-							while(!includeStack.empty()) {
-								list.push_back(includeStack.top());
-								includeStack.pop();
-							}
-							std::string prefix = "  ";
-							for(auto it = list.rbegin(); it != list.rend(); ++it) {
-								auto &item = *it;
-								msgOut << prefix << item << "\n";
-								prefix += "  ";
-							}
-						}
-					}
-					else
-						msgOut << "\nUnable to display shader contents: Failed to open file '" << file << "' for reading!";
-					msg = msgOut.str();
+					break;
 				}
+				if(bFound == false)
+					file = pathMainShader;
+				file = filemanager::get_canonicalized_path(file);
+
+				if(file.empty()) {
+					// Error occurred in header portion, which
+					// is only present in the full preprocessed shader file.
+					auto fullGlslFilepath = ::util::FilePath(pathMainShader);
+					fullGlslFilepath.PopFront();
+					fullGlslFilepath = ::util::FilePath("shaders/preprocessed/", fullGlslFilepath);
+					file = fullGlslFilepath.GetString();
+				}
+
+				msgOut << "ERROR: " << ::util::FilePath(file).GetString() << ":" << std::to_string(line) << ": " << msg.substr(end + 1);
+				lineInternal = line;
+
+				auto preprocessedPath = ::util::FilePath(file);
+				print_snippet(preprocessedPath.GetString(), line, msgOut);
+
+				if(!includeStack.empty()) {
+					msgOut << "\nInclude Stack:\n";
+					std::vector<std::string> list;
+					list.reserve(includeStack.size());
+					while(!includeStack.empty()) {
+						list.push_back(includeStack.top());
+						includeStack.pop();
+					}
+					std::string prefix = "  ";
+					for(auto it = list.rbegin(); it != list.rend(); ++it) {
+						auto &item = *it;
+						msgOut << prefix << item << "\n";
+						prefix += "  ";
+					}
+				}
+#else
+				auto fullGlslFilepath = ::util::FilePath(pathMainShader);
+				fullGlslFilepath.PopFront();
+				fullGlslFilepath = ::util::FilePath("shaders/preprocessed/", fullGlslFilepath);
+				print_snippet(fullGlslFilepath.GetString(), *lineId, msgOut);
+#endif
+
+				msg = msgOut.str();
 			}
 			*err += msg;
 			if(i < (numLines - 1))
@@ -598,7 +662,7 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 
 void prosper::glsl::dump_parsed_shader(IPrContext &context, uint32_t stage, const std::string &shaderFile, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile(shaderFile.c_str(), "r");
+	auto f = filemanager::open_file(shaderFile, filemanager::FileMode::Read | filemanager::FileMode::Binary);
 	if(f == nullptr)
 		return;
 	auto shaderCode = f->ReadString();
@@ -609,7 +673,7 @@ void prosper::glsl::dump_parsed_shader(IPrContext &context, uint32_t stage, cons
 	std::unordered_set<std::string> includeCache;
 	if(glsl_preprocessing(context, static_cast<prosper::ShaderStage>(stage), fileName, shaderCode, err, includeCache, includeLines, lineOffset, includeStack) == false)
 		return;
-	auto fOut = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto fOut = filemanager::open_file<VFilePtrReal>(fileName.c_str(), filemanager::FileMode::Write);
 	if(fOut == nullptr)
 		return;
 	fOut->WriteString(shaderCode);
@@ -692,7 +756,7 @@ std::optional<std::string> prosper::glsl::load_glsl(IPrContext &context, prosper
 			*infoLog = "File not found: " + fileName;
 		return {};
 	}
-	auto f = FileManager::OpenFile(optFileName->c_str(), "r");
+	auto f = filemanager::open_file(optFileName->c_str(), filemanager::FileMode::Read | filemanager::FileMode::Binary);
 	if(f == nullptr) {
 		if(infoLog != nullptr)
 			*infoLog = std::string("Unable to open file '") + fileName + std::string("'!");
