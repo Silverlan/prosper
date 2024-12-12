@@ -60,6 +60,7 @@ namespace prosper {
 		void Release(bool bDelete = true);
 		void SetDebugName(uint32_t pipelineIdx, const std::string &name);
 		const std::string *GetDebugName(uint32_t pipelineIdx) const;
+		virtual std::optional<std::string> GetGlslPrefixCode(prosper::ShaderStage stage) const { return {}; }
 
 		::util::WeakHandle<const prosper::Shader> GetHandle() const;
 		::util::WeakHandle<prosper::Shader> GetHandle();

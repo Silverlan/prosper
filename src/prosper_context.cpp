@@ -934,7 +934,8 @@ bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader, bool 
 		auto &stage = stages.at(i);
 		if(stage == nullptr || stage->path.empty())
 			continue;
-		stage->program = const_cast<IPrContext *>(this)->CompileShader(static_cast<prosper::ShaderStage>(i), stage->path, outInfoLog, outDebugInfoLog, bReload, prefixCode, definitions);
+		auto stagePrefixCode = shader.GetGlslPrefixCode(static_cast<prosper::ShaderStage>(i));
+		stage->program = const_cast<IPrContext *>(this)->CompileShader(static_cast<prosper::ShaderStage>(i), stage->path, outInfoLog, outDebugInfoLog, bReload, stagePrefixCode ? (*stagePrefixCode + prefixCode) : prefixCode, definitions);
 		if(stage->program == nullptr) {
 			outErrStage = stage->stage;
 			return false;
