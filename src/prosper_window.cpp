@@ -172,7 +172,7 @@ void Window::InitSwapchain()
 void Window::OnSwapchainInitialized()
 {
 	InitCommandBuffers();
-	m_guiCommandBufferGroup = GetContext().CreateSwapCommandBufferGroup(*this);
+	m_guiCommandBufferGroup = GetContext().CreateSwapCommandBufferGroup(*this, true, "window_gui");
 }
 void Window::ReleaseSwapchain()
 {

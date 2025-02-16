@@ -33,6 +33,7 @@ void ISwapCommandBufferGroup::Initialize(uint32_t swapchainIdx)
 	m_commandBuffers.reserve(numSwapchains);
 	for(auto i = decltype(m_commandBuffers.size()) {m_commandBuffers.size()}; i < numSwapchains; ++i) {
 		auto cmdBuf = m_cmdPool->AllocateSecondaryCommandBuffer();
+		cmdBuf->SetDebugName(m_debugName + "_" + std::to_string(i));
 		m_commandBuffers.push_back(cmdBuf);
 	}
 }
