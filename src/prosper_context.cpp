@@ -98,14 +98,14 @@ void prosper::IPrContext::InitWindow()
 	newWindow->SetInitCallback(onWindowReloaded);
 
 	it = m_windows.end();
-	if(m_window) {
+	if(m_window)
 		it = std::find_if(m_windows.begin(), m_windows.end(), [this](const std::weak_ptr<prosper::Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == m_window; });
-	}
-	m_window = newWindow;
+	if(!m_window)
+		m_window = newWindow; // We'll assume that the first window created is the primary window
 	if(it != m_windows.end())
-		*it = m_window;
+		*it = newWindow;
 	else
-		m_windows.push_back(m_window);
+		m_windows.push_back(newWindow);
 	onWindowReloaded();
 }
 void prosper::IPrContext::Close()
