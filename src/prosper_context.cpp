@@ -13,6 +13,7 @@
 #include "shader/prosper_shader_crash.hpp"
 #include "shader/prosper_pipeline_loader.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
+#include "debug/api_dump_recorder.hpp"
 #include "buffers/prosper_buffer.hpp"
 #include "buffers/prosper_dynamic_resizable_buffer.hpp"
 #include "queries/prosper_timestamp_query.hpp"
@@ -31,7 +32,11 @@
 
 prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader, uint32_t pipeline) : shader {shader.GetHandle()}, pipeline {pipeline} {}
 
-prosper::IPrContext::IPrContext(const std::string &appName, bool bEnableValidation) : m_appName(appName), m_commonBufferCache {*this}, m_mainThreadId {std::this_thread::get_id()}
+prosper::IPrContext::IPrContext(const std::string &appName, bool bEnableValidation)
+    : m_appName(appName), m_commonBufferCache {*this}, m_mainThreadId {std::this_thread::get_id()},
+#ifdef PR_DEBUG_API_DUMP
+      m_apiDumpRecorder {std::make_unique<debug::ApiDumpRecorder>()}
+#endif
 {
 	umath::set_flag(m_stateFlags, StateFlags::ValidationEnabled, bEnableValidation);
 	m_initialWindowSettings.title = appName;
@@ -144,7 +149,13 @@ void prosper::IPrContext::Release()
 
 prosper::FrameIndex prosper::IPrContext::GetLastFrameId() const { return m_frameId; }
 
-void prosper::IPrContext::EndFrame() { ++m_frameId; }
+void prosper::IPrContext::EndFrame()
+{
+	++m_frameId;
+#ifdef PR_DEBUG_API_DUMP
+	m_apiDumpRecorder->Clear();
+#endif
+}
 
 void prosper::IPrContext::DrawFrameCore()
 {
@@ -443,6 +454,8 @@ void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
 	DoKeepResourceAliveUntilPresentationComplete(resource);
 }
+
+void prosper::IPrContext::SetDeviceBusy(bool busy) { umath::set_flag(m_stateFlags, StateFlags::Idle, !busy); }
 
 prosper::PipelineID prosper::IPrContext::ReserveShaderPipeline()
 {

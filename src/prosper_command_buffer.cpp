@@ -13,12 +13,19 @@
 #include "queries/prosper_timer_query.hpp"
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/prosper_query_pool.hpp"
+#include "debug/api_dump_recorder.hpp"
 #include "prosper_framebuffer.hpp"
 #include "prosper_render_pass.hpp"
 #include "prosper_window.hpp"
 #include <cassert>
 
-prosper::ICommandBuffer::ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType) : ContextObject(context), std::enable_shared_from_this<ICommandBuffer>(), m_queueFamilyType {queueFamilyType} {}
+prosper::ICommandBuffer::ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType)
+    : ContextObject(context), std::enable_shared_from_this<ICommandBuffer>(), m_queueFamilyType {queueFamilyType},
+#ifdef PR_DEBUG_API_DUMP
+      m_apiDumpRecorder {std::make_unique<debug::ApiDumpRecorder>(this, &context.GetApiDumpRecorder())}
+#endif
+{
+}
 
 prosper::ICommandBuffer::~ICommandBuffer() {}
 

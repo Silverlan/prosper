@@ -33,6 +33,9 @@ namespace prosper {
 	class Shader;
 	class IRenderBuffer;
 	class Window;
+	namespace debug {
+		struct ApiDumpRecorder;
+	};
 	class DLLPROSPER ICommandBuffer : public ContextObject, public std::enable_shared_from_this<ICommandBuffer> {
 	  public:
 		ICommandBuffer(const ICommandBuffer &) = delete;
@@ -138,6 +141,10 @@ namespace prosper {
 		const IPrimaryCommandBuffer *GetPrimaryCommandBufferPtr() const;
 		ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr();
 		const ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr() const;
+
+#ifdef PR_DEBUG_API_DUMP
+		debug::ApiDumpRecorder &GetApiDumpRecorder() const { return *m_apiDumpRecorder; }
+#endif
 	  protected:
 		ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType);
 		void Initialize();
@@ -158,6 +165,10 @@ namespace prosper {
 		void *m_apiTypePtr = nullptr;
 		void *m_cmdBufSpecializationPtr = nullptr; // Pointer to IPrimaryCommandBuffer or ISecondaryCommandBuffer
 		mutable bool m_recording = false;
+
+#ifdef PR_DEBUG_API_DUMP
+		mutable std::unique_ptr<debug::ApiDumpRecorder> m_apiDumpRecorder;
+#endif
 	};
 
 	class DLLPROSPER ICommandBufferPool : public ContextObject, public std::enable_shared_from_this<ICommandBufferPool> {

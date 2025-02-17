@@ -66,6 +66,10 @@ namespace prosper {
 		struct PhysicalDeviceMemoryProperties;
 	};
 
+	namespace debug {
+		struct ApiDumpRecorder;
+	};
+
 	struct ShaderStageData;
 	class Texture;
 	class RenderTarget;
@@ -182,6 +186,10 @@ namespace prosper {
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
 		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) = 0;
 
+#ifdef PR_DEBUG_API_DUMP
+		debug::ApiDumpRecorder &GetApiDumpRecorder() const { return *m_apiDumpRecorder; }
+#endif
+
 		bool IsDiagnosticsModeEnabled() const;
 
 		void SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback);
@@ -209,6 +217,8 @@ namespace prosper {
 		virtual uint32_t GetReservedDescriptorResourceCount(DescriptorResourceType resType) const { return 0; }
 
 		std::thread::id GetMainThreadId() const { return m_mainThreadId; }
+
+		void SetDeviceBusy(bool busy);
 
 		Window &GetWindow();
 		const Window &GetWindow() const { return const_cast<IPrContext *>(this)->GetWindow(); }
@@ -498,6 +508,9 @@ namespace prosper {
 	  private:
 		mutable FrameIndex m_frameId = 0ull;
 		mutable CommonBufferCache m_commonBufferCache;
+#ifdef PR_DEBUG_API_DUMP
+		mutable std::unique_ptr<debug::ApiDumpRecorder> m_apiDumpRecorder;
+#endif
 	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::IPrContext::StateFlags)
