@@ -11,6 +11,7 @@
 
 #include "buffers/prosper_buffer.hpp"
 #include "image/prosper_image.hpp"
+#include "prosper_render_pass.hpp"
 #include <sharedutils/magic_enum.hpp>
 #include <sharedutils/util_debug.h>
 #include <sstream>
@@ -81,6 +82,7 @@ namespace prosper::debug {
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::Offset3D &offset3d);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::util::CopyInfo &copyInfo);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::ContextObject &co);
+	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::IRenderPass &rp);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::Query &query);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::IShaderPipelineLayout &layout);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::IDescriptorSet &descSet);
@@ -95,6 +97,7 @@ namespace prosper::debug {
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::util::BufferImageCopyInfo &copyInfo);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::util::BlitInfo &blitInfo);
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::util::ImageResolve &resolve);
+	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const prosper::util::RenderPassCreateInfo::AttachmentInfo &attInfo);
 	template<typename T>
 	    requires(std::is_same_v<T, Vector2> || std::is_same_v<T, Vector2i> || std::is_same_v<T, Vector3> || std::is_same_v<T, Vector3i> || std::is_same_v<T, Vector4> || std::is_same_v<T, Vector4i>)
 	std::unique_ptr<BaseDumpValue> dump(const T &vec)
@@ -178,7 +181,7 @@ namespace prosper::debug {
 					auto *parent = recorder.GetParent();
 					if(parent) {
 						parent->m_recordMutex.lock();
-						parent->m_records.push_back(record);
+						parent->m_recordSets.back().push_back(record);
 						parent->m_recordMutex.unlock();
 					}
 					recorder.m_recordMutex.unlock();
@@ -209,20 +212,21 @@ namespace prosper::debug {
 		~ApiDumpRecorder();
 		void Clear();
 		void Print(std::stringstream &ss) const;
-		void PrintCallTrace(uint64_t cmdIdx, std::stringstream &ss) const;
+		void PrintCallTrace(uint64_t cmdIdx, std::stringstream &ss, int32_t recordSet = 0) const;
 		template<typename TReturn>
 		Record::Wrapper AddRecord(const std::string &funcName)
 		{
 			m_recordMutex.lock();
-			m_records.push_back({funcName});
-			auto &rec = m_records.back();
+			auto &records = m_recordSets.back();
+			records.push_back({funcName});
+			auto &rec = records.back();
 			rec.retType = typeid(TReturn).name();
 			rec.contextObjectName = m_contextObject->GetDebugName();
 			return Record::Wrapper {*this, rec};
 		}
 		ApiDumpRecorder *GetParent() { return m_parent; }
 	  private:
-		std::vector<Record> m_records;
+		std::vector<std::vector<Record>> m_recordSets;
 		std::mutex m_recordMutex;
 		ApiDumpRecorder *m_parent = nullptr;
 		prosper::ContextObject *m_contextObject = nullptr;

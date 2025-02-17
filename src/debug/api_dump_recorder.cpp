@@ -4,7 +4,9 @@
 
 #include "prosper_context.hpp"
 #include "debug/api_dump_recorder.hpp"
+#include <sharedutils/util.h>
 #include "queries/prosper_query.hpp"
+#include "prosper_util.hpp"
 
 using namespace prosper;
 #ifdef PR_DEBUG_API_DUMP
@@ -75,6 +77,17 @@ std::unique_ptr<debug::BaseDumpValue> debug::dump(const prosper::ContextObject &
 {
 	auto td = std::make_unique<StructDumpValue>("ContextObject");
 	td->AddKeyValue("debugName", co.GetDebugName());
+	td->AddKeyValue("address", "0x" + ::util::to_hex_string(&co));
+	return td;
+}
+
+std::unique_ptr<debug::BaseDumpValue> debug::dump(const prosper::IRenderPass &rp)
+{
+	auto &createInfo = rp.GetCreateInfo();
+	auto td = std::make_unique<StructDumpValue>("RenderPass");
+	td->AddKeyValue("debugName", rp.GetDebugName());
+	td->AddKeyValue("address", "0x" + ::util::to_hex_string(&rp));
+	td->AddKeyValue("attachments", createInfo.attachments);
 	return td;
 }
 
@@ -214,26 +227,57 @@ std::unique_ptr<debug::BaseDumpValue> debug::dump(const prosper::util::ImageReso
 	return td;
 }
 
-debug::ApiDumpRecorder::ApiDumpRecorder(prosper::ContextObject *contextObject, ApiDumpRecorder *parent) : m_contextObject {contextObject}, m_parent {parent} {}
+std::unique_ptr<debug::BaseDumpValue> debug::dump(const prosper::util::RenderPassCreateInfo::AttachmentInfo &attInfo)
+{
+	auto td = std::make_unique<StructDumpValue>("AttachmentInfo");
+	td->AddKeyValue("format", prosper::util::to_string(attInfo.format));
+	td->AddKeyValue("sampleCount", attInfo.sampleCount);
+	td->AddKeyValue("loadOp", attInfo.loadOp);
+	td->AddKeyValue("storeOp", attInfo.storeOp);
+	td->AddKeyValue("stencilLoadOp", attInfo.stencilLoadOp);
+	td->AddKeyValue("stencilStoreOp", attInfo.stencilStoreOp);
+	td->AddKeyValue("initialLayout", attInfo.initialLayout);
+	td->AddKeyValue("finalLayout", attInfo.finalLayout);
+	return td;
+}
+
+debug::ApiDumpRecorder::ApiDumpRecorder(prosper::ContextObject *contextObject, ApiDumpRecorder *parent) : m_contextObject {contextObject}, m_parent {parent} { m_recordSets.resize(2); }
 debug::ApiDumpRecorder::~ApiDumpRecorder() {}
 
-void debug::ApiDumpRecorder::Clear() { m_records.clear(); }
+void debug::ApiDumpRecorder::Clear()
+{
+	m_recordMutex.lock();
+	for(size_t i = 1; i < m_recordSets.size(); ++i)
+		m_recordSets[i - 1] = std::move(m_recordSets[i]);
+	m_recordSets.back().clear();
+	m_recordMutex.unlock();
+}
 
 void debug::ApiDumpRecorder::Print(std::stringstream &ss) const
 {
-	size_t idx = 0;
-	for(auto &record : m_records) {
-		ss << idx++ << ": ";
-		record.Print(ss);
-		ss << "\n";
+	int32_t idxRecord = -static_cast<int32_t>(m_recordSets.size()) + 1;
+	for(auto &recordSet : m_recordSets) {
+		ss << "Record set " << idxRecord++ << ":\n";
+		size_t idx = 0;
+		for(auto &record : recordSet) {
+			ss << idx++ << ": ";
+			record.Print(ss);
+			ss << "\n";
+		}
 	}
 }
 
-void debug::ApiDumpRecorder::PrintCallTrace(uint64_t cmdIdx, std::stringstream &ss) const
+void debug::ApiDumpRecorder::PrintCallTrace(uint64_t cmdIdx, std::stringstream &ss, int32_t recordSetIdx) const
 {
-	if(cmdIdx >= m_records.size())
+	if(m_recordSets.empty())
 		return;
-	auto &r = m_records[cmdIdx];
+	auto setIdx = (static_cast<int32_t>(m_recordSets.size()) - 1) - recordSetIdx;
+	if(setIdx < 0 || setIdx >= m_recordSets.size())
+		return;
+	auto &recordSet = m_recordSets[setIdx];
+	if(cmdIdx >= recordSet.size())
+		return;
+	auto &r = recordSet[cmdIdx];
 	ss << r.callTrace;
 }
 
