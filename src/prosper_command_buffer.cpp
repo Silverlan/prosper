@@ -20,8 +20,9 @@
 #include <cassert>
 
 prosper::ICommandBuffer::ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType)
-    : ContextObject(context), std::enable_shared_from_this<ICommandBuffer>(), m_queueFamilyType {queueFamilyType},
+    : ContextObject(context), std::enable_shared_from_this<ICommandBuffer>(), m_queueFamilyType {queueFamilyType}
 #ifdef PR_DEBUG_API_DUMP
+      ,
       m_apiDumpRecorder {std::make_unique<debug::ApiDumpRecorder>(this, &context.GetApiDumpRecorder())}
 #endif
 {

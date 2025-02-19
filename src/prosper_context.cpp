@@ -33,8 +33,9 @@
 prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader, uint32_t pipeline) : shader {shader.GetHandle()}, pipeline {pipeline} {}
 
 prosper::IPrContext::IPrContext(const std::string &appName, bool bEnableValidation)
-    : m_appName(appName), m_commonBufferCache {*this}, m_mainThreadId {std::this_thread::get_id()},
+    : m_appName(appName), m_commonBufferCache {*this}, m_mainThreadId {std::this_thread::get_id()}
 #ifdef PR_DEBUG_API_DUMP
+      ,
       m_apiDumpRecorder {std::make_unique<debug::ApiDumpRecorder>()}
 #endif
 {

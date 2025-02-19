@@ -24,8 +24,6 @@
 #define UNUSED(x) x
 #endif
 
-#define PR_DEBUG_API_DUMP
-
 #include "prosper_types.hpp"
 
 namespace prosper {

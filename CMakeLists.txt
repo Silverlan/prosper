@@ -19,4 +19,17 @@ pr_add_compile_definitions(
 		-DUIMG_ENABLE_NVTT
 )
 
+if(WIN32)
+	option(ENABLE_DEBUG_API_DUMP "Enable debug API dump" OFF)
+
+	# Apply the preprocessor definition if enabled
+	if(ENABLE_DEBUG_API_DUMP)
+		pr_add_compile_definitions(
+			${PROJ_NAME}
+				-DPR_DEBUG_API_DUMP
+			PUBLIC
+		)
+	endif()
+endif()
+
 pr_finalize(${PROJ_NAME})
