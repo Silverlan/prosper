@@ -17,6 +17,9 @@
 #include <sstream>
 
 namespace prosper::debug {
+	DLLPROSPER void set_api_dump_enabled(bool enabled);
+	DLLPROSPER bool is_api_dump_enabled();
+
 	struct DLLPROSPER BaseDumpValue {
 		virtual ~BaseDumpValue() {}
 		virtual std::unique_ptr<BaseDumpValue> Clone() const = 0;
@@ -190,7 +193,7 @@ namespace prosper::debug {
 				ApiDumpRecorder &recorder;
 				Record &record;
 			};
-			Record(const std::string &funcName) : funcName {funcName}, callTrace {::util::get_formatted_stack_backtrace_string()} {}
+			Record(const std::string &funcName) : funcName {funcName}, callTrace {::util::debug::get_formatted_stack_backtrace_string()} {}
 			Record(const Record &other);
 			~Record();
 			template<typename T>

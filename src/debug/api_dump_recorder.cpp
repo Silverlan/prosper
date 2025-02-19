@@ -10,6 +10,10 @@
 
 using namespace prosper;
 #ifdef PR_DEBUG_API_DUMP
+auto g_apiDumpEnabled = false;
+void debug::set_api_dump_enabled(bool enabled) { g_apiDumpEnabled = enabled; }
+bool debug::is_api_dump_enabled() { return g_apiDumpEnabled; }
+
 std::unique_ptr<debug::BaseDumpValue> debug::dump(const std::string &val) { return std::make_unique<DataDumpValue>(val); }
 
 std::unique_ptr<debug::BaseDumpValue> debug::dump(const bool &val) { return std::make_unique<DataDumpValue>(val ? "true" : "false"); }
