@@ -7,7 +7,7 @@
 
 #include "prosper_definitions.hpp"
 #include "prosper_enums.hpp"
-#include <iglfw/glfw_window.h>
+#include <mathutil/uvec.h>
 #include <limits>
 #include <array>
 #include <cinttypes>
@@ -17,6 +17,8 @@
 #include <map>
 
 #undef max
+
+import pragma.platform;
 
 namespace prosper {
 	struct DLLPROSPER Extent2D {
@@ -687,7 +689,7 @@ namespace prosper {
 	using SubPassID = uint32_t;
 	using SubPassAttachmentID = uint32_t;
 
-	struct DLLPROSPER WindowSettings : public GLFW::WindowCreationInfo {
+	struct DLLPROSPER WindowSettings : public pragma::platform::WindowCreationInfo {
 		bool windowedMode = true;
 		prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
 	};

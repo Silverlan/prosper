@@ -66,7 +66,7 @@ void Window::DoClose()
 
 bool Window::IsValid() const { return m_glfwWindow != nullptr; }
 
-void Window::SetMonitor(GLFW::Monitor &monitor)
+void Window::SetMonitor(pragma::platform::Monitor &monitor)
 {
 	auto &creationInfo = m_settings;
 	if(creationInfo.monitor.has_value() && &monitor == &*creationInfo.monitor)
@@ -142,7 +142,7 @@ void Window::UpdateWindow()
 	if(m_scheduledWindowReloadInfo->windowedMode.has_value())
 		creationInfo.windowedMode = *m_scheduledWindowReloadInfo->windowedMode;
 	if(m_scheduledWindowReloadInfo->refreshRate.has_value())
-		creationInfo.refreshRate = (*m_scheduledWindowReloadInfo->refreshRate != 0u) ? static_cast<int32_t>(*m_scheduledWindowReloadInfo->refreshRate) : GLFW_DONT_CARE;
+		creationInfo.refreshRate = (*m_scheduledWindowReloadInfo->refreshRate != 0u) ? static_cast<int32_t>(*m_scheduledWindowReloadInfo->refreshRate) : pragma::platform::DONT_CARE;
 	if(m_scheduledWindowReloadInfo->decorated.has_value())
 		creationInfo.decorated = *m_scheduledWindowReloadInfo->decorated;
 	if(m_scheduledWindowReloadInfo->width.has_value())
@@ -157,7 +157,7 @@ void Window::UpdateWindow()
 	m_scheduledWindowReloadInfo = nullptr;
 	if(creationInfo.windowedMode == false) {
 		if(!creationInfo.monitor.has_value())
-			creationInfo.monitor = GLFW::get_primary_monitor();
+			creationInfo.monitor = pragma::platform::get_primary_monitor();
 	}
 	else
 		creationInfo.monitor = nullptr;
@@ -196,7 +196,7 @@ void Window::DoReloadWindow()
 
 void Window::ReloadWindow()
 {
-	std::optional<GLFW::CallbackInterface> callbacks {};
+	std::optional<pragma::platform::CallbackInterface> callbacks {};
 	std::optional<Vector2> cursorPosOverride {};
 	if(m_glfwWindow) {
 		callbacks = m_glfwWindow->GetCallbacks();
@@ -256,8 +256,8 @@ void Window::ReloadStagingRenderTarget()
 	// Vulkan TODO: Resize when window resolution was changed
 }
 
-GLFW::Window *Window::operator->() { return m_glfwWindow.get(); }
-GLFW::Window &Window::operator*() { return *operator->(); }
+pragma::platform::Window *Window::operator->() { return m_glfwWindow.get(); }
+pragma::platform::Window &Window::operator*() { return *operator->(); }
 
 prosper::IRenderPass &Window::GetStagingRenderPass() const
 {

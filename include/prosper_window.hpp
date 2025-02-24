@@ -9,7 +9,8 @@
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include "prosper_structs.hpp"
-#include <iglfw/glfw_window.h>
+
+import pragma.platform;
 
 namespace prosper {
 	class DLLPROSPER Window : public ContextObject, public std::enable_shared_from_this<Window> {
@@ -23,17 +24,17 @@ namespace prosper {
 		Window &operator=(const Window &) = delete;
 		virtual ~Window() override;
 
-		GLFW::Window *operator->();
-		const GLFW::Window *operator->() const { return const_cast<Window *>(this)->operator->(); }
+		pragma::platform::Window *operator->();
+		const pragma::platform::Window *operator->() const { return const_cast<Window *>(this)->operator->(); }
 
-		GLFW::Window &operator*();
-		const GLFW::Window &operator*() const { return const_cast<Window *>(this)->operator*(); }
+		pragma::platform::Window &operator*();
+		const pragma::platform::Window &operator*() const { return const_cast<Window *>(this)->operator*(); }
 
 		uint32_t GetSwapchainImageCount() const { return m_swapchainImages.size(); }
 		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const = 0;
 		prosper::IImage *GetSwapchainImage(uint32_t idx);
 		prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
-		GLFW::Window &GetGlfwWindow() { return *m_glfwWindow; }
+		pragma::platform::Window &GetGlfwWindow() { return *m_glfwWindow; }
 
 		prosper::IRenderPass &GetStagingRenderPass() const;
 		std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget();
@@ -51,7 +52,7 @@ namespace prosper {
 		void SetResolution(const Vector2i &sz);
 		void SetResolutionWidth(uint32_t w);
 		void SetResolutionHeight(uint32_t h);
-		void SetMonitor(GLFW::Monitor &monitor);
+		void SetMonitor(pragma::platform::Monitor &monitor);
 		void SetPresentMode(prosper::PresentModeKHR presentMode);
 		float GetAspectRatio() const;
 		void ReloadSwapchain();
@@ -80,7 +81,7 @@ namespace prosper {
 			std::optional<bool> decorated = {};
 			std::optional<uint32_t> width = {};
 			std::optional<uint32_t> height = {};
-			std::optional<GLFW::Monitor> monitor = {};
+			std::optional<pragma::platform::Monitor> monitor = {};
 			std::optional<prosper::PresentModeKHR> presentMode = {};
 		};
 		friend IPrContext;
@@ -107,7 +108,7 @@ namespace prosper {
 		std::vector<std::function<void()>> m_closeListeners;
 		std::vector<std::function<void()>> m_closedListeners;
 		WindowSettings m_settings {};
-		std::unique_ptr<GLFW::Window> m_glfwWindow = nullptr;
+		std::unique_ptr<pragma::platform::Window> m_glfwWindow = nullptr;
 		std::shared_ptr<prosper::ISwapCommandBufferGroup> m_guiCommandBufferGroup = nullptr;
 
 		State m_state = State::Active;

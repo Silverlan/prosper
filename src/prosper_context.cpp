@@ -22,13 +22,14 @@
 #include "prosper_fence.hpp"
 #include "prosper_window.hpp"
 #include "prosper_descriptor_set_group.hpp"
-#include <iglfw/glfw_window.h>
 #include <sharedutils/util_clock.hpp>
 #include <thread>
 #include <cassert>
 
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
+
+import pragma.platform;
 
 prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader, uint32_t pipeline) : shader {shader.GetHandle()}, pipeline {pipeline} {}
 
@@ -559,7 +560,7 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 	m_initialWindowSettings.width = createInfo.width;
 	m_initialWindowSettings.height = createInfo.height;
 	if(createInfo.windowless)
-		m_initialWindowSettings.flags |= GLFW::WindowCreationInfo::Flags::Windowless;
+		m_initialWindowSettings.flags |= pragma::platform::WindowCreationInfo::Flags::Windowless;
 	if(umath::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled))
 		m_validationData = std::unique_ptr<ValidationData> {new ValidationData {}};
 	ChangePresentMode(createInfo.presentMode);
@@ -937,7 +938,7 @@ void prosper::IPrContext::Run()
 			//ChangeResolution(1024,768);
 		}
 		DrawFrameCore();
-		GLFW::poll_events();
+		pragma::platform::poll_events();
 	}
 }
 

@@ -14,20 +14,13 @@
 #include <mutex>
 #include <thread>
 #include <functional>
-#include <iglfw/glfw_window.h>
 #include <sharedutils/util_log.hpp>
 #include "prosper_includes.hpp"
 #include "prosper_structs.hpp"
 #include "shader/prosper_shader_manager.hpp"
 #include "prosper_common_buffer_cache.hpp"
 
-#ifdef __linux__
-#include <iglfw/glfw_window.h>
-#endif
-
-namespace GLFW {
-	class Window;
-};
+import pragma.platform;
 
 namespace uimg {
 	class ImageBuffer;
