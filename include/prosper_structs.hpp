@@ -12,6 +12,7 @@
 #include <array>
 #include <cinttypes>
 #include <optional>
+#include <memory>
 #include <string>
 #include <cstring>
 #include <map>
