@@ -102,7 +102,14 @@ std::shared_ptr<prosper::IImageView> prosper::IPrContext::CreateImageView(const 
 
 std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const util::ImageCreateInfo &createInfo, const ImageData &imgData)
 {
-	return CreateImage(createInfo, [&imgData](uint32_t layer, uint32_t mipmap, uint32_t &dataSize, uint32_t &rotSize) -> const uint8_t * { return imgData[layer][mipmap]; });
+	return CreateImage(createInfo, [&imgData](uint32_t layer, uint32_t mipmap, uint32_t &dataSize, uint32_t &rotSize) -> const uint8_t * {
+		if(layer >= imgData.size())
+			return nullptr;
+		auto &layerData = imgData[layer];
+		if(mipmap >= layerData.size())
+			return nullptr;
+		return layerData[mipmap];
+	});
 }
 std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(uimg::ImageBuffer &imgBuffer, const std::optional<util::ImageCreateInfo> &optCreateInfo)
 {
