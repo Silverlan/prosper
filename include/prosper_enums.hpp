@@ -431,6 +431,8 @@ namespace prosper {
 		case DescriptorType::StorageBuffer:
 		case DescriptorType::StorageBufferDynamic:
 			return DescriptorResourceType::StorageBufferObject;
+		default:
+			break;
 		}
 		return {};
 	}

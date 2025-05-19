@@ -57,12 +57,21 @@ const prosper::Shader *prosper::ShaderManager::FindShader() const
 {
 	return const_cast<ShaderManager *>(this)->FindShader<T>();
 }
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
+#endif
 template<class T>
 prosper::Shader *prosper::ShaderManager::FindShader()
 {
 	auto it = std::find_if(m_shaders.begin(), m_shaders.end(), [](const std::shared_ptr<Shader> &shader) { return typeid(T) == typeid(*shader); });
 	return (it != m_shaders.end()) ? it->get() : nullptr;
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #pragma warning(pop)
 
 #endif

@@ -21,6 +21,11 @@
 
 import pragma.platform;
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wclass-conversion"
+#endif
+
 namespace prosper {
 	struct DLLPROSPER Extent2D {
 		Extent2D(uint32_t width_ = 0, uint32_t height_ = 0) : width(width_), height(height_) {}
@@ -828,5 +833,9 @@ namespace prosper {
 };
 
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::PrDescriptorSetBindingFlags)
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif
