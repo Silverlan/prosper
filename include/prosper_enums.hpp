@@ -666,7 +666,9 @@ namespace prosper {
 		SampledImageBit = DepthStencilAttachmentBit << 1u,
 		StorageTexelBufferBit = SampledImageBit << 1u,
 		UniformTexelBufferBit = StorageTexelBufferBit << 1u,
-		VertexBufferBit = UniformTexelBufferBit << 1u
+		VertexBufferBit = UniformTexelBufferBit << 1u,
+
+		Last = VertexBufferBit << 1u,
 	};
 
 	enum class LayerSettingType : uint32_t {
