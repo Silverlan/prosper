@@ -7,12 +7,15 @@
 #include "prosper_context.hpp"
 #include "debug/prosper_debug_lookup_map.hpp"
 #include "image/prosper_image.hpp"
+#include <limits>
 
 using namespace prosper;
 
 IImageView::IImageView(IPrContext &context, IImage &img, const prosper::util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags)
     : ContextObject(context), std::enable_shared_from_this<IImageView>(), m_image {img.shared_from_this()}, m_type {type}, m_aspectFlags {aspectFlags}, m_createInfo {createInfo}
 {
+    if(m_createInfo.mipmapLevels == std::numeric_limits<decltype(m_createInfo.mipmapLevels)>::max())
+        m_createInfo.mipmapLevels = m_image->GetMipmapCount();
 }
 IImageView::~IImageView() {}
 
