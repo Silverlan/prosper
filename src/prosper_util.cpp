@@ -2067,21 +2067,16 @@ static prosper::Format get_prosper_format(uimg::TextureInfo::OutputFormat format
 	case uimg::TextureInfo::OutputFormat::RGB:
 	case uimg::TextureInfo::OutputFormat::RGBA:
 		return prosper::Format::R8G8B8A8_UNorm;
-	case uimg::TextureInfo::OutputFormat::DXT1:
 	case uimg::TextureInfo::OutputFormat::BC1:
-	case uimg::TextureInfo::OutputFormat::DXT1n:
+	// case uimg::TextureInfo::OutputFormat::DXT1n:
 	case uimg::TextureInfo::OutputFormat::CTX1:
-	case uimg::TextureInfo::OutputFormat::DXT1a:
 	case uimg::TextureInfo::OutputFormat::BC1a:
 		return prosper::Format::BC1_RGBA_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::DXT3:
 	case uimg::TextureInfo::OutputFormat::BC2:
 		return prosper::Format::BC2_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::DXT5:
-	case uimg::TextureInfo::OutputFormat::DXT5n:
 	case uimg::TextureInfo::OutputFormat::BC3:
 	case uimg::TextureInfo::OutputFormat::BC3n:
-	case uimg::TextureInfo::OutputFormat::BC3_RGBM:
+		// case uimg::TextureInfo::OutputFormat::BC3_RGBM:
 		return prosper::Format::BC3_UNorm_Block;
 	case uimg::TextureInfo::OutputFormat::BC4:
 		return prosper::Format::BC4_UNorm_Block;
@@ -2097,7 +2092,7 @@ static prosper::Format get_prosper_format(uimg::TextureInfo::OutputFormat format
 	case uimg::TextureInfo::OutputFormat::ETC2_RGB:
 	case uimg::TextureInfo::OutputFormat::ETC2_RGBA:
 	case uimg::TextureInfo::OutputFormat::ETC2_RGB_A1:
-	case uimg::TextureInfo::OutputFormat::ETC2_RGBM:
+		// case uimg::TextureInfo::OutputFormat::ETC2_RGBM:
 		return prosper::Format::ETC2_R8G8B8A8_UNorm_Block_PoorCoverage;
 	}
 	return anvFormat;
@@ -2107,21 +2102,16 @@ static bool is_compatible(prosper::Format imgFormat, uimg::TextureInfo::OutputFo
 	if(outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat)
 		return true;
 	switch(outputFormat) {
-	case uimg::TextureInfo::OutputFormat::DXT1:
-	case uimg::TextureInfo::OutputFormat::DXT1a:
-	case uimg::TextureInfo::OutputFormat::DXT1n:
+	// case uimg::TextureInfo::OutputFormat::DXT1n:
 	case uimg::TextureInfo::OutputFormat::BC1:
 	case uimg::TextureInfo::OutputFormat::BC1a:
 		return imgFormat == prosper::Format::BC1_RGBA_SRGB_Block || imgFormat == prosper::Format::BC1_RGBA_UNorm_Block || imgFormat == prosper::Format::BC1_RGB_SRGB_Block || imgFormat == prosper::Format::BC1_RGB_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::DXT3:
 	case uimg::TextureInfo::OutputFormat::BC2:
 		return imgFormat == prosper::Format::BC2_SRGB_Block || imgFormat == prosper::Format::BC2_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::DXT5:
-	case uimg::TextureInfo::OutputFormat::DXT5n:
 	case uimg::TextureInfo::OutputFormat::BC3:
 	case uimg::TextureInfo::OutputFormat::BC3n:
-	case uimg::TextureInfo::OutputFormat::BC3_RGBM:
-		return imgFormat == prosper::Format::BC3_SRGB_Block || imgFormat == prosper::Format::BC3_UNorm_Block;
+	// case uimg::TextureInfo::OutputFormat::BC3_RGBM:
+	//	return imgFormat == prosper::Format::BC3_SRGB_Block || imgFormat == prosper::Format::BC3_UNorm_Block;
 	case uimg::TextureInfo::OutputFormat::BC4:
 		return imgFormat == prosper::Format::BC4_SNorm_Block || imgFormat == prosper::Format::BC4_UNorm_Block;
 	case uimg::TextureInfo::OutputFormat::BC5:
