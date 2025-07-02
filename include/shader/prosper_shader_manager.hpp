@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (c) 2019 Silverlan <opensource@pragma-engine.com>
+// SPDX-License-Identifier: MIT
+
 #ifndef __PROSPER_SHADER_MANAGER_HPP__
 #define __PROSPER_SHADER_MANAGER_HPP__
 
