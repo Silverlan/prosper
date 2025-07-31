@@ -135,6 +135,7 @@ namespace prosper {
 			EnableMultiThreadedRendering = ClearingKeepAliveResources << 1u,
 			WindowScheduledForClosing = EnableMultiThreadedRendering << 1u,
 			DiagnosticsEnabled = WindowScheduledForClosing << 1u,
+			Windowless = DiagnosticsEnabled<<1u,
 		};
 
 		enum class ExtensionAvailability : uint8_t {
@@ -183,6 +184,7 @@ namespace prosper {
 #endif
 
 		bool IsDiagnosticsModeEnabled() const;
+		bool IsWindowless() const;
 
 		void SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback);
 

@@ -552,6 +552,8 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	if(createInfo.enableDiagnostics)
 		m_stateFlags |= StateFlags::DiagnosticsEnabled;
+	if (createInfo.windowless)
+		m_stateFlags |= StateFlags::Windowless;
 
 	ReloadPipelineLoader();
 
@@ -597,6 +599,7 @@ void prosper::IPrContext::DrawFrame()
 }
 
 bool prosper::IPrContext::IsDiagnosticsModeEnabled() const { return umath::is_flag_set(m_stateFlags, StateFlags::DiagnosticsEnabled); }
+bool prosper::IPrContext::IsWindowless() const { return umath::is_flag_set(m_stateFlags, StateFlags::Windowless); }
 
 prosper::ShaderManager &prosper::IPrContext::GetShaderManager() const { return *m_shaderManager; }
 
