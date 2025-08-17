@@ -552,7 +552,7 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	if(createInfo.enableDiagnostics)
 		m_stateFlags |= StateFlags::DiagnosticsEnabled;
-	if (createInfo.windowless)
+	if(createInfo.windowless)
 		m_stateFlags |= StateFlags::Windowless;
 
 	ReloadPipelineLoader();
