@@ -10,8 +10,8 @@ pr_add_dependency(${PROJ_NAME} muparserx TARGET)
 pr_add_dependency(${PROJ_NAME} lz4 TARGET)
 pr_add_third_party_dependency(${PROJ_NAME} gli)
 
+pr_init_module(${PROJ_NAME})
 pr_add_headers(${PROJ_NAME} "include/")
-pr_add_sources(${PROJ_NAME} "src/")
 
 pr_add_compile_definitions(
 	${PROJ_NAME}
