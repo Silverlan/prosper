@@ -3,11 +3,13 @@
 
 module;
 
-#include <gli/gli.hpp>
+#include <memory>
+#include <string>
 
 module pragma.prosper;
 
 import :gli;
+import gli;
 
 namespace gli_wrapper {
 	struct GliTexture {

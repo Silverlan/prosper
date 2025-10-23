@@ -689,10 +689,10 @@ export {
 		};
 	};
 }
-namespace prosper {
+export namespace prosper {
 	using namespace umath::scoped_enum::bitwise;
 };
-namespace umath::scoped_enum::bitwise {
+export namespace umath::scoped_enum::bitwise {
 	template<>
 	struct enable_bitwise_operators<prosper::MemoryFeatureFlags> : std::true_type {};
 	template<>

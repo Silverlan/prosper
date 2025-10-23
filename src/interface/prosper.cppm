@@ -21,6 +21,7 @@ export import :framebuffer;
 export import :glsl;
 export import :prepared_command_buffer;
 export import :render_pass;
+export import :shader_system;
 export import :structs;
 export import :swap_command_buffer;
 export import :types;

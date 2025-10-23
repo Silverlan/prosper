@@ -49,7 +49,6 @@ export namespace prosper {
 	class MSAATexture;
 	class MtSwapCommandBufferGroup;
 	class OcclusionQuery;
-	class PipelineCache;
 	class PipelineStatisticsQuery;
 	class Profiler;
 	class Query;
