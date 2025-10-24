@@ -737,6 +737,5 @@ export namespace umath::scoped_enum::bitwise {
 	struct enable_bitwise_operators<prosper::FormatFeatureFlags> : std::true_type {};
 }
 export namespace prosper::util {
-	constexpr auto PIPELINE_STAGE_SHADER_INPUT_FLAGS = PipelineStageFlags::ComputeShaderBit | PipelineStageFlags::FragmentShaderBit | PipelineStageFlags::VertexShaderBit | PipelineStageFlags::GeometryShaderBit;
+	inline constexpr PipelineStageFlags PIPELINE_STAGE_SHADER_INPUT_FLAGS = PipelineStageFlags::ComputeShaderBit | PipelineStageFlags::FragmentShaderBit | PipelineStageFlags::VertexShaderBit | PipelineStageFlags::GeometryShaderBit;
 }
-
