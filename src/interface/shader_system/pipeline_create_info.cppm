@@ -9,6 +9,10 @@ module;
 #include <array>
 #include <unordered_map>
 
+#include <vector>
+
+#include <map>
+
 export module pragma.prosper:shader_system.pipeline_create_info;
 
 export import :structs;

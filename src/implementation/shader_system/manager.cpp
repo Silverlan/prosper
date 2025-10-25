@@ -3,6 +3,10 @@
 
 module;
 
+#include <vector>
+#include <functional>
+#include <memory>
+
 #include <iostream>
 
 module pragma.prosper;
@@ -93,4 +97,10 @@ bool prosper::ShaderManager::RemoveShader(Shader &shader)
 		m_shaderNameToIndex.erase(itName);
 	// m_shaders.erase(it);
 	return true;
+}
+
+prosper::Shader *prosper::ShaderManager::FindShader(const std::type_info &typeInfo)
+{
+	auto it = std::find_if(m_shaders.begin(), m_shaders.end(), [&typeInfo](const std::shared_ptr<Shader> &shader) { return typeInfo == typeid(*shader); });
+	return (it != m_shaders.end()) ? it->get() : nullptr;
 }

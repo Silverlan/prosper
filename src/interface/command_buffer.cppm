@@ -7,6 +7,8 @@ module;
 #include <optional>
 #include <memory>
 
+#include <vector>
+
 export module pragma.prosper:command_buffer;
 
 export import :context_object;
@@ -238,17 +240,17 @@ export {
 			mutable prosper::IRenderPass *m_currentRenderPass = nullptr;
 			mutable prosper::IFramebuffer *m_currentFramebuffer = nullptr;
 		};
+
+		template<typename T>
+		bool ICommandBuffer::RecordUpdateBuffer(IBuffer &buffer, uint64_t offset, const T &data)
+		{
+			return RecordUpdateBuffer(buffer, offset, sizeof(data), &data);
+		}
 	};
 
 	namespace umath::scoped_enum::bitwise {
 		template<>
 		struct enable_bitwise_operators<prosper::IPrimaryCommandBuffer::RenderPassFlags> : std::true_type {};
-	}
-
-	template<typename T>
-	bool prosper::ICommandBuffer::RecordUpdateBuffer(IBuffer &buffer, uint64_t offset, const T &data)
-	{
-		return RecordUpdateBuffer(buffer, offset, sizeof(data), &data);
 	}
 	#pragma warning(pop)
 }

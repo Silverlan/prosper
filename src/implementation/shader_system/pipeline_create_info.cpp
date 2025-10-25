@@ -3,6 +3,9 @@
 
 module;
 
+#include <vector>
+#include <cstring>
+
 #include <cassert>
 #include <algorithm>
 #include <memory>

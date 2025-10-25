@@ -3,6 +3,8 @@
 
 module;
 
+#include <cinttypes>
+
 #include <string>
 
 module pragma.prosper;

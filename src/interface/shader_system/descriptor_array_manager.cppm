@@ -50,28 +50,28 @@ export {
 			ArrayIndex m_nextIndex = 0;
 			ArrayIndex m_maxArrayLayers = 0;
 		};
+
+		template<class TDescriptorArrayManager>
+		std::shared_ptr<TDescriptorArrayManager> DescriptorArrayManager::Create(prosper::IPrContext &context, const char *setName, const char *bindingName, prosper::ShaderStageFlags shaderStages)
+		{
+			auto limits = context.GetPhysicalDeviceLimits();
+			auto maxArrayLayers = limits.maxImageArrayLayers;
+			auto createInfo = prosper::DescriptorSetCreateInfo::Create(setName);
+			createInfo->AddBinding(bindingName, 0u, prosper::DescriptorType::CombinedImageSampler, maxArrayLayers, shaderStages);
+			auto matArrayDsg = context.CreateDescriptorSetGroup(*createInfo);
+			return Create<TDescriptorArrayManager>(matArrayDsg, 0u);
+		}
+
+		template<class TDescriptorArrayManager>
+		std::shared_ptr<TDescriptorArrayManager> DescriptorArrayManager::Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, uint32_t bindingIndex)
+		{
+			uint32_t arraySize;
+			auto &createInfo = matArrayDsg->GetDescriptorSetCreateInfo();
+			if(createInfo.GetBindingPropertiesByBindingIndex(bindingIndex, nullptr, &arraySize) == false)
+				return nullptr;
+			auto arrayManager = std::shared_ptr<TDescriptorArrayManager> {new TDescriptorArrayManager {matArrayDsg, arraySize}};
+			arrayManager->Initialize(matArrayDsg->GetContext());
+			return arrayManager;
+		}
 	};
-
-	template<class TDescriptorArrayManager>
-	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(prosper::IPrContext &context, const char *setName, const char *bindingName, prosper::ShaderStageFlags shaderStages)
-	{
-		auto limits = context.GetPhysicalDeviceLimits();
-		auto maxArrayLayers = limits.maxImageArrayLayers;
-		auto createInfo = prosper::DescriptorSetCreateInfo::Create(setName);
-		createInfo->AddBinding(bindingName, 0u, prosper::DescriptorType::CombinedImageSampler, maxArrayLayers, shaderStages);
-		auto matArrayDsg = context.CreateDescriptorSetGroup(*createInfo);
-		return Create<TDescriptorArrayManager>(matArrayDsg, 0u);
-	}
-
-	template<class TDescriptorArrayManager>
-	std::shared_ptr<TDescriptorArrayManager> prosper::DescriptorArrayManager::Create(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, uint32_t bindingIndex)
-	{
-		uint32_t arraySize;
-		auto &createInfo = matArrayDsg->GetDescriptorSetCreateInfo();
-		if(createInfo.GetBindingPropertiesByBindingIndex(bindingIndex, nullptr, &arraySize) == false)
-			return nullptr;
-		auto arrayManager = std::shared_ptr<TDescriptorArrayManager> {new TDescriptorArrayManager {matArrayDsg, arraySize}};
-		arrayManager->Initialize(matArrayDsg->GetContext());
-		return arrayManager;
-	}
 }

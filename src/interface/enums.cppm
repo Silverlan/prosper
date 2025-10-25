@@ -7,6 +7,8 @@ module;
 #include <optional>
 #include <limits>
 
+#include <cinttypes>
+
 export module pragma.prosper:enums;
 
 export import pragma.math;

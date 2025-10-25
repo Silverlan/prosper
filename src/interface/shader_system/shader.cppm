@@ -14,7 +14,6 @@ module;
 export module pragma.prosper:shader_system.shader;
 
 export import :context_object;
-import :shader_system.manager;
 export import :structs;
 import pragma.util;
 
@@ -314,40 +313,42 @@ export {
 
 			using namespace umath::scoped_enum::bitwise;
 		};
+
+		DLLPROSPER Shader *find_shader(const IPrContext &context, const std::type_info &typeInfo);
+
+		#pragma warning(push)
+		#pragma warning(disable : 4251)
+		template<class TShader>
+		void Shader::SetBaseShader()
+		{
+			auto *pShader = find_shader(GetContext(), typeid(TShader));
+			if(pShader == nullptr)
+				throw std::logic_error("Cannot derive from base shader which hasn't been registered!");
+			SetBaseShader(*pShader);
+		}
+
+		template<class TShader>
+		const std::shared_ptr<IRenderPass> &ShaderGraphics::GetRenderPass(IPrContext &context, uint32_t pipelineIdx)
+		{
+			return GetRenderPass(context, typeid(TShader).hash_code(), pipelineIdx);
+		}
+
+		template<class TShader>
+		void ShaderGraphics::CreateCachedRenderPass(const util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx)
+		{
+			return CreateCachedRenderPass(typeid(TShader).hash_code(), renderPassInfo, outRenderPass, pipelineIdx, "shader_" + std::string(typeid(TShader).name()) + std::string("_rp"));
+		}
+
+		template<class T>
+		bool Shader::RecordPushConstants(ShaderBindState &bindState, const T &data, uint32_t offset) const
+		{
+			return RecordPushConstants(bindState, sizeof(data), &data, offset);
+		}
+		#pragma warning(pop)
+
 		using namespace umath::scoped_enum::bitwise;
 	};
 
-	#pragma warning(pop)
-
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
-	template<class TShader>
-	void prosper::Shader::SetBaseShader()
-	{
-		auto &shaderManager = GetContext().GetShaderManager();
-		auto *pShader = shaderManager.template FindShader<TShader>();
-		if(pShader == nullptr)
-			throw std::logic_error("Cannot derive from base shader which hasn't been registered!");
-		SetBaseShader(*pShader);
-	}
-
-	template<class TShader>
-	const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::IPrContext &context, uint32_t pipelineIdx)
-	{
-		return GetRenderPass(context, typeid(TShader).hash_code(), pipelineIdx);
-	}
-
-	template<class TShader>
-	void prosper::ShaderGraphics::CreateCachedRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx)
-	{
-		return CreateCachedRenderPass(typeid(TShader).hash_code(), renderPassInfo, outRenderPass, pipelineIdx, "shader_" + std::string(typeid(TShader).name()) + std::string("_rp"));
-	}
-
-	template<class T>
-	bool prosper::Shader::RecordPushConstants(ShaderBindState &bindState, const T &data, uint32_t offset) const
-	{
-		return RecordPushConstants(bindState, sizeof(data), &data, offset);
-	}
 	#pragma warning(pop)
 
 	namespace umath::scoped_enum::bitwise {

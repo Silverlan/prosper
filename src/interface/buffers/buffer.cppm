@@ -117,23 +117,23 @@ export {
 		private:
 			SubBufferIndex m_baseIndex = INVALID_INDEX;
 		};
-	};
-	using namespace umath::scoped_enum::bitwise;
-	#pragma warning(pop)
 
-	template<typename T>
-	bool prosper::IBuffer::Write(Offset offset, const T &t) const
-	{
-		return Write(offset, sizeof(t), &t);
-	}
-	template<typename T>
-	bool prosper::IBuffer::Read(Offset offset, T &tOut) const
-	{
-		return Read(offset, sizeof(tOut), &tOut);
-	}
+		template<typename T>
+		bool IBuffer::Write(Offset offset, const T &t) const
+		{
+			return Write(offset, sizeof(t), &t);
+		}
+		template<typename T>
+		bool IBuffer::Read(Offset offset, T &tOut) const
+		{
+			return Read(offset, sizeof(tOut), &tOut);
+		}
+		using namespace umath::scoped_enum::bitwise;
+	};
 
 	namespace umath::scoped_enum::bitwise {
 		template<>
 		struct enable_bitwise_operators<prosper::IBuffer::MapFlags> : std::true_type {};
 	}
+	#pragma warning(pop)
 }

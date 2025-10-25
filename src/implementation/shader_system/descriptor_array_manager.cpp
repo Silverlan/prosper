@@ -3,6 +3,12 @@
 
 module;
 
+#include <optional>
+
+#include <cinttypes>
+#include <functional>
+#include <memory>
+
 module pragma.prosper;
 
 import :shader_system.descriptor_array_manager;

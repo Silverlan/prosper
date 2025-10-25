@@ -501,27 +501,28 @@ export {
 			mutable std::unique_ptr<debug::ApiDumpRecorder> m_apiDumpRecorder;
 	#endif
 		};
+
+		template<typename T>
+		bool IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
+		{
+			return ScheduleRecordUpdateBuffer(buffer, offset, sizeof(data), &data, updateInfo);
+		}
+
+		template<class TContext>
+		std::shared_ptr<TContext> IPrContext::Create(const std::string &appName, uint32_t width, uint32_t height, bool bEnableValidation)
+		{
+			auto r = std::shared_ptr<TContext>(new TContext(appName, bEnableValidation));
+
+			CreateInfo createInfo {};
+			createInfo.width = width;
+			createInfo.height = height;
+			r->Initialize(createInfo);
+			return r;
+		}
+
 		using namespace umath::scoped_enum::bitwise;
 	};
 	#pragma warning(pop)
-
-	template<typename T>
-	bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
-	{
-		return ScheduleRecordUpdateBuffer(buffer, offset, sizeof(data), &data, updateInfo);
-	}
-
-	template<class TContext>
-	std::shared_ptr<TContext> prosper::IPrContext::Create(const std::string &appName, uint32_t width, uint32_t height, bool bEnableValidation)
-	{
-		auto r = std::shared_ptr<TContext>(new TContext(appName, bEnableValidation));
-
-		CreateInfo createInfo {};
-		createInfo.width = width;
-		createInfo.height = height;
-		r->Initialize(createInfo);
-		return r;
-	}
 
 	namespace umath::scoped_enum::bitwise {
 		template<>

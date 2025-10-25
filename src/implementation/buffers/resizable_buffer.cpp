@@ -3,6 +3,9 @@
 
 module;
 
+#include <cinttypes>
+#include <functional>
+
 module pragma.prosper;
 
 import :buffer.resizable_buffer;

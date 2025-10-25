@@ -8,6 +8,8 @@ module;
 #include <functional>
 #include <string>
 
+#include <cinttypes>
+
 export module pragma.prosper:debug.core;
 
 export import :structs;

@@ -6,6 +6,11 @@ module;
 #include "prosper_definitions.hpp"
 #include <string>
 
+#include <cinttypes>
+#include <memory>
+
+#include <vector>
+
 export module pragma.prosper:image.render_target;
 
 export import :image.texture;

@@ -5,6 +5,9 @@ module;
 
 #include "prosper_definitions.hpp"
 
+#include <cinttypes>
+#include <functional>
+
 export module pragma.prosper:buffer.resizable_buffer;
 
 export import :buffer.buffer;

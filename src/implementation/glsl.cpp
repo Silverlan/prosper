@@ -3,6 +3,10 @@
 
 module;
 
+#include <optional>
+
+#include <functional>
+
 #include <iomanip>
 
 #define VK_ENABLE_GLSLANG

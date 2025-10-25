@@ -9,10 +9,13 @@ module;
 #include <string>
 #include <algorithm>
 
+#include <memory>
+
 export module pragma.prosper:shader_system.manager;
 
 export import :context_object;
 
+import :shader_system.shader;
 import pragma.util;
 
 export {
@@ -40,6 +43,7 @@ export {
 			const Shader *FindShader() const;
 			template<class T>
 			Shader *FindShader();
+			Shader *FindShader(const std::type_info &typeInfo);
 
 			ShaderManager(const ShaderManager &) = delete;
 			ShaderManager &operator=(const ShaderManager &) = delete;
@@ -53,27 +57,26 @@ export {
 			// Pre-registered shaders
 			std::unordered_map<std::string, std::shared_ptr<::util::ShaderInfo>> m_shaderInfo;
 		};
+
+		template<class T>
+		const Shader *ShaderManager::FindShader() const
+		{
+			return const_cast<ShaderManager *>(this)->FindShader<T>();
+		}
+
+		#ifdef __clang__
+		#pragma clang diagnostic push
+		#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
+		#endif
+		template<class T>
+		Shader *ShaderManager::FindShader()
+		{
+			auto it = std::find_if(m_shaders.begin(), m_shaders.end(), [](const std::shared_ptr<Shader> &shader) { return typeid(T) == typeid(*shader); });
+			return (it != m_shaders.end()) ? it->get() : nullptr;
+		}
+		#ifdef __clang__
+		#pragma clang diagnostic pop
+		#endif
 	};
-
-	template<class T>
-	const prosper::Shader *prosper::ShaderManager::FindShader() const
-	{
-		return const_cast<ShaderManager *>(this)->FindShader<T>();
-	}
-
-	#ifdef __clang__
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
-	#endif
-	template<class T>
-	prosper::Shader *prosper::ShaderManager::FindShader()
-	{
-		auto it = std::find_if(m_shaders.begin(), m_shaders.end(), [](const std::shared_ptr<Shader> &shader) { return typeid(T) == typeid(*shader); });
-		return (it != m_shaders.end()) ? it->get() : nullptr;
-	}
-	#ifdef __clang__
-	#pragma clang diagnostic pop
-	#endif
-
 	#pragma warning(pop)
 }

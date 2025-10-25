@@ -3,6 +3,14 @@
 
 module;
 
+#include <cstring>
+
+#include <cmath>
+
+#include <functional>
+
+#include <memory>
+
 #include <sstream>
 #include <vector>
 #include "sharedutils/magic_enum.hpp"

@@ -3,6 +3,10 @@
 
 module;
 
+#include <cstring>
+
+#include <memory>
+
 #include <thread>
 #include <cassert>
 #include <string>

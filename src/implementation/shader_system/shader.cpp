@@ -3,6 +3,10 @@
 
 module;
 
+#include <optional>
+
+#include <memory>
+
 #include <iostream>
 #include <string>
 #include <functional>
@@ -487,6 +491,13 @@ void prosper::Shader::BakePipelines() const
 	for(auto i = decltype(n) {0u}; i < n; ++i)
 		BakePipeline(i);
 }
+
+prosper::Shader *prosper::find_shader(const IPrContext &context, const std::type_info &typeInfo)
+{
+	auto &shaderManager = context.GetShaderManager();
+	return shaderManager.FindShader(typeInfo);
+}
+
 std::unique_ptr<prosper::DescriptorSetCreateInfo> prosper::DescriptorSetInfo::ToProsperDescriptorSetInfo() const
 {
 	auto dsInfo = DescriptorSetCreateInfo::Create(GetName());

@@ -3,6 +3,8 @@
 
 module;
 
+#include <optional>
+
 #ifdef DEBUG_VERBOSE
 #include <iostream>
 #endif

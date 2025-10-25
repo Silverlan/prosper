@@ -7,6 +7,8 @@ module;
 #include <string>
 #include <memory>
 
+#include <vector>
+
 export module pragma.prosper:image.msaa_texture;
 
 export import :image.texture;

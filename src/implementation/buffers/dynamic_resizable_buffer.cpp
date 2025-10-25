@@ -3,6 +3,11 @@
 
 module;
 
+#include <list>
+
+#include <vector>
+#include <memory>
+
 #include <sstream>
 #include <cassert>
 #include <mutex>

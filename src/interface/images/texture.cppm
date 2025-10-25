@@ -6,6 +6,10 @@ module;
 #include "prosper_definitions.hpp"
 #include <string>
 
+#include <memory>
+
+#include <vector>
+
 export module pragma.prosper:image.texture;
 
 export import :image.image;

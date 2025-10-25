@@ -3,6 +3,9 @@
 
 module;
 
+#include <cinttypes>
+#include <memory>
+
 module pragma.prosper;
 
 import :query.query;

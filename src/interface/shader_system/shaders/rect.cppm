@@ -6,6 +6,8 @@ module;
 #include "prosper_definitions.hpp"
 #include <string>
 
+#include <cinttypes>
+
 export module pragma.prosper:shader_system.shaders.rect;
 
 export import :shader_system.shaders.base_image_processing;

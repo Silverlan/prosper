@@ -8,6 +8,10 @@ module;
 #include "prosper_definitions.hpp"
 #include <string>
 
+#include <cinttypes>
+
+#include <memory>
+
 export module pragma.prosper:util;
 
 export import :structs;

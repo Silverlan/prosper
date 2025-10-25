@@ -3,6 +3,8 @@
 
 module;
 
+#include <memory>
+
 module pragma.prosper;
 
 import :fence;

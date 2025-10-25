@@ -6,6 +6,8 @@ module;
 #include "prosper_definitions.hpp"
 #include <memory>
 
+#include <vector>
+
 export module pragma.prosper:framebuffer;
 
 export import :render_pass;

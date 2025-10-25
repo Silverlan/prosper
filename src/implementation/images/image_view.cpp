@@ -3,6 +3,10 @@
 
 module;
 
+#include <array>
+#include <cinttypes>
+#include <memory>
+
 #include <limits>
 
 module pragma.prosper;

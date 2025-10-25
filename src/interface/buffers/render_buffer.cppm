@@ -6,6 +6,9 @@ module;
 #include "prosper_definitions.hpp"
 #include <vector>
 
+#include <optional>
+#include <memory>
+
 export module pragma.prosper:buffer.render_buffer;
 
 export import :context_object;
