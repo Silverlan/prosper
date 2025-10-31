@@ -3,13 +3,7 @@
 
 module;
 
-#include <queue>
 #include <cassert>
-#include <memory>
-#include <functional>
-#include <string>
-#include <chrono>
-#include <unordered_map>
 
 module pragma.prosper;
 

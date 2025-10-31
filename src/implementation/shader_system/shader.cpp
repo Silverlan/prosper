@@ -3,14 +3,8 @@
 
 module;
 
-#include <optional>
 
-#include <memory>
 
-#include <iostream>
-#include <string>
-#include <functional>
-#include <mutex>
 
 module pragma.prosper;
 

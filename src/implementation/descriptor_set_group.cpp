@@ -3,14 +3,9 @@
 
 module;
 
-#include <optional>
 
-#include <vector>
 
 #include <cassert>
-#include <string>
-#include <stdexcept>
-#include <memory>
 
 module pragma.prosper;
 
@@ -178,10 +173,10 @@ bool DescriptorSetCreateInfo::AddBinding(const char *name, uint32_t in_binding_i
 	}
 
 	if((in_flags & DescriptorBindingFlags::VariableDescriptorCountBit) != DescriptorBindingFlags::None) {
-		if(m_numVariableDescriptorCountBinding != UINT32_MAX) {
+		if(m_numVariableDescriptorCountBinding != std::numeric_limits<uint32_t>::max()) {
 			/* If this assertion check fails, you're attempting to add more than 1 variable descriptor count binding
 			* which is illegal! */
-			assert(m_numVariableDescriptorCountBinding == UINT32_MAX);
+			assert(m_numVariableDescriptorCountBinding == std::numeric_limits<uint32_t>::max());
 
 			goto end;
 		}

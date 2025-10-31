@@ -4,9 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <mutex>
-#include <queue>
 
 export module pragma.prosper:buffer.uniform_resizable_buffer;
 

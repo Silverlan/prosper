@@ -3,18 +3,9 @@
 
 module;
 
-#include <cstring>
 
-#include <memory>
 
-#include <thread>
 #include <cassert>
-#include <string>
-#include <stdexcept>
-#include <functional>
-#include <iostream>
-#include <mutex>
-#include <optional>
 
 module pragma.prosper;
 

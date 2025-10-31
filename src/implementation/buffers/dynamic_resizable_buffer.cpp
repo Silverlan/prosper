@@ -3,15 +3,9 @@
 
 module;
 
-#include <list>
 
-#include <vector>
-#include <memory>
 
-#include <sstream>
 #include <cassert>
-#include <mutex>
-#include <algorithm>
 
 module pragma.prosper;
 

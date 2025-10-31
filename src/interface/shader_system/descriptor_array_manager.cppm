@@ -4,12 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <queue>
-#include <optional>
-#include <string>
-#include <functional>
-#include <unordered_map>
 
 export module pragma.prosper:shader_system.descriptor_array_manager;
 

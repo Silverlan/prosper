@@ -3,10 +3,7 @@
 
 module;
 
-#include <vector>
 
-#include <stdexcept>
-#include <memory>
 
 module pragma.prosper;
 

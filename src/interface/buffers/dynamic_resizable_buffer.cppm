@@ -4,12 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <queue>
-#include <cinttypes>
-#include <mutex>
-#include <functional>
-#include <list>
 
 export module pragma.prosper:buffer.dynamic_resizable_buffer;
 

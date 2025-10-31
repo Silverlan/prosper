@@ -4,14 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <array>
-#include <queue>
-#include <memory>
-#include <chrono>
-#include <optional>
-#include <mutex>
-#include <thread>
-#include <functional>
 
 export module pragma.prosper:context;
 
@@ -466,7 +458,7 @@ export {
 
 			Callbacks m_callbacks {};
 			std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;
-			std::unique_ptr<ShaderManager> m_shaderManager = nullptr;
+			std::unique_ptr<ShaderManager> m_shaderManager;
 			std::shared_ptr<Window> m_window = nullptr;
 			std::vector<std::shared_ptr<Window>> m_windows {};
 			std::shared_ptr<IDynamicResizableBuffer> m_tmpBuffer = nullptr;

@@ -4,8 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <functional>
-#include <memory>
 
 export module pragma.prosper:image.sampler;
 

@@ -4,13 +4,12 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
 
-#include <limits>
 
 export module pragma.prosper:query.query;
 
 export import :context_object;
+export import std.compat;
 
 #undef max
 

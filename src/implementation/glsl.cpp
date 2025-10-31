@@ -3,17 +3,12 @@
 
 module;
 
-#include <optional>
 
-#include <functional>
 
-#include <iomanip>
 
 #define VK_ENABLE_GLSLANG
 
 #ifdef VK_ENABLE_GLSLANG
-#include <unordered_set>
-#include <sstream>
 #include <cassert>
 #include <mpParser.h>
 #endif

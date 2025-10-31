@@ -4,10 +4,7 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <optional>
-#include <limits>
 
-#include <cinttypes>
 
 export module pragma.prosper:enums;
 

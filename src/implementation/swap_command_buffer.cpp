@@ -3,13 +3,8 @@
 
 module;
 
-#include <mutex>
 
-#include <cinttypes>
-#include <thread>
 
-#include <string>
-#include <stdexcept>
 #include <cassert>
 
 module pragma.prosper;

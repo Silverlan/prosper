@@ -3,11 +3,8 @@
 
 module;
 
-#include <vector>
 
 #include <cassert>
-#include <cstring>
-#include <memory>
 
 module pragma.prosper;
 

@@ -4,11 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <functional>
-#include <thread>
-#include <atomic>
-#include <queue>
-#include <condition_variable>
 
 export module pragma.prosper:swap_command_buffer;
 

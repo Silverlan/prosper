@@ -4,16 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <limits>
-#include <array>
-#include <cinttypes>
-#include <optional>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <map>
-#include <vector>
-#include <functional>
 
 export module pragma.prosper:structs;
 

@@ -4,12 +4,7 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <unordered_map>
-#include <functional>
-#include <string>
-#include <algorithm>
 
-#include <memory>
 
 export module pragma.prosper:shader_system.manager;
 

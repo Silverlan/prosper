@@ -3,20 +3,13 @@
 
 module;
 
-#include <cstring>
 
-#include <cmath>
 
-#include <functional>
 
-#include <memory>
 
-#include <sstream>
-#include <vector>
 #include "sharedutils/magic_enum.hpp"
 
 #ifdef DEBUG_VERBOSE
-#include <iostream>
 #endif
 
 module pragma.prosper;

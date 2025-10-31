@@ -4,14 +4,10 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <cinttypes>
-#include <string>
-#include <vector>
-#include <stack>
-#include <unordered_map>
-#include <optional>
 
 export module pragma.prosper:glsl;
+
+export import std.compat;
 
 export namespace prosper {
 	enum class ShaderStage : uint8_t;

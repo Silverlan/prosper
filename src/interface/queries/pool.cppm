@@ -4,9 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <functional>
-#include <queue>
-#include <memory>
 
 export module pragma.prosper:query.pool;
 

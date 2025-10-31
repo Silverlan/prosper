@@ -4,14 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <string>
-#include <array>
-#include <unordered_map>
-
-#include <vector>
-
-#include <map>
 
 export module pragma.prosper:shader_system.pipeline_create_info;
 
@@ -539,9 +531,9 @@ export {
 				/** Dummy constructor. Should only be used by STL. */
 				InternalVertexBinding()
 				{
-					divisor = UINT32_MAX;
+					divisor = std::numeric_limits<uint32_t>::max();
 					rate = VertexInputRate::Unknown;
-					strideInBytes = UINT32_MAX;
+					strideInBytes = std::numeric_limits<uint32_t>::max();
 				}
 
 				/** Constructor.

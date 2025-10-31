@@ -4,8 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <vector>
 
 export module pragma.prosper:common_buffer_cache;
 

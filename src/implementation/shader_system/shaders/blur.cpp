@@ -3,9 +3,6 @@
 
 module;
 
-#include <string>
-#include <memory>
-#include <stdexcept>
 
 module pragma.prosper;
 

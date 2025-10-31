@@ -4,8 +4,6 @@
 module;
 
 #include <cassert>
-#include <string>
-#include <memory>
 
 module pragma.prosper;
 

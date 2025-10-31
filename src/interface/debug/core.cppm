@@ -4,11 +4,7 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <vector>
-#include <functional>
-#include <string>
 
-#include <cinttypes>
 
 export module pragma.prosper:debug.core;
 

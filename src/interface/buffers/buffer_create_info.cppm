@@ -4,9 +4,7 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <type_traits>
 
-#include <cinttypes>
 
 export module pragma.prosper:buffer.buffer_create_info;
 

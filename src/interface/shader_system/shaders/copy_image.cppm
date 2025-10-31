@@ -4,9 +4,7 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <string>
 
-#include <memory>
 
 export module pragma.prosper:shader_system.shaders.copy_image;
 

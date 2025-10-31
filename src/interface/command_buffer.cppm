@@ -4,10 +4,7 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <optional>
-#include <memory>
 
-#include <vector>
 
 export module pragma.prosper:command_buffer;
 

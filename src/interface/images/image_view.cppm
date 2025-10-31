@@ -4,7 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
 
 export module pragma.prosper:image.image_view;
 

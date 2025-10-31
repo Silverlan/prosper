@@ -3,9 +3,10 @@
 
 module;
 
-#include <cinttypes>
 
 export module pragma.prosper:types;
+
+export import std.compat;
 
 export namespace prosper {
 	class BasePipelineCreateInfo;

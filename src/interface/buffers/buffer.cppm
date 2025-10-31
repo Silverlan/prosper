@@ -4,10 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <cinttypes>
-#include <functional>
-#include <optional>
 
 export module pragma.prosper:buffer.buffer;
 

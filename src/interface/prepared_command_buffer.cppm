@@ -4,11 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <stdexcept>
-#include <unordered_map>
-#include <vector>
-#include <memory>
-#include <functional>
 
 export module pragma.prosper:prepared_command_buffer;
 

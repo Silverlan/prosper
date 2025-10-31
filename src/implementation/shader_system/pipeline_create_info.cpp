@@ -3,12 +3,8 @@
 
 module;
 
-#include <vector>
-#include <cstring>
 
 #include <cassert>
-#include <algorithm>
-#include <memory>
 
 module pragma.prosper;
 
@@ -140,7 +136,7 @@ end:
 void prosper::BasePipelineCreateInfo::init(const PipelineCreateFlags &in_create_flags, uint32_t in_n_shader_module_stage_entrypoints, const ShaderModuleStageEntryPoint *in_shader_module_stage_entrypoint_ptrs, const PipelineID *in_opt_base_pipeline_id_ptr,
   const std::vector<const DescriptorSetCreateInfo *> *in_opt_ds_create_info_vec_ptr)
 {
-	m_basePipelineId = (in_opt_base_pipeline_id_ptr != nullptr) ? *in_opt_base_pipeline_id_ptr : UINT32_MAX;
+	m_basePipelineId = (in_opt_base_pipeline_id_ptr != nullptr) ? *in_opt_base_pipeline_id_ptr : std::numeric_limits<uint32_t>::max();
 	m_createFlags = in_create_flags;
 
 	if(in_opt_ds_create_info_vec_ptr != nullptr) {

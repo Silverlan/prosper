@@ -3,15 +3,9 @@
 
 module;
 
-#include <optional>
 
 #ifdef DEBUG_VERBOSE
-#include <iostream>
 #endif
-#include <string>
-#include <functional>
-#include <memory>
-#include <stdexcept>
 
 module pragma.prosper;
 

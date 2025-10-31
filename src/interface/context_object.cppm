@@ -4,10 +4,10 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <memory>
-#include <string>
 
 export module pragma.prosper:context_object;
+
+export import std;
 
 export {
 	#pragma warning(push)

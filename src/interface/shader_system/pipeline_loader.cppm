@@ -4,11 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <mutex>
-#include <queue>
-#include <functional>
-#include <unordered_set>
-#include <condition_variable>
 
 export module pragma.prosper:shader_system.pipeline_loader;
 

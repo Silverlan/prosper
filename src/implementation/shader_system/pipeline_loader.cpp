@@ -3,13 +3,8 @@
 
 module;
 
-#include <queue>
 
-#include <functional>
-#include <thread>
 
-#include <memory>
-#include <mutex>
 
 module pragma.prosper;
 

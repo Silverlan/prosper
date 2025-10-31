@@ -3,11 +3,10 @@
 
 module;
 
-#include <cinttypes>
-#include <memory>
-#include <string>
 
 export module pragma.prosper:gli;
+
+export import std.compat;
 
 export {
 	namespace prosper {

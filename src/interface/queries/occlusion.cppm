@@ -4,7 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <chrono>
 
 export module pragma.prosper:query.occlusion;
 

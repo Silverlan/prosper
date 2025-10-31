@@ -4,10 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <cinttypes>
-#include <optional>
-#include <vector>
-#include <memory>
 
 export module pragma.prosper:descriptor_set_group;
 

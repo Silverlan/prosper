@@ -3,11 +3,7 @@
 
 module;
 
-#include <optional>
 
-#include <cinttypes>
-#include <functional>
-#include <memory>
 
 module pragma.prosper;
 

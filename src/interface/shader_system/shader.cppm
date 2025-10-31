@@ -4,12 +4,6 @@
 module;
 
 #include "prosper_definitions.hpp"
-#include <cinttypes>
-#include <unordered_map>
-#include <optional>
-#include <functional>
-#include <stdexcept>
-#include <memory>
 
 export module pragma.prosper:shader_system.shader;
 
