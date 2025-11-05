@@ -3,7 +3,7 @@
 
 module;
 
-#include "prosper_definitions.hpp"
+#include "definitions.hpp"
 
 export module pragma.prosper:shader_system.pipeline_manager;
 

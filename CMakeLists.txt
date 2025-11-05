@@ -11,7 +11,6 @@ pr_add_dependency(${PROJ_NAME} lz4 TARGET)
 pr_add_dependency(${PROJ_NAME} gli TARGET)
 
 pr_init_module(${PROJ_NAME})
-pr_add_headers(${PROJ_NAME} "include/")
 
 pr_add_compile_definitions(
 	${PROJ_NAME}

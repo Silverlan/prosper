@@ -61,7 +61,7 @@ namespace prosper::debug {
 		  || std::is_same_v<T, ImageAspectFlags> || std::is_same_v<T, AccessFlags> || std::is_same_v<T, PipelineStageFlags> || std::is_same_v<T, ShaderStageFlags> || std::is_same_v<T, StencilFaceFlags> || std::is_same_v<T, QueryResultFlags> || std::is_same_v<T, DescriptorBindingFlags>
 		  || std::is_same_v<T, PipelineCreateFlags> || std::is_same_v<T, CullModeFlags> || std::is_same_v<T, ColorComponentFlags> || std::is_same_v<T, DebugMessageSeverityFlags> || std::is_same_v<T, MemoryPropertyFlags> || std::is_same_v<T, QueryPipelineStatisticFlags>
 		  || std::is_same_v<T, DebugReportFlags> || std::is_same_v<T, FormatFeatureFlags>)
-			return std::make_unique<DataDumpValue>(magic_enum::flags::enum_name(val).data());
+			return std::make_unique<DataDumpValue>(magic_enum::enum_flags_name(val).data());
 		return std::make_unique<DataDumpValue>(magic_enum::enum_name(val));
 	}
 

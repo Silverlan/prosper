@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2019 Silverlan <opensource@pragma-engine.com>
 // SPDX-License-Identifier: MIT
 
-#ifndef __PROSPER_DEFINITIONS_HPP__
-#define __PROSPER_DEFINITIONS_HPP__
+#pragma once
 
 #ifdef SHPROSPER_STATIC
 #define DLLPROSPER
@@ -21,6 +20,4 @@
 #endif
 #ifndef UNUSED
 #define UNUSED(x) x
-#endif
-
 #endif

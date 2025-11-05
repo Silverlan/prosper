@@ -3,15 +3,6 @@
 
 module;
 
-
-
-
-
-#include "sharedutils/magic_enum.hpp"
-
-#ifdef DEBUG_VERBOSE
-#endif
-
 module pragma.prosper;
 
 import :gli;
@@ -1138,10 +1129,10 @@ std::string prosper::util::to_string(SampleCountFlags samples) { return std::to_
 void prosper::util::to_string(const BufferCreateInfo &createInfo, std::stringstream &out)
 {
 	out << "size: " << createInfo.size << "\n";
-	out << "queueFamilyMask: " << magic_enum::flags::enum_name(createInfo.queueFamilyMask) << "\n";
-	out << "flags: " << magic_enum::flags::enum_name(createInfo.flags) << "\n";
-	out << "usageFlags: " << magic_enum::flags::enum_name(createInfo.usageFlags) << "\n";
-	out << "memoryFeatures: " << magic_enum::flags::enum_name(createInfo.memoryFeatures) << "\n";
+	out << "queueFamilyMask: " << magic_enum::enum_flags_name(createInfo.queueFamilyMask) << "\n";
+	out << "flags: " << magic_enum::enum_flags_name(createInfo.flags) << "\n";
+	out << "usageFlags: " << magic_enum::enum_flags_name(createInfo.usageFlags) << "\n";
+	out << "memoryFeatures: " << magic_enum::enum_flags_name(createInfo.memoryFeatures) << "\n";
 }
 void prosper::util::to_string(const ImageCreateInfo &createInfo, std::stringstream &out)
 {
@@ -1150,12 +1141,12 @@ void prosper::util::to_string(const ImageCreateInfo &createInfo, std::stringstre
 	out << "height: " << createInfo.height << "\n";
 	out << "format: " << umath::to_integral(createInfo.format) << "\n";
 	out << "layers: " << createInfo.layers << "\n";
-	out << "usage: " << magic_enum::flags::enum_name(createInfo.usage) << "\n";
+	out << "usage: " << magic_enum::enum_flags_name(createInfo.usage) << "\n";
 	out << "samples: " << magic_enum::enum_name(createInfo.samples) << "\n";
 	out << "postCreateLayout: " << magic_enum::enum_name(createInfo.postCreateLayout) << "\n";
-	out << "flags: " << magic_enum::flags::enum_name(createInfo.flags) << "\n";
-	out << "queueFamilyMask: " << magic_enum::flags::enum_name(createInfo.queueFamilyMask) << "\n";
-	out << "memoryFeatures: " << magic_enum::flags::enum_name(createInfo.memoryFeatures) << "\n";
+	out << "flags: " << magic_enum::enum_flags_name(createInfo.flags) << "\n";
+	out << "queueFamilyMask: " << magic_enum::enum_flags_name(createInfo.queueFamilyMask) << "\n";
+	out << "memoryFeatures: " << magic_enum::enum_flags_name(createInfo.memoryFeatures) << "\n";
 }
 
 bool prosper::util::has_alpha(Format format)
