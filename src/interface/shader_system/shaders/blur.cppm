@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:shader_system.shaders.blur;
 
 export import :shader_system.shader;
@@ -17,7 +16,7 @@ export {
 		class Texture;
 		class IDescriptorSet;
 		class DLLPROSPER ShaderBlurBase : public ShaderGraphics {
-		public:
+		  public:
 			static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_VERTEX;
 			static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_POSITION;
 			static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_UV;
@@ -35,18 +34,18 @@ export {
 				Count
 			};
 
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 			struct PushConstants {
 				Vector4 colorScale;
 				float blurSize;
 				int32_t kernelSize;
 			};
-	#pragma pack(pop)
+#pragma pack(pop)
 
 			ShaderBlurBase(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader);
 			bool RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx = Pipeline::R8G8B8A8Unorm) const;
 			bool RecordDraw(ShaderBindState &bindState, IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const;
-		protected:
+		  protected:
 			virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) override;
 			virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
 			virtual void InitializeShaderResources() override;
@@ -55,7 +54,7 @@ export {
 		/////////////////////////
 
 		class DLLPROSPER ShaderBlurH : public ShaderBlurBase {
-		public:
+		  public:
 			ShaderBlurH(prosper::IPrContext &context, const std::string &identifier);
 			~ShaderBlurH();
 		};
@@ -63,7 +62,7 @@ export {
 		/////////////////////////
 
 		class DLLPROSPER ShaderBlurV : public ShaderBlurBase {
-		public:
+		  public:
 			ShaderBlurV(prosper::IPrContext &context, const std::string &identifier);
 			~ShaderBlurV();
 		};
@@ -71,7 +70,7 @@ export {
 		/////////////////////////
 
 		class DLLPROSPER BlurSet {
-		public:
+		  public:
 			// If no source texture is specified, the texture of 'finalRt' will be used both as a source and a target
 			static std::shared_ptr<BlurSet> Create(prosper::IPrContext &context, const std::shared_ptr<prosper::RenderTarget> &finalRt, const std::shared_ptr<prosper::Texture> &srcTexture = nullptr);
 
@@ -79,9 +78,9 @@ export {
 			IDescriptorSet &GetFinalDescriptorSet() const;
 			const std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget() const;
 			IDescriptorSet &GetStagingDescriptorSet() const;
-		private:
+		  private:
 			BlurSet(const std::shared_ptr<prosper::RenderTarget> &rtFinal, const std::shared_ptr<prosper::IDescriptorSetGroup> &descSetFinalGroup, const std::shared_ptr<prosper::RenderTarget> &rtStaging, const std::shared_ptr<prosper::IDescriptorSetGroup> &descSetStagingGroup,
-			const std::shared_ptr<prosper::Texture> &srcTexture);
+			  const std::shared_ptr<prosper::Texture> &srcTexture);
 
 			std::shared_ptr<prosper::RenderTarget> m_outRenderTarget = nullptr;
 			std::shared_ptr<prosper::IDescriptorSetGroup> m_outDescSetGroup = nullptr;

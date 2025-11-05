@@ -36,7 +36,7 @@ export namespace prosper {
 		prosper::IPrContext &GetContext() const;
 	  protected:
 		void Initialize(uint32_t swapchainIdx);
-		
+
 		std::vector<std::shared_ptr<prosper::ISecondaryCommandBuffer>> m_commandBuffers;
 		std::shared_ptr<prosper::ICommandBufferPool> m_cmdPool = nullptr;
 		prosper::ISecondaryCommandBuffer *m_curCommandBuffer = nullptr;

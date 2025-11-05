@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:image.msaa_texture;
 
 export import :image.texture;

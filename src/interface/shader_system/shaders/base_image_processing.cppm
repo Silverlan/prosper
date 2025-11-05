@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:shader_system.shaders.base_image_processing;
 
 export import :shader_system.shader;

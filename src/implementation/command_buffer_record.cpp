@@ -3,8 +3,6 @@
 
 module;
 
-
-
 module pragma.prosper;
 
 import :command_buffer;

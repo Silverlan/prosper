@@ -15,14 +15,14 @@ import pragma.util;
 #undef max
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class Texture;
 		class IDescriptorSet;
 		class IBuffer;
 		class DLLPROSPER DescriptorSetBinding {
-		public:
+		  public:
 			enum class Type : uint8_t {
 				StorageImage = 0,
 				Texture,
@@ -40,53 +40,53 @@ export {
 			uint32_t GetBindingIndex() const;
 			IDescriptorSet &GetDescriptorSet() const;
 			virtual Type GetType() const = 0;
-		protected:
+		  protected:
 			DescriptorSetBinding(IDescriptorSet &descSet, uint32_t bindingIdx);
 			IDescriptorSet &m_descriptorSet;
 			uint32_t m_bindingIndex = 0u;
 		};
 
 		class DLLPROSPER DescriptorSetBindingStorageImage : public DescriptorSetBinding {
-		public:
+		  public:
 			DescriptorSetBindingStorageImage(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::Texture &texture, std::optional<uint32_t> layerId = {});
 			virtual Type GetType() const override { return Type::StorageImage; }
 			std::optional<uint32_t> GetLayerIndex() const;
 			const std::weak_ptr<prosper::Texture> &GetTexture() const;
-		private:
+		  private:
 			std::weak_ptr<prosper::Texture> m_texture {};
 			std::optional<uint32_t> m_layerId = {};
 		};
 
 		class DLLPROSPER DescriptorSetBindingTexture : public DescriptorSetBinding {
-		public:
+		  public:
 			DescriptorSetBindingTexture(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::Texture &texture, std::optional<uint32_t> layerId = {});
 			virtual Type GetType() const override { return Type::Texture; }
 			std::optional<uint32_t> GetLayerIndex() const;
 			const std::weak_ptr<prosper::Texture> &GetTexture() const;
-		private:
+		  private:
 			std::weak_ptr<prosper::Texture> m_texture {};
 			std::optional<uint32_t> m_layerId = {};
 		};
 
 		class DLLPROSPER DescriptorSetBindingArrayTexture : public DescriptorSetBinding {
-		public:
+		  public:
 			DescriptorSetBindingArrayTexture(IDescriptorSet &descSet, uint32_t bindingIdx);
 			virtual Type GetType() const override { return Type::ArrayTexture; }
 			void SetArrayBinding(uint32_t arrayIndex, std::unique_ptr<DescriptorSetBindingTexture> bindingTexture);
 			uint32_t GetArrayCount() const;
 			DescriptorSetBindingTexture *GetArrayItem(uint32_t idx);
-		private:
+		  private:
 			std::vector<std::unique_ptr<DescriptorSetBindingTexture>> m_arrayItems = {};
 		};
 
 		class DLLPROSPER DescriptorSetBindingBaseBuffer : public DescriptorSetBinding {
-		public:
+		  public:
 			DescriptorSetBindingBaseBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual ~DescriptorSetBindingBaseBuffer() override;
 			uint64_t GetStartOffset() const;
 			uint64_t GetSize() const;
 			const std::weak_ptr<prosper::IBuffer> &GetBuffer() const;
-		private:
+		  private:
 			CallbackHandle m_cbBufferReallocation {};
 			std::weak_ptr<prosper::IBuffer> m_buffer {};
 			uint64_t m_startOffset = 0u;
@@ -94,32 +94,32 @@ export {
 		};
 
 		class DLLPROSPER DescriptorSetBindingUniformBuffer : public DescriptorSetBindingBaseBuffer {
-		public:
+		  public:
 			DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::UniformBuffer; }
 		};
 
 		class DLLPROSPER DescriptorSetBindingDynamicUniformBuffer : public DescriptorSetBindingBaseBuffer {
-		public:
+		  public:
 			DescriptorSetBindingDynamicUniformBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::DynamicUniformBuffer; }
 		};
 
 		class DLLPROSPER DescriptorSetBindingStorageBuffer : public DescriptorSetBindingBaseBuffer {
-		public:
+		  public:
 			DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::StorageBuffer; }
 		};
 
 		class DLLPROSPER DescriptorSetBindingDynamicStorageBuffer : public DescriptorSetBindingBaseBuffer {
-		public:
+		  public:
 			DescriptorSetBindingDynamicStorageBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::DynamicStorageBuffer; }
 		};
 
 		class IDescriptorSetGroup;
 		class DLLPROSPER IDescriptorSet {
-		public:
+		  public:
 			IDescriptorSet(IDescriptorSetGroup &dsg);
 			IDescriptorSet(const IDescriptorSet &) = delete;
 			IDescriptorSet &operator=(const IDescriptorSet &) = delete;
@@ -164,7 +164,7 @@ export {
 			}
 
 			void ReloadBinding(uint32_t bindingIdx);
-		protected:
+		  protected:
 			virtual bool DoSetBindingStorageImage(prosper::Texture &texture, uint32_t bindingIdx, const std::optional<uint32_t> &layerId) = 0;
 			virtual bool DoSetBindingTexture(prosper::Texture &texture, uint32_t bindingIdx, const std::optional<uint32_t> &layerId) = 0;
 			virtual bool DoSetBindingArrayTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, const std::optional<uint32_t> &layerId) = 0;
@@ -173,13 +173,13 @@ export {
 			virtual bool DoSetBindingStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
 			virtual bool DoSetBindingDynamicStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
 			void *m_apiTypePtr = nullptr;
-		private:
+		  private:
 			IDescriptorSetGroup &m_dsg;
 			std::vector<std::unique_ptr<DescriptorSetBinding>> m_bindings = {};
 		};
 
 		class DLLPROSPER IDescriptorSetGroup : public ContextObject, public std::enable_shared_from_this<IDescriptorSetGroup> {
-		public:
+		  public:
 			IDescriptorSetGroup(const IDescriptorSetGroup &) = delete;
 			IDescriptorSetGroup &operator=(const IDescriptorSetGroup &) = delete;
 			virtual ~IDescriptorSetGroup() override;
@@ -188,7 +188,7 @@ export {
 			uint32_t GetBindingCount() const;
 
 			const DescriptorSetCreateInfo &GetDescriptorSetCreateInfo() const;
-		protected:
+		  protected:
 			IDescriptorSetGroup(IPrContext &context, const DescriptorSetCreateInfo &createInfo);
 			std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
 			DescriptorSetCreateInfo m_createInfo;
@@ -197,7 +197,7 @@ export {
 		class SwapBuffer;
 		struct DescriptorSetInfo;
 		class DLLPROSPER SwapDescriptorSet : public std::enable_shared_from_this<SwapDescriptorSet> {
-		public:
+		  public:
 			using SubDescriptorSetIndex = uint32_t;
 			static std::shared_ptr<SwapDescriptorSet> Create(Window &window, std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
 			static std::shared_ptr<SwapDescriptorSet> Create(Window &window, const DescriptorSetInfo &descSetInfo);
@@ -226,12 +226,12 @@ export {
 			const IDescriptorSet *operator->() const { return const_cast<SwapDescriptorSet *>(this)->operator->(); }
 			IDescriptorSet &operator*();
 			const IDescriptorSet &operator*() const { return const_cast<SwapDescriptorSet *>(this)->operator*(); }
-		private:
+		  private:
 			SwapDescriptorSet(Window &window, std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
 			std::vector<std::shared_ptr<IDescriptorSetGroup>> m_dsgs;
 			std::weak_ptr<Window> m_window {};
 			Window *m_windowPtr = nullptr;
 		};
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

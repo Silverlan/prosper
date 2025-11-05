@@ -15,7 +15,7 @@ export {
 	namespace prosper {
 		class IPrContext;
 		class DLLPROSPER ShaderPipelineLoader {
-		public:
+		  public:
 			ShaderPipelineLoader(prosper::IPrContext &context);
 			~ShaderPipelineLoader();
 			void Flush();
@@ -23,7 +23,7 @@ export {
 			void Init(ShaderIndex shaderIndex, const std::function<bool()> &job);
 			void Bake(ShaderIndex shaderIndex, prosper::PipelineID id, prosper::PipelineBindPoint pipelineType);
 			bool IsShaderQueued(ShaderIndex shaderIndex) const;
-		private:
+		  private:
 			struct InitItem {
 				ShaderIndex shaderIndex;
 				std::function<bool()> init;

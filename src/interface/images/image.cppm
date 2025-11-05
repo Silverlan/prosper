@@ -14,8 +14,8 @@ export import :structs;
 import pragma.image;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 
 	namespace prosper {
 		class ICommandBuffer;
@@ -24,7 +24,7 @@ export {
 			struct ImageCreateInfo;
 		};
 		class DLLPROSPER IImage : public ContextObject, public std::enable_shared_from_this<IImage> {
-		public:
+		  public:
 			IImage(const IImage &) = delete;
 			IImage &operator=(const IImage &) = delete;
 			virtual ~IImage() override;
@@ -71,12 +71,12 @@ export {
 			std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd, const util::ImageCreateInfo &copyCreateInfo);
 			bool Copy(prosper::ICommandBuffer &cmd, IImage &imgDst);
 			std::shared_ptr<IImage> Convert(prosper::ICommandBuffer &cmd, Format newFormat);
-		protected:
+		  protected:
 			IImage(IPrContext &context, const util::ImageCreateInfo &createInfo);
 			virtual bool DoSetMemoryBuffer(IBuffer &buffer) = 0;
 			std::shared_ptr<prosper::IBuffer> m_buffer = nullptr; // Optional buffer
 			util::ImageCreateInfo m_createInfo {};
 		};
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

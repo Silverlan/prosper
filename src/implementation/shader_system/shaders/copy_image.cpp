@@ -3,8 +3,6 @@
 
 module;
 
-
-
 module pragma.prosper;
 
 import :shader_system.shaders.copy_image;

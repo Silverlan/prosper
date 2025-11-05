@@ -5,22 +5,20 @@ module;
 
 #include "definitions.hpp"
 
-
-
 export module pragma.prosper:image.texture;
 
 export import :image.image;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class IPrContext;
 		class Texture;
 		class ISampler;
 		class IImageView;
 		class DLLPROSPER Texture : public ContextObject, public std::enable_shared_from_this<Texture> {
-		public:
+		  public:
 			Texture(const Texture &) = delete;
 			Texture &operator=(const Texture &) = delete;
 
@@ -39,7 +37,7 @@ export {
 
 			virtual bool IsMSAATexture() const;
 			virtual void SetDebugName(const std::string &name) override;
-		protected:
+		  protected:
 			friend IPrContext;
 			Texture(IPrContext &context, IImage &img, const std::vector<std::shared_ptr<IImageView>> &imgViews, ISampler *sampler = nullptr);
 			std::shared_ptr<IImage> m_image = nullptr;
@@ -47,5 +45,5 @@ export {
 			std::shared_ptr<ISampler> m_sampler = nullptr;
 		};
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

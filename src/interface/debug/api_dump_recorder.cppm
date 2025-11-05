@@ -5,7 +5,6 @@ module;
 
 #ifdef PR_DEBUG_API_DUMP
 
-
 #endif
 
 export module pragma.prosper:debug.api_dump_recorder;

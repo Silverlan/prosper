@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:debug.core;
 
 export import :structs;
@@ -29,6 +28,6 @@ export {
 		DLLPROSPER void exec_debug_validation_callback(IPrContext &context, DebugReportObjectTypeEXT objType, const std::string &msg);
 		DLLPROSPER bool get_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer, IImage &img, ImageLayout &layout, uint32_t baseLayer = 0u, uint32_t baseMipmap = 0u);
 		DLLPROSPER void set_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer, IImage &img, ImageLayout layout, uint32_t baseLayer = 0u, uint32_t layerCount = std::numeric_limits<uint32_t>::max(), uint32_t baseMipmap = 0u,
-		uint32_t mipmapLevels = std::numeric_limits<uint32_t>::max());
+		  uint32_t mipmapLevels = std::numeric_limits<uint32_t>::max());
 	};
 }

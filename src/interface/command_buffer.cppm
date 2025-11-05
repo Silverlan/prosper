@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:command_buffer;
 
 export import :context_object;
@@ -14,8 +13,8 @@ export import :structs;
 #undef max
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class IBuffer;
 		class IDescriptorSet;
@@ -38,7 +37,7 @@ export {
 			struct ApiDumpRecorder;
 		};
 		class DLLPROSPER ICommandBuffer : public ContextObject, public std::enable_shared_from_this<ICommandBuffer> {
-		public:
+		  public:
 			ICommandBuffer(const ICommandBuffer &) = delete;
 			ICommandBuffer &operator=(const ICommandBuffer &) = delete;
 			virtual ~ICommandBuffer() override;
@@ -93,14 +92,15 @@ export {
 			virtual bool RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo) = 0;
 			// Records an image barrier. If no layer is specified, ALL layers of the image will be included in the barrier.
 			bool RecordImageBarrier(IImage &img, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, ImageLayout oldLayout, ImageLayout newLayout, AccessFlags srcAccessMask, AccessFlags dstAccessMask, uint32_t baseLayer = std::numeric_limits<uint32_t>::max(),
-			std::optional<prosper::ImageAspectFlags> aspectMask = {});
+			  std::optional<prosper::ImageAspectFlags> aspectMask = {});
 			bool RecordImageBarrier(IImage &img, const util::BarrierImageLayout &srcBarrierInfo, const util::BarrierImageLayout &dstBarrierInfo, const util::ImageSubresourceRange &subresourceRange = {}, std::optional<prosper::ImageAspectFlags> aspectMask = {});
 			bool RecordImageBarrier(IImage &img, ImageLayout srcLayout, ImageLayout dstLayout, const util::ImageSubresourceRange &subresourceRange = {}, std::optional<prosper::ImageAspectFlags> aspectMask = {});
 			bool RecordPostRenderPassImageBarrier(IImage &img, ImageLayout preRenderPassLayout, ImageLayout postRenderPassLayout, const util::ImageSubresourceRange &subresourceRange = {}, std::optional<prosper::ImageAspectFlags> aspectMask = {});
 			bool RecordBufferBarrier(IBuffer &buf, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, AccessFlags srcAccessMask, AccessFlags dstAccessMask, DeviceSize offset = 0ull, DeviceSize size = std::numeric_limits<DeviceSize>::max());
 			virtual bool RecordBindDescriptorSets(PipelineBindPoint bindPoint, prosper::Shader &shader, PipelineID pipelineId, uint32_t firstSet, const std::vector<prosper::IDescriptorSet *> &descSets, const std::vector<uint32_t> dynamicOffsets = {}) = 0;
 			virtual bool RecordBindDescriptorSets(PipelineBindPoint bindPoint, const IShaderPipelineLayout &pipelineLayout, uint32_t firstSet, const prosper::IDescriptorSet &descSet, uint32_t *optDynamicOffset = nullptr) = 0;
-			virtual bool RecordBindDescriptorSets(PipelineBindPoint bindPoint, const IShaderPipelineLayout &pipelineLayout, uint32_t firstSet, uint32_t numDescSets, const prosper::IDescriptorSet *const *descSets, uint32_t numDynamicOffsets = 0, const uint32_t *dynamicOffsets = nullptr) = 0;
+			virtual bool RecordBindDescriptorSets(PipelineBindPoint bindPoint, const IShaderPipelineLayout &pipelineLayout, uint32_t firstSet, uint32_t numDescSets, const prosper::IDescriptorSet *const *descSets, uint32_t numDynamicOffsets = 0, const uint32_t *dynamicOffsets = nullptr)
+			  = 0;
 			template<class TDs, class TDo>
 			bool RecordBindDescriptorSets(PipelineBindPoint bindPoint, const IShaderPipelineLayout &pipelineLayout, uint32_t firstSet, const TDs &descSets, const TDo &offsets)
 			{
@@ -143,10 +143,10 @@ export {
 			ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr();
 			const ISecondaryCommandBuffer *GetSecondaryCommandBufferPtr() const;
 
-	#ifdef PR_DEBUG_API_DUMP
+#ifdef PR_DEBUG_API_DUMP
 			debug::ApiDumpRecorder &GetApiDumpRecorder() const { return *m_apiDumpRecorder; }
-	#endif
-		protected:
+#endif
+		  protected:
 			ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType);
 			void Initialize();
 			friend Shader;
@@ -167,17 +167,17 @@ export {
 			void *m_cmdBufSpecializationPtr = nullptr; // Pointer to IPrimaryCommandBuffer or ISecondaryCommandBuffer
 			mutable bool m_recording = false;
 
-	#ifdef PR_DEBUG_API_DUMP
+#ifdef PR_DEBUG_API_DUMP
 			mutable std::unique_ptr<debug::ApiDumpRecorder> m_apiDumpRecorder;
-	#endif
+#endif
 		};
 
 		class DLLPROSPER ICommandBufferPool : public ContextObject, public std::enable_shared_from_this<ICommandBufferPool> {
-		public:
+		  public:
 			virtual std::shared_ptr<IPrimaryCommandBuffer> AllocatePrimaryCommandBuffer() const = 0;
 			virtual std::shared_ptr<ISecondaryCommandBuffer> AllocateSecondaryCommandBuffer() const = 0;
 			prosper::QueueFamilyType GetQueueFamilyType() const { return m_queueFamilyType; }
-		protected:
+		  protected:
 			ICommandBufferPool(prosper::IPrContext &context, prosper::QueueFamilyType queueFamilyType) : ContextObject {context}, m_queueFamilyType {queueFamilyType} {}
 			prosper::QueueFamilyType m_queueFamilyType;
 		};
@@ -185,7 +185,7 @@ export {
 		///////////////////
 
 		class DLLPROSPER IPrimaryCommandBuffer : virtual public ICommandBuffer {
-		public:
+		  public:
 			struct RenderTargetInfo {
 				std::weak_ptr<prosper::IRenderPass> renderPass;
 				uint32_t baseLayer;
@@ -210,7 +210,7 @@ export {
 			RenderTargetInfo *GetActiveRenderPassTargetInfo() const;
 			bool GetActiveRenderPassTarget(prosper::IRenderPass **outRp = nullptr, prosper::IImage **outImg = nullptr, prosper::IFramebuffer **outFb = nullptr, prosper::RenderTarget **outRt = nullptr) const;
 			void SetActiveRenderPassTarget(prosper::IRenderPass *outRp, uint32_t layerId, prosper::IImage *outImg = nullptr, prosper::IFramebuffer *outFb = nullptr, prosper::RenderTarget *outRt = nullptr) const;
-		protected:
+		  protected:
 			bool DoRecordBeginRenderPass(prosper::RenderTarget &rt, uint32_t *layerId, const std::vector<prosper::ClearValue> &clearValues, prosper::IRenderPass *rp, RenderPassFlags renderPassFlags);
 			virtual bool DoRecordEndRenderPass() = 0;
 			virtual bool DoRecordBeginRenderPass(prosper::IImage &img, prosper::IRenderPass &rp, prosper::IFramebuffer &fb, uint32_t *layerId, const std::vector<prosper::ClearValue> &clearValues, RenderPassFlags renderPassFlags) = 0;
@@ -222,7 +222,7 @@ export {
 		///////////////////
 
 		class DLLPROSPER ISecondaryCommandBuffer : virtual public ICommandBuffer {
-		public:
+		  public:
 			using ICommandBuffer::ICommandBuffer;
 			virtual bool StartRecording(bool oneTimeSubmit = true, bool simultaneousUseAllowed = false) const;
 			virtual bool StartRecording(prosper::IRenderPass &rp, prosper::IFramebuffer &fb, bool oneTimeSubmit = true, bool simultaneousUseAllowed = false) const;
@@ -233,7 +233,7 @@ export {
 
 			prosper::IFramebuffer *GetCurrentFramebuffer() { return m_currentFramebuffer; }
 			const prosper::IFramebuffer *GetCurrentFramebuffer() const { return const_cast<ISecondaryCommandBuffer *>(this)->GetCurrentFramebuffer(); }
-		protected:
+		  protected:
 			mutable prosper::IRenderPass *m_currentRenderPass = nullptr;
 			mutable prosper::IFramebuffer *m_currentFramebuffer = nullptr;
 		};
@@ -249,5 +249,5 @@ export {
 		template<>
 		struct enable_bitwise_operators<prosper::IPrimaryCommandBuffer::RenderPassFlags> : std::true_type {};
 	}
-	#pragma warning(pop)
+#pragma warning(pop)
 }

@@ -10,12 +10,12 @@ export module pragma.prosper:context_object;
 export import std;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class IPrContext;
 		class DLLPROSPER ContextObject {
-		public:
+		  public:
 			ContextObject(IPrContext &context);
 			virtual ~ContextObject() = default;
 
@@ -26,10 +26,10 @@ export {
 
 			// For internal use only
 			virtual void OnRelease() {}
-		private:
+		  private:
 			mutable std::weak_ptr<IPrContext> m_wpContext = {};
 			std::string m_dbgName;
 		};
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

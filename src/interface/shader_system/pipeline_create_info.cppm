@@ -13,7 +13,7 @@ export {
 	namespace prosper {
 		class IRenderPass;
 		class DLLPROSPER BasePipelineCreateInfo {
-		public:
+		  public:
 			BasePipelineCreateInfo(const BasePipelineCreateInfo &) = delete;
 			BasePipelineCreateInfo &operator=(const BasePipelineCreateInfo &) = delete;
 			void CopyStateFrom(const BasePipelineCreateInfo *in_src_pipeline_create_info_ptr);
@@ -42,12 +42,12 @@ export {
 			void SetDescriptorSetCreateInfo(const std::vector<const DescriptorSetCreateInfo *> *in_ds_create_info_vec_ptr);
 
 			void SetName(const std::string &in_name) { m_name = in_name; }
-		protected:
+		  protected:
 			BasePipelineCreateInfo() = default;
 			virtual bool AddSpecializationConstant(ShaderStage in_shader_stage, uint32_t in_constant_id, uint32_t in_n_data_bytes, const void *in_data_ptr);
 			void init(const PipelineCreateFlags &in_create_flags, uint32_t in_n_shader_module_stage_entrypoints, const ShaderModuleStageEntryPoint *in_shader_module_stage_entrypoint_ptrs, const PipelineID *in_opt_base_pipeline_id_ptr = nullptr,
-			const std::vector<const DescriptorSetCreateInfo *> *in_opt_ds_create_info_vec_ptr = nullptr);
-		private:
+			  const std::vector<const DescriptorSetCreateInfo *> *in_opt_ds_create_info_vec_ptr = nullptr);
+		  private:
 			void InitShaderModules(uint32_t in_n_shader_module_stage_entrypoints, const ShaderModuleStageEntryPoint *in_shader_module_stage_entrypoint_ptrs);
 			using ShaderStageToSpecializationConstantsMap = std::unordered_map<ShaderStage, std::vector<SpecializationConstant>>;
 
@@ -65,13 +65,13 @@ export {
 		};
 
 		class DLLPROSPER GraphicsPipelineCreateInfo : public BasePipelineCreateInfo {
-		public:
+		  public:
 			GraphicsPipelineCreateInfo(const GraphicsPipelineCreateInfo &) = delete;
 			GraphicsPipelineCreateInfo &operator=(const GraphicsPipelineCreateInfo &) = delete;
 			/* Public functions */
 			static std::unique_ptr<GraphicsPipelineCreateInfo> Create(const PipelineCreateFlags &in_create_flags, const IRenderPass *in_renderpass_ptr, SubPassID in_subpass_id, const ShaderModuleStageEntryPoint &in_fragment_shader_stage_entrypoint_info,
-			const ShaderModuleStageEntryPoint &in_geometry_shader_stage_entrypoint_info, const ShaderModuleStageEntryPoint &in_tess_control_shader_stage_entrypoint_info, const ShaderModuleStageEntryPoint &in_tess_evaluation_shader_stage_entrypoint_info,
-			const ShaderModuleStageEntryPoint &in_vertex_shader_shader_stage_entrypoint_info, const GraphicsPipelineCreateInfo *in_opt_reference_pipeline_info_ptr = nullptr, const PipelineID *in_opt_base_pipeline_id_ptr = nullptr);
+			  const ShaderModuleStageEntryPoint &in_geometry_shader_stage_entrypoint_info, const ShaderModuleStageEntryPoint &in_tess_control_shader_stage_entrypoint_info, const ShaderModuleStageEntryPoint &in_tess_evaluation_shader_stage_entrypoint_info,
+			  const ShaderModuleStageEntryPoint &in_vertex_shader_shader_stage_entrypoint_info, const GraphicsPipelineCreateInfo *in_opt_reference_pipeline_info_ptr = nullptr, const PipelineID *in_opt_base_pipeline_id_ptr = nullptr);
 
 			~GraphicsPipelineCreateInfo() = default;
 
@@ -138,7 +138,7 @@ export {
 			*  @return true if successful, false otherwise.
 			*/
 			bool GetColorBlendAttachmentProperties(SubPassAttachmentID in_attachment_id, bool *out_opt_blending_enabled_ptr, BlendOp *out_opt_blend_op_color_ptr, BlendOp *out_opt_blend_op_alpha_ptr, BlendFactor *out_opt_src_color_blend_factor_ptr,
-			BlendFactor *out_opt_dst_color_blend_factor_ptr, BlendFactor *out_opt_src_alpha_blend_factor_ptr, BlendFactor *out_opt_dst_alpha_blend_factor_ptr, ColorComponentFlags *out_opt_channel_write_mask_ptr) const;
+			  BlendFactor *out_opt_dst_color_blend_factor_ptr, BlendFactor *out_opt_src_alpha_blend_factor_ptr, BlendFactor *out_opt_dst_alpha_blend_factor_ptr, ColorComponentFlags *out_opt_channel_write_mask_ptr) const;
 
 			void GetDepthBiasState(bool *out_opt_is_enabled_ptr, float *out_opt_depth_bias_constant_factor_ptr, float *out_opt_depth_bias_clamp_ptr, float *out_opt_depth_bias_slope_factor_ptr) const;
 
@@ -176,13 +176,13 @@ export {
 			bool GetScissorBoxProperties(uint32_t in_n_scissor_box, int32_t *out_opt_x_ptr, int32_t *out_opt_y_ptr, uint32_t *out_opt_width_ptr, uint32_t *out_opt_height_ptr) const;
 
 			void GetStencilTestProperties(bool *out_opt_is_enabled_ptr, StencilOp *out_opt_front_stencil_fail_op_ptr, StencilOp *out_opt_front_stencil_pass_op_ptr, StencilOp *out_opt_front_stencil_depth_fail_op_ptr, CompareOp *out_opt_front_stencil_compare_op_ptr,
-			uint32_t *out_opt_front_stencil_compare_mask_ptr, uint32_t *out_opt_front_stencil_write_mask_ptr, uint32_t *out_opt_front_stencil_reference_ptr, StencilOp *out_opt_back_stencil_fail_op_ptr, StencilOp *out_opt_back_stencil_pass_op_ptr,
-			StencilOp *out_opt_back_stencil_depth_fail_op_ptr, CompareOp *out_opt_back_stencil_compare_op_ptr, uint32_t *out_opt_back_stencil_compare_mask_ptr, uint32_t *out_opt_back_stencil_write_mask_ptr, uint32_t *out_opt_back_stencil_reference_ptr) const;
+			  uint32_t *out_opt_front_stencil_compare_mask_ptr, uint32_t *out_opt_front_stencil_write_mask_ptr, uint32_t *out_opt_front_stencil_reference_ptr, StencilOp *out_opt_back_stencil_fail_op_ptr, StencilOp *out_opt_back_stencil_pass_op_ptr,
+			  StencilOp *out_opt_back_stencil_depth_fail_op_ptr, CompareOp *out_opt_back_stencil_compare_op_ptr, uint32_t *out_opt_back_stencil_compare_mask_ptr, uint32_t *out_opt_back_stencil_write_mask_ptr, uint32_t *out_opt_back_stencil_reference_ptr) const;
 
 			const SubPassID &GetSubpassId() const { return m_subpassId; }
 
 			bool GetVertexBindingProperties(uint32_t in_n_vertex_binding, uint32_t *out_opt_binding_ptr = nullptr, uint32_t *out_opt_stride_ptr = nullptr, VertexInputRate *out_opt_rate_ptr = nullptr, uint32_t *out_opt_n_attributes_ptr = nullptr,
-			const VertexInputAttribute **out_opt_attributes_ptr_ptr = nullptr, uint32_t *out_opt_divisor_ptr = nullptr) const;
+			  const VertexInputAttribute **out_opt_attributes_ptr_ptr = nullptr, uint32_t *out_opt_divisor_ptr = nullptr) const;
 
 			bool GetViewportProperties(uint32_t in_n_viewport, float *out_opt_origin_x_ptr, float *out_opt_origin_y_ptr, float *out_opt_width_ptr, float *out_opt_height_ptr, float *out_opt_min_depth_ptr, float *out_opt_max_depth_ptr) const;
 
@@ -215,7 +215,7 @@ export {
 			void SetBlendingProperties(const float *in_blend_constant_vec4);
 
 			void SetColorBlendAttachmentProperties(SubPassAttachmentID in_attachment_id, bool in_blending_enabled, BlendOp in_blend_op_color, BlendOp in_blend_op_alpha, BlendFactor in_src_color_blend_factor, BlendFactor in_dst_color_blend_factor, BlendFactor in_src_alpha_blend_factor,
-			BlendFactor in_dst_alpha_blend_factor, ColorComponentFlags in_channel_write_mask);
+			  BlendFactor in_dst_alpha_blend_factor, ColorComponentFlags in_channel_write_mask);
 
 			void SetMultisamplingProperties(SampleCountFlags in_sample_count, float in_min_sample_shading, const SampleMask in_sample_mask);
 
@@ -270,7 +270,7 @@ export {
 			*  @param in_stencil_reference       Stencil reference value to use.
 			**/
 			void SetStencilTestProperties(bool in_update_front_face_state, StencilOp in_stencil_fail_op, StencilOp in_stencil_pass_op, StencilOp in_stencil_depth_fail_op, CompareOp in_stencil_compare_op, uint32_t in_stencil_compare_mask, uint32_t in_stencil_write_mask,
-			uint32_t in_stencil_reference);
+			  uint32_t in_stencil_reference);
 
 			/** Sets properties of a viewport at the specified index.
 			*
@@ -396,7 +396,7 @@ export {
 			*  @param in_should_enable true to enable the test; false to disable it.
 			*/
 			void ToggleStencilTest(bool in_should_enable);
-		private:
+		  private:
 			/* Private type definitions */
 
 			/* Defines blending properties for a single subpass attachment. */
@@ -433,7 +433,7 @@ export {
 				bool operator==(const BlendingProperties &in) const
 				{
 					return (in.blendEnabled == blendEnabled && in.blendOpAlpha == blendOpAlpha && in.blendOpColor == blendOpColor && in.channelWriteMask == channelWriteMask && in.dstAlphaBlendFactor == dstAlphaBlendFactor && in.dstColorBlendFactor == dstColorBlendFactor
-					&& in.srcAlphaBlendFactor == srcAlphaBlendFactor && in.srcColorBlendFactor == srcColorBlendFactor);
+					  && in.srcAlphaBlendFactor == srcAlphaBlendFactor && in.srcColorBlendFactor == srcColorBlendFactor);
 				}
 			};
 
@@ -611,7 +611,7 @@ export {
 		};
 
 		class DLLPROSPER ComputePipelineCreateInfo : public BasePipelineCreateInfo {
-		public:
+		  public:
 			/* Public functions */
 			static std::unique_ptr<ComputePipelineCreateInfo> Create(const PipelineCreateFlags &in_create_flags, const ShaderModuleStageEntryPoint &in_compute_shader_stage_entrypoint_info, const PipelineID *in_opt_base_pipeline_id_ptr = nullptr);
 
@@ -627,12 +627,12 @@ export {
 			bool AddSpecializationConstant(uint32_t in_constant_id, uint32_t in_n_data_bytes, const void *in_data_ptr) { return BasePipelineCreateInfo::AddSpecializationConstant(ShaderStage::Compute, in_constant_id, in_n_data_bytes, in_data_ptr); }
 
 			~ComputePipelineCreateInfo() = default;
-		private:
+		  private:
 			using BasePipelineCreateInfo::BasePipelineCreateInfo;
 		};
 
 		class DLLPROSPER RayTracingPipelineCreateInfo : public BasePipelineCreateInfo {
-		public:
+		  public:
 			/* Public functions */
 			static std::unique_ptr<RayTracingPipelineCreateInfo> Create(const PipelineCreateFlags &in_create_flags, const ShaderModuleStageEntryPoint &in_compute_shader_stage_entrypoint_info, const PipelineID *in_opt_base_pipeline_id_ptr = nullptr) { return nullptr; } // Stub
 		};

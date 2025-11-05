@@ -3,8 +3,6 @@
 
 module;
 
-
-
 module pragma.prosper;
 
 import :shader_system.descriptor_array_manager;

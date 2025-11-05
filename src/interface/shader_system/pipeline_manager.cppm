@@ -15,7 +15,7 @@ export {
 		struct PipelineLayout;
 		class BasePipelineCreateInfo;
 		class DLLPROSPER IPipelineManager : public ContextObject {
-		public:
+		  public:
 			IPipelineManager(IPrContext &context);
 			IPipelineManager(const IPipelineManager &) = delete;
 			IPipelineManager &operator=(const IPipelineManager &) = delete;
@@ -27,7 +27,7 @@ export {
 		};
 
 		class DLLPROSPER VlkPipelineManager : public IPipelineManager {
-		public:
+		  public:
 			virtual bool ClearPipeline(PipelineID id) override;
 			virtual PipelineLayout *GetPipelineLayout(PipelineID id) override;
 			virtual BasePipelineCreateInfo *GetPipelineInfo(PipelineID id) override;

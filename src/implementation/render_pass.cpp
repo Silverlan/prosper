@@ -3,7 +3,6 @@
 
 module;
 
-
 module pragma.prosper;
 
 import :render_pass;

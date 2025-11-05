@@ -10,11 +10,11 @@ export module pragma.prosper:buffer.uniform_resizable_buffer;
 export import :buffer.resizable_buffer;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class DLLPROSPER IUniformResizableBuffer : public IResizableBuffer {
-		public:
+		  public:
 			std::shared_ptr<IBuffer> AllocateBuffer(const void *data = nullptr);
 
 			uint64_t GetInstanceSize() const;
@@ -26,7 +26,7 @@ export {
 
 			uint64_t GetAssignedMemory() const;
 			uint32_t GetTotalInstanceCount() const;
-		protected:
+		  protected:
 			IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint64_t maxTotalSize, uint32_t alignment);
 			uint64_t m_bufferInstanceSize = 0ull; // Size of each sub-buffer
 			uint64_t m_assignedMemory = 0ull;
@@ -36,5 +36,5 @@ export {
 			std::queue<uint64_t> m_freeOffsets;
 		};
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

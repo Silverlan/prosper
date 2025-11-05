@@ -13,10 +13,10 @@ export import pragma.platform;
 #undef max
 
 export {
-	#ifdef __clang__
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wclass-conversion"
-	#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wclass-conversion"
+#endif
 
 	namespace prosper {
 		struct DLLPROSPER Extent2D {
@@ -149,7 +149,7 @@ export {
 				uint32_t srcQueueFamilyIndex;
 
 				BufferBarrier(AccessFlags in_source_access_mask, AccessFlags in_destination_access_mask, uint32_t in_src_queue_family_index, uint32_t in_dst_queue_family_index, IBuffer *in_buffer_ptr, DeviceSize in_offset, DeviceSize in_size)
-					: srcAccessMask {in_source_access_mask}, dstAccessMask {in_destination_access_mask}, srcQueueFamilyIndex {in_src_queue_family_index}, dstQueueFamilyIndex {in_dst_queue_family_index}, buffer {in_buffer_ptr}, offset {in_offset}, size {in_size}
+				    : srcAccessMask {in_source_access_mask}, dstAccessMask {in_destination_access_mask}, srcQueueFamilyIndex {in_src_queue_family_index}, dstQueueFamilyIndex {in_dst_queue_family_index}, buffer {in_buffer_ptr}, offset {in_offset}, size {in_size}
 				{
 				}
 			};
@@ -167,9 +167,9 @@ export {
 				std::optional<ImageAspectFlags> aspectMask {};
 
 				ImageBarrier(AccessFlags in_source_access_mask, AccessFlags in_destination_access_mask, ImageLayout in_old_layout, ImageLayout in_new_layout, uint32_t in_src_queue_family_index, uint32_t in_dst_queue_family_index, IImage *in_image_ptr,
-				ImageSubresourceRange in_image_subresource_range, std::optional<ImageAspectFlags> aspectMask)
-					: srcAccessMask {in_source_access_mask}, dstAccessMask {in_destination_access_mask}, oldLayout {in_old_layout}, newLayout {in_new_layout}, srcQueueFamilyIndex {in_src_queue_family_index}, dstQueueFamilyIndex {in_dst_queue_family_index}, image {in_image_ptr},
-					subresourceRange {in_image_subresource_range}, aspectMask {aspectMask}
+				  ImageSubresourceRange in_image_subresource_range, std::optional<ImageAspectFlags> aspectMask)
+				    : srcAccessMask {in_source_access_mask}, dstAccessMask {in_destination_access_mask}, oldLayout {in_old_layout}, newLayout {in_new_layout}, srcQueueFamilyIndex {in_src_queue_family_index}, dstQueueFamilyIndex {in_dst_queue_family_index}, image {in_image_ptr},
+				      subresourceRange {in_image_subresource_range}, aspectMask {aspectMask}
 				{
 				}
 			};
@@ -308,8 +308,8 @@ export {
 			struct DLLPROSPER RenderPassCreateInfo {
 				struct DLLPROSPER AttachmentInfo {
 					AttachmentInfo(prosper::Format format = prosper::Format::R8G8B8A8_UNorm, prosper::ImageLayout initialLayout = prosper::ImageLayout::ColorAttachmentOptimal, prosper::AttachmentLoadOp loadOp = prosper::AttachmentLoadOp::DontCare,
-					prosper::AttachmentStoreOp storeOp = prosper::AttachmentStoreOp::Store, prosper::SampleCountFlags sampleCount = prosper::SampleCountFlags::e1Bit, prosper::ImageLayout finalLayout = prosper::ImageLayout::ShaderReadOnlyOptimal,
-					prosper::AttachmentLoadOp stencilLoadOp = prosper::AttachmentLoadOp::DontCare, prosper::AttachmentStoreOp stencilStoreOp = prosper::AttachmentStoreOp::DontCare);
+					  prosper::AttachmentStoreOp storeOp = prosper::AttachmentStoreOp::Store, prosper::SampleCountFlags sampleCount = prosper::SampleCountFlags::e1Bit, prosper::ImageLayout finalLayout = prosper::ImageLayout::ShaderReadOnlyOptimal,
+					  prosper::AttachmentLoadOp stencilLoadOp = prosper::AttachmentLoadOp::DontCare, prosper::AttachmentStoreOp stencilStoreOp = prosper::AttachmentStoreOp::DontCare);
 					bool operator==(const AttachmentInfo &other) const;
 					bool operator!=(const AttachmentInfo &other) const;
 					prosper::Format format = prosper::Format::R8G8B8A8_UNorm;
@@ -350,7 +350,7 @@ export {
 		};
 
 		class DLLPROSPER DescriptorSetCreateInfo {
-		public:
+		  public:
 			static std::unique_ptr<DescriptorSetCreateInfo> Create(const char *name)
 			{
 				std::unique_ptr<DescriptorSetCreateInfo> result_ptr(nullptr, std::default_delete<DescriptorSetCreateInfo>());
@@ -362,7 +362,7 @@ export {
 				Binding() = default;
 				Binding(const Binding &other) = default;
 				Binding(const char *name, uint32_t descriptorArraySize, DescriptorType descriptorType, ShaderStageFlags stageFlags, const ISampler *const *immutableSamplerPtrs, DescriptorBindingFlags flags, PrDescriptorSetBindingFlags prFlags)
-					: name {name}, descriptorArraySize {descriptorArraySize}, descriptorType {descriptorType}, stageFlags {stageFlags}, flags {flags}, prFlags {prFlags}
+				    : name {name}, descriptorArraySize {descriptorArraySize}, descriptorType {descriptorType}, stageFlags {stageFlags}, flags {flags}, prFlags {prFlags}
 				{
 					if(immutableSamplerPtrs != nullptr) {
 						for(uint32_t n_sampler = 0; n_sampler < descriptorArraySize; ++n_sampler) {
@@ -380,7 +380,7 @@ export {
 				bool operator==(const Binding &binding) const
 				{
 					return strcmp(binding.name, name) == 0 && binding.descriptorArraySize == descriptorArraySize && binding.descriptorType == descriptorType && binding.flags == flags && binding.immutableSamplers == immutableSamplers && binding.stageFlags == stageFlags
-					&& binding.prFlags == prFlags;
+					  && binding.prFlags == prFlags;
 				}
 				bool operator!=(const Binding &binding) const { return !operator==(binding); }
 			};
@@ -391,14 +391,14 @@ export {
 			const char *GetName() const { return m_name; }
 
 			bool GetBindingPropertiesByBindingIndex(uint32_t bindingIndex, DescriptorType *outOptDescriptorType = nullptr, uint32_t *outOptDescriptorArraySize = nullptr, ShaderStageFlags *outOptStageFlags = nullptr, bool *outOptImmutableSamplersEnabled = nullptr,
-			DescriptorBindingFlags *outOptFlags = nullptr, PrDescriptorSetBindingFlags *outOptPrFlags = nullptr) const;
+			  DescriptorBindingFlags *outOptFlags = nullptr, PrDescriptorSetBindingFlags *outOptPrFlags = nullptr) const;
 			bool GetBindingPropertiesByIndexNumber(uint32_t nBinding, uint32_t *out_opt_binding_index_ptr = nullptr, DescriptorType *outOptDescriptorType = nullptr, uint32_t *outOptDescriptorArraySize = nullptr, ShaderStageFlags *outOptStageFlags = nullptr,
-			bool *outOptImmutableSamplersEnabled = nullptr, DescriptorBindingFlags *outOptFlags = nullptr, PrDescriptorSetBindingFlags *outOptPrFlags = nullptr);
+			  bool *outOptImmutableSamplersEnabled = nullptr, DescriptorBindingFlags *outOptFlags = nullptr, PrDescriptorSetBindingFlags *outOptPrFlags = nullptr);
 			bool AddBinding(const char *name, uint32_t in_binding_index, DescriptorType in_descriptor_type, uint32_t in_descriptor_array_size, ShaderStageFlags in_stage_flags, const DescriptorBindingFlags &in_flags = DescriptorBindingFlags::None,
-			const PrDescriptorSetBindingFlags &in_pr_flags = PrDescriptorSetBindingFlags::None, const ISampler *const *in_opt_immutable_sampler_ptr_ptr = nullptr);
+			  const PrDescriptorSetBindingFlags &in_pr_flags = PrDescriptorSetBindingFlags::None, const ISampler *const *in_opt_immutable_sampler_ptr_ptr = nullptr);
 			const char *GetBindingName(uint32_t in_binding_index) const;
 			uint32_t GetBindingCount() const { return static_cast<uint32_t>(m_bindings.size()); }
-		private:
+		  private:
 			using BindingIndexToBindingMap = std::map<BindingIndex, Binding>;
 
 			DescriptorSetCreateInfo() = default;
@@ -428,9 +428,9 @@ export {
 
 		class ShaderStageProgram;
 		class DLLPROSPER ShaderModule {
-		public:
+		  public:
 			ShaderModule(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, const std::string &in_opt_cs_entrypoint_name, const std::string &in_opt_fs_entrypoint_name, const std::string &in_opt_gs_entrypoint_name, const std::string &in_opt_tc_entrypoint_name,
-			const std::string &in_opt_te_entrypoint_name, const std::string &in_opt_vs_entrypoint_name);
+			  const std::string &in_opt_te_entrypoint_name, const std::string &in_opt_vs_entrypoint_name);
 			/** Destructor. Releases internally maintained Vulkan shader module instance. */
 			virtual ~ShaderModule() = default;
 
@@ -444,7 +444,7 @@ export {
 			const std::string &GetTEEntrypointName() const { return m_teEntrypointName; }
 			const std::string &GetVSEntrypointName() const { return m_vsEntrypointName; }
 			const ShaderStageProgram *GetShaderStageProgram() const { return m_shaderStageProgram.get(); }
-		private:
+		  private:
 			ShaderModule(const ShaderModule &);
 			ShaderModule &operator=(const ShaderModule &);
 
@@ -697,9 +697,9 @@ export {
 
 		class Shader;
 		class DLLPROSPER IShaderPipelineLayout {
-		public:
+		  public:
 			virtual ~IShaderPipelineLayout() {};
-		protected:
+		  protected:
 			IShaderPipelineLayout() {}
 		};
 
@@ -741,7 +741,7 @@ export {
 			uint32_t setIndex = 0u; // This value will be set after the shader has been baked
 
 			std::unique_ptr<prosper::DescriptorSetCreateInfo> ToProsperDescriptorSetInfo() const;
-		private:
+		  private:
 			friend Shader;
 			std::unique_ptr<prosper::DescriptorSetCreateInfo> Bake();
 			bool m_bWasBaked = false;
@@ -769,7 +769,7 @@ export {
 		struct DLLPROSPER LayerSetting {
 			LayerSetting() = default;
 			template<typename T>
-				requires(std::is_same_v<T, bool> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, const char *>)
+			    requires(std::is_same_v<T, bool> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, const char *>)
 			void SetValues(uint32_t valueCount, const T *values)
 			{
 				using TVal = std::conditional_t<std::is_same_v<T, bool>, int32_t, T>;
@@ -834,7 +834,7 @@ export {
 		struct enable_bitwise_operators<prosper::util::TextureCreateInfo::Flags> : std::true_type {};
 	}
 
-	#ifdef __clang__
-	#pragma clang diagnostic pop
-	#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 }

@@ -15,14 +15,14 @@ import pragma.util;
 #undef max
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class IUniformResizableBuffer;
 		class IDynamicResizableBuffer;
 
 		class DLLPROSPER IBuffer : public ContextObject, public std::enable_shared_from_this<IBuffer> {
-		public:
+		  public:
 			enum class MapFlags : uint8_t { None = 0u, PersistentBit = 1u, ReadBit = PersistentBit << 1u, WriteBit = ReadBit << 1u, Unsynchronized = WriteBit << 1u };
 
 			using SubBufferIndex = uint32_t;
@@ -80,7 +80,7 @@ export {
 
 			// For debugging purposes only!
 			IBuffer *GetMappedBuffer(Offset &outOffset);
-		protected:
+		  protected:
 			friend IUniformResizableBuffer;
 			friend IDynamicResizableBuffer;
 			virtual void RecreateInternalSubBuffer(IBuffer &newParentBuffer) {}
@@ -110,7 +110,7 @@ export {
 			DeviceSize m_size = 0;
 
 			void *m_apiTypePtr = nullptr;
-		private:
+		  private:
 			SubBufferIndex m_baseIndex = INVALID_INDEX;
 		};
 
@@ -131,5 +131,5 @@ export {
 		template<>
 		struct enable_bitwise_operators<prosper::IBuffer::MapFlags> : std::true_type {};
 	}
-	#pragma warning(pop)
+#pragma warning(pop)
 }

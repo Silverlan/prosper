@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:enums;
 
 export import pragma.math;
@@ -57,7 +56,6 @@ export {
 			CPUToGPU = DeviceLocal | HostAccessable | Dynamic,              // Usage: Memory that has to be frequently (e.g. every frame) updated by the CPU
 			GPUToCPU = HostAccessable | HostCoherent | HostCached | Dynamic // Usage: Memory written to by the GPU, which needs to be readable by the CPU
 		};
-
 
 		enum class Filter : uint32_t { Nearest = 0, Linear = 1 };
 

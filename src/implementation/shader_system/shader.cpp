@@ -3,9 +3,6 @@
 
 module;
 
-
-
-
 module pragma.prosper;
 
 import :shader_system.pipeline_create_info;

@@ -3,7 +3,6 @@
 
 module;
 
-
 export module pragma.prosper:types;
 
 export import std.compat;

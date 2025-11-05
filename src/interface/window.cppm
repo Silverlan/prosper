@@ -5,8 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
-
 export module pragma.prosper:window;
 
 export import :context_object;

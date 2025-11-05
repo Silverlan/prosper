@@ -3,7 +3,6 @@
 
 module;
 
-
 module pragma.prosper;
 
 import :query.pipeline_statistics;

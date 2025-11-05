@@ -3,8 +3,6 @@
 
 module;
 
-
-
 module pragma.prosper;
 
 import :image.msaa_texture;

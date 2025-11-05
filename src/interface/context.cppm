@@ -18,13 +18,13 @@ import pragma.image;
 #undef CreateWindow
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		struct WindowSettings;
 		class Shader;
 		class ShaderStageProgram {
-		public:
+		  public:
 			ShaderStageProgram() = default;
 		};
 		struct DLLPROSPER ShaderPipeline {
@@ -107,7 +107,7 @@ export {
 		class Window;
 		class ShaderPipelineLoader;
 		class DLLPROSPER IPrContext : public std::enable_shared_from_this<IPrContext> {
-		public:
+		  public:
 			// Max push constant size supported by most vendors / GPUs
 			static constexpr uint32_t MAX_COMMON_PUSH_CONSTANT_SIZE = 128;
 
@@ -122,7 +122,7 @@ export {
 				EnableMultiThreadedRendering = ClearingKeepAliveResources << 1u,
 				WindowScheduledForClosing = EnableMultiThreadedRendering << 1u,
 				DiagnosticsEnabled = WindowScheduledForClosing << 1u,
-				Windowless = DiagnosticsEnabled<<1u,
+				Windowless = DiagnosticsEnabled << 1u,
 			};
 
 			enum class ExtensionAvailability : uint8_t {
@@ -166,9 +166,9 @@ export {
 			virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
 			virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) = 0;
 
-	#ifdef PR_DEBUG_API_DUMP
+#ifdef PR_DEBUG_API_DUMP
 			debug::ApiDumpRecorder &GetApiDumpRecorder() const { return *m_apiDumpRecorder; }
-	#endif
+#endif
 
 			bool IsDiagnosticsModeEnabled() const;
 			bool IsWindowless() const;
@@ -295,7 +295,7 @@ export {
 
 			virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr) = 0;
 			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage = 1.f, const void *data = nullptr,
-			std::optional<DeviceSize> customAlignment = {});
+			  std::optional<DeviceSize> customAlignment = {});
 			virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage = 1.f, const void *data = nullptr) = 0;
 			virtual std::shared_ptr<IEvent> CreateEvent() = 0;
 			virtual std::shared_ptr<IFence> CreateFence(bool createSignalled = false) = 0;
@@ -313,23 +313,24 @@ export {
 			virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width, uint32_t height, uint32_t layers, const std::vector<prosper::IImageView *> &attachments) = 0;
 			virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader, uint32_t pipelineIdx = 0u) const = 0;
 			std::shared_ptr<Texture> CreateTexture(const util::TextureCreateInfo &createInfo, IImage &img, const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo = util::ImageViewCreateInfo {},
-			const std::optional<util::SamplerCreateInfo> &samplerCreateInfo = util::SamplerCreateInfo {});
+			  const std::optional<util::SamplerCreateInfo> &samplerCreateInfo = util::SamplerCreateInfo {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures, const std::shared_ptr<IRenderPass> &rp = nullptr, const util::RenderTargetCreateInfo &rtCreateInfo = {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture, IImageView &imgView, IRenderPass &rp, const util::RenderTargetCreateInfo &rtCreateInfo = {});
-			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {}, const std::optional<IndexBufferInfo> &indexBufferInfo = {})
-			= 0;
+			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {},
+			  const std::optional<IndexBufferInfo> &indexBufferInfo = {})
+			  = 0;
 			virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, prosper::ShaderStage stage, const std::string &entrypointName = "main") = 0;
 			virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false, const std::string &prefixCode = {},
-			const std::unordered_map<std::string, std::string> &definitions = {})
-			= 0;
+			  const std::unordered_map<std::string, std::string> &definitions = {})
+			  = 0;
 			virtual std::optional<std::unordered_map<prosper::ShaderStage, std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage, std::string> &shaderStages, std::string &outInfoLog) { return {}; }
 			virtual bool GetParsedShaderSourceCode(prosper::Shader &shader, std::vector<std::string> &outGlslCodePerStage, std::vector<prosper::ShaderStage> &outGlslCodeStages, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage) const = 0;
 			std::optional<std::string> FindShaderFile(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt = nullptr);
 			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::ComputePipelineCreateInfo &createInfo, prosper::ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::RayTracingPipelineCreateInfo &createInfo, prosper::ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::GraphicsPipelineCreateInfo &createInfo, IRenderPass &rp, prosper::ShaderStageData *shaderStageFs = nullptr, prosper::ShaderStageData *shaderStageVs = nullptr,
-			prosper::ShaderStageData *shaderStageGs = nullptr, prosper::ShaderStageData *shaderStageTc = nullptr, prosper::ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max())
-			= 0;
+			  prosper::ShaderStageData *shaderStageGs = nullptr, prosper::ShaderStageData *shaderStageTc = nullptr, prosper::ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max())
+			  = 0;
 			prosper::Shader *GetShaderPipeline(PipelineID id, uint32_t &outPipelineIdx) const;
 			virtual bool ClearPipeline(bool graphicsShader, PipelineID pipelineId) = 0;
 			uint32_t GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
@@ -408,7 +409,7 @@ export {
 			PipelineID ReserveShaderPipeline();
 			void SetWindowScheduledForClosing();
 			void CloseWindowsScheduledForClosing();
-		protected:
+		  protected:
 			IPrContext(const std::string &appName, bool bEnableValidation = false);
 			void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, prosper::BufferUsageFlags usageFlags);
 			virtual void UpdateMultiThreadedRendering(bool mtEnabled);
@@ -431,7 +432,7 @@ export {
 			virtual void ReloadSwapchain() = 0;
 
 			virtual void DrawFrame();
-		protected: // private: // TODO
+		  protected: // private: // TODO
 			IPrContext(const IPrContext &) = delete;
 			IPrContext &operator=(const IPrContext &) = delete;
 
@@ -486,12 +487,12 @@ export {
 				std::mutex mutex;
 			};
 			std::unique_ptr<ValidationData> m_validationData = nullptr;
-		private:
+		  private:
 			mutable FrameIndex m_frameId = 0ull;
 			mutable CommonBufferCache m_commonBufferCache;
-	#ifdef PR_DEBUG_API_DUMP
+#ifdef PR_DEBUG_API_DUMP
 			mutable std::unique_ptr<debug::ApiDumpRecorder> m_apiDumpRecorder;
-	#endif
+#endif
 		};
 
 		template<typename T>
@@ -514,7 +515,7 @@ export {
 
 		using namespace umath::scoped_enum::bitwise;
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 
 	namespace umath::scoped_enum::bitwise {
 		template<>

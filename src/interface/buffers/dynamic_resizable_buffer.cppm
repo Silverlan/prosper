@@ -14,7 +14,7 @@ export {
 		class IPrContext;
 		class IBuffer;
 		class DLLPROSPER IDynamicResizableBuffer : public IResizableBuffer {
-		public:
+		  public:
 			std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size, const void *data = nullptr);
 			std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size, uint32_t alignment, const void *data, bool reallocateIfNoSpaceAvailable = true);
 			void DebugPrint(std::stringstream &strFilledData, std::stringstream &strFreeData, std::stringstream *bufferData = nullptr) const;
@@ -22,7 +22,7 @@ export {
 			uint64_t GetFreeSize() const;
 			float GetFragmentationPercent() const;
 			uint32_t GetAlignment() const { return m_alignment; }
-		protected:
+		  protected:
 			struct Range {
 				DeviceSize startOffset;
 				DeviceSize size;

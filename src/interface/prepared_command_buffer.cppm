@@ -33,7 +33,7 @@ export {
 					throw std::runtime_error {"User data has not been set!"};
 				return *static_cast<T *>(it->second);
 			}
-		private:
+		  private:
 			mutable std::unordered_map<StringHash, void *> userData;
 		};
 		struct DLLPROSPER PreparedCommandBufferRecordState {
@@ -117,7 +117,7 @@ export {
 			}
 		};
 		class DLLPROSPER PreparedCommandBuffer {
-		public:
+		  public:
 			PreparedCommandBuffer();
 			PreparedCommandBuffer(PreparedCommandBuffer &&) = delete;
 			PreparedCommandBuffer(const PreparedCommandBuffer &) = delete;

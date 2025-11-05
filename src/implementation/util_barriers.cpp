@@ -3,7 +3,6 @@
 
 module;
 
-
 #ifdef DEBUG_VERBOSE
 #endif
 

@@ -5,21 +5,20 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:buffer.resizable_buffer;
 
 export import :buffer.buffer;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class DLLPROSPER IResizableBuffer : virtual public IBuffer {
-		public:
+		  public:
 			IResizableBuffer(IBuffer &parent, uint64_t maxTotalSize);
 
 			void AddReallocationCallback(const std::function<void()> &fCallback);
-		protected:
+		  protected:
 			virtual void MoveInternalBuffer(IBuffer &other) = 0;
 
 			uint64_t m_baseSize = 0ull; // Un-aligned size of m_buffer
@@ -28,5 +27,5 @@ export {
 			std::vector<std::function<void()>> m_onReallocCallbacks;
 		};
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

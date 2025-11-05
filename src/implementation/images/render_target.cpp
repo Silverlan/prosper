@@ -3,8 +3,6 @@
 
 module;
 
-
-
 module pragma.prosper;
 
 import :image.render_target;

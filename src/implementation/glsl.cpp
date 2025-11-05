@@ -3,9 +3,6 @@
 
 module;
 
-
-
-
 #define VK_ENABLE_GLSLANG
 
 #ifdef VK_ENABLE_GLSLANG

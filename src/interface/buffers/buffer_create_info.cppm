@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:buffer.buffer_create_info;
 
 export import :enums;

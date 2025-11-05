@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:shader_system.manager;
 
 export import :context_object;
@@ -14,14 +13,14 @@ import :shader_system.shader;
 import pragma.util;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class Shader;
 		class PipelineCache;
 		using ShaderIndex = uint32_t;
 		class DLLPROSPER ShaderManager : public ContextObject {
-		public:
+		  public:
 			ShaderManager(IPrContext &context);
 			~ShaderManager() = default;
 
@@ -42,7 +41,7 @@ export {
 
 			ShaderManager(const ShaderManager &) = delete;
 			ShaderManager &operator=(const ShaderManager &) = delete;
-		private:
+		  private:
 			::util::WeakHandle<Shader> LoadShader(const std::string &identifier);
 			std::unordered_map<std::string, ShaderIndex> m_shaderNameToIndex;
 			std::vector<std::shared_ptr<Shader>> m_shaders;
@@ -59,19 +58,19 @@ export {
 			return const_cast<ShaderManager *>(this)->FindShader<T>();
 		}
 
-		#ifdef __clang__
-		#pragma clang diagnostic push
-		#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
-		#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
+#endif
 		template<class T>
 		Shader *ShaderManager::FindShader()
 		{
 			auto it = std::find_if(m_shaders.begin(), m_shaders.end(), [](const std::shared_ptr<Shader> &shader) { return typeid(T) == typeid(*shader); });
 			return (it != m_shaders.end()) ? it->get() : nullptr;
 		}
-		#ifdef __clang__
-		#pragma clang diagnostic pop
-		#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 }

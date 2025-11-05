@@ -5,16 +5,14 @@ module;
 
 #include "definitions.hpp"
 
-
-
 export module pragma.prosper:util;
 
 export import :structs;
 import pragma.image;
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class ICommandBuffer;
 		class IPrimaryCommandBuffer;
@@ -119,7 +117,7 @@ export {
 		};
 		using namespace umath::scoped_enum::bitwise;
 	};
-	#pragma warning(pop)
+#pragma warning(pop)
 
 	template<class T>
 	std::shared_ptr<T> prosper::util::unique_ptr_to_shared_ptr(std::unique_ptr<T, std::function<void(T *)>> v)

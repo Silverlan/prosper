@@ -5,8 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
-
 export module pragma.prosper:image.render_target;
 
 export import :image.texture;
@@ -21,8 +19,7 @@ export namespace prosper {
 	class IImageView;
 	class Texture;
 	class DLLPROSPER RenderTarget : public ContextObject, public std::enable_shared_from_this<RenderTarget> {
-      public:
-
+	  public:
 		RenderTarget(const RenderTarget &) = delete;
 		RenderTarget &operator=(const RenderTarget &) = delete;
 		RenderTarget(IPrContext &context, const std::vector<std::shared_ptr<Texture>> &textures, const std::vector<std::shared_ptr<IFramebuffer>> &framebuffers, IRenderPass &renderPass);

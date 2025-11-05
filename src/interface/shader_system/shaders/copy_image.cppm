@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.prosper:shader_system.shaders.copy_image;
 
 export import :shader_system.shaders.base_image_processing;

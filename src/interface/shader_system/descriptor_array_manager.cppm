@@ -21,7 +21,7 @@ export {
 		class IDescriptorSetGroup;
 		class IPrContext;
 		class DLLPROSPER DescriptorArrayManager : public std::enable_shared_from_this<DescriptorArrayManager> {
-		public:
+		  public:
 			template<class TDescriptorArrayManager>
 			static std::shared_ptr<TDescriptorArrayManager> Create(prosper::IPrContext &context, const char *setName, const char *bindingName, prosper::ShaderStageFlags shaderStages);
 			template<class TDescriptorArrayManager>
@@ -31,11 +31,11 @@ export {
 
 			virtual ~DescriptorArrayManager() = default;
 			void RemoveItem(ArrayIndex index);
-		protected:
+		  protected:
 			DescriptorArrayManager(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, ArrayIndex maxArrayLayers, uint32_t bindingIndex = 0);
 			std::optional<ArrayIndex> AddItem(const std::function<bool(prosper::IDescriptorSet &, ArrayIndex, uint32_t)> &fAddBinding);
 			virtual void Initialize(prosper::IPrContext &context) {}
-		private:
+		  private:
 			std::optional<ArrayIndex> PopFreeIndex();
 			void PushFreeIndex(ArrayIndex index);
 			std::shared_ptr<prosper::IDescriptorSetGroup> m_dsgArray = nullptr;

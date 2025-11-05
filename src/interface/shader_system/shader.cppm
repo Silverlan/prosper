@@ -14,8 +14,8 @@ import pragma.util;
 #undef max
 
 export {
-	#pragma warning(push)
-	#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 	namespace prosper {
 		class IDescriptorSetGroup;
 		class IRenderPass;
@@ -39,7 +39,7 @@ export {
 			struct RenderPassCreateInfo;
 		};
 		class DLLPROSPER Shader : public ContextObject, public std::enable_shared_from_this<Shader> {
-		public:
+		  public:
 			static void SetLogCallback(const std::function<void(Shader &, ShaderStage, const std::string &, const std::string &)> &fLogCallback);
 			static const std::function<void(Shader &, ShaderStage, const std::string &, const std::string &)> &GetLogCallback();
 			static Shader *GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer, uint32_t &outPipelineIdx);
@@ -118,7 +118,7 @@ export {
 			// Has to be called before the pipeline is initialized!
 			void SetStageSourceFilePath(ShaderStage stage, const std::string &filePath);
 			std::optional<std::string> GetStageSourceFilePath(ShaderStage stage) const;
-		protected:
+		  protected:
 			friend ShaderManager;
 			void SetIdentifier(const std::string &identifier);
 			void SetPipelineCount(uint32_t count, bool flushLoad = true);
@@ -146,7 +146,7 @@ export {
 			ShaderResources m_shaderResources;
 
 			void SetIndex(ShaderIndex shaderIndex) { m_shaderIndex = shaderIndex; }
-		private:
+		  private:
 			static std::function<void(Shader &, ShaderStage, const std::string &, const std::string &)> s_logCallback;
 			using std::enable_shared_from_this<Shader>::shared_from_this;
 
@@ -167,9 +167,9 @@ export {
 
 		class IRenderBuffer;
 		class DLLPROSPER ShaderGraphics : public Shader {
-		protected:
+		  protected:
 			virtual void PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
-		public:
+		  public:
 			struct DLLPROSPER VertexBinding {
 				VertexBinding() = default;
 				VertexBinding(prosper::VertexInputRate inputRate, uint32_t stride = std::numeric_limits<uint32_t>::max());
@@ -178,7 +178,7 @@ export {
 				prosper::VertexInputRate inputRate = prosper::VertexInputRate::Vertex;
 
 				uint32_t GetBindingIndex() const;
-			private:
+			  private:
 				friend void ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 				std::function<void()> initializer = nullptr;
 
@@ -194,7 +194,7 @@ export {
 				const VertexBinding *binding = nullptr;
 
 				uint32_t GetLocation() const;
-			private:
+			  private:
 				friend void ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
 				std::function<void()> initializer = nullptr;
 
@@ -231,7 +231,7 @@ export {
 			const std::shared_ptr<IRenderPass> &GetRenderPass(uint32_t pipelineIdx = 0u) const;
 			template<class TShader>
 			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context, uint32_t pipelineIdx = 0u);
-		protected:
+		  protected:
 			bool RecordViewportScissor(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t scissorX, uint32_t scissorY, uint32_t scissorW, uint32_t scissorH, uint32_t pipelineIdx = 0u) const;
 			bool RecordBeginDrawViewport(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t pipelineIdx = 0u, RecordFlags recordFlags = RecordFlags::RenderPassTargetAsViewportAndScissor) const;
 			void SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
@@ -245,13 +245,13 @@ export {
 			template<class TShader>
 			void CreateCachedRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx);
 			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context, size_t hashCode, uint32_t pipelineIdx);
-		private:
+		  private:
 			virtual void InitializePipeline() override;
 			std::vector<std::reference_wrapper<VertexAttribute>> m_vertexAttributes = {};
 		};
 
 		class DLLPROSPER ShaderCompute : public Shader {
-		public:
+		  public:
 			ShaderCompute(prosper::IPrContext &context, const std::string &identifier, const std::string &csShader);
 
 			bool RecordDispatch(ShaderBindState &bindState, uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const;
@@ -259,18 +259,18 @@ export {
 			virtual void RecordCompute(ShaderBindState &bindState) const;
 			virtual void RecordEndCompute(ShaderBindState &bindState) const;
 			bool AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t constantId, uint32_t numBytes, const void *data);
-		protected:
+		  protected:
 			virtual void InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
-		private:
+		  private:
 			virtual void InitializePipeline() override;
 		};
 
 		class DLLPROSPER ShaderRaytracing : public Shader {
-		public:
+		  public:
 			ShaderRaytracing(prosper::IPrContext &context, const std::string &identifier, const std::string &rtShader);
-		protected:
+		  protected:
 			virtual void InitializeRaytracingPipeline(prosper::RayTracingPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
-		private:
+		  private:
 			virtual void InitializePipeline() override;
 		};
 
@@ -292,14 +292,14 @@ export {
 				StencilCompareMask = DepthBounds << 1u,
 				StencilWriteMask = StencilCompareMask << 1u,
 				StencilReference = StencilWriteMask << 1u,
-	#if 0
+#if 0
 				ViewportWScalingNV = StencilReference<<1u,
 				DiscardRectangleEXT = ViewportWScalingNV<<1u,
 				SampleLocationsEXT = DiscardRectangleEXT<<1u,
 				ViewportShadingRatePaletteNV = SampleLocationsEXT<<1u,
 				ViewportCoarseSampleOrderNV = ViewportShadingRatePaletteNV<<1u,
 				ExclusiveScissorNV = ViewportCoarseSampleOrderNV<<1u
-	#endif
+#endif
 			};
 			DLLPROSPER void set_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo, DynamicStateFlags states, bool enabled = true);
 			DLLPROSPER bool are_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo, DynamicStateFlags states);
@@ -310,8 +310,8 @@ export {
 
 		DLLPROSPER Shader *find_shader(const IPrContext &context, const std::type_info &typeInfo);
 
-		#pragma warning(push)
-		#pragma warning(disable : 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 		template<class TShader>
 		void Shader::SetBaseShader()
 		{
@@ -338,12 +338,12 @@ export {
 		{
 			return RecordPushConstants(bindState, sizeof(data), &data, offset);
 		}
-		#pragma warning(pop)
+#pragma warning(pop)
 
 		using namespace umath::scoped_enum::bitwise;
 	};
 
-	#pragma warning(pop)
+#pragma warning(pop)
 
 	namespace umath::scoped_enum::bitwise {
 		template<>
