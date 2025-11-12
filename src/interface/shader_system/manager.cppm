@@ -17,7 +17,6 @@ export {
 #pragma warning(disable : 4251)
 	namespace prosper {
 		class Shader;
-		class PipelineCache;
 		using ShaderIndex = uint32_t;
 		class DLLPROSPER ShaderManager : public ContextObject {
 		  public:
