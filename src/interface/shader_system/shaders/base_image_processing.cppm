@@ -11,6 +11,9 @@ export import :shader_system.shader;
 
 export namespace prosper {
 	class RenderTarget;
+	namespace shaderBaseImageProcessing {
+		CLASS_ENUM_COMPAT prosper::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
+	}
 	class DLLPROSPER ShaderBaseImageProcessing : public ShaderGraphics {
 	  public:
 		static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_VERTEX;
@@ -18,8 +21,6 @@ export namespace prosper {
 
 		static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_UV;
 		static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_UV;
-
-		static prosper::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
 
 		ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader);
 		ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader);
