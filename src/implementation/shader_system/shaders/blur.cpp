@@ -17,7 +17,9 @@ decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_U
 decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {prosper::DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
 
 static constexpr std::array<prosper::Format, umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
-  prosper::Format::R8G8B8A8_UNorm, prosper::Format::R8_UNorm, prosper::Format::R16G16B16A16_SFloat,
+  prosper::Format::R8G8B8A8_UNorm,
+  prosper::Format::R8_UNorm,
+  prosper::Format::R16G16B16A16_SFloat,
   //prosper::Format::BC1_RGBA_UNorm_Block,
   //prosper::Format::BC2_UNorm_Block,
   //prosper::Format::BC3_UNorm_Block
