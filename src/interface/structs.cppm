@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.prosper:structs;
 
@@ -826,13 +827,8 @@ export {
 	};
 	using namespace umath::scoped_enum::bitwise;
 
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::PrDescriptorSetBindingFlags> : std::true_type {};
-
-		template<>
-		struct enable_bitwise_operators<prosper::util::TextureCreateInfo::Flags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::PrDescriptorSetBindingFlags)
+	REGISTER_ENUM_FLAGS(prosper::util::TextureCreateInfo::Flags)
 
 #ifdef __clang__
 #pragma clang diagnostic pop

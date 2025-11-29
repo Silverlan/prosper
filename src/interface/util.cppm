@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.prosper:util;
 
@@ -125,8 +126,5 @@ export {
 		return (v == nullptr) ? std::shared_ptr<T>(nullptr) : std::shared_ptr<T>(v.release(), v.get_deleter());
 	}
 
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::util::ImageCreateInfo::Flags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::util::ImageCreateInfo::Flags)
 }

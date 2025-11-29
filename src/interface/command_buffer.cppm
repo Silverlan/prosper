@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.prosper:command_buffer;
 
@@ -245,9 +246,7 @@ export {
 		}
 	};
 
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::IPrimaryCommandBuffer::RenderPassFlags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::IPrimaryCommandBuffer::RenderPassFlags)
+
 #pragma warning(pop)
 }

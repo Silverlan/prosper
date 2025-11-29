@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.prosper:context;
 
@@ -186,6 +187,7 @@ export {
 
 			void Run();
 			void Close();
+			bool IsClosed() const;
 
 			// Has to be called before the context has been initialized
 			void SetValidationEnabled(bool b);
@@ -317,17 +319,20 @@ export {
 			std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures, const std::shared_ptr<IRenderPass> &rp = nullptr, const util::RenderTargetCreateInfo &rtCreateInfo = {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture, IImageView &imgView, IRenderPass &rp, const util::RenderTargetCreateInfo &rtCreateInfo = {});
 			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {},
-			  const std::optional<IndexBufferInfo> &indexBufferInfo = {}) = 0;
+			  const std::optional<IndexBufferInfo> &indexBufferInfo = {})
+			  = 0;
 			virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, prosper::ShaderStage stage, const std::string &entrypointName = "main") = 0;
 			virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false, const std::string &prefixCode = {},
-			  const std::unordered_map<std::string, std::string> &definitions = {}) = 0;
+			  const std::unordered_map<std::string, std::string> &definitions = {})
+			  = 0;
 			virtual std::optional<std::unordered_map<prosper::ShaderStage, std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage, std::string> &shaderStages, std::string &outInfoLog) { return {}; }
 			virtual bool GetParsedShaderSourceCode(prosper::Shader &shader, std::vector<std::string> &outGlslCodePerStage, std::vector<prosper::ShaderStage> &outGlslCodeStages, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage) const = 0;
 			std::optional<std::string> FindShaderFile(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt = nullptr);
 			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::ComputePipelineCreateInfo &createInfo, prosper::ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::RayTracingPipelineCreateInfo &createInfo, prosper::ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::GraphicsPipelineCreateInfo &createInfo, IRenderPass &rp, prosper::ShaderStageData *shaderStageFs = nullptr, prosper::ShaderStageData *shaderStageVs = nullptr,
-			  prosper::ShaderStageData *shaderStageGs = nullptr, prosper::ShaderStageData *shaderStageTc = nullptr, prosper::ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
+			  prosper::ShaderStageData *shaderStageGs = nullptr, prosper::ShaderStageData *shaderStageTc = nullptr, prosper::ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max())
+			  = 0;
 			prosper::Shader *GetShaderPipeline(PipelineID id, uint32_t &outPipelineIdx) const;
 			virtual bool ClearPipeline(bool graphicsShader, PipelineID pipelineId) = 0;
 			uint32_t GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
@@ -514,8 +519,5 @@ export {
 	};
 #pragma warning(pop)
 
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::IPrContext::StateFlags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::IPrContext::StateFlags)
 }

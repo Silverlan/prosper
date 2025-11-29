@@ -103,6 +103,7 @@ void prosper::IPrContext::InitWindow()
 		m_windows.push_back(newWindow);
 	onWindowReloaded();
 }
+bool prosper::IPrContext::IsClosed() const { return umath::is_flag_set(m_stateFlags, StateFlags::Closed); }
 void prosper::IPrContext::Close()
 {
 	if(umath::is_flag_set(m_stateFlags, StateFlags::Closed))

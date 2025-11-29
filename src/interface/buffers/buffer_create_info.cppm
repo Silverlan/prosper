@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.prosper:buffer.buffer_create_info;
 
@@ -31,8 +32,5 @@ export {
 		};
 		using namespace umath::scoped_enum::bitwise;
 	};
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::util::BufferCreateInfo::Flags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::util::BufferCreateInfo::Flags)
 }

@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.prosper:shader_system.shader;
 
@@ -345,11 +346,6 @@ export {
 
 #pragma warning(pop)
 
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::util::DynamicStateFlags> : std::true_type {};
-
-		template<>
-		struct enable_bitwise_operators<prosper::ShaderGraphics::RecordFlags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::util::DynamicStateFlags)
+	REGISTER_ENUM_FLAGS(prosper::ShaderGraphics::RecordFlags)
 }
