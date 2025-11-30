@@ -182,6 +182,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 
 		if(gfxPipelineInfo == nullptr)
 			continue;
+		gfxPipelineInfo->SetName(GetIdentifier() +"_" +std::to_string(pipelineIdx));
 		ToggleDynamicViewportState(*gfxPipelineInfo, true);
 		gfxPipelineInfo->SetPrimitiveTopology(prosper::PrimitiveTopology::TriangleList);
 

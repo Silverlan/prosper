@@ -47,6 +47,7 @@ void prosper::ShaderCompute::InitializePipeline()
 		auto computePipelineInfo = prosper::ComputePipelineCreateInfo::Create(createFlags, (modCmp != nullptr) ? *modCmp->entryPoint : prosper::ShaderModuleStageEntryPoint(), bIsDerivative ? &basePipelineId : nullptr);
 		if(computePipelineInfo == nullptr)
 			continue;
+		computePipelineInfo->SetName(GetIdentifier() +"_" +std::to_string(pipelineIdx));
 		InitializeComputePipeline(*computePipelineInfo, pipelineIdx);
 		InitializeDescriptorSetGroups(*computePipelineInfo);
 
