@@ -515,7 +515,7 @@ static std::optional<uint32_t> determine_line_index(const std::string &line, siz
 		auto end = (bAMD == true) ? line.find_first_of(':', st) : line.find_first_of(')', st);
 		if(end != ustring::NOT_FOUND) {
 			outEnd = end;
-			return atoi(line.substr(st, end - st).c_str());
+			return ustring::to_int(line.substr(st, end - st));
 		}
 		return {};
 	}
@@ -524,7 +524,7 @@ static std::optional<uint32_t> determine_line_index(const std::string &line, siz
 		auto en = (st != std::string::npos) ? line.find_first_of(':', st + 1) : std::string::npos;
 		if(en != std::string::npos) {
 			outEnd = en;
-			return atoi(line.substr(st + 1, en - st - 1).c_str());
+			return ustring::to_int(line.substr(st + 1, en - st - 1));
 		}
 	}
 	return {};
