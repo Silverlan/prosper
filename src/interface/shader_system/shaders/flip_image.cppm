@@ -10,7 +10,7 @@ export module pragma.prosper:shader_system.shaders.flip_image;
 export import :shader_system.shaders.base_image_processing;
 
 export namespace prosper {
-	class DLLPROSPER ShaderFlipImage : public prosper::ShaderBaseImageProcessing {
+	class DLLPROSPER ShaderFlipImage : public ShaderBaseImageProcessing {
 	  public:
 #pragma pack(push, 1)
 		struct PushConstants {
@@ -19,14 +19,14 @@ export namespace prosper {
 		};
 #pragma pack(pop)
 
-		ShaderFlipImage(prosper::IPrContext &context, const std::string &identifier);
+		ShaderFlipImage(IPrContext &context, const std::string &identifier);
 		virtual ~ShaderFlipImage() override;
-		bool RecordDraw(prosper::ICommandBuffer &cmd, prosper::IDescriptorSet &descSetTexture, bool flipHorizontally, bool flipVertically) const;
+		bool RecordDraw(ICommandBuffer &cmd, IDescriptorSet &descSetTexture, bool flipHorizontally, bool flipVertically) const;
 		// This overload assumes that the texture has already been bound!
 		bool RecordDraw(ShaderBindState &bindState, bool flipHorizontally, bool flipVertically) const;
 	  protected:
-		bool RecordDraw(prosper::ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const;
-		virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
+		bool RecordDraw(ShaderBindState &bindState, IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const;
+		virtual void InitializeGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) override;
 		virtual void InitializeShaderResources() override;
 	};
 };

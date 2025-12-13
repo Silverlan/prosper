@@ -17,29 +17,29 @@ export namespace prosper {
 	class ISecondaryCommandBuffer;
 	class ICommandBufferPool;
 
-	using RenderThreadRecordCall = std::function<void(prosper::ISecondaryCommandBuffer &)>;
+	using RenderThreadRecordCall = std::function<void(ISecondaryCommandBuffer &)>;
 	class SwapCommandBufferGroup;
 	class DLLPROSPER ISwapCommandBufferGroup {
 	  public:
 		ISwapCommandBufferGroup(Window &window, const std::string &debugName = {});
 		virtual ~ISwapCommandBufferGroup();
 		virtual void Record(const RenderThreadRecordCall &record) = 0;
-		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf);
+		virtual bool ExecuteCommands(IPrimaryCommandBuffer &cmdBuf);
 		virtual bool IsPending() const = 0;
-		void StartRecording(prosper::IRenderPass &rp, prosper::IFramebuffer &fb);
+		void StartRecording(IRenderPass &rp, IFramebuffer &fb);
 		void EndRecording();
 		void SetOneTimeSubmit(bool oneTimeSubmit) { m_oneTimeSubmit = oneTimeSubmit; }
 		bool GetOneTimeSubmit() const { return m_oneTimeSubmit; }
 		virtual void Wait() = 0;
 
 		void Reuse();
-		prosper::IPrContext &GetContext() const;
+		IPrContext &GetContext() const;
 	  protected:
 		void Initialize(uint32_t swapchainIdx);
 
-		std::vector<std::shared_ptr<prosper::ISecondaryCommandBuffer>> m_commandBuffers;
-		std::shared_ptr<prosper::ICommandBufferPool> m_cmdPool = nullptr;
-		prosper::ISecondaryCommandBuffer *m_curCommandBuffer = nullptr;
+		std::vector<std::shared_ptr<ISecondaryCommandBuffer>> m_commandBuffers;
+		std::shared_ptr<ICommandBufferPool> m_cmdPool = nullptr;
+		ISecondaryCommandBuffer *m_curCommandBuffer = nullptr;
 		std::queue<RenderThreadRecordCall> m_recordCalls;
 		bool m_oneTimeSubmit = true;
 		std::weak_ptr<Window> m_window {};
@@ -66,7 +66,7 @@ export namespace prosper {
 	class DLLPROSPER StSwapCommandBufferGroup : public ISwapCommandBufferGroup {
 	  public:
 		StSwapCommandBufferGroup(Window &window, const std::string &debugName = {});
-		virtual bool ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf) override;
+		virtual bool ExecuteCommands(IPrimaryCommandBuffer &cmdBuf) override;
 		virtual bool IsPending() const override { return false; }
 		virtual void Wait() override;
 	  private:

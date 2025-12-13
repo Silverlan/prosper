@@ -16,12 +16,12 @@ export {
 		class IPrContext;
 		class DLLPROSPER ShaderPipelineLoader {
 		  public:
-			ShaderPipelineLoader(prosper::IPrContext &context);
+			ShaderPipelineLoader(IPrContext &context);
 			~ShaderPipelineLoader();
 			void Flush();
 			void Stop();
 			void Init(ShaderIndex shaderIndex, const std::function<bool()> &job);
-			void Bake(ShaderIndex shaderIndex, prosper::PipelineID id, prosper::PipelineBindPoint pipelineType);
+			void Bake(ShaderIndex shaderIndex, PipelineID id, PipelineBindPoint pipelineType);
 			bool IsShaderQueued(ShaderIndex shaderIndex) const;
 		  private:
 			struct InitItem {
@@ -30,12 +30,12 @@ export {
 			};
 			struct BakeItem {
 				ShaderIndex shaderIndex;
-				prosper::PipelineID pipelineId;
-				prosper::PipelineBindPoint pipelineBindPoint;
+				PipelineID pipelineId;
+				PipelineBindPoint pipelineBindPoint;
 			};
 			void ProcessInitQueue();
 			void ProcessBakeQueue();
-			prosper::IPrContext &m_context;
+			IPrContext &m_context;
 			void AddPendingShaderJobCount(ShaderIndex shaderIndex, int32_t i);
 
 			bool m_multiThreaded = true;

@@ -53,4 +53,4 @@ void Texture::Bake()
 
 //////////////////////////
 
-prosper::util::TextureCreateInfo::TextureCreateInfo(IImageView &imgView, ISampler *smp) : imageView {imgView.shared_from_this()}, sampler {smp ? smp->shared_from_this() : nullptr} {}
+util::TextureCreateInfo::TextureCreateInfo(IImageView &imgView, ISampler *smp) : imageView {imgView.shared_from_this()}, sampler {smp ? smp->shared_from_this() : nullptr} {}

@@ -19,8 +19,8 @@ void prosper::CommonBufferCache::Release()
 
 	m_lineVertexBuffer = nullptr;
 }
-prosper::Format prosper::CommonBufferCache::GetSquareVertexFormat() { return prosper::Format::R32G32_SFloat; }
-prosper::Format prosper::CommonBufferCache::GetSquareUvFormat() { return prosper::Format::R32G32_SFloat; }
+prosper::Format prosper::CommonBufferCache::GetSquareVertexFormat() { return Format::R32G32_SFloat; }
+prosper::Format prosper::CommonBufferCache::GetSquareUvFormat() { return Format::R32G32_SFloat; }
 
 std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexUvBuffer()
 {
@@ -41,10 +41,10 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexUvB
 			auto &uv = uvs.at(i);
 			vertexData.push_back({v, uv});
 		}
-		prosper::util::BufferCreateInfo createInfo {};
+		util::BufferCreateInfo createInfo {};
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertexData.size() * sizeof(vertexData.front());
-		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 		auto buf = m_context.CreateBuffer(createInfo, vertexData.data());
 		buf->SetDebugName("square_vertex_uv_buf");
 		m_squareVertexUvBuffer = buf;
@@ -57,9 +57,9 @@ std::shared_ptr<prosper::IRenderBuffer> prosper::CommonBufferCache::GetSquareVer
 		auto vertexBuf = GetSquareVertexBuffer();
 		auto uvBuf = GetSquareUvBuffer();
 		// The shader here doesn't matter, but has to be derived from ShaderBaseImageProcessing and have its same vertex buffer structure
-		auto *shaderCpy = static_cast<prosper::ShaderCopyImage *>(m_context.GetShader("copy_image").get());
+		auto *shaderCpy = static_cast<ShaderCopyImage *>(m_context.GetShader("copy_image").get());
 		if(shaderCpy)
-			m_squareVertexUvRenderBuffer = m_context.CreateRenderBuffer(*static_cast<prosper::GraphicsPipelineCreateInfo *>(shaderCpy->GetPipelineCreateInfo(0u)), {vertexBuf.get(), uvBuf.get()});
+			m_squareVertexUvRenderBuffer = m_context.CreateRenderBuffer(*static_cast<GraphicsPipelineCreateInfo *>(shaderCpy->GetPipelineCreateInfo(0u)), {vertexBuf.get(), uvBuf.get()});
 	}
 	return m_squareVertexUvRenderBuffer;
 }
@@ -67,10 +67,10 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexBuf
 {
 	if(m_squareVertexBuffer == nullptr) {
 		auto &vertices = GetSquareVertices();
-		prosper::util::BufferCreateInfo createInfo {};
+		util::BufferCreateInfo createInfo {};
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertices.size() * sizeof(Vector2);
-		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 		auto buf = m_context.CreateBuffer(createInfo, vertices.data());
 		buf->SetDebugName("square_vertex_buf");
 		m_squareVertexBuffer = buf;
@@ -81,10 +81,10 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareUvBuffer(
 {
 	if(m_squareUvBuffer == nullptr) {
 		auto &uvCoordinates = GetSquareUvCoordinates();
-		prosper::util::BufferCreateInfo createInfo {};
+		util::BufferCreateInfo createInfo {};
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = uvCoordinates.size() * sizeof(Vector2);
-		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 		auto buf = m_context.CreateBuffer(createInfo, uvCoordinates.data());
 		buf->SetDebugName("square_uv_buf");
 		m_squareUvBuffer = buf;
@@ -107,16 +107,16 @@ uint32_t prosper::CommonBufferCache::GetSquareVertexCount() { return 6u; }
 
 /////////////
 
-prosper::Format prosper::CommonBufferCache::GetLineVertexFormat() { return prosper::Format::R32G32_SFloat; }
+prosper::Format prosper::CommonBufferCache::GetLineVertexFormat() { return Format::R32G32_SFloat; }
 
 std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetLineVertexBuffer()
 {
 	if(m_lineVertexBuffer == nullptr) {
 		auto &vertices = GetLineVertices();
-		prosper::util::BufferCreateInfo createInfo {};
+		util::BufferCreateInfo createInfo {};
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertices.size() * sizeof(Vector2);
-		createInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 		auto buf = m_context.CreateBuffer(createInfo, vertices.data());
 		buf->SetDebugName("line_vertex_buf");
 		m_lineVertexBuffer = buf;

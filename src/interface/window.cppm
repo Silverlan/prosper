@@ -14,8 +14,8 @@ export import :types;
 export namespace prosper {
 	class DLLPROSPER Window : public ContextObject, public std::enable_shared_from_this<Window> {
 	  public:
-		static constexpr auto STAGING_RENDER_TARGET_COLOR_FORMAT = prosper::Format::R8G8B8A8_UNorm;
-		static constexpr auto STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT = prosper::Format::D32_SFloat_S8_UInt;
+		static constexpr auto STAGING_RENDER_TARGET_COLOR_FORMAT = Format::R8G8B8A8_UNorm;
+		static constexpr auto STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT = Format::D32_SFloat_S8_UInt;
 
 		enum class State : uint8_t { Active = 0, Inactive };
 
@@ -31,13 +31,13 @@ export namespace prosper {
 
 		uint32_t GetSwapchainImageCount() const { return m_swapchainImages.size(); }
 		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const = 0;
-		prosper::IImage *GetSwapchainImage(uint32_t idx);
-		prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
+		IImage *GetSwapchainImage(uint32_t idx);
+		IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 		pragma::platform::Window &GetGlfwWindow() { return *m_glfwWindow; }
 
-		prosper::IRenderPass &GetStagingRenderPass() const;
-		std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget();
-		const std::shared_ptr<prosper::RenderTarget> &GetStagingRenderTarget() const { return const_cast<Window *>(this)->GetStagingRenderTarget(); }
+		IRenderPass &GetStagingRenderPass() const;
+		std::shared_ptr<RenderTarget> &GetStagingRenderTarget();
+		const std::shared_ptr<RenderTarget> &GetStagingRenderTarget() const { return const_cast<Window *>(this)->GetStagingRenderTarget(); }
 		void ReloadStagingRenderTarget();
 
 		void Close();
@@ -52,12 +52,12 @@ export namespace prosper {
 		void SetResolutionWidth(uint32_t w);
 		void SetResolutionHeight(uint32_t h);
 		void SetMonitor(pragma::platform::Monitor &monitor);
-		void SetPresentMode(prosper::PresentModeKHR presentMode);
+		void SetPresentMode(PresentModeKHR presentMode);
 		float GetAspectRatio() const;
 		void ReloadSwapchain();
 
-		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer() const;
-		const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetDrawCommandBuffer(uint32_t swapchainIdx) const;
+		const std::shared_ptr<IPrimaryCommandBuffer> &GetDrawCommandBuffer() const;
+		const std::shared_ptr<IPrimaryCommandBuffer> &GetDrawCommandBuffer(uint32_t swapchainIdx) const;
 
 		State GetState() const { return m_state; }
 		void SetState(State state) { m_state = state; }
@@ -71,7 +71,7 @@ export namespace prosper {
 		void AddClosedListener(const std::function<void()> &callback) { m_closedListeners.push_back(callback); }
 		const std::vector<std::function<void()>> &GetClosedListeners() const { return m_closedListeners; }
 
-		prosper::ISwapCommandBufferGroup &GetSwapCommandBufferGroup() { return *m_guiCommandBufferGroup; }
+		ISwapCommandBufferGroup &GetSwapCommandBufferGroup() { return *m_guiCommandBufferGroup; }
 		bool ScheduledForClose() const;
 	  protected:
 		struct WindowChangeInfo {
@@ -81,7 +81,7 @@ export namespace prosper {
 			std::optional<uint32_t> width = {};
 			std::optional<uint32_t> height = {};
 			std::optional<pragma::platform::Monitor> monitor = {};
-			std::optional<prosper::PresentModeKHR> presentMode = {};
+			std::optional<PresentModeKHR> presentMode = {};
 		};
 		friend IPrContext;
 		Window(IPrContext &context, const WindowSettings &windowCreationInfo);
@@ -101,20 +101,20 @@ export namespace prosper {
 
 		WindowChangeInfo &ScheduleWindowReload();
 		std::unique_ptr<WindowChangeInfo> m_scheduledWindowReloadInfo = nullptr;
-		std::vector<std::shared_ptr<prosper::IPrimaryCommandBuffer>> m_commandBuffers;
+		std::vector<std::shared_ptr<IPrimaryCommandBuffer>> m_commandBuffers;
 
 		std::function<void()> m_initCallback = nullptr;
 		std::vector<std::function<void()>> m_closeListeners;
 		std::vector<std::function<void()>> m_closedListeners;
 		WindowSettings m_settings {};
 		std::unique_ptr<pragma::platform::Window> m_glfwWindow = nullptr;
-		std::shared_ptr<prosper::ISwapCommandBufferGroup> m_guiCommandBufferGroup = nullptr;
+		std::shared_ptr<ISwapCommandBufferGroup> m_guiCommandBufferGroup = nullptr;
 
 		State m_state = State::Active;
 		float m_aspectRatio = 1.f;
-		std::shared_ptr<prosper::RenderTarget> m_stagingRenderTarget = nullptr;
-		std::vector<std::shared_ptr<prosper::IImage>> m_swapchainImages {};
-		std::vector<std::shared_ptr<prosper::IFramebuffer>> m_swapchainFramebuffers {};
+		std::shared_ptr<RenderTarget> m_stagingRenderTarget = nullptr;
+		std::vector<std::shared_ptr<IImage>> m_swapchainImages {};
+		std::vector<std::shared_ptr<IFramebuffer>> m_swapchainFramebuffers {};
 		uint32_t m_lastSemaporeUsed = 0u;
 		bool m_closed = false;
 	};

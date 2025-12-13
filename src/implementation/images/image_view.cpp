@@ -9,7 +9,7 @@ import :image.image_view;
 
 using namespace prosper;
 
-IImageView::IImageView(IPrContext &context, IImage &img, const prosper::util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags)
+IImageView::IImageView(IPrContext &context, IImage &img, const util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags)
     : ContextObject(context), std::enable_shared_from_this<IImageView>(), m_image {img.shared_from_this()}, m_type {type}, m_aspectFlags {aspectFlags}, m_createInfo {createInfo}
 {
 	if(m_createInfo.mipmapLevels == std::numeric_limits<decltype(m_createInfo.mipmapLevels)>::max())

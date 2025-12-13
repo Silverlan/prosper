@@ -9,17 +9,17 @@ import :image.msaa_texture;
 
 using namespace prosper;
 
-prosper::MSAATexture::MSAATexture(IPrContext &context, IImage &img, const std::vector<std::shared_ptr<IImageView>> &imgViews, ISampler *sampler, const std::shared_ptr<Texture> &resolvedTexture) : Texture(context, img, imgViews, sampler), m_resolvedTexture(resolvedTexture)
+MSAATexture::MSAATexture(IPrContext &context, IImage &img, const std::vector<std::shared_ptr<IImageView>> &imgViews, ISampler *sampler, const std::shared_ptr<Texture> &resolvedTexture) : Texture(context, img, imgViews, sampler), m_resolvedTexture(resolvedTexture)
 {
-	if(umath::is_flag_set(img.GetUsageFlags(), prosper::ImageUsageFlags::TransferSrcBit) == false)
+	if(pragma::math::is_flag_set(img.GetUsageFlags(), ImageUsageFlags::TransferSrcBit) == false)
 		throw std::logic_error("MSAA source image must be created with VK_IMAGE_USAGE_TRANSFER_SRC_BIT usage flag!");
-	if((resolvedTexture->GetImage().GetUsageFlags() & prosper::ImageUsageFlags::TransferDstBit) == prosper::ImageUsageFlags::None)
+	if((resolvedTexture->GetImage().GetUsageFlags() & ImageUsageFlags::TransferDstBit) == ImageUsageFlags::None)
 		throw std::logic_error("MSAA destination image must be created with VK_IMAGE_USAGE_TRANSFER_DST_BIT usage flag!");
 }
 
-const std::shared_ptr<Texture> &prosper::MSAATexture::GetResolvedTexture() const { return m_resolvedTexture; }
+const std::shared_ptr<Texture> &MSAATexture::GetResolvedTexture() const { return m_resolvedTexture; }
 
-std::shared_ptr<Texture> prosper::MSAATexture::Resolve(prosper::ICommandBuffer &cmdBuffer, ImageLayout msaaLayoutIn, ImageLayout msaaLayoutOut, ImageLayout resolvedLayoutIn, ImageLayout resolvedLayoutOut)
+std::shared_ptr<Texture> MSAATexture::Resolve(ICommandBuffer &cmdBuffer, ImageLayout msaaLayoutIn, ImageLayout msaaLayoutOut, ImageLayout resolvedLayoutIn, ImageLayout resolvedLayoutOut)
 {
 	auto &imgSrc = GetImage();
 	if(util::is_depth_format(imgSrc.GetFormat()))
@@ -44,7 +44,7 @@ std::shared_ptr<Texture> prosper::MSAATexture::Resolve(prosper::ICommandBuffer &
 	return m_resolvedTexture;
 }
 
-void prosper::MSAATexture::SetDebugName(const std::string &name)
+void MSAATexture::SetDebugName(const std::string &name)
 {
 	Texture::SetDebugName(name);
 	if(m_resolvedTexture == nullptr)
@@ -52,6 +52,6 @@ void prosper::MSAATexture::SetDebugName(const std::string &name)
 	m_resolvedTexture->SetDebugName(name + "_resolved");
 }
 
-bool prosper::MSAATexture::IsMSAATexture() const { return true; }
+bool MSAATexture::IsMSAATexture() const { return true; }
 
-void prosper::MSAATexture::Reset() { m_bResolved = false; }
+void MSAATexture::Reset() { m_bResolved = false; }

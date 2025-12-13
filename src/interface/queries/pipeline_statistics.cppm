@@ -29,13 +29,13 @@ export namespace prosper {
 #pragma pack(pop)
 	class DLLPROSPER PipelineStatisticsQuery : public Query {
 	  public:
-		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer);
-		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
+		bool RecordBegin(ICommandBuffer &cmdBuffer);
+		bool RecordEnd(ICommandBuffer &cmdBuffer) const;
 		bool QueryResult(PipelineStatistics &outStatistics) const;
 		bool IsReset() const;
 	  private:
 		PipelineStatisticsQuery(IQueryPool &queryPool, uint32_t queryId);
-		virtual void OnReset(prosper::ICommandBuffer &cmdBuffer) override;
+		virtual void OnReset(ICommandBuffer &cmdBuffer) override;
 		bool m_bReset = true;
 	  private:
 		friend IQueryPool;

@@ -11,7 +11,7 @@ module pragma.prosper;
 import :shader_system.shader;
 import :util;
 
-void prosper::util::apply_image_subresource_range(const prosper::util::ImageSubresourceRange &srcRange, prosper::util::ImageSubresourceRange &vkRange, prosper::IImage &img)
+void prosper::util::apply_image_subresource_range(const ImageSubresourceRange &srcRange, ImageSubresourceRange &vkRange, IImage &img)
 {
 	vkRange.baseMipLevel = srcRange.baseMipLevel;
 	vkRange.levelCount = srcRange.levelCount;
@@ -25,29 +25,29 @@ void prosper::util::apply_image_subresource_range(const prosper::util::ImageSubr
 }
 prosper::util::BarrierImageLayout::BarrierImageLayout(PipelineStageFlags pipelineStageFlags, ImageLayout imageLayout, AccessFlags accessFlags) : stageMask(pipelineStageFlags), layout(imageLayout), accessMask(accessFlags) {}
 
-prosper::util::BufferBarrier prosper::util::create_buffer_barrier(const prosper::util::BufferBarrierInfo &barrierInfo, IBuffer &buffer)
+prosper::util::BufferBarrier prosper::util::create_buffer_barrier(const BufferBarrierInfo &barrierInfo, IBuffer &buffer)
 {
-	return util::BufferBarrier(barrierInfo.srcAccessMask, barrierInfo.dstAccessMask, QUEUE_FAMILY_IGNORED, QUEUE_FAMILY_IGNORED, &buffer, barrierInfo.offset, umath::min(barrierInfo.offset + barrierInfo.size, buffer.GetSize()) - barrierInfo.offset);
+	return util::BufferBarrier(barrierInfo.srcAccessMask, barrierInfo.dstAccessMask, QUEUE_FAMILY_IGNORED, QUEUE_FAMILY_IGNORED, &buffer, barrierInfo.offset, pragma::math::min(barrierInfo.offset + barrierInfo.size, buffer.GetSize()) - barrierInfo.offset);
 }
 
-prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img, const BarrierImageLayout &srcBarrierInfo, const BarrierImageLayout &dstBarrierInfo, const ImageSubresourceRange &subresourceRange, std::optional<prosper::ImageAspectFlags> aspectMask)
+prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img, const BarrierImageLayout &srcBarrierInfo, const BarrierImageLayout &dstBarrierInfo, const ImageSubresourceRange &subresourceRange, std::optional<ImageAspectFlags> aspectMask)
 {
-	util::ImageSubresourceRange resourceRange {};
+	ImageSubresourceRange resourceRange {};
 	apply_image_subresource_range(subresourceRange, resourceRange, img);
-	return prosper::util::ImageBarrier(srcBarrierInfo.accessMask, dstBarrierInfo.accessMask, srcBarrierInfo.layout, dstBarrierInfo.layout, QUEUE_FAMILY_IGNORED, QUEUE_FAMILY_IGNORED, &img, resourceRange, aspectMask);
+	return util::ImageBarrier(srcBarrierInfo.accessMask, dstBarrierInfo.accessMask, srcBarrierInfo.layout, dstBarrierInfo.layout, QUEUE_FAMILY_IGNORED, QUEUE_FAMILY_IGNORED, &img, resourceRange, aspectMask);
 }
 
-prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img, const prosper::util::ImageBarrierInfo &barrierInfo, std::optional<prosper::ImageAspectFlags> aspectMask)
+prosper::util::ImageBarrier prosper::util::create_image_barrier(IImage &img, const ImageBarrierInfo &barrierInfo, std::optional<ImageAspectFlags> aspectMask)
 {
-	util::ImageSubresourceRange resourceRange {};
+	ImageSubresourceRange resourceRange {};
 	apply_image_subresource_range(barrierInfo.subresourceRange, resourceRange, img);
 	return ImageBarrier {barrierInfo.srcAccessMask, barrierInfo.dstAccessMask, barrierInfo.oldLayout, barrierInfo.newLayout, barrierInfo.srcQueueFamilyIndex, barrierInfo.dstQueueFamilyIndex, &img, resourceRange, aspectMask};
 }
 
 std::unique_ptr<std::unordered_map<prosper::ICommandBuffer *, std::unordered_map<prosper::IImage *, prosper::debug::ImageLayoutInfo>>> s_lastRecordedImageLayouts = nullptr;
 static std::function<void(prosper::DebugReportObjectTypeEXT, const std::string &)> s_debugCallback = nullptr;
-void prosper::debug::set_debug_validation_callback(const std::function<void(prosper::DebugReportObjectTypeEXT, const std::string &)> &callback) { s_debugCallback = callback; }
-void prosper::debug::exec_debug_validation_callback(IPrContext &context, prosper::DebugReportObjectTypeEXT objType, const std::string &msg)
+void prosper::debug::set_debug_validation_callback(const std::function<void(DebugReportObjectTypeEXT, const std::string &)> &callback) { s_debugCallback = callback; }
+void prosper::debug::exec_debug_validation_callback(IPrContext &context, DebugReportObjectTypeEXT objType, const std::string &msg)
 {
 	if(s_debugCallback == nullptr)
 		return;
@@ -62,9 +62,9 @@ void prosper::debug::enable_debug_recorded_image_layout(bool b)
 		s_lastRecordedImageLayouts = nullptr;
 		return;
 	}
-	s_lastRecordedImageLayouts = std::make_unique<std::unordered_map<prosper::ICommandBuffer *, std::unordered_map<prosper::IImage *, prosper::debug::ImageLayoutInfo>>>();
+	s_lastRecordedImageLayouts = std::make_unique<std::unordered_map<ICommandBuffer *, std::unordered_map<IImage *, ImageLayoutInfo>>>();
 }
-void prosper::debug::set_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer, IImage &img, ImageLayout layout, uint32_t baseLayer, uint32_t layerCount, uint32_t baseMipmap, uint32_t mipmapLevels)
+void prosper::debug::set_last_recorded_image_layout(ICommandBuffer &cmdBuffer, IImage &img, ImageLayout layout, uint32_t baseLayer, uint32_t layerCount, uint32_t baseMipmap, uint32_t mipmapLevels)
 {
 #ifdef DEBUG_VERBOSE
 	std::cout << "[PR] Setting image layout for image " << img.get_image() << " to: " << vk::to_string(layout) << std::endl;
@@ -73,11 +73,11 @@ void prosper::debug::set_last_recorded_image_layout(prosper::ICommandBuffer &cmd
 	//	std::cout<<"prepass_depth_normal_rt_tex0_resolved_img changed to "<<vk::to_string(layout)<<"!"<<std::endl;
 	auto it = s_lastRecordedImageLayouts->find(&cmdBuffer);
 	if(it == s_lastRecordedImageLayouts->end())
-		it = s_lastRecordedImageLayouts->insert(std::make_pair(&cmdBuffer, std::unordered_map<prosper::IImage *, prosper::debug::ImageLayoutInfo> {})).first;
+		it = s_lastRecordedImageLayouts->insert(std::make_pair(&cmdBuffer, std::unordered_map<IImage *, ImageLayoutInfo> {})).first;
 
 	auto itLayoutInfo = it->second.find(&img);
 	if(itLayoutInfo == it->second.end())
-		itLayoutInfo = it->second.insert(std::make_pair(&img, prosper::debug::ImageLayoutInfo {})).first;
+		itLayoutInfo = it->second.insert(std::make_pair(&img, ImageLayoutInfo {})).first;
 	auto &layoutInfo = itLayoutInfo->second;
 	if(layerCount == std::numeric_limits<uint32_t>::max())
 		layerCount = img.GetLayerCount() - baseLayer;
@@ -98,7 +98,7 @@ void prosper::debug::set_last_recorded_image_layout(prosper::ICommandBuffer &cmd
 			itLayoutInfo->second.layerLayouts.at(i).mipmapLayouts.at(j) = layout;
 	}
 }
-bool prosper::debug::get_last_recorded_image_layout(prosper::ICommandBuffer &cmdBuffer, IImage &img, ImageLayout &layout, uint32_t baseLayer, uint32_t baseMipmap)
+bool prosper::debug::get_last_recorded_image_layout(ICommandBuffer &cmdBuffer, IImage &img, ImageLayout &layout, uint32_t baseLayer, uint32_t baseMipmap)
 {
 	if(s_lastRecordedImageLayouts == nullptr)
 		return false;
@@ -159,14 +159,14 @@ static bool record_image_barrier(prosper::ICommandBuffer &cmdBuffer, prosper::II
 	return cmdBuffer.RecordImageBarrier(img, srcInfo, dstInfo, subresourceRange, aspectMask);
 }
 
-bool prosper::ICommandBuffer::RecordImageBarrier(prosper::IImage &img, prosper::PipelineStageFlags srcStageMask, prosper::PipelineStageFlags dstStageMask, prosper::ImageLayout oldLayout, prosper::ImageLayout newLayout, prosper::AccessFlags srcAccessMask, prosper::AccessFlags dstAccessMask,
-  uint32_t baseLayer, std::optional<prosper::ImageAspectFlags> aspectMask)
+bool prosper::ICommandBuffer::RecordImageBarrier(IImage &img, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, ImageLayout oldLayout, ImageLayout newLayout, AccessFlags srcAccessMask, AccessFlags dstAccessMask,
+  uint32_t baseLayer, std::optional<ImageAspectFlags> aspectMask)
 {
-	prosper::util::PipelineBarrierInfo barrier {};
+	util::PipelineBarrierInfo barrier {};
 	barrier.srcStageMask = srcStageMask;
 	barrier.dstStageMask = dstStageMask;
 
-	prosper::util::ImageBarrierInfo imgBarrier {};
+	util::ImageBarrierInfo imgBarrier {};
 	imgBarrier.oldLayout = oldLayout;
 	imgBarrier.newLayout = newLayout;
 	imgBarrier.srcAccessMask = srcAccessMask;
@@ -175,23 +175,23 @@ bool prosper::ICommandBuffer::RecordImageBarrier(prosper::IImage &img, prosper::
 		imgBarrier.subresourceRange.baseArrayLayer = baseLayer;
 		imgBarrier.subresourceRange.layerCount = 1u;
 	}
-	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img, imgBarrier, aspectMask));
+	barrier.imageBarriers.push_back(util::create_image_barrier(img, imgBarrier, aspectMask));
 
 	return RecordPipelineBarrier(barrier);
 }
-bool prosper::ICommandBuffer::RecordImageBarrier(IImage &img, const util::BarrierImageLayout &srcBarrierInfo, const util::BarrierImageLayout &dstBarrierInfo, const util::ImageSubresourceRange &subresourceRange, std::optional<prosper::ImageAspectFlags> aspectMask)
+bool prosper::ICommandBuffer::RecordImageBarrier(IImage &img, const util::BarrierImageLayout &srcBarrierInfo, const util::BarrierImageLayout &dstBarrierInfo, const util::ImageSubresourceRange &subresourceRange, std::optional<ImageAspectFlags> aspectMask)
 {
-	prosper::util::PipelineBarrierInfo barrier {};
+	util::PipelineBarrierInfo barrier {};
 	barrier.srcStageMask = srcBarrierInfo.stageMask;
 	barrier.dstStageMask = dstBarrierInfo.stageMask;
-	barrier.imageBarriers.push_back(prosper::util::create_image_barrier(img, srcBarrierInfo, dstBarrierInfo, subresourceRange, aspectMask));
+	barrier.imageBarriers.push_back(util::create_image_barrier(img, srcBarrierInfo, dstBarrierInfo, subresourceRange, aspectMask));
 	return RecordPipelineBarrier(barrier);
 }
-bool prosper::ICommandBuffer::RecordImageBarrier(IImage &img, ImageLayout srcLayout, ImageLayout dstLayout, const util::ImageSubresourceRange &subresourceRange, std::optional<prosper::ImageAspectFlags> aspectMask)
+bool prosper::ICommandBuffer::RecordImageBarrier(IImage &img, ImageLayout srcLayout, ImageLayout dstLayout, const util::ImageSubresourceRange &subresourceRange, std::optional<ImageAspectFlags> aspectMask)
 {
 	return ::record_image_barrier(*this, img, srcLayout, srcLayout, dstLayout, subresourceRange, aspectMask);
 }
-bool prosper::ICommandBuffer::RecordPostRenderPassImageBarrier(IImage &img, ImageLayout preRenderPassLayout, ImageLayout postRenderPassLayout, const util::ImageSubresourceRange &subresourceRange, std::optional<prosper::ImageAspectFlags> aspectMask)
+bool prosper::ICommandBuffer::RecordPostRenderPassImageBarrier(IImage &img, ImageLayout preRenderPassLayout, ImageLayout postRenderPassLayout, const util::ImageSubresourceRange &subresourceRange, std::optional<ImageAspectFlags> aspectMask)
 {
 	return ::record_image_barrier(*this, img, preRenderPassLayout, postRenderPassLayout, postRenderPassLayout, subresourceRange, aspectMask);
 }
@@ -201,24 +201,24 @@ bool prosper::ICommandBuffer::RecordUnbindShaderPipeline()
 	ClearBoundPipeline();
 	return true;
 }
-bool prosper::ICommandBuffer::RecordBindShaderPipeline(prosper::Shader &shader, PipelineID shaderPipelineId)
+bool prosper::ICommandBuffer::RecordBindShaderPipeline(Shader &shader, PipelineID shaderPipelineId)
 {
 	auto *pipelineInfo = shader.GetPipelineInfo(shaderPipelineId);
 	if(pipelineInfo == nullptr)
 		return false;
 	auto pipelineId = pipelineInfo->id;
-	return pipelineId != std::numeric_limits<prosper::PipelineID>::max() && DoRecordBindShaderPipeline(shader, shaderPipelineId, pipelineId);
+	return pipelineId != std::numeric_limits<PipelineID>::max() && DoRecordBindShaderPipeline(shader, shaderPipelineId, pipelineId);
 }
 bool prosper::ICommandBuffer::RecordBufferBarrier(IBuffer &buf, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, AccessFlags srcAccessMask, AccessFlags dstAccessMask, DeviceSize offset, DeviceSize size)
 {
-	prosper::util::PipelineBarrierInfo barrier {};
+	util::PipelineBarrierInfo barrier {};
 	barrier.srcStageMask = srcStageMask;
 	barrier.dstStageMask = dstStageMask;
 
 	if(size == std::numeric_limits<DeviceSize>::max())
 		size = buf.GetSize();
 
-	prosper::util::BufferBarrierInfo bufBarrier {};
+	util::BufferBarrierInfo bufBarrier {};
 	bufBarrier.srcAccessMask = srcAccessMask;
 	bufBarrier.dstAccessMask = dstAccessMask;
 	bufBarrier.size = size;
@@ -235,7 +235,7 @@ bool prosper::IPrimaryCommandBuffer::RecordEndRenderPass()
 	return DoRecordEndRenderPass();
 }
 prosper::IPrimaryCommandBuffer::RenderTargetInfo *prosper::IPrimaryCommandBuffer::GetActiveRenderPassTargetInfo() const { return m_renderTargetInfo.has_value() ? &*m_renderTargetInfo : nullptr; }
-bool prosper::IPrimaryCommandBuffer::GetActiveRenderPassTarget(prosper::IRenderPass **outRp, prosper::IImage **outImg, prosper::IFramebuffer **outFb, prosper::RenderTarget **outRt) const
+bool prosper::IPrimaryCommandBuffer::GetActiveRenderPassTarget(IRenderPass **outRp, IImage **outImg, IFramebuffer **outFb, RenderTarget **outRt) const
 {
 	auto &rtInfo = m_renderTargetInfo;
 	if(rtInfo.has_value() == false)
@@ -251,18 +251,18 @@ bool prosper::IPrimaryCommandBuffer::GetActiveRenderPassTarget(prosper::IRenderP
 	return true;
 }
 
-void prosper::IPrimaryCommandBuffer::SetActiveRenderPassTarget(prosper::IRenderPass *outRp, uint32_t layerId, prosper::IImage *outImg, prosper::IFramebuffer *outFb, prosper::RenderTarget *outRt) const
+void prosper::IPrimaryCommandBuffer::SetActiveRenderPassTarget(IRenderPass *outRp, uint32_t layerId, IImage *outImg, IFramebuffer *outFb, RenderTarget *outRt) const
 {
 	auto &rtInfo = m_renderTargetInfo;
 	rtInfo = RenderTargetInfo {};
-	rtInfo->renderPass = outRp ? outRp->shared_from_this() : std::weak_ptr<prosper::IRenderPass> {};
+	rtInfo->renderPass = outRp ? outRp->shared_from_this() : std::weak_ptr<IRenderPass> {};
 	rtInfo->baseLayer = layerId;
-	rtInfo->image = outImg ? outImg->shared_from_this() : std::weak_ptr<prosper::IImage> {};
-	rtInfo->framebuffer = outFb ? outFb->shared_from_this() : std::weak_ptr<prosper::IFramebuffer> {};
-	rtInfo->renderTarget = outRt ? outRt->shared_from_this() : std::weak_ptr<prosper::RenderTarget> {};
+	rtInfo->image = outImg ? outImg->shared_from_this() : std::weak_ptr<IImage> {};
+	rtInfo->framebuffer = outFb ? outFb->shared_from_this() : std::weak_ptr<IFramebuffer> {};
+	rtInfo->renderTarget = outRt ? outRt->shared_from_this() : std::weak_ptr<RenderTarget> {};
 }
 
-bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarget &rt, uint32_t *layerId, const std::vector<prosper::ClearValue> &clearValues, prosper::IRenderPass *rp, RenderPassFlags renderPassFlags)
+bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(RenderTarget &rt, uint32_t *layerId, const std::vector<ClearValue> &clearValues, IRenderPass *rp, RenderPassFlags renderPassFlags)
 {
 	auto *fb = (layerId != nullptr) ? rt.GetFramebuffer(*layerId) : &rt.GetFramebuffer();
 	if(rp == nullptr)
@@ -287,20 +287,20 @@ bool prosper::IPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::RenderTarg
 	SetActiveRenderPassTarget(rp, (layerId != nullptr) ? *layerId : std::numeric_limits<uint32_t>::max(), &img, fb, nullptr);
 	return DoRecordBeginRenderPass(img, *rp, *fb, layerId, clearValues, renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt, uint32_t layerId, RenderPassFlags renderPassFlags, const prosper::ClearValue *clearValue, prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(RenderTarget &rt, uint32_t layerId, RenderPassFlags renderPassFlags, const ClearValue *clearValue, IRenderPass *rp)
 {
-	return DoRecordBeginRenderPass(rt, &layerId, (clearValue != nullptr) ? std::vector<prosper::ClearValue> {*clearValue} : std::vector<prosper::ClearValue> {}, rp, renderPassFlags);
+	return DoRecordBeginRenderPass(rt, &layerId, (clearValue != nullptr) ? std::vector<ClearValue> {*clearValue} : std::vector<ClearValue> {}, rp, renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt, uint32_t layerId, const std::vector<prosper::ClearValue> &clearValues, RenderPassFlags renderPassFlags, prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(RenderTarget &rt, uint32_t layerId, const std::vector<ClearValue> &clearValues, RenderPassFlags renderPassFlags, IRenderPass *rp)
 {
 	return DoRecordBeginRenderPass(rt, &layerId, clearValues, rp, renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt, RenderPassFlags renderPassFlags, const prosper::ClearValue *clearValue, prosper::IRenderPass *rp)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(RenderTarget &rt, RenderPassFlags renderPassFlags, const ClearValue *clearValue, IRenderPass *rp)
 {
-	return DoRecordBeginRenderPass(rt, nullptr, (clearValue != nullptr) ? std::vector<prosper::ClearValue> {*clearValue} : std::vector<prosper::ClearValue> {}, rp, renderPassFlags);
+	return DoRecordBeginRenderPass(rt, nullptr, (clearValue != nullptr) ? std::vector<ClearValue> {*clearValue} : std::vector<ClearValue> {}, rp, renderPassFlags);
 }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::RenderTarget &rt, const std::vector<prosper::ClearValue> &clearValues, RenderPassFlags renderPassFlags, prosper::IRenderPass *rp) { return DoRecordBeginRenderPass(rt, nullptr, clearValues, rp, renderPassFlags); }
-bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(prosper::IImage &img, prosper::IRenderPass &rp, prosper::IFramebuffer &fb, RenderPassFlags renderPassFlags, const std::vector<prosper::ClearValue> &clearValues)
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(RenderTarget &rt, const std::vector<ClearValue> &clearValues, RenderPassFlags renderPassFlags, IRenderPass *rp) { return DoRecordBeginRenderPass(rt, nullptr, clearValues, rp, renderPassFlags); }
+bool prosper::IPrimaryCommandBuffer::RecordBeginRenderPass(IImage &img, IRenderPass &rp, IFramebuffer &fb, RenderPassFlags renderPassFlags, const std::vector<ClearValue> &clearValues)
 {
 	return DoRecordBeginRenderPass(img, rp, fb, 0u, clearValues, renderPassFlags);
 }

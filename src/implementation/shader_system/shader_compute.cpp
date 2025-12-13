@@ -11,10 +11,10 @@ import :shader_system.pipeline_create_info;
 import :shader_system.pipeline_loader;
 import :shader_system.shader;
 
-prosper::ShaderCompute::ShaderCompute(prosper::IPrContext &context, const std::string &identifier, const std::string &csShader) : Shader(context, identifier, csShader) {}
+prosper::ShaderCompute::ShaderCompute(IPrContext &context, const std::string &identifier, const std::string &csShader) : Shader(context, identifier, csShader) {}
 
-bool prosper::ShaderCompute::AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t constantId, uint32_t numBytes, const void *data) { return pipelineInfo.AddSpecializationConstant(constantId, numBytes, data); }
-void prosper::ShaderCompute::InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) {}
+bool prosper::ShaderCompute::AddSpecializationConstant(ComputePipelineCreateInfo &pipelineInfo, uint32_t constantId, uint32_t numBytes, const void *data) { return pipelineInfo.AddSpecializationConstant(constantId, numBytes, data); }
+void prosper::ShaderCompute::InitializeComputePipeline(ComputePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) {}
 void prosper::ShaderCompute::InitializePipeline()
 {
 	OnInitializePipelines();
@@ -26,13 +26,13 @@ void prosper::ShaderCompute::InitializePipeline()
 
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
-	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
-	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
+	auto firstPipelineId = std::numeric_limits<PipelineID>::max();
+	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", pragma::util::LogSeverity::Debug);
 	for(auto pipelineIdx = decltype(pipelineInfos.size()) {0}; pipelineIdx < pipelineInfos.size(); ++pipelineIdx) {
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
-		auto basePipelineId = std::numeric_limits<prosper::PipelineID>::max();
-		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
+		auto basePipelineId = std::numeric_limits<PipelineID>::max();
+		if(firstPipelineId != std::numeric_limits<PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false) {
 			assert(!GetContext().GetPipelineLoader().IsShaderQueued(m_basePipeline.lock()->GetIndex()));
@@ -40,11 +40,11 @@ void prosper::ShaderCompute::InitializePipeline()
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
 		}
 
-		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
-		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
+		PipelineCreateFlags createFlags = PipelineCreateFlags::AllowDerivativesBit;
+		auto bIsDerivative = basePipelineId != std::numeric_limits<PipelineID>::max();
 		if(bIsDerivative)
-			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
-		auto computePipelineInfo = prosper::ComputePipelineCreateInfo::Create(createFlags, (modCmp != nullptr) ? *modCmp->entryPoint : prosper::ShaderModuleStageEntryPoint(), bIsDerivative ? &basePipelineId : nullptr);
+			createFlags = createFlags | PipelineCreateFlags::DerivativeBit;
+		auto computePipelineInfo = ComputePipelineCreateInfo::Create(createFlags, (modCmp != nullptr) ? *modCmp->entryPoint : ShaderModuleStageEntryPoint(), bIsDerivative ? &basePipelineId : nullptr);
 		if(computePipelineInfo == nullptr)
 			continue;
 		computePipelineInfo->SetName(GetIdentifier() +"_" +std::to_string(pipelineIdx));
@@ -61,7 +61,7 @@ void prosper::ShaderCompute::InitializePipeline()
 		pipelineInfo.createInfo = std::move(computePipelineInfo);
 		if(result.has_value()) {
 			pipelineInfo.id = *result;
-			if(firstPipelineId == std::numeric_limits<prosper::PipelineID>::max())
+			if(firstPipelineId == std::numeric_limits<PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			OnPipelineInitialized(pipelineIdx);
 

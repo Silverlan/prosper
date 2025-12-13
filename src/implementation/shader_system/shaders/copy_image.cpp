@@ -9,8 +9,8 @@ import :shader_system.shaders.copy_image;
 
 using namespace prosper;
 
-ShaderCopyImage::ShaderCopyImage(prosper::IPrContext &context, const std::string &identifier) : ShaderBaseImageProcessing(context, identifier, "programs/image/noop") { SetPipelineCount(umath::to_integral(Pipeline::Count)); }
-bool ShaderCopyImage::RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx) const { return ShaderGraphics::RecordBeginDraw(bindState, umath::to_integral(pipelineIdx)); }
+ShaderCopyImage::ShaderCopyImage(IPrContext &context, const std::string &identifier) : ShaderBaseImageProcessing(context, identifier, "programs/image/noop") { SetPipelineCount(pragma::math::to_integral(Pipeline::Count)); }
+bool ShaderCopyImage::RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx) const { return ShaderGraphics::RecordBeginDraw(bindState, pragma::math::to_integral(pipelineIdx)); }
 void ShaderCopyImage::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx)
 {
 	if(pipelineIdx == 0u) {

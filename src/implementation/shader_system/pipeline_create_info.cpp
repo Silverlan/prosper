@@ -14,7 +14,7 @@ void prosper::BasePipelineCreateInfo::CopyStateFrom(const BasePipelineCreateInfo
 	m_basePipelineId = in_src_pipeline_create_info_ptr->m_basePipelineId;
 
 	for(auto &current_ds_create_info_item_ptr : in_src_pipeline_create_info_ptr->m_dsCreateInfoItems) {
-		m_dsCreateInfoItems.push_back(std::unique_ptr<prosper::DescriptorSetCreateInfo>(new DescriptorSetCreateInfo(*current_ds_create_info_item_ptr.get())));
+		m_dsCreateInfoItems.push_back(std::unique_ptr<DescriptorSetCreateInfo>(new DescriptorSetCreateInfo(*current_ds_create_info_item_ptr.get())));
 	}
 
 	m_pushConstantRanges = in_src_pipeline_create_info_ptr->m_pushConstantRanges;
@@ -150,7 +150,7 @@ void prosper::BasePipelineCreateInfo::InitShaderModules(uint32_t in_n_shader_mod
 	for(uint32_t n_shader_module_stage_entrypoint = 0; n_shader_module_stage_entrypoint < in_n_shader_module_stage_entrypoints; ++n_shader_module_stage_entrypoint) {
 		const auto &shader_module_stage_entrypoint = in_shader_module_stage_entrypoint_ptrs[n_shader_module_stage_entrypoint];
 
-		if(shader_module_stage_entrypoint.stage == prosper::ShaderStage::Unknown) {
+		if(shader_module_stage_entrypoint.stage == ShaderStage::Unknown) {
 			continue;
 		}
 
@@ -194,9 +194,9 @@ prosper::GraphicsPipelineCreateInfo::GraphicsPipelineCreateInfo(const IRenderPas
 
 	m_stencilStateBackFace.compareMask = ~0u;
 	m_stencilStateBackFace.compareOp = CompareOp::Always;
-	m_stencilStateBackFace.depthFailOp = StencilOp::Keep;
-	m_stencilStateBackFace.failOp = StencilOp::Keep;
-	m_stencilStateBackFace.passOp = StencilOp::Keep;
+	m_stencilStateBackFace.depthFailOp = Keep;
+	m_stencilStateBackFace.failOp = Keep;
+	m_stencilStateBackFace.passOp = Keep;
 	m_stencilStateBackFace.reference = 0;
 	m_stencilStateBackFace.writeMask = ~0u;
 	m_stencilStateFrontFace = m_stencilStateBackFace;
@@ -272,7 +272,7 @@ bool prosper::GraphicsPipelineCreateInfo::CopyGFXStateFrom(const GraphicsPipelin
 	m_subpassAttachmentBlendingProperties = in_src_pipeline_create_info_ptr->m_subpassAttachmentBlendingProperties;
 	m_viewports = in_src_pipeline_create_info_ptr->m_viewports;
 
-	BasePipelineCreateInfo::CopyStateFrom(in_src_pipeline_create_info_ptr);
+	CopyStateFrom(in_src_pipeline_create_info_ptr);
 
 	result = true;
 end:
@@ -282,7 +282,7 @@ std::unique_ptr<prosper::GraphicsPipelineCreateInfo> prosper::GraphicsPipelineCr
   const ShaderModuleStageEntryPoint &in_geometry_shader_stage_entrypoint_info, const ShaderModuleStageEntryPoint &in_tess_control_shader_stage_entrypoint_info, const ShaderModuleStageEntryPoint &in_tess_evaluation_shader_stage_entrypoint_info,
   const ShaderModuleStageEntryPoint &in_vertex_shader_shader_stage_entrypoint_info, const GraphicsPipelineCreateInfo *in_opt_reference_pipeline_info_ptr, const PipelineID *in_opt_base_pipeline_id_ptr)
 {
-	std::unique_ptr<GraphicsPipelineCreateInfo> result_ptr(nullptr, std::default_delete<prosper::GraphicsPipelineCreateInfo>());
+	std::unique_ptr<GraphicsPipelineCreateInfo> result_ptr(nullptr, std::default_delete<GraphicsPipelineCreateInfo>());
 
 	result_ptr.reset(new GraphicsPipelineCreateInfo(in_renderpass_ptr, in_subpass_id));
 
@@ -330,7 +330,7 @@ bool prosper::GraphicsPipelineCreateInfo::AddVertexBinding(uint32_t in_binding, 
 
 	new_binding.attributes.resize(in_n_attributes);
 
-	memcpy(&new_binding.attributes.at(0), in_attribute_ptrs, in_n_attributes * sizeof(prosper::VertexInputAttribute));
+	memcpy(&new_binding.attributes.at(0), in_attribute_ptrs, in_n_attributes * sizeof(VertexInputAttribute));
 
 	m_bindings[in_binding] = new_binding;
 

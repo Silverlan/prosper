@@ -80,7 +80,7 @@ std::unique_ptr<debug::BaseDumpValue> debug::dump(const prosper::ContextObject &
 {
 	auto td = std::make_unique<StructDumpValue>("ContextObject");
 	td->AddKeyValue("debugName", co.GetDebugName());
-	td->AddKeyValue("address", "0x" + ::util::to_hex_string(&co));
+	td->AddKeyValue("address", "0x" + pragma::util::to_hex_string(&co));
 	return td;
 }
 
@@ -89,7 +89,7 @@ std::unique_ptr<debug::BaseDumpValue> debug::dump(const prosper::IRenderPass &rp
 	auto &createInfo = rp.GetCreateInfo();
 	auto td = std::make_unique<StructDumpValue>("RenderPass");
 	td->AddKeyValue("debugName", rp.GetDebugName());
-	td->AddKeyValue("address", "0x" + ::util::to_hex_string(&rp));
+	td->AddKeyValue("address", "0x" + pragma::util::to_hex_string(&rp));
 	td->AddKeyValue("attachments", createInfo.attachments);
 	return td;
 }

@@ -9,22 +9,22 @@ import :shader_system.shaders.flip_image;
 
 using namespace prosper;
 
-ShaderFlipImage::ShaderFlipImage(prosper::IPrContext &context, const std::string &identifier) : prosper::ShaderBaseImageProcessing(context, identifier, "programs/util/flip") {}
+ShaderFlipImage::ShaderFlipImage(IPrContext &context, const std::string &identifier) : ShaderBaseImageProcessing(context, identifier, "programs/util/flip") {}
 
 ShaderFlipImage::~ShaderFlipImage() {}
 
-void ShaderFlipImage::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) { ShaderBaseImageProcessing::InitializeGfxPipeline(pipelineInfo, pipelineIdx); }
+void ShaderFlipImage::InitializeGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) { ShaderBaseImageProcessing::InitializeGfxPipeline(pipelineInfo, pipelineIdx); }
 
 void ShaderFlipImage::InitializeShaderResources()
 {
 	ShaderBaseImageProcessing::InitializeShaderResources();
 
-	AttachPushConstantRange(0u, sizeof(PushConstants), prosper::ShaderStageFlags::FragmentBit);
+	AttachPushConstantRange(0u, sizeof(PushConstants), ShaderStageFlags::FragmentBit);
 }
 
-bool ShaderFlipImage::RecordDraw(prosper::ICommandBuffer &cmd, prosper::IDescriptorSet &descSetTexture, bool flipHorizontally, bool flipVertically) const
+bool ShaderFlipImage::RecordDraw(ICommandBuffer &cmd, IDescriptorSet &descSetTexture, bool flipHorizontally, bool flipVertically) const
 {
-	prosper::ShaderBindState bindState {cmd};
+	ShaderBindState bindState {cmd};
 	if(RecordBeginDraw(bindState) == false)
 		return false;
 
@@ -44,4 +44,4 @@ bool ShaderFlipImage::RecordDraw(ShaderBindState &bindState, bool flipHorizontal
 	return RecordPushConstants(bindState, pushConstants) && ShaderBaseImageProcessing::RecordDraw(bindState);
 }
 
-bool ShaderFlipImage::RecordDraw(prosper::ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const { return RecordPushConstants(bindState, pushConstants) && prosper::ShaderBaseImageProcessing::RecordDraw(bindState, descSetTexture); }
+bool ShaderFlipImage::RecordDraw(ShaderBindState &bindState, IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const { return RecordPushConstants(bindState, pushConstants) && ShaderBaseImageProcessing::RecordDraw(bindState, descSetTexture); }

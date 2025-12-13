@@ -48,23 +48,23 @@ export {
 
 		class DLLPROSPER DescriptorSetBindingStorageImage : public DescriptorSetBinding {
 		  public:
-			DescriptorSetBindingStorageImage(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::Texture &texture, std::optional<uint32_t> layerId = {});
+			DescriptorSetBindingStorageImage(IDescriptorSet &descSet, uint32_t bindingIdx, Texture &texture, std::optional<uint32_t> layerId = {});
 			virtual Type GetType() const override { return Type::StorageImage; }
 			std::optional<uint32_t> GetLayerIndex() const;
-			const std::weak_ptr<prosper::Texture> &GetTexture() const;
+			const std::weak_ptr<Texture> &GetTexture() const;
 		  private:
-			std::weak_ptr<prosper::Texture> m_texture {};
+			std::weak_ptr<Texture> m_texture {};
 			std::optional<uint32_t> m_layerId = {};
 		};
 
 		class DLLPROSPER DescriptorSetBindingTexture : public DescriptorSetBinding {
 		  public:
-			DescriptorSetBindingTexture(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::Texture &texture, std::optional<uint32_t> layerId = {});
+			DescriptorSetBindingTexture(IDescriptorSet &descSet, uint32_t bindingIdx, Texture &texture, std::optional<uint32_t> layerId = {});
 			virtual Type GetType() const override { return Type::Texture; }
 			std::optional<uint32_t> GetLayerIndex() const;
-			const std::weak_ptr<prosper::Texture> &GetTexture() const;
+			const std::weak_ptr<Texture> &GetTexture() const;
 		  private:
-			std::weak_ptr<prosper::Texture> m_texture {};
+			std::weak_ptr<Texture> m_texture {};
 			std::optional<uint32_t> m_layerId = {};
 		};
 
@@ -81,39 +81,39 @@ export {
 
 		class DLLPROSPER DescriptorSetBindingBaseBuffer : public DescriptorSetBinding {
 		  public:
-			DescriptorSetBindingBaseBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
+			DescriptorSetBindingBaseBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual ~DescriptorSetBindingBaseBuffer() override;
 			uint64_t GetStartOffset() const;
 			uint64_t GetSize() const;
-			const std::weak_ptr<prosper::IBuffer> &GetBuffer() const;
+			const std::weak_ptr<IBuffer> &GetBuffer() const;
 		  private:
 			CallbackHandle m_cbBufferReallocation {};
-			std::weak_ptr<prosper::IBuffer> m_buffer {};
+			std::weak_ptr<IBuffer> m_buffer {};
 			uint64_t m_startOffset = 0u;
 			uint64_t m_size = 0u;
 		};
 
 		class DLLPROSPER DescriptorSetBindingUniformBuffer : public DescriptorSetBindingBaseBuffer {
 		  public:
-			DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
+			DescriptorSetBindingUniformBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::UniformBuffer; }
 		};
 
 		class DLLPROSPER DescriptorSetBindingDynamicUniformBuffer : public DescriptorSetBindingBaseBuffer {
 		  public:
-			DescriptorSetBindingDynamicUniformBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
+			DescriptorSetBindingDynamicUniformBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::DynamicUniformBuffer; }
 		};
 
 		class DLLPROSPER DescriptorSetBindingStorageBuffer : public DescriptorSetBindingBaseBuffer {
 		  public:
-			DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
+			DescriptorSetBindingStorageBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::StorageBuffer; }
 		};
 
 		class DLLPROSPER DescriptorSetBindingDynamicStorageBuffer : public DescriptorSetBindingBaseBuffer {
 		  public:
-			DescriptorSetBindingDynamicStorageBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, prosper::IBuffer &buffer, uint64_t startOffset, uint64_t size);
+			DescriptorSetBindingDynamicStorageBuffer(IDescriptorSet &descSet, uint32_t bindingIdx, IBuffer &buffer, uint64_t startOffset, uint64_t size);
 			virtual Type GetType() const override { return Type::DynamicStorageBuffer; }
 		};
 
@@ -133,22 +133,22 @@ export {
 			DescriptorSetBinding &SetBinding(uint32_t bindingIndex, std::unique_ptr<DescriptorSetBinding> binding);
 			virtual bool Update() = 0;
 
-			prosper::Texture *GetBoundArrayTexture(uint32_t bindingIndex, uint32_t index);
+			Texture *GetBoundArrayTexture(uint32_t bindingIndex, uint32_t index);
 			uint32_t GetBoundArrayTextureCount(uint32_t bindingIndex) const;
-			prosper::Texture *GetBoundTexture(uint32_t bindingIndex, std::optional<uint32_t> *optOutLayerIndex = nullptr);
-			prosper::IImage *GetBoundImage(uint32_t bindingIndex, std::optional<uint32_t> *optOutLayerIndex = nullptr);
-			prosper::IBuffer *GetBoundBuffer(uint32_t bindingIndex, uint64_t *outStartOffset = nullptr, uint64_t *outSize = nullptr);
+			Texture *GetBoundTexture(uint32_t bindingIndex, std::optional<uint32_t> *optOutLayerIndex = nullptr);
+			IImage *GetBoundImage(uint32_t bindingIndex, std::optional<uint32_t> *optOutLayerIndex = nullptr);
+			IBuffer *GetBoundBuffer(uint32_t bindingIndex, uint64_t *outStartOffset = nullptr, uint64_t *outSize = nullptr);
 
-			bool SetBindingStorageImage(prosper::Texture &texture, uint32_t bindingIdx, uint32_t layerId);
-			bool SetBindingStorageImage(prosper::Texture &texture, uint32_t bindingIdx);
-			bool SetBindingTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t layerId);
-			bool SetBindingTexture(prosper::Texture &texture, uint32_t bindingIdx);
-			bool SetBindingArrayTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, uint32_t layerId);
-			bool SetBindingArrayTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex);
-			bool SetBindingUniformBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			bool SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			bool SetBindingStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			bool SetBindingDynamicStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			bool SetBindingStorageImage(Texture &texture, uint32_t bindingIdx, uint32_t layerId);
+			bool SetBindingStorageImage(Texture &texture, uint32_t bindingIdx);
+			bool SetBindingTexture(Texture &texture, uint32_t bindingIdx, uint32_t layerId);
+			bool SetBindingTexture(Texture &texture, uint32_t bindingIdx);
+			bool SetBindingArrayTexture(Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, uint32_t layerId);
+			bool SetBindingArrayTexture(Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex);
+			bool SetBindingUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			bool SetBindingDynamicUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			bool SetBindingStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			bool SetBindingDynamicStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 
 			IDescriptorSetGroup &GetDescriptorSetGroup() const;
 
@@ -165,13 +165,13 @@ export {
 
 			void ReloadBinding(uint32_t bindingIdx);
 		  protected:
-			virtual bool DoSetBindingStorageImage(prosper::Texture &texture, uint32_t bindingIdx, const std::optional<uint32_t> &layerId) = 0;
-			virtual bool DoSetBindingTexture(prosper::Texture &texture, uint32_t bindingIdx, const std::optional<uint32_t> &layerId) = 0;
-			virtual bool DoSetBindingArrayTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, const std::optional<uint32_t> &layerId) = 0;
-			virtual bool DoSetBindingUniformBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
-			virtual bool DoSetBindingDynamicUniformBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
-			virtual bool DoSetBindingStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
-			virtual bool DoSetBindingDynamicStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
+			virtual bool DoSetBindingStorageImage(Texture &texture, uint32_t bindingIdx, const std::optional<uint32_t> &layerId) = 0;
+			virtual bool DoSetBindingTexture(Texture &texture, uint32_t bindingIdx, const std::optional<uint32_t> &layerId) = 0;
+			virtual bool DoSetBindingArrayTexture(Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, const std::optional<uint32_t> &layerId) = 0;
+			virtual bool DoSetBindingUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
+			virtual bool DoSetBindingDynamicUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
+			virtual bool DoSetBindingStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
+			virtual bool DoSetBindingDynamicStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size) = 0;
 			void *m_apiTypePtr = nullptr;
 		  private:
 			IDescriptorSetGroup &m_dsg;
@@ -206,19 +206,19 @@ export {
 			IDescriptorSet &GetDescriptorSet();
 			const IDescriptorSet &GetDescriptorSet() const { return const_cast<SwapDescriptorSet *>(this)->GetDescriptorSet(); }
 
-			void SetBindingStorageImage(prosper::Texture &texture, uint32_t bindingIdx, uint32_t layerId);
-			void SetBindingStorageImage(prosper::Texture &texture, uint32_t bindingIdx);
-			void SetBindingTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t layerId);
-			void SetBindingTexture(prosper::Texture &texture, uint32_t bindingIdx);
-			void SetBindingArrayTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, uint32_t layerId);
-			void SetBindingArrayTexture(prosper::Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex);
-			void SetBindingUniformBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			void SetBindingDynamicUniformBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			void SetBindingStorageBuffer(prosper::IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingStorageImage(Texture &texture, uint32_t bindingIdx, uint32_t layerId);
+			void SetBindingStorageImage(Texture &texture, uint32_t bindingIdx);
+			void SetBindingTexture(Texture &texture, uint32_t bindingIdx, uint32_t layerId);
+			void SetBindingTexture(Texture &texture, uint32_t bindingIdx);
+			void SetBindingArrayTexture(Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex, uint32_t layerId);
+			void SetBindingArrayTexture(Texture &texture, uint32_t bindingIdx, uint32_t arrayIndex);
+			void SetBindingUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingDynamicUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 
-			void SetBindingUniformBuffer(prosper::SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			void SetBindingDynamicUniformBuffer(prosper::SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
-			void SetBindingStorageBuffer(prosper::SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingUniformBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingDynamicUniformBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingStorageBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 
 			void Update();
 

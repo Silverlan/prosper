@@ -9,7 +9,7 @@ module pragma.prosper;
 
 import :command_buffer;
 
-prosper::ICommandBuffer::ICommandBuffer(IPrContext &context, prosper::QueueFamilyType queueFamilyType)
+prosper::ICommandBuffer::ICommandBuffer(IPrContext &context, QueueFamilyType queueFamilyType)
     : ContextObject(context), std::enable_shared_from_this<ICommandBuffer>(), m_queueFamilyType {queueFamilyType}
 #ifdef PR_DEBUG_API_DUMP
       ,
@@ -63,7 +63,7 @@ bool prosper::ISecondaryCommandBuffer::StartRecording(bool oneTimeSubmit, bool s
 	SetRecording(true);
 	return true;
 }
-bool prosper::ISecondaryCommandBuffer::StartRecording(prosper::IRenderPass &rp, prosper::IFramebuffer &fb, bool oneTimeSubmit, bool simultaneousUseAllowed) const
+bool prosper::ISecondaryCommandBuffer::StartRecording(IRenderPass &rp, IFramebuffer &fb, bool oneTimeSubmit, bool simultaneousUseAllowed) const
 {
 	assert(!m_recording);
 	SetRecording(true);

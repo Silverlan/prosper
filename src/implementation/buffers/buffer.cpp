@@ -7,7 +7,7 @@ module pragma.prosper;
 
 import :buffer.buffer;
 
-prosper::IBuffer::IBuffer(IPrContext &context, const prosper::util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size) : ContextObject(context), std::enable_shared_from_this<IBuffer>(), m_createInfo {bufCreateInfo}, m_startOffset {startOffset}, m_size {size} {}
+prosper::IBuffer::IBuffer(IPrContext &context, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size) : ContextObject(context), std::enable_shared_from_this<IBuffer>(), m_createInfo {bufCreateInfo}, m_startOffset {startOffset}, m_size {size} {}
 
 prosper::IBuffer::~IBuffer() {}
 
@@ -25,7 +25,7 @@ void prosper::IBuffer::SetPermanentlyMapped(bool b, MapFlags mapFlags)
 		Unmap();
 	}
 	if(b == true) {
-		mapFlags |= prosper::IBuffer::MapFlags::PersistentBit;
+		mapFlags |= MapFlags::PersistentBit;
 		Map(0ull, GetSize(), mapFlags);
 		m_permanentlyMapped = mapFlags;
 		return;
@@ -46,7 +46,7 @@ const std::shared_ptr<prosper::IBuffer> prosper::IBuffer::GetParent() const { re
 
 bool prosper::IBuffer::Map(Offset offset, Size size, BufferUsageFlags deviceUsageFlags, BufferUsageFlags hostUsageFlags, MapFlags mapFlags, void **optOutMappedPtr) const
 {
-	if(umath::is_flag_set(m_createInfo.memoryFeatures, MemoryFeatureFlags::HostAccessable) == false) {
+	if(pragma::math::is_flag_set(m_createInfo.memoryFeatures, MemoryFeatureFlags::HostAccessable) == false) {
 		if((GetUsageFlags() & deviceUsageFlags) == BufferUsageFlags::None) {
 			if(GetContext().IsValidationEnabled() == true)
 				std::cout << "WARNING: Attempted to map unmappable buffer without usage flags required for copy commands! Skipping..." << std::endl;
@@ -55,7 +55,7 @@ bool prosper::IBuffer::Map(Offset offset, Size size, BufferUsageFlags deviceUsag
 		if(GetContext().IsValidationEnabled() == true)
 			; //std::cout<<"WARNING: Attempted to map unmappable buffer! While still possible, this is highly discouraged!"<<std::endl;
 		auto &context = const_cast<IPrContext &>(GetContext());
-		prosper::util::BufferCreateInfo createInfo {};
+		util::BufferCreateInfo createInfo {};
 		createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::HostCached;
 		createInfo.size = size;
 		createInfo.usageFlags = hostUsageFlags;
@@ -92,8 +92,8 @@ bool prosper::IBuffer::Write(Offset offset, Size size, const void *data) const
 		context.FlushSetupCommandBuffer();
 		return r;
 	}
-	if(umath::is_flag_set(m_createInfo.memoryFeatures, MemoryFeatureFlags::HostAccessable) == false) {
-		if(Map(offset, size, BufferUsageFlags::TransferDstBit, BufferUsageFlags::TransferSrcBit, prosper::IBuffer::MapFlags::WriteBit, nullptr) == false)
+	if(pragma::math::is_flag_set(m_createInfo.memoryFeatures, MemoryFeatureFlags::HostAccessable) == false) {
+		if(Map(offset, size, BufferUsageFlags::TransferDstBit, BufferUsageFlags::TransferSrcBit, MapFlags::WriteBit, nullptr) == false)
 			return false;
 		Write(offset, size, data);
 		return Unmap();
@@ -121,8 +121,8 @@ bool prosper::IBuffer::Read(Offset offset, Size size, void *data) const
 			return false;
 		return buf->Read(0ull, size, data);
 	}
-	if(umath::is_flag_set(m_createInfo.memoryFeatures, MemoryFeatureFlags::HostAccessable) == false) {
-		if(Map(offset, size, BufferUsageFlags::TransferSrcBit, BufferUsageFlags::TransferDstBit, prosper::IBuffer::MapFlags::ReadBit, nullptr) == false)
+	if(pragma::math::is_flag_set(m_createInfo.memoryFeatures, MemoryFeatureFlags::HostAccessable) == false) {
+		if(Map(offset, size, BufferUsageFlags::TransferSrcBit, BufferUsageFlags::TransferDstBit, MapFlags::ReadBit, nullptr) == false)
 			return false;
 		Read(offset, size, data);
 		return Unmap();

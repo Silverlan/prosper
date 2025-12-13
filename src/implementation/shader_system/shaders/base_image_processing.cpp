@@ -9,16 +9,16 @@ import :shader_system.shaders.base_image_processing;
 
 using namespace prosper;
 
-decltype(ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX) ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
+decltype(ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX) ShaderBaseImageProcessing::VERTEX_BINDING_VERTEX = {VertexInputRate::Vertex};
 decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX, CommonBufferCache::GetSquareVertexFormat()};
 
-decltype(ShaderBaseImageProcessing::VERTEX_BINDING_UV) ShaderBaseImageProcessing::VERTEX_BINDING_UV = {prosper::VertexInputRate::Vertex};
+decltype(ShaderBaseImageProcessing::VERTEX_BINDING_UV) ShaderBaseImageProcessing::VERTEX_BINDING_UV = {VertexInputRate::Vertex};
 decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_UV, CommonBufferCache::GetSquareUvFormat()};
 
-decltype(shaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE) shaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {prosper::DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
-ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader) : ShaderGraphics(context, identifier, vsShader, fsShader) {}
+decltype(shaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE) shaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
+ShaderBaseImageProcessing::ShaderBaseImageProcessing(IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader) : ShaderGraphics(context, identifier, vsShader, fsShader) {}
 
-ShaderBaseImageProcessing::ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderBaseImageProcessing(context, identifier, "programs/image/noop_uv", fsShader) {}
+ShaderBaseImageProcessing::ShaderBaseImageProcessing(IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderBaseImageProcessing(context, identifier, "programs/image/noop_uv", fsShader) {}
 
 void ShaderBaseImageProcessing::AddDefaultVertexAttributes()
 {
@@ -39,4 +39,4 @@ bool ShaderBaseImageProcessing::RecordDraw(ShaderBindState &bindState) const
 	return RecordBindRenderBuffer(bindState, *GetContext().GetCommonBufferCache().GetSquareVertexUvRenderBuffer()) && ShaderGraphics::RecordDraw(bindState, GetContext().GetCommonBufferCache().GetSquareVertexCount());
 }
 
-bool ShaderBaseImageProcessing::RecordDraw(ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture) const { return RecordBindDescriptorSet(bindState, descSetTexture) && RecordDraw(bindState); }
+bool ShaderBaseImageProcessing::RecordDraw(ShaderBindState &bindState, IDescriptorSet &descSetTexture) const { return RecordBindDescriptorSet(bindState, descSetTexture) && RecordDraw(bindState); }

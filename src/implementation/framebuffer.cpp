@@ -20,8 +20,8 @@ IFramebuffer::~IFramebuffer()
 	//prosper::debug::deregister_debug_object(m_framebuffer->get_framebuffer());
 }
 
-prosper::IImageView *IFramebuffer::GetAttachment(uint32_t i) { return (i < m_attachments.size()) ? m_attachments.at(i).get() : nullptr; }
-const prosper::IImageView *IFramebuffer::GetAttachment(uint32_t i) const { return const_cast<IFramebuffer *>(this)->GetAttachment(i); }
+IImageView *IFramebuffer::GetAttachment(uint32_t i) { return (i < m_attachments.size()) ? m_attachments.at(i).get() : nullptr; }
+const IImageView *IFramebuffer::GetAttachment(uint32_t i) const { return const_cast<IFramebuffer *>(this)->GetAttachment(i); }
 
 uint32_t IFramebuffer::GetAttachmentCount() const { return m_attachments.size(); }
 void IFramebuffer::GetSize(uint32_t &width, uint32_t &height, uint32_t &depth) const

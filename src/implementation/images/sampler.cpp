@@ -11,7 +11,7 @@ using namespace prosper;
 
 bool ISampler::Update() { return DoUpdate(); }
 
-ISampler::ISampler(IPrContext &context, const prosper::util::SamplerCreateInfo &samplerCreateInfo) : ContextObject(context), std::enable_shared_from_this<ISampler>(), m_createInfo(samplerCreateInfo) {}
+ISampler::ISampler(IPrContext &context, const util::SamplerCreateInfo &samplerCreateInfo) : ContextObject(context), std::enable_shared_from_this<ISampler>(), m_createInfo(samplerCreateInfo) {}
 
 ISampler::~ISampler() {}
 

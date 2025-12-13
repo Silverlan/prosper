@@ -26,14 +26,14 @@ export namespace prosper {
 		static const std::vector<Vector2> &GetSquareUvCoordinates();
 		static uint32_t GetSquareVertexCount();
 
-		static prosper::Format GetSquareVertexFormat();
-		static prosper::Format GetSquareUvFormat();
+		static Format GetSquareVertexFormat();
+		static Format GetSquareUvFormat();
 
 		std::shared_ptr<IBuffer> GetLineVertexBuffer();
 		static const std::vector<Vector2> &GetLineVertices();
 		static uint32_t GetLineVertexCount();
 
-		static prosper::Format GetLineVertexFormat();
+		static Format GetLineVertexFormat();
 
 		// For internal use only
 		void Release();

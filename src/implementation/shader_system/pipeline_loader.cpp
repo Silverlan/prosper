@@ -11,7 +11,7 @@ import :shader_system.shader;
 
 using namespace prosper;
 
-ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context) : m_context {context}, m_multiThreaded {context.IsMultiThreadedRenderingEnabled()}
+ShaderPipelineLoader::ShaderPipelineLoader(IPrContext &context) : m_context {context}, m_multiThreaded {context.IsMultiThreadedRenderingEnabled()}
 {
 	if(m_multiThreaded) {
 		m_initThread = std::thread {[this]() {
@@ -23,8 +23,8 @@ ShaderPipelineLoader::ShaderPipelineLoader(prosper::IPrContext &context) : m_con
 				ProcessBakeQueue();
 		}};
 
-		::util::set_thread_name(m_initThread, "prosper_pipeline_loader_init");
-		::util::set_thread_name(m_bakeThread, "prosper_pipeline_loader_bake");
+		pragma::util::set_thread_name(m_initThread, "prosper_pipeline_loader_init");
+		pragma::util::set_thread_name(m_bakeThread, "prosper_pipeline_loader_bake");
 	}
 }
 ShaderPipelineLoader::~ShaderPipelineLoader() { Stop(); }
@@ -170,7 +170,7 @@ void ShaderPipelineLoader::Init(ShaderIndex shaderIndex, const std::function<boo
 		Flush();
 	}
 }
-void ShaderPipelineLoader::Bake(ShaderIndex shaderIndex, prosper::PipelineID id, prosper::PipelineBindPoint pipelineType)
+void ShaderPipelineLoader::Bake(ShaderIndex shaderIndex, PipelineID id, PipelineBindPoint pipelineType)
 {
 	if(!m_running)
 		return;

@@ -10,30 +10,30 @@ import :shader_system.shaders.blur;
 
 using namespace prosper;
 
-decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_VERTEX = {prosper::VertexInputRate::Vertex};
+decltype(ShaderBlurBase::VERTEX_BINDING_VERTEX) ShaderBlurBase::VERTEX_BINDING_VERTEX = {VertexInputRate::Vertex};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION) ShaderBlurBase::VERTEX_ATTRIBUTE_POSITION = {VERTEX_BINDING_VERTEX, CommonBufferCache::GetSquareVertexFormat()};
 decltype(ShaderBlurBase::VERTEX_ATTRIBUTE_UV) ShaderBlurBase::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_VERTEX, CommonBufferCache::GetSquareUvFormat()};
 
-decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {prosper::DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
+decltype(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE) ShaderBlurBase::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
 
-static constexpr std::array<prosper::Format, umath::to_integral(prosper::ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
-  prosper::Format::R8G8B8A8_UNorm,
-  prosper::Format::R8_UNorm,
-  prosper::Format::R16G16B16A16_SFloat,
+static constexpr std::array<Format, pragma::math::to_integral(ShaderBlurBase::Pipeline::Count)> g_pipelineFormats = {
+  Format::R8G8B8A8_UNorm,
+  Format::R8_UNorm,
+  Format::R16G16B16A16_SFloat,
   //prosper::Format::BC1_RGBA_UNorm_Block,
   //prosper::Format::BC2_UNorm_Block,
   //prosper::Format::BC3_UNorm_Block
 };
 
-ShaderBlurBase::ShaderBlurBase(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderGraphics(context, identifier, "programs/image/noop_uv", fsShader) { SetPipelineCount(umath::to_integral(Pipeline::Count)); }
+ShaderBlurBase::ShaderBlurBase(IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderGraphics(context, identifier, "programs/image/noop_uv", fsShader) { SetPipelineCount(pragma::math::to_integral(Pipeline::Count)); }
 
-void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<prosper::Format>(g_pipelineFormats.at(pipelineIdx))}}}, outRenderPass, pipelineIdx); }
+void ShaderBlurBase::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<ShaderBlurBase>({{{static_cast<Format>(g_pipelineFormats.at(pipelineIdx))}}}, outRenderPass, pipelineIdx); }
 
-void ShaderBlurBase::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx)
+void ShaderBlurBase::InitializeGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx)
 {
 	ShaderGraphics::InitializeGfxPipeline(pipelineInfo, pipelineIdx);
 
-	pipelineInfo.ToggleDynamicStates(true, {prosper::DynamicState::Scissor});
+	pipelineInfo.ToggleDynamicStates(true, {DynamicState::Scissor});
 }
 
 void ShaderBlurBase::InitializeShaderResources()
@@ -41,10 +41,10 @@ void ShaderBlurBase::InitializeShaderResources()
 	AddVertexAttribute(VERTEX_ATTRIBUTE_POSITION);
 	AddVertexAttribute(VERTEX_ATTRIBUTE_UV);
 	AddDescriptorSetGroup(DESCRIPTOR_SET_TEXTURE);
-	AttachPushConstantRange(0u, sizeof(PushConstants), prosper::ShaderStageFlags::FragmentBit);
+	AttachPushConstantRange(0u, sizeof(PushConstants), ShaderStageFlags::FragmentBit);
 }
 
-bool ShaderBlurBase::RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx) const { return ShaderGraphics::RecordBeginDraw(bindState, umath::to_integral(pipelineIdx)); }
+bool ShaderBlurBase::RecordBeginDraw(ShaderBindState &bindState, Pipeline pipelineIdx) const { return ShaderGraphics::RecordBeginDraw(bindState, pragma::math::to_integral(pipelineIdx)); }
 bool ShaderBlurBase::RecordDraw(ShaderBindState &bindState, IDescriptorSet &descSetTexture, const PushConstants &pushConstants) const
 {
 	if(RecordBindVertexBuffer(bindState, *GetContext().GetCommonBufferCache().GetSquareVertexUvBuffer()) == false || RecordBindDescriptorSet(bindState, static_cast<IDescriptorSet &>(descSetTexture)) == false || RecordPushConstants(bindState, pushConstants) == false
@@ -56,13 +56,13 @@ bool ShaderBlurBase::RecordDraw(ShaderBindState &bindState, IDescriptorSet &desc
 /////////////////////////
 
 static ShaderBlurH *s_blurShaderH = nullptr;
-ShaderBlurH::ShaderBlurH(prosper::IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "programs/effects/gaussianblur_horizontal") { s_blurShaderH = this; }
+ShaderBlurH::ShaderBlurH(IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "programs/effects/gaussianblur_horizontal") { s_blurShaderH = this; }
 ShaderBlurH::~ShaderBlurH() { s_blurShaderH = nullptr; }
 
 /////////////////////////
 
 static ShaderBlurV *s_blurShaderV = nullptr;
-ShaderBlurV::ShaderBlurV(prosper::IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "programs/effects/gaussianblur_vertical")
+ShaderBlurV::ShaderBlurV(IPrContext &context, const std::string &identifier) : ShaderBlurBase(context, identifier, "programs/effects/gaussianblur_vertical")
 {
 	s_blurShaderV = this;
 	SetBaseShader<ShaderBlurH>();
@@ -71,7 +71,7 @@ ShaderBlurV::~ShaderBlurV() { s_blurShaderV = nullptr; }
 
 /////////////////////////
 
-bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::shared_ptr<prosper::IPrimaryCommandBuffer> &cmdBuffer, const BlurSet &blurSet, const ShaderBlurBase::PushConstants &pushConstants, uint32_t blurStrength, const ShaderInfo *shaderInfo)
+bool util::record_blur_image(IPrContext &context, const std::shared_ptr<IPrimaryCommandBuffer> &cmdBuffer, const BlurSet &blurSet, const ShaderBlurBase::PushConstants &pushConstants, uint32_t blurStrength, const ShaderInfo *shaderInfo)
 {
 	if(s_blurShaderH == nullptr || s_blurShaderV == nullptr)
 		return false;
@@ -91,16 +91,16 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::s
 	else {
 		auto pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
 		switch(imgFormat) {
-		case prosper::Format::R8G8B8A8_UNorm:
-		case prosper::Format::BC1_RGBA_UNorm_Block:
-		case prosper::Format::BC2_UNorm_Block:
-		case prosper::Format::BC3_UNorm_Block:
+		case Format::R8G8B8A8_UNorm:
+		case Format::BC1_RGBA_UNorm_Block:
+		case Format::BC2_UNorm_Block:
+		case Format::BC3_UNorm_Block:
 			pipelineId = ShaderBlurBase::Pipeline::R8G8B8A8Unorm;
 			break;
-		case prosper::Format::R8_UNorm:
+		case Format::R8_UNorm:
 			pipelineId = ShaderBlurBase::Pipeline::R8Unorm;
 			break;
-		case prosper::Format::R16G16B16A16_SFloat:
+		case Format::R16G16B16A16_SFloat:
 			pipelineId = ShaderBlurBase::Pipeline::R16G16B16A16Sfloat;
 			break;
 		/*case prosper::Format::BC1_RGBA_UNorm_Block:
@@ -151,32 +151,32 @@ bool prosper::util::record_blur_image(prosper::IPrContext &context, const std::s
 
 /////////////////////////
 
-BlurSet::BlurSet(const std::shared_ptr<prosper::RenderTarget> &rtFinal, const std::shared_ptr<prosper::IDescriptorSetGroup> &descSetFinalGroup, const std::shared_ptr<prosper::RenderTarget> &rtStaging, const std::shared_ptr<prosper::IDescriptorSetGroup> &descSetStagingGroup,
-  const std::shared_ptr<prosper::Texture> &srcTexture)
+BlurSet::BlurSet(const std::shared_ptr<RenderTarget> &rtFinal, const std::shared_ptr<IDescriptorSetGroup> &descSetFinalGroup, const std::shared_ptr<RenderTarget> &rtStaging, const std::shared_ptr<IDescriptorSetGroup> &descSetStagingGroup,
+  const std::shared_ptr<Texture> &srcTexture)
     : m_outRenderTarget(rtFinal), m_outDescSetGroup(descSetFinalGroup), m_stagingRenderTarget(rtStaging), m_stagingDescSetGroup(descSetStagingGroup), m_srcTexture(srcTexture)
 {
 }
 
-std::shared_ptr<BlurSet> BlurSet::Create(prosper::IPrContext &context, const std::shared_ptr<prosper::RenderTarget> &finalRt, const std::shared_ptr<prosper::Texture> &srcTexture)
+std::shared_ptr<BlurSet> BlurSet::Create(IPrContext &context, const std::shared_ptr<RenderTarget> &finalRt, const std::shared_ptr<Texture> &srcTexture)
 {
 	if(s_blurShaderH == nullptr)
 		return nullptr;
 	auto &rp = finalRt->GetRenderPass();
-	auto finalDescSetGroup = context.CreateDescriptorSetGroup(prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
+	auto finalDescSetGroup = context.CreateDescriptorSetGroup(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
 	auto &finalTex = (srcTexture != nullptr) ? *srcTexture : finalRt->GetTexture();
 	auto &finalImg = finalTex.GetImage();
 	finalDescSetGroup->GetDescriptorSet()->SetBindingTexture(finalTex, 0u);
 
 	auto format = finalImg.GetFormat();
 	auto extents = finalImg.GetExtents();
-	prosper::util::ImageCreateInfo createInfo {};
+	util::ImageCreateInfo createInfo {};
 	createInfo.width = extents.width;
 	createInfo.height = extents.height;
-	createInfo.format = prosper::util::is_compressed_format(format) ? prosper::Format::R8G8B8A8_UNorm : format; // If it's a compressed format, we'll fall back to RGBA8
+	createInfo.format = util::is_compressed_format(format) ? Format::R8G8B8A8_UNorm : format; // If it's a compressed format, we'll fall back to RGBA8
 	createInfo.usage = ImageUsageFlags::SampledBit | ImageUsageFlags::ColorAttachmentBit | ImageUsageFlags::TransferDstBit;
 	createInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
-	auto imgViewCreateInfo = prosper::util::ImageViewCreateInfo {};
-	auto samplerCreateInfo = prosper::util::SamplerCreateInfo {};
+	auto imgViewCreateInfo = util::ImageViewCreateInfo {};
+	auto samplerCreateInfo = util::SamplerCreateInfo {};
 	samplerCreateInfo.addressModeU = SamplerAddressMode::ClampToEdge;
 	samplerCreateInfo.addressModeV = SamplerAddressMode::ClampToEdge;
 	auto img = context.CreateImage(createInfo);
@@ -184,13 +184,13 @@ std::shared_ptr<BlurSet> BlurSet::Create(prosper::IPrContext &context, const std
 	auto stagingRt = context.CreateRenderTarget({tex}, rp.shared_from_this());
 	stagingRt->SetDebugName("blur_staging_rt");
 
-	auto stagingDescSetGroup = context.CreateDescriptorSetGroup(prosper::ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
+	auto stagingDescSetGroup = context.CreateDescriptorSetGroup(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
 	auto &stagingTex = stagingRt->GetTexture();
 	stagingDescSetGroup->GetDescriptorSet()->SetBindingTexture(stagingTex, 0u);
 	return std::shared_ptr<BlurSet>(new BlurSet(finalRt, finalDescSetGroup, stagingRt, stagingDescSetGroup, finalTex.shared_from_this()));
 }
 
-const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetFinalRenderTarget() const { return m_outRenderTarget; }
-prosper::IDescriptorSet &BlurSet::GetFinalDescriptorSet() const { return *m_outDescSetGroup->GetDescriptorSet(); }
-const std::shared_ptr<prosper::RenderTarget> &BlurSet::GetStagingRenderTarget() const { return m_stagingRenderTarget; }
-prosper::IDescriptorSet &BlurSet::GetStagingDescriptorSet() const { return *m_stagingDescSetGroup->GetDescriptorSet(); }
+const std::shared_ptr<RenderTarget> &BlurSet::GetFinalRenderTarget() const { return m_outRenderTarget; }
+IDescriptorSet &BlurSet::GetFinalDescriptorSet() const { return *m_outDescSetGroup->GetDescriptorSet(); }
+const std::shared_ptr<RenderTarget> &BlurSet::GetStagingRenderTarget() const { return m_stagingRenderTarget; }
+IDescriptorSet &BlurSet::GetStagingDescriptorSet() const { return *m_stagingDescSetGroup->GetDescriptorSet(); }

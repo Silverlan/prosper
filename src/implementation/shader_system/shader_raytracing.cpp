@@ -11,9 +11,9 @@ import :shader_system.pipeline_create_info;
 import :shader_system.pipeline_loader;
 import :shader_system.shader;
 
-prosper::ShaderRaytracing::ShaderRaytracing(prosper::IPrContext &context, const std::string &identifier, const std::string &csShader) : Shader(context, identifier, csShader) {}
+prosper::ShaderRaytracing::ShaderRaytracing(IPrContext &context, const std::string &identifier, const std::string &csShader) : Shader(context, identifier, csShader) {}
 
-void prosper::ShaderRaytracing::InitializeRaytracingPipeline(prosper::RayTracingPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) {}
+void prosper::ShaderRaytracing::InitializeRaytracingPipeline(RayTracingPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) {}
 void prosper::ShaderRaytracing::InitializePipeline()
 {
 	OnInitializePipelines();
@@ -25,12 +25,12 @@ void prosper::ShaderRaytracing::InitializePipeline()
 
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
-	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
+	auto firstPipelineId = std::numeric_limits<PipelineID>::max();
 	for(auto pipelineIdx = decltype(pipelineInfos.size()) {0}; pipelineIdx < pipelineInfos.size(); ++pipelineIdx) {
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
-		auto basePipelineId = std::numeric_limits<prosper::PipelineID>::max();
-		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
+		auto basePipelineId = std::numeric_limits<PipelineID>::max();
+		if(firstPipelineId != std::numeric_limits<PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false) {
 			assert(!GetContext().GetPipelineLoader().IsShaderQueued(m_basePipeline.lock()->GetIndex()));
@@ -38,11 +38,11 @@ void prosper::ShaderRaytracing::InitializePipeline()
 			m_basePipeline.lock()->GetPipelineId(basePipelineId);
 		}
 
-		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
-		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
+		PipelineCreateFlags createFlags = PipelineCreateFlags::AllowDerivativesBit;
+		auto bIsDerivative = basePipelineId != std::numeric_limits<PipelineID>::max();
 		if(bIsDerivative)
-			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
-		auto rtPipelineInfo = prosper::RayTracingPipelineCreateInfo::Create(createFlags, (modCmp != nullptr) ? *modCmp->entryPoint : prosper::ShaderModuleStageEntryPoint(), bIsDerivative ? &basePipelineId : nullptr);
+			createFlags = createFlags | PipelineCreateFlags::DerivativeBit;
+		auto rtPipelineInfo = RayTracingPipelineCreateInfo::Create(createFlags, (modCmp != nullptr) ? *modCmp->entryPoint : ShaderModuleStageEntryPoint(), bIsDerivative ? &basePipelineId : nullptr);
 		if(rtPipelineInfo == nullptr)
 			continue;
 		InitializeRaytracingPipeline(*rtPipelineInfo, pipelineIdx);
@@ -58,7 +58,7 @@ void prosper::ShaderRaytracing::InitializePipeline()
 		pipelineInfo.createInfo = std::move(rtPipelineInfo);
 		if(result.has_value()) {
 			pipelineInfo.id = *result;
-			if(firstPipelineId == std::numeric_limits<prosper::PipelineID>::max())
+			if(firstPipelineId == std::numeric_limits<PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			OnPipelineInitialized(pipelineIdx);
 

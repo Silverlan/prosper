@@ -10,10 +10,10 @@ import :shader_system.shader;
 
 using namespace prosper;
 
-prosper::util::PreparedCommand::Argument::Argument(Argument &&other) { operator=(std::move(other)); }
-prosper::util::PreparedCommand::Argument::~Argument() { Clear(); }
-prosper::util::PreparedCommand::Argument::Argument(const std::string &dynamicValue) : Argument {} { SetDynamicValue(dynamicValue); }
-prosper::util::PreparedCommand::Argument &prosper::util::PreparedCommand::Argument::operator=(Argument &&other)
+util::PreparedCommand::Argument::Argument(Argument &&other) { operator=(std::move(other)); }
+util::PreparedCommand::Argument::~Argument() { Clear(); }
+util::PreparedCommand::Argument::Argument(const std::string &dynamicValue) : Argument {} { SetDynamicValue(dynamicValue); }
+util::PreparedCommand::Argument &util::PreparedCommand::Argument::operator=(Argument &&other)
 {
 	Clear();
 	type = other.type;
@@ -23,7 +23,7 @@ prosper::util::PreparedCommand::Argument &prosper::util::PreparedCommand::Argume
 	other.value = nullptr;
 	return *this;
 }
-void prosper::util::PreparedCommand::Argument::Clear()
+void util::PreparedCommand::Argument::Clear()
 {
 	switch(type) {
 	case Type::DynamicValue:
@@ -36,19 +36,19 @@ void prosper::util::PreparedCommand::Argument::Clear()
 	type = Type::Invalid;
 	value = nullptr;
 }
-void prosper::util::PreparedCommand::Argument::SetDynamicValue(const std::string &name)
+void util::PreparedCommand::Argument::SetDynamicValue(const std::string &name)
 {
 	type = Type::DynamicValue;
-	value = new StringHash {ustring::string_switch::hash(name)};
+	value = new StringHash {pragma::string::string_switch::hash(name)};
 }
 
 ////////////
 
-prosper::util::PreparedCommand::PreparedCommand(PreparedCommandFunction &&function, std::vector<Argument> &&args) : function {std::move(function)}, args {std::move(args)} {}
+util::PreparedCommand::PreparedCommand(PreparedCommandFunction &&function, std::vector<Argument> &&args) : function {std::move(function)}, args {std::move(args)} {}
 
 ////////////
 
-prosper::util::PreparedCommandArgumentMap::~PreparedCommandArgumentMap()
+util::PreparedCommandArgumentMap::~PreparedCommandArgumentMap()
 {
 	for(auto &pair : arguments)
 		delete pair.second;
@@ -56,17 +56,17 @@ prosper::util::PreparedCommandArgumentMap::~PreparedCommandArgumentMap()
 
 ////////////
 
-prosper::util::PreparedCommandBufferRecordState::PreparedCommandBufferRecordState(const PreparedCommandBuffer &prepCommandBuffer, prosper::ICommandBuffer &commandBuffer, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData)
+util::PreparedCommandBufferRecordState::PreparedCommandBufferRecordState(const PreparedCommandBuffer &prepCommandBuffer, ICommandBuffer &commandBuffer, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData)
     : prepCommandBuffer {prepCommandBuffer}, commandBuffer {commandBuffer}, drawArguments {drawArguments}, userData {userData}
 {
 }
-prosper::util::PreparedCommandBufferRecordState::~PreparedCommandBufferRecordState() {}
+util::PreparedCommandBufferRecordState::~PreparedCommandBufferRecordState() {}
 
 ////////////
 
-prosper::util::PreparedCommandBuffer::PreparedCommandBuffer() {}
-void prosper::util::PreparedCommandBuffer::PushCommand(PreparedCommandFunction &&cmd, std::vector<PreparedCommand::Argument> &&args) { commands.emplace_back(std::move(cmd), std::move(args)); }
-bool prosper::util::PreparedCommandBuffer::RecordCommands(prosper::ICommandBuffer &cmdBuf, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData) const
+util::PreparedCommandBuffer::PreparedCommandBuffer() {}
+void util::PreparedCommandBuffer::PushCommand(PreparedCommandFunction &&cmd, std::vector<PreparedCommand::Argument> &&args) { commands.emplace_back(std::move(cmd), std::move(args)); }
+bool util::PreparedCommandBuffer::RecordCommands(ICommandBuffer &cmdBuf, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData) const
 {
 	PreparedCommandBufferRecordState recordState {*this, cmdBuf, drawArguments, userData};
 	for(auto &cmd : commands) {
@@ -76,7 +76,7 @@ bool prosper::util::PreparedCommandBuffer::RecordCommands(prosper::ICommandBuffe
 	}
 	return true;
 }
-void prosper::util::PreparedCommandBuffer::Reset()
+void util::PreparedCommandBuffer::Reset()
 {
 	commands.clear();
 	dynamicArguments = {};

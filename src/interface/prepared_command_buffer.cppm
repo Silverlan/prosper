@@ -37,14 +37,14 @@ export {
 			mutable std::unordered_map<StringHash, void *> userData;
 		};
 		struct DLLPROSPER PreparedCommandBufferRecordState {
-			PreparedCommandBufferRecordState(const PreparedCommandBuffer &prepCommandBuffer, prosper::ICommandBuffer &commandBuffer, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData);
+			PreparedCommandBufferRecordState(const PreparedCommandBuffer &prepCommandBuffer, ICommandBuffer &commandBuffer, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData);
 			~PreparedCommandBufferRecordState();
 			const PreparedCommandBuffer &prepCommandBuffer;
-			prosper::ICommandBuffer &commandBuffer;
+			ICommandBuffer &commandBuffer;
 			const PreparedCommandArgumentMap &drawArguments;
 			const PreparedCommandBufferUserData &userData;
 			const PreparedCommand *curCommand;
-			mutable std::unique_ptr<prosper::ShaderBindState> shaderBindState;
+			mutable std::unique_ptr<ShaderBindState> shaderBindState;
 			template<typename T>
 			T GetArgument(uint32_t idx) const;
 		};
@@ -84,7 +84,7 @@ export {
 			template<typename T>
 			void SetArgumentValue(const std::string &name, T &&value)
 			{
-				auto hash = ustring::string_switch::hash(name);
+				auto hash = pragma::string::string_switch::hash(name);
 				SetArgumentValue<T>(hash, std::move(value));
 			}
 			template<typename T>
@@ -148,7 +148,7 @@ export {
 				dynamicArguments.SetArgumentValue<T>(name, std::move(value));
 			}
 			void PushCommand(PreparedCommandFunction &&cmd, std::vector<PreparedCommand::Argument> &&args = {});
-			bool RecordCommands(prosper::ICommandBuffer &cmdBuf, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData) const;
+			bool RecordCommands(ICommandBuffer &cmdBuf, const PreparedCommandArgumentMap &drawArguments, const PreparedCommandBufferUserData &userData) const;
 			void Reset();
 			std::vector<PreparedCommand> commands;
 			PreparedCommandArgumentMap dynamicArguments;

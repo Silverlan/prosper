@@ -15,8 +15,8 @@ export namespace prosper {
 	class ICommandBuffer;
 	class DLLPROSPER OcclusionQuery : public Query {
 	  public:
-		bool RecordBegin(prosper::ICommandBuffer &cmdBuffer) const;
-		bool RecordEnd(prosper::ICommandBuffer &cmdBuffer) const;
+		bool RecordBegin(ICommandBuffer &cmdBuffer) const;
+		bool RecordEnd(ICommandBuffer &cmdBuffer) const;
 	  private:
 		OcclusionQuery(IQueryPool &queryPool, uint32_t queryId);
 		friend IQueryPool;

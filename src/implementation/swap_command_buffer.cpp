@@ -11,7 +11,7 @@ import :swap_command_buffer;
 
 using namespace prosper;
 
-ISwapCommandBufferGroup::ISwapCommandBufferGroup(Window &window, const std::string &debugName) : m_window {window.shared_from_this()}, m_debugName {debugName}, m_windowPtr {&window} { m_cmdPool = window.GetContext().CreateCommandBufferPool(prosper::QueueFamilyType::Universal); }
+ISwapCommandBufferGroup::ISwapCommandBufferGroup(Window &window, const std::string &debugName) : m_window {window.shared_from_this()}, m_debugName {debugName}, m_windowPtr {&window} { m_cmdPool = window.GetContext().CreateCommandBufferPool(QueueFamilyType::Universal); }
 
 ISwapCommandBufferGroup::~ISwapCommandBufferGroup()
 {
@@ -19,7 +19,7 @@ ISwapCommandBufferGroup::~ISwapCommandBufferGroup()
 	m_cmdPool = nullptr;
 }
 
-prosper::IPrContext &ISwapCommandBufferGroup::GetContext() const
+IPrContext &ISwapCommandBufferGroup::GetContext() const
 {
 	if(m_window.expired())
 		throw std::runtime_error {"Invalid swap command buffer group window!"};
@@ -38,7 +38,7 @@ void ISwapCommandBufferGroup::Initialize(uint32_t swapchainIdx)
 		m_commandBuffers.push_back(cmdBuf);
 	}
 }
-void ISwapCommandBufferGroup::StartRecording(prosper::IRenderPass &rp, prosper::IFramebuffer &fb)
+void ISwapCommandBufferGroup::StartRecording(IRenderPass &rp, IFramebuffer &fb)
 {
 	if(m_window.expired())
 		return;
@@ -51,14 +51,14 @@ void ISwapCommandBufferGroup::StartRecording(prosper::IRenderPass &rp, prosper::
 	auto *instance = m_commandBuffers[swapchainIdx].get();
 	m_curCommandBuffer = instance;
 
-	Record([this, &rp, &fb](prosper::ISecondaryCommandBuffer &cmd) {
+	Record([this, &rp, &fb](ISecondaryCommandBuffer &cmd) {
 		cmd.Reset(false);
 		cmd.StartRecording(rp, fb, GetOneTimeSubmit());
 	});
 }
 void ISwapCommandBufferGroup::EndRecording()
 {
-	Record([](prosper::ISecondaryCommandBuffer &cmd) { cmd.StopRecording(); });
+	Record([](ISecondaryCommandBuffer &cmd) { cmd.StopRecording(); });
 }
 void ISwapCommandBufferGroup::Reuse()
 {
@@ -71,7 +71,7 @@ void ISwapCommandBufferGroup::Reuse()
 	auto *instance = m_commandBuffers[swapchainIdx].get();
 	m_curCommandBuffer = instance;
 }
-bool ISwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
+bool ISwapCommandBufferGroup::ExecuteCommands(IPrimaryCommandBuffer &cmdBuf)
 {
 	Wait();
 	if(m_curCommandBuffer == nullptr)
@@ -109,7 +109,7 @@ MtSwapCommandBufferGroup::MtSwapCommandBufferGroup(Window &window, const std::st
 			}
 		}
 	}};
-	::util::set_thread_name(m_thread, debugName);
+	pragma::util::set_thread_name(m_thread, debugName);
 }
 
 MtSwapCommandBufferGroup::~MtSwapCommandBufferGroup()
@@ -147,7 +147,7 @@ void StSwapCommandBufferGroup::Record(const RenderThreadRecordCall &record) { m_
 
 void StSwapCommandBufferGroup::Wait() { assert(IsPending() == false); }
 
-bool StSwapCommandBufferGroup::ExecuteCommands(prosper::IPrimaryCommandBuffer &cmdBuf)
+bool StSwapCommandBufferGroup::ExecuteCommands(IPrimaryCommandBuffer &cmdBuf)
 {
 	if(m_curCommandBuffer == nullptr)
 		return false;

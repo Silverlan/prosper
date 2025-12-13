@@ -30,8 +30,8 @@ bool prosper::util::RenderPassCreateInfo::SubPass::Dependency::operator!=(const 
 
 /////////////////
 
-prosper::util::RenderPassCreateInfo::AttachmentInfo::AttachmentInfo(prosper::Format format, prosper::ImageLayout initialLayout, prosper::AttachmentLoadOp loadOp, prosper::AttachmentStoreOp storeOp, prosper::SampleCountFlags sampleCount, prosper::ImageLayout finalLayout,
-  prosper::AttachmentLoadOp stencilLoadOp, prosper::AttachmentStoreOp stencilStoreOp)
+prosper::util::RenderPassCreateInfo::AttachmentInfo::AttachmentInfo(Format format, ImageLayout initialLayout, AttachmentLoadOp loadOp, AttachmentStoreOp storeOp, SampleCountFlags sampleCount, ImageLayout finalLayout,
+  AttachmentLoadOp stencilLoadOp, AttachmentStoreOp stencilStoreOp)
     : format {format}, initialLayout {initialLayout}, loadOp {loadOp}, storeOp {storeOp}, sampleCount {sampleCount}, finalLayout {finalLayout}, stencilLoadOp {stencilLoadOp}, stencilStoreOp {stencilStoreOp}
 {
 }
@@ -42,8 +42,8 @@ prosper::util::RenderPassCreateInfo::SubPass::SubPass(const std::vector<std::siz
     : colorAttachments {colorAttachments}, useDepthStencilAttachment {useDepthStencilAttachment}, dependencies {dependencies}
 {
 }
-prosper::util::RenderPassCreateInfo::SubPass::Dependency::Dependency(std::size_t sourceSubPassId, std::size_t destinationSubPassId, prosper::PipelineStageFlags sourceStageMask, prosper::PipelineStageFlags destinationStageMask, prosper::AccessFlags sourceAccessMask,
-  prosper::AccessFlags destinationAccessMask)
+prosper::util::RenderPassCreateInfo::SubPass::Dependency::Dependency(std::size_t sourceSubPassId, std::size_t destinationSubPassId, PipelineStageFlags sourceStageMask, PipelineStageFlags destinationStageMask, AccessFlags sourceAccessMask,
+  AccessFlags destinationAccessMask)
     : sourceSubPassId {sourceSubPassId}, destinationSubPassId {destinationSubPassId}, sourceStageMask {sourceStageMask}, destinationStageMask {destinationStageMask}, sourceAccessMask {sourceAccessMask}, destinationAccessMask {destinationAccessMask}
 {
 }
@@ -88,13 +88,13 @@ std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const util::Im
 		return layerData[mipmap];
 	});
 }
-std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(uimg::ImageBuffer &imgBuffer, const std::optional<util::ImageCreateInfo> &optCreateInfo)
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(pragma::image::ImageBuffer &imgBuffer, const std::optional<util::ImageCreateInfo> &optCreateInfo)
 {
 	auto createInfo = optCreateInfo.has_value() ? *optCreateInfo : util::get_image_create_info(imgBuffer, false);
 	return CreateImage(createInfo, static_cast<uint8_t *>(imgBuffer.GetData()));
 }
 std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const util::ImageCreateInfo &createInfo, const uint8_t *data) { return CreateImage(createInfo, ImageData {ImageLayerData {data}}); }
-std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer, const std::optional<util::ImageCreateInfo> &optCreateInfo)
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const std::vector<std::shared_ptr<pragma::image::ImageBuffer>> &imgBuffer, const std::optional<util::ImageCreateInfo> &optCreateInfo)
 {
 	auto createInfo = optCreateInfo.has_value() ? *optCreateInfo : util::get_image_create_info(*imgBuffer.front(), false);
 	ImageData imgData {};
@@ -103,69 +103,69 @@ std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateImage(const std::vec
 		imgData.push_back(ImageLayerData {static_cast<const uint8_t *>(imgBuf->GetData())});
 	return CreateImage(createInfo, imgData);
 }
-prosper::Format prosper::util::get_prosper_format(const uimg::ImageBuffer &imgBuffer)
+prosper::Format prosper::util::get_prosper_format(const pragma::image::ImageBuffer &imgBuffer)
 {
 	auto format = imgBuffer.GetFormat();
-	prosper::Format prosperFormat = prosper::Format::Unknown;
+	Format prosperFormat = Format::Unknown;
 	switch(format) {
-	case uimg::Format::R8:
-		prosperFormat = prosper::Format::R8_UNorm;
+	case pragma::image::Format::R8:
+		prosperFormat = Format::R8_UNorm;
 		break;
-	case uimg::Format::R16:
-		prosperFormat = prosper::Format::R16_SFloat;
+	case pragma::image::Format::R16:
+		prosperFormat = Format::R16_SFloat;
 		break;
-	case uimg::Format::R32:
-		prosperFormat = prosper::Format::R32_SFloat;
-		break;
-
-	case uimg::Format::RG8:
-		prosperFormat = prosper::Format::R8G8_UNorm;
-		break;
-	case uimg::Format::RG16:
-		prosperFormat = prosper::Format::R16G16_SFloat;
-		break;
-	case uimg::Format::RG32:
-		prosperFormat = prosper::Format::R32G32_SFloat;
+	case pragma::image::Format::R32:
+		prosperFormat = Format::R32_SFloat;
 		break;
 
-	case uimg::Format::RGB8:
-		prosperFormat = prosper::Format::R8G8B8_UNorm_PoorCoverage;
+	case pragma::image::Format::RG8:
+		prosperFormat = Format::R8G8_UNorm;
 		break;
-	case uimg::Format::RGB16:
-		prosperFormat = prosper::Format::R16G16B16_SFloat_PoorCoverage;
+	case pragma::image::Format::RG16:
+		prosperFormat = Format::R16G16_SFloat;
 		break;
-	case uimg::Format::RGB32:
-		prosperFormat = prosper::Format::R32G32B32_SFloat;
+	case pragma::image::Format::RG32:
+		prosperFormat = Format::R32G32_SFloat;
 		break;
 
-	case uimg::Format::RGBA8:
-		prosperFormat = prosper::Format::R8G8B8A8_UNorm;
+	case pragma::image::Format::RGB8:
+		prosperFormat = Format::R8G8B8_UNorm_PoorCoverage;
 		break;
-	case uimg::Format::RGBA16:
-		prosperFormat = prosper::Format::R16G16B16A16_SFloat;
+	case pragma::image::Format::RGB16:
+		prosperFormat = Format::R16G16B16_SFloat_PoorCoverage;
 		break;
-	case uimg::Format::RGBA32:
-		prosperFormat = prosper::Format::R32G32B32A32_SFloat;
+	case pragma::image::Format::RGB32:
+		prosperFormat = Format::R32G32B32_SFloat;
+		break;
+
+	case pragma::image::Format::RGBA8:
+		prosperFormat = Format::R8G8B8A8_UNorm;
+		break;
+	case pragma::image::Format::RGBA16:
+		prosperFormat = Format::R16G16B16A16_SFloat;
+		break;
+	case pragma::image::Format::RGBA32:
+		prosperFormat = Format::R32G32B32A32_SFloat;
 		break;
 	}
 	return prosperFormat;
 }
-prosper::util::ImageCreateInfo prosper::util::get_image_create_info(const uimg::ImageBuffer &imgBuffer, bool cubemap)
+prosper::util::ImageCreateInfo prosper::util::get_image_create_info(const pragma::image::ImageBuffer &imgBuffer, bool cubemap)
 {
-	prosper::util::ImageCreateInfo imgCreateInfo {};
+	ImageCreateInfo imgCreateInfo {};
 	imgCreateInfo.format = get_prosper_format(imgBuffer);
 	imgCreateInfo.width = imgBuffer.GetWidth();
 	imgCreateInfo.height = imgBuffer.GetHeight();
-	imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
-	imgCreateInfo.postCreateLayout = prosper::ImageLayout::ShaderReadOnlyOptimal;
-	imgCreateInfo.tiling = prosper::ImageTiling::Optimal;
-	imgCreateInfo.usage = prosper::ImageUsageFlags::SampledBit;
+	imgCreateInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
+	imgCreateInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
+	imgCreateInfo.tiling = ImageTiling::Optimal;
+	imgCreateInfo.usage = ImageUsageFlags::SampledBit;
 	imgCreateInfo.layers = cubemap ? 6 : 1;
 	if(cubemap)
-		imgCreateInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
+		imgCreateInfo.flags |= ImageCreateInfo::Flags::Cubemap;
 	return imgCreateInfo;
 }
-std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>, 6> &imgBuffers, const std::optional<util::ImageCreateInfo> &createInfo)
+std::shared_ptr<prosper::IImage> prosper::IPrContext::CreateCubemap(std::array<std::shared_ptr<pragma::image::ImageBuffer>, 6> &imgBuffers, const std::optional<util::ImageCreateInfo> &createInfo)
 {
 	auto imgCreateInfo = createInfo.has_value() ? util::get_image_create_info(*imgBuffers.front(), true) : *createInfo;
 	ImageData imgData {};
@@ -212,11 +212,11 @@ std::shared_ptr<prosper::Texture> prosper::IPrContext::CreateTexture(const util:
 		if(util::is_depth_format(img.GetFormat()))
 			throw std::logic_error("Cannot create resolvable multi-sampled depth image: Multi-sample depth images cannot be resolved!");
 		auto extents = img.GetExtents();
-		prosper::util::ImageCreateInfo imgCreateInfo {};
+		util::ImageCreateInfo imgCreateInfo {};
 		imgCreateInfo.format = img.GetFormat();
 		imgCreateInfo.width = extents.width;
 		imgCreateInfo.height = extents.height;
-		imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUBulk;
+		imgCreateInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 		imgCreateInfo.type = img.GetType();
 		imgCreateInfo.usage = img.GetUsageFlags() | ImageUsageFlags::TransferDstBit;
 		imgCreateInfo.tiling = img.GetTiling();
@@ -247,7 +247,7 @@ std::shared_ptr<prosper::RenderTarget> prosper::IPrContext::CreateRenderTarget(c
 	auto extents = img.GetExtents();
 	auto numLayers = img.GetLayerCount();
 	std::vector<std::shared_ptr<IFramebuffer>> framebuffers;
-	std::vector<prosper::IImageView *> attachments;
+	std::vector<IImageView *> attachments;
 	attachments.reserve(textures.size());
 	for(auto &tex : textures)
 		attachments.push_back(tex->GetImageView());
@@ -269,7 +269,7 @@ std::shared_ptr<prosper::RenderTarget> prosper::IPrContext::CreateRenderTarget(T
 	auto &img = imgView.GetImage();
 	auto &context = rp.GetContext();
 	auto extents = img.GetExtents();
-	std::vector<prosper::IImageView *> attachments = {&imgView};
+	std::vector<IImageView *> attachments = {&imgView};
 	std::vector<std::shared_ptr<IFramebuffer>> framebuffers;
 	framebuffers.push_back(context.CreateFramebuffer(extents.width, extents.height, 1u, attachments));
 	return std::shared_ptr<RenderTarget> {new RenderTarget {context, std::vector<std::shared_ptr<Texture>> {texture.shared_from_this()}, framebuffers, rp}, [](RenderTarget *rt) {
@@ -278,36 +278,36 @@ std::shared_ptr<prosper::RenderTarget> prosper::IPrContext::CreateRenderTarget(T
 	                                      }};
 }
 
-prosper::Format prosper::util::get_vk_format(uimg::Format format)
+prosper::Format prosper::util::get_vk_format(pragma::image::Format format)
 {
 	switch(format) {
-	case uimg::Format::R8:
-		return prosper::Format::R8_UNorm;
-	case uimg::Format::RG8:
-		return prosper::Format::R8G8_UNorm;
-	case uimg::Format::RGB8:
-		return prosper::Format::R8G8B8_UNorm_PoorCoverage;
-	case uimg::Format::RGBA8:
-		return prosper::Format::R8G8B8A8_UNorm;
-	case uimg::Format::R16:
-		return prosper::Format::R16_SFloat;
-	case uimg::Format::RG16:
-		return prosper::Format::R16G16_SFloat;
-	case uimg::Format::RGB16:
-		return prosper::Format::R16G16B16_SFloat_PoorCoverage;
-	case uimg::Format::RGBA16:
-		return prosper::Format::R16G16B16A16_SFloat;
-	case uimg::Format::R32:
-		return prosper::Format::R32_SFloat;
-	case uimg::Format::RG32:
-		return prosper::Format::R32G32_SFloat;
-	case uimg::Format::RGB32:
-		return prosper::Format::R32G32B32_SFloat;
-	case uimg::Format::RGBA32:
-		return prosper::Format::R32G32B32A32_SFloat;
+	case pragma::image::Format::R8:
+		return Format::R8_UNorm;
+	case pragma::image::Format::RG8:
+		return Format::R8G8_UNorm;
+	case pragma::image::Format::RGB8:
+		return Format::R8G8B8_UNorm_PoorCoverage;
+	case pragma::image::Format::RGBA8:
+		return Format::R8G8B8A8_UNorm;
+	case pragma::image::Format::R16:
+		return Format::R16_SFloat;
+	case pragma::image::Format::RG16:
+		return Format::R16G16_SFloat;
+	case pragma::image::Format::RGB16:
+		return Format::R16G16B16_SFloat_PoorCoverage;
+	case pragma::image::Format::RGBA16:
+		return Format::R16G16B16A16_SFloat;
+	case pragma::image::Format::R32:
+		return Format::R32_SFloat;
+	case pragma::image::Format::RG32:
+		return Format::R32G32_SFloat;
+	case pragma::image::Format::RGB32:
+		return Format::R32G32B32_SFloat;
+	case pragma::image::Format::RGBA32:
+		return Format::R32G32B32A32_SFloat;
 	}
-	static_assert(umath::to_integral(uimg::Format::Count) == 13);
-	return prosper::Format::Unknown;
+	static_assert(pragma::math::to_integral(pragma::image::Format::Count) == 13);
+	return Format::Unknown;
 }
 
 void prosper::util::calculate_mipmap_size(uint32_t w, uint32_t h, uint32_t *wMipmap, uint32_t *hMipmap, uint32_t level)
@@ -427,12 +427,12 @@ static std::string to_string(prosper::DebugReportFlags value)
 }
 std::string prosper::util::to_string(DebugReportFlags flags)
 {
-	auto values = umath::get_power_of_2_values(static_cast<uint32_t>(flags));
+	auto values = pragma::math::get_power_of_2_values(static_cast<uint32_t>(flags));
 	std::string r;
 	for(auto it = values.begin(); it != values.end(); ++it) {
 		if(it != values.begin())
 			r += " | ";
-		r += ::to_string(static_cast<prosper::DebugReportFlags>(*it));
+		r += ::to_string(static_cast<DebugReportFlags>(*it));
 	}
 	return r;
 }
@@ -517,7 +517,7 @@ static std::string to_string(prosper::DebugReportObjectTypeEXT value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::DebugReportObjectTypeEXT type) { return ::to_string(type); }
+std::string prosper::util::to_string(DebugReportObjectTypeEXT type) { return ::to_string(type); }
 static std::string to_string(prosper::Format value)
 {
 	using namespace prosper;
@@ -895,7 +895,7 @@ static std::string to_string(prosper::Format value)
 	}
 	return "Invalid";
 }
-std::string prosper::util::to_string(prosper::Format format) { return ::to_string(format); }
+std::string prosper::util::to_string(Format format) { return ::to_string(format); }
 static std::string to_string(prosper::ShaderStageFlags value)
 {
 	switch(value) {
@@ -919,7 +919,7 @@ static std::string to_string(prosper::ShaderStageFlags value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::ShaderStageFlags shaderStage) { return ::to_string(shaderStage); }
+std::string prosper::util::to_string(ShaderStageFlags shaderStage) { return ::to_string(shaderStage); }
 static std::string to_string(prosper::ImageUsageFlags value)
 {
 	switch(value) {
@@ -943,14 +943,14 @@ static std::string to_string(prosper::ImageUsageFlags value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::ImageUsageFlags usage)
+std::string prosper::util::to_string(ImageUsageFlags usage)
 {
-	auto values = umath::get_power_of_2_values(umath::to_integral(usage));
+	auto values = pragma::math::get_power_of_2_values(pragma::math::to_integral(usage));
 	std::string r;
 	for(auto it = values.begin(); it != values.end(); ++it) {
 		if(it != values.begin())
 			r += " | ";
-		r += ::to_string(static_cast<prosper::ImageUsageFlags>(*it));
+		r += ::to_string(static_cast<ImageUsageFlags>(*it));
 	}
 	return r;
 }
@@ -985,14 +985,14 @@ static std::string to_string(prosper::ImageCreateFlags value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::ImageCreateFlags createFlags)
+std::string prosper::util::to_string(ImageCreateFlags createFlags)
 {
-	auto values = umath::get_power_of_2_values(umath::to_integral(createFlags));
+	auto values = pragma::math::get_power_of_2_values(pragma::math::to_integral(createFlags));
 	std::string r;
 	for(auto it = values.begin(); it != values.end(); ++it) {
 		if(it != values.begin())
 			r += " | ";
-		r += ::to_string(static_cast<prosper::ImageCreateFlags>(*it));
+		r += ::to_string(static_cast<ImageCreateFlags>(*it));
 	}
 	return r;
 }
@@ -1009,8 +1009,8 @@ static std::string to_string(prosper::ImageType value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::ImageType type) { return ::to_string(type); }
-std::string prosper::util::to_string(prosper::ShaderStage stage) { return std::string {magic_enum::enum_name(stage)}; }
+std::string prosper::util::to_string(ImageType type) { return ::to_string(type); }
+std::string prosper::util::to_string(ShaderStage stage) { return std::string {magic_enum::enum_name(stage)}; }
 static std::string to_string(prosper::PipelineStageFlags value)
 {
 	switch(value) {
@@ -1052,7 +1052,7 @@ static std::string to_string(prosper::PipelineStageFlags value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::PipelineStageFlags stage) { return ::to_string(stage); }
+std::string prosper::util::to_string(PipelineStageFlags stage) { return ::to_string(stage); }
 static std::string to_string(prosper::ImageTiling value)
 {
 	switch(value) {
@@ -1064,7 +1064,7 @@ static std::string to_string(prosper::ImageTiling value)
 		return "invalid";
 	}
 }
-std::string prosper::util::to_string(prosper::ImageTiling tiling) { return ::to_string(tiling); }
+std::string prosper::util::to_string(ImageTiling tiling) { return ::to_string(tiling); }
 static std::string to_string(prosper::PhysicalDeviceType value)
 {
 	switch(value) {
@@ -1125,7 +1125,7 @@ std::string prosper::util::to_string(Vendor vendor)
 	}
 	return "Unknown";
 }
-std::string prosper::util::to_string(SampleCountFlags samples) { return std::to_string(umath::to_integral(samples)); }
+std::string prosper::util::to_string(SampleCountFlags samples) { return std::to_string(pragma::math::to_integral(samples)); }
 void prosper::util::to_string(const BufferCreateInfo &createInfo, std::stringstream &out)
 {
 	out << "size: " << createInfo.size << "\n";
@@ -1139,7 +1139,7 @@ void prosper::util::to_string(const ImageCreateInfo &createInfo, std::stringstre
 	out << "type: " << magic_enum::enum_name(createInfo.type) << "\n";
 	out << "width: " << createInfo.width << "\n";
 	out << "height: " << createInfo.height << "\n";
-	out << "format: " << umath::to_integral(createInfo.format) << "\n";
+	out << "format: " << pragma::math::to_integral(createInfo.format) << "\n";
 	out << "layers: " << createInfo.layers << "\n";
 	out << "usage: " << magic_enum::enum_flags_name(createInfo.usage) << "\n";
 	out << "samples: " << magic_enum::enum_name(createInfo.samples) << "\n";
@@ -1663,7 +1663,7 @@ uint32_t prosper::util::get_pixel_size(Format format) { return is_compressed_for
 
 uint32_t prosper::util::get_component_count(Format format) { return gli_wrapper::get_component_count(format); }
 
-bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &outChannelMask)
+bool prosper::util::get_format_channel_mask(Format format, pragma::image::ChannelMask &outChannelMask)
 {
 	switch(format) {
 	case Format::R8_UNorm:
@@ -1800,7 +1800,7 @@ bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &ou
 	case Format::ASTC_12x10_SRGB_Block_PoorCoverage:
 	case Format::ASTC_12x12_UNorm_Block_PoorCoverage:
 	case Format::ASTC_12x12_SRGB_Block_PoorCoverage:
-		outChannelMask = {uimg::Channel::R, uimg::Channel::G, uimg::Channel::B, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::R, pragma::image::Channel::G, pragma::image::Channel::B, pragma::image::Channel::A};
 		return true;
 	case Format::B8G8R8_UNorm_PoorCoverage:
 	case Format::B8G8R8_SNorm_PoorCoverage:
@@ -1816,28 +1816,28 @@ bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &ou
 	case Format::B8G8R8A8_UInt:
 	case Format::B8G8R8A8_SInt:
 	case Format::B8G8R8A8_SRGB:
-		outChannelMask = {uimg::Channel::B, uimg::Channel::G, uimg::Channel::R, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::B, pragma::image::Channel::G, pragma::image::Channel::R, pragma::image::Channel::A};
 		return true;
-	// Note: Pack formats have reverse order due to endianness! Unused channels are set to uimg::Channel::A (unless all channels are used)
+	// Note: Pack formats have reverse order due to endianness! Unused channels are set to pragma::image::Channel::A (unless all channels are used)
 	case Format::R4G4_UNorm_Pack8:
-		outChannelMask = {uimg::Channel::G, uimg::Channel::R, uimg::Channel::A, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::G, pragma::image::Channel::R, pragma::image::Channel::A, pragma::image::Channel::A};
 		return true;
 	case Format::R4G4B4A4_UNorm_Pack16:
 	case Format::R5G5B5A1_UNorm_Pack16:
-		outChannelMask = {uimg::Channel::A, uimg::Channel::B, uimg::Channel::G, uimg::Channel::R};
+		outChannelMask = {pragma::image::Channel::A, pragma::image::Channel::B, pragma::image::Channel::G, pragma::image::Channel::R};
 		return true;
 	case Format::R5G6B5_UNorm_Pack16:
-		outChannelMask = {uimg::Channel::B, uimg::Channel::G, uimg::Channel::R, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::B, pragma::image::Channel::G, pragma::image::Channel::R, pragma::image::Channel::A};
 		return true;
 	case Format::B5G6R5_UNorm_Pack16:
-		outChannelMask = {uimg::Channel::R, uimg::Channel::G, uimg::Channel::B, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::R, pragma::image::Channel::G, pragma::image::Channel::B, pragma::image::Channel::A};
 		return true;
 	case Format::B4G4R4A4_UNorm_Pack16:
 	case Format::B5G5R5A1_UNorm_Pack16:
-		outChannelMask = {uimg::Channel::A, uimg::Channel::R, uimg::Channel::G, uimg::Channel::B};
+		outChannelMask = {pragma::image::Channel::A, pragma::image::Channel::R, pragma::image::Channel::G, pragma::image::Channel::B};
 		return true;
 	case Format::B10G11R11_UFloat_Pack32:
-		outChannelMask = {uimg::Channel::R, uimg::Channel::G, uimg::Channel::B, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::R, pragma::image::Channel::G, pragma::image::Channel::B, pragma::image::Channel::A};
 		return true;
 	case Format::A1R5G5B5_UNorm_Pack16:
 	case Format::A2R10G10B10_UNorm_Pack32:
@@ -1846,7 +1846,7 @@ bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &ou
 	case Format::A2R10G10B10_SScaled_Pack32_PoorCoverage:
 	case Format::A2R10G10B10_UInt_Pack32:
 	case Format::A2R10G10B10_SInt_Pack32_PoorCoverage:
-		outChannelMask = {uimg::Channel::B, uimg::Channel::G, uimg::Channel::R, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::B, pragma::image::Channel::G, pragma::image::Channel::R, pragma::image::Channel::A};
 		return true;
 	case Format::A8B8G8R8_UNorm_Pack32:
 	case Format::A8B8G8R8_SNorm_Pack32:
@@ -1861,7 +1861,7 @@ bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &ou
 	case Format::A2B10G10R10_SScaled_Pack32_PoorCoverage:
 	case Format::A2B10G10R10_UInt_Pack32:
 	case Format::A2B10G10R10_SInt_Pack32_PoorCoverage:
-		outChannelMask = {uimg::Channel::R, uimg::Channel::G, uimg::Channel::B, uimg::Channel::A};
+		outChannelMask = {pragma::image::Channel::R, pragma::image::Channel::G, pragma::image::Channel::B, pragma::image::Channel::A};
 		return true;
 	}
 	return false;
@@ -1869,23 +1869,23 @@ bool prosper::util::get_format_channel_mask(Format format, uimg::ChannelMask &ou
 
 prosper::AccessFlags prosper::util::get_read_access_mask()
 {
-	return prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::DepthStencilAttachmentReadBit | prosper::AccessFlags::HostReadBit | prosper::AccessFlags::IndexReadBit | prosper::AccessFlags::IndirectCommandReadBit | prosper::AccessFlags::InputAttachmentReadBit
-	  | prosper::AccessFlags::MemoryReadBit | prosper::AccessFlags::ShaderReadBit | prosper::AccessFlags::TransferReadBit | prosper::AccessFlags::UniformReadBit | prosper::AccessFlags::VertexAttributeReadBit;
+	return AccessFlags::ColorAttachmentReadBit | AccessFlags::DepthStencilAttachmentReadBit | AccessFlags::HostReadBit | AccessFlags::IndexReadBit | AccessFlags::IndirectCommandReadBit | AccessFlags::InputAttachmentReadBit
+	  | AccessFlags::MemoryReadBit | AccessFlags::ShaderReadBit | AccessFlags::TransferReadBit | AccessFlags::UniformReadBit | AccessFlags::VertexAttributeReadBit;
 }
 prosper::AccessFlags prosper::util::get_write_access_mask()
 {
-	return prosper::AccessFlags::ColorAttachmentWriteBit | prosper::AccessFlags::DepthStencilAttachmentWriteBit | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::MemoryWriteBit | prosper::AccessFlags::ShaderWriteBit | prosper::AccessFlags::TransferWriteBit;
+	return AccessFlags::ColorAttachmentWriteBit | AccessFlags::DepthStencilAttachmentWriteBit | AccessFlags::HostWriteBit | AccessFlags::MemoryWriteBit | AccessFlags::ShaderWriteBit | AccessFlags::TransferWriteBit;
 }
 
 prosper::AccessFlags prosper::util::get_image_read_access_mask()
 {
-	return prosper::AccessFlags::ColorAttachmentReadBit | prosper::AccessFlags::HostReadBit | prosper::AccessFlags::MemoryReadBit | prosper::AccessFlags::ShaderReadBit | prosper::AccessFlags::TransferReadBit | prosper::AccessFlags::UniformReadBit;
+	return AccessFlags::ColorAttachmentReadBit | AccessFlags::HostReadBit | AccessFlags::MemoryReadBit | AccessFlags::ShaderReadBit | AccessFlags::TransferReadBit | AccessFlags::UniformReadBit;
 }
-prosper::AccessFlags prosper::util::get_image_write_access_mask() { return prosper::AccessFlags::ColorAttachmentWriteBit | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::MemoryWriteBit | prosper::AccessFlags::ShaderWriteBit | prosper::AccessFlags::TransferWriteBit; }
+prosper::AccessFlags prosper::util::get_image_write_access_mask() { return AccessFlags::ColorAttachmentWriteBit | AccessFlags::HostWriteBit | AccessFlags::MemoryWriteBit | AccessFlags::ShaderWriteBit | AccessFlags::TransferWriteBit; }
 
-prosper::PipelineBindPoint prosper::util::get_pipeline_bind_point(prosper::ShaderStageFlags shaderStages) { return ((shaderStages & prosper::ShaderStageFlags::ComputeBit) != prosper::ShaderStageFlags(0)) ? prosper::PipelineBindPoint::Compute : prosper::PipelineBindPoint::Graphics; }
+prosper::PipelineBindPoint prosper::util::get_pipeline_bind_point(ShaderStageFlags shaderStages) { return ((shaderStages & ShaderStageFlags::ComputeBit) != ShaderStageFlags(0)) ? PipelineBindPoint::Compute : PipelineBindPoint::Graphics; }
 
-prosper::ShaderStage prosper::util::shader_stage_flag_to_shader_stage(prosper::ShaderStageFlags flag)
+prosper::ShaderStage prosper::util::shader_stage_flag_to_shader_stage(ShaderStageFlags flag)
 {
 	switch(flag) {
 	case ShaderStageFlags::ComputeBit:
@@ -1901,16 +1901,16 @@ prosper::ShaderStage prosper::util::shader_stage_flag_to_shader_stage(prosper::S
 	case ShaderStageFlags::VertexBit:
 		return ShaderStage::Vertex;
 	}
-	throw std::logic_error {std::to_string(umath::to_integral(flag)) + " is not a unique shader stage flag"};
+	throw std::logic_error {std::to_string(pragma::math::to_integral(flag)) + " is not a unique shader stage flag"};
 }
 
-std::vector<prosper::ShaderStage> prosper::util::shader_stage_flags_to_shader_stages(prosper::ShaderStageFlags flags)
+std::vector<prosper::ShaderStage> prosper::util::shader_stage_flags_to_shader_stages(ShaderStageFlags flags)
 {
-	std::vector<prosper::ShaderStage> stages;
-	auto values = umath::get_power_of_2_values(umath::to_integral(flags));
+	std::vector<ShaderStage> stages;
+	auto values = pragma::math::get_power_of_2_values(pragma::math::to_integral(flags));
 	stages.reserve(values.size());
 	for(auto v : values)
-		stages.push_back(shader_stage_flag_to_shader_stage(static_cast<prosper::ShaderStageFlags>(v)));
+		stages.push_back(shader_stage_flag_to_shader_stage(static_cast<ShaderStageFlags>(v)));
 	return stages;
 }
 
@@ -1943,35 +1943,35 @@ uint32_t prosper::util::get_aligned_size(uint32_t size, uint32_t alignment)
 
 prosper::ImageAspectFlags prosper::util::get_aspect_mask(IImage &img) { return get_aspect_mask(img.GetFormat()); }
 
-void prosper::util::get_image_layout_transition_access_masks(prosper::ImageLayout oldLayout, prosper::ImageLayout newLayout, prosper::AccessFlags &readAccessMask, prosper::AccessFlags &writeAccessMask)
+void prosper::util::get_image_layout_transition_access_masks(ImageLayout oldLayout, ImageLayout newLayout, AccessFlags &readAccessMask, AccessFlags &writeAccessMask)
 {
 	// Source Layout
 	switch(oldLayout) {
 		// Undefined layout
 		// Only allowed as initial layout!
 		// Make sure any writes to the image have been finished
-	case prosper::ImageLayout::Preinitialized:
-		readAccessMask = prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::TransferWriteBit;
+	case ImageLayout::Preinitialized:
+		readAccessMask = AccessFlags::HostWriteBit | AccessFlags::TransferWriteBit;
 		break;
 		// Old layout is color attachment
 		// Make sure any writes to the color buffer have been finished
-	case prosper::ImageLayout::ColorAttachmentOptimal:
-		readAccessMask = prosper::AccessFlags::ColorAttachmentWriteBit;
+	case ImageLayout::ColorAttachmentOptimal:
+		readAccessMask = AccessFlags::ColorAttachmentWriteBit;
 		break;
 		// Old layout is depth/stencil attachment
 		// Make sure any writes to the depth/stencil buffer have been finished
-	case prosper::ImageLayout::DepthStencilAttachmentOptimal:
-		readAccessMask = prosper::AccessFlags::DepthStencilAttachmentWriteBit;
+	case ImageLayout::DepthStencilAttachmentOptimal:
+		readAccessMask = AccessFlags::DepthStencilAttachmentWriteBit;
 		break;
 		// Old layout is transfer source
 		// Make sure any reads from the image have been finished
-	case prosper::ImageLayout::TransferSrcOptimal:
-		readAccessMask = prosper::AccessFlags::TransferReadBit;
+	case ImageLayout::TransferSrcOptimal:
+		readAccessMask = AccessFlags::TransferReadBit;
 		break;
 		// Old layout is shader read (sampler, input attachment)
 		// Make sure any shader reads from the image have been finished
-	case prosper::ImageLayout::ShaderReadOnlyOptimal:
-		readAccessMask = prosper::AccessFlags::ShaderReadBit;
+	case ImageLayout::ShaderReadOnlyOptimal:
+		readAccessMask = AccessFlags::ShaderReadBit;
 		break;
 	};
 
@@ -1979,161 +1979,161 @@ void prosper::util::get_image_layout_transition_access_masks(prosper::ImageLayou
 	switch(newLayout) {
 		// New layout is transfer destination (copy, blit)
 		// Make sure any copyies to the image have been finished
-	case prosper::ImageLayout::TransferDstOptimal:
-		writeAccessMask = prosper::AccessFlags::TransferWriteBit;
+	case ImageLayout::TransferDstOptimal:
+		writeAccessMask = AccessFlags::TransferWriteBit;
 		break;
 		// New layout is transfer source (copy, blit)
 		// Make sure any reads from and writes to the image have been finished
-	case prosper::ImageLayout::TransferSrcOptimal:
-		readAccessMask = readAccessMask | prosper::AccessFlags::TransferReadBit;
-		writeAccessMask = prosper::AccessFlags::TransferReadBit;
+	case ImageLayout::TransferSrcOptimal:
+		readAccessMask = readAccessMask | AccessFlags::TransferReadBit;
+		writeAccessMask = AccessFlags::TransferReadBit;
 		break;
 		// New layout is color attachment
 		// Make sure any writes to the color buffer hav been finished
-	case prosper::ImageLayout::ColorAttachmentOptimal:
-		writeAccessMask = prosper::AccessFlags::ColorAttachmentWriteBit;
-		readAccessMask = readAccessMask | prosper::AccessFlags::TransferReadBit;
+	case ImageLayout::ColorAttachmentOptimal:
+		writeAccessMask = AccessFlags::ColorAttachmentWriteBit;
+		readAccessMask = readAccessMask | AccessFlags::TransferReadBit;
 		break;
 		// New layout is depth attachment
 		// Make sure any writes to depth/stencil buffer have been finished
-	case prosper::ImageLayout::DepthStencilAttachmentOptimal:
-		writeAccessMask = writeAccessMask | prosper::AccessFlags::DepthStencilAttachmentWriteBit;
+	case ImageLayout::DepthStencilAttachmentOptimal:
+		writeAccessMask = writeAccessMask | AccessFlags::DepthStencilAttachmentWriteBit;
 		break;
 		// New layout is shader read (sampler, input attachment)
 		// Make sure any writes to the image have been finished
-	case prosper::ImageLayout::ShaderReadOnlyOptimal:
-		readAccessMask = readAccessMask | prosper::AccessFlags::HostWriteBit | prosper::AccessFlags::TransferWriteBit;
-		writeAccessMask = prosper::AccessFlags::ShaderReadBit;
+	case ImageLayout::ShaderReadOnlyOptimal:
+		readAccessMask = readAccessMask | AccessFlags::HostWriteBit | AccessFlags::TransferWriteBit;
+		writeAccessMask = AccessFlags::ShaderReadBit;
 		break;
-	case prosper::ImageLayout::DepthStencilReadOnlyOptimal:
-		readAccessMask = readAccessMask | prosper::AccessFlags::ShaderWriteBit;
-		writeAccessMask = prosper::AccessFlags::ShaderReadBit;
+	case ImageLayout::DepthStencilReadOnlyOptimal:
+		readAccessMask = readAccessMask | AccessFlags::ShaderWriteBit;
+		writeAccessMask = AccessFlags::ShaderReadBit;
 		break;
 	};
 }
 
-static prosper::Format get_prosper_format(uimg::TextureInfo::InputFormat format)
+static prosper::Format get_prosper_format(pragma::image::TextureInfo::InputFormat format)
 {
 	prosper::Format anvFormat = prosper::Format::R8G8B8A8_UNorm;
 	switch(format) {
-	case uimg::TextureInfo::InputFormat::R8G8B8A8_UInt:
+	case pragma::image::TextureInfo::InputFormat::R8G8B8A8_UInt:
 		anvFormat = prosper::Format::R8G8B8A8_UNorm;
 		break;
-	case uimg::TextureInfo::InputFormat::B8G8R8A8_UInt:
+	case pragma::image::TextureInfo::InputFormat::B8G8R8A8_UInt:
 		anvFormat = prosper::Format::B8G8R8A8_UNorm;
 		break;
-	case uimg::TextureInfo::InputFormat::R16G16B16A16_Float:
+	case pragma::image::TextureInfo::InputFormat::R16G16B16A16_Float:
 		anvFormat = prosper::Format::R16G16B16A16_SFloat;
 		break;
-	case uimg::TextureInfo::InputFormat::R32G32B32A32_Float:
+	case pragma::image::TextureInfo::InputFormat::R32G32B32A32_Float:
 		anvFormat = prosper::Format::R32G32B32A32_SFloat;
 		break;
-	case uimg::TextureInfo::InputFormat::R32_Float:
+	case pragma::image::TextureInfo::InputFormat::R32_Float:
 		anvFormat = prosper::Format::R32_SFloat;
 		break;
-	case uimg::TextureInfo::InputFormat::KeepInputImageFormat:
+	case pragma::image::TextureInfo::InputFormat::KeepInputImageFormat:
 		break;
 	}
-	static_assert(umath::to_integral(uimg::TextureInfo::InputFormat::Count) == 6, "Update this list!");
+	static_assert(pragma::math::to_integral(pragma::image::TextureInfo::InputFormat::Count) == 6, "Update this list!");
 	return anvFormat;
 }
-static prosper::Format get_prosper_format(uimg::TextureInfo::OutputFormat format)
+static prosper::Format get_prosper_format(pragma::image::TextureInfo::OutputFormat format)
 {
 	prosper::Format anvFormat = prosper::Format::R8G8B8A8_UNorm;
 	switch(format) {
-	case uimg::TextureInfo::OutputFormat::RGB:
-	case uimg::TextureInfo::OutputFormat::RGBA:
+	case pragma::image::TextureInfo::OutputFormat::RGB:
+	case pragma::image::TextureInfo::OutputFormat::RGBA:
 		return prosper::Format::R8G8B8A8_UNorm;
-	case uimg::TextureInfo::OutputFormat::BC1:
-	// case uimg::TextureInfo::OutputFormat::DXT1n:
-	case uimg::TextureInfo::OutputFormat::CTX1:
-	case uimg::TextureInfo::OutputFormat::BC1a:
+	case pragma::image::TextureInfo::OutputFormat::BC1:
+	// case pragma::image::TextureInfo::OutputFormat::DXT1n:
+	case pragma::image::TextureInfo::OutputFormat::CTX1:
+	case pragma::image::TextureInfo::OutputFormat::BC1a:
 		return prosper::Format::BC1_RGBA_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC2:
+	case pragma::image::TextureInfo::OutputFormat::BC2:
 		return prosper::Format::BC2_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC3:
-	case uimg::TextureInfo::OutputFormat::BC3n:
-		// case uimg::TextureInfo::OutputFormat::BC3_RGBM:
+	case pragma::image::TextureInfo::OutputFormat::BC3:
+	case pragma::image::TextureInfo::OutputFormat::BC3n:
+		// case pragma::image::TextureInfo::OutputFormat::BC3_RGBM:
 		return prosper::Format::BC3_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC4:
+	case pragma::image::TextureInfo::OutputFormat::BC4:
 		return prosper::Format::BC4_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC5:
+	case pragma::image::TextureInfo::OutputFormat::BC5:
 		return prosper::Format::BC5_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC6:
+	case pragma::image::TextureInfo::OutputFormat::BC6:
 		return prosper::Format::BC6H_SFloat_Block;
-	case uimg::TextureInfo::OutputFormat::BC7:
+	case pragma::image::TextureInfo::OutputFormat::BC7:
 		return prosper::Format::BC7_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::ETC1:
-	case uimg::TextureInfo::OutputFormat::ETC2_R:
-	case uimg::TextureInfo::OutputFormat::ETC2_RG:
-	case uimg::TextureInfo::OutputFormat::ETC2_RGB:
-	case uimg::TextureInfo::OutputFormat::ETC2_RGBA:
-	case uimg::TextureInfo::OutputFormat::ETC2_RGB_A1:
-		// case uimg::TextureInfo::OutputFormat::ETC2_RGBM:
+	case pragma::image::TextureInfo::OutputFormat::ETC1:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_R:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RG:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGB:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGBA:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGB_A1:
+		// case pragma::image::TextureInfo::OutputFormat::ETC2_RGBM:
 		return prosper::Format::ETC2_R8G8B8A8_UNorm_Block_PoorCoverage;
 	}
 	return anvFormat;
 }
-static bool is_compatible(prosper::Format imgFormat, uimg::TextureInfo::OutputFormat outputFormat)
+static bool is_compatible(prosper::Format imgFormat, pragma::image::TextureInfo::OutputFormat outputFormat)
 {
-	if(outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat)
+	if(outputFormat == pragma::image::TextureInfo::OutputFormat::KeepInputImageFormat)
 		return true;
 	switch(outputFormat) {
-	// case uimg::TextureInfo::OutputFormat::DXT1n:
-	case uimg::TextureInfo::OutputFormat::BC1:
-	case uimg::TextureInfo::OutputFormat::BC1a:
+	// case pragma::image::TextureInfo::OutputFormat::DXT1n:
+	case pragma::image::TextureInfo::OutputFormat::BC1:
+	case pragma::image::TextureInfo::OutputFormat::BC1a:
 		return imgFormat == prosper::Format::BC1_RGBA_SRGB_Block || imgFormat == prosper::Format::BC1_RGBA_UNorm_Block || imgFormat == prosper::Format::BC1_RGB_SRGB_Block || imgFormat == prosper::Format::BC1_RGB_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC2:
+	case pragma::image::TextureInfo::OutputFormat::BC2:
 		return imgFormat == prosper::Format::BC2_SRGB_Block || imgFormat == prosper::Format::BC2_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC3:
-	case uimg::TextureInfo::OutputFormat::BC3n:
-	// case uimg::TextureInfo::OutputFormat::BC3_RGBM:
+	case pragma::image::TextureInfo::OutputFormat::BC3:
+	case pragma::image::TextureInfo::OutputFormat::BC3n:
+	// case pragma::image::TextureInfo::OutputFormat::BC3_RGBM:
 	//	return imgFormat == prosper::Format::BC3_SRGB_Block || imgFormat == prosper::Format::BC3_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC4:
+	case pragma::image::TextureInfo::OutputFormat::BC4:
 		return imgFormat == prosper::Format::BC4_SNorm_Block || imgFormat == prosper::Format::BC4_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC5:
+	case pragma::image::TextureInfo::OutputFormat::BC5:
 		return imgFormat == prosper::Format::BC5_SNorm_Block || imgFormat == prosper::Format::BC5_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::BC6:
+	case pragma::image::TextureInfo::OutputFormat::BC6:
 		return imgFormat == prosper::Format::BC6H_SFloat_Block || imgFormat == prosper::Format::BC6H_UFloat_Block;
-	case uimg::TextureInfo::OutputFormat::BC7:
+	case pragma::image::TextureInfo::OutputFormat::BC7:
 		return imgFormat == prosper::Format::BC7_SRGB_Block || imgFormat == prosper::Format::BC7_UNorm_Block;
 #if 0 // Disabled due to poor coverage
-	case uimg::TextureInfo::OutputFormat::ETC2_R:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_R:
 		return imgFormat == prosper::Format::ETC2_R8G8B8A1_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A1_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::ETC2_RG:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RG:
 		return imgFormat == prosper::Format::ETC2_R8G8B8A1_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A1_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::ETC2_RGB:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGB:
 		return imgFormat == prosper::Format::ETC2_R8G8B8A1_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A1_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::ETC2_RGBA:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGBA:
 		return imgFormat == prosper::Format::ETC2_R8G8B8A1_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A1_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::ETC2_RGB_A1:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGB_A1:
 		return imgFormat == prosper::Format::ETC2_R8G8B8A1_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A1_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_UNorm_Block;
-	case uimg::TextureInfo::OutputFormat::ETC2_RGBM:
+	case pragma::image::TextureInfo::OutputFormat::ETC2_RGBM:
 		return imgFormat == prosper::Format::ETC2_R8G8B8A1_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A1_UNorm_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8A8_SRGB_Block ||
@@ -2141,11 +2141,11 @@ static bool is_compatible(prosper::Format imgFormat, uimg::TextureInfo::OutputFo
 			imgFormat == prosper::Format::ETC2_R8G8B8_SRGB_Block ||
 			imgFormat == prosper::Format::ETC2_R8G8B8_UNorm_Block;
 #endif
-	case uimg::TextureInfo::OutputFormat::RGB:
-	case uimg::TextureInfo::OutputFormat::RGBA:
+	case pragma::image::TextureInfo::OutputFormat::RGB:
+	case pragma::image::TextureInfo::OutputFormat::RGBA:
 		return prosper::util::is_uncompressed_format(static_cast<prosper::Format>(imgFormat));
-	case uimg::TextureInfo::OutputFormat::CTX1:
-	case uimg::TextureInfo::OutputFormat::ETC1:
+	case pragma::image::TextureInfo::OutputFormat::CTX1:
+	case pragma::image::TextureInfo::OutputFormat::ETC1:
 	default:
 		return false;
 	}
@@ -2182,22 +2182,22 @@ static bool is_compatible(prosper::Format imgFormat, prosper::Format outputForma
 	}
 	return false;
 }
-std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> prosper::util::image_to_data(prosper::IImage &image, const std::optional<prosper::Format> &pdstFormat)
+std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> prosper::util::image_to_data(IImage &image, const std::optional<Format> &pdstFormat)
 {
 	auto dstFormat = pdstFormat;
 	if(dstFormat.has_value() && *dstFormat == image.GetFormat())
 		dstFormat = {};
-	std::shared_ptr<prosper::IImage> imgRead = image.shared_from_this();
-	std::shared_ptr<prosper::IBuffer> buf = nullptr;
+	std::shared_ptr<IImage> imgRead = image.shared_from_this();
+	std::shared_ptr<IBuffer> buf = nullptr;
 
 	if(!dstFormat.has_value() || is_compressed_format(imgRead->GetFormat())) {
-		std::optional<prosper::Format> conversionFormat {};
+		std::optional<Format> conversionFormat {};
 		if(dstFormat.has_value() && is_compatible(imgRead->GetFormat(), *dstFormat) == false) {
 			// Convert the image into the target format
 			auto &context = image.GetContext();
 
 			uint32_t famIdx;
-			auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal, famIdx);
+			auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(QueueFamilyType::Universal, famIdx);
 			setupCmd->StartRecording();
 
 			// Note: We should just be able to convert the image to
@@ -2209,7 +2209,7 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 			auto copyCreateInfo = image.GetCreateInfo();
 			//copyCreateInfo.format = Anvil::Format::BC1_RGBA_UNORM_BLOCK;//get_anvil_format(texInfo.outputFormat);
 			copyCreateInfo.format = Format::R32G32B32A32_SFloat;
-			copyCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+			copyCreateInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 			copyCreateInfo.postCreateLayout = ImageLayout::TransferDstOptimal;
 			copyCreateInfo.tiling = ImageTiling::Optimal; // Needs to be in optimal tiling because some GPUs do not support linear tiling with mipmaps
 			setupCmd->RecordImageBarrier(image, ImageLayout::ShaderReadOnlyOptimal, ImageLayout::TransferSrcOptimal);
@@ -2219,7 +2219,7 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 
 			context.FlushCommandBuffer(*setupCmd);
 
-			conversionFormat = prosper::Format::R32G32B32A32_SFloat;
+			conversionFormat = Format::R32G32B32A32_SFloat;
 		}
 
 		// No conversion needed, just copy the image data to a buffer and save it directly
@@ -2228,7 +2228,7 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		auto numLevels = imgRead->GetMipmapCount();
 		auto &context = imgRead->GetContext();
 		uint32_t famIdx;
-		auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal, famIdx);
+		auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(QueueFamilyType::Universal, famIdx);
 		setupCmd->StartRecording();
 
 		std::vector<gli_wrapper::GliTextureWrapper> gliTex;
@@ -2236,13 +2236,13 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		for(auto i = decltype(numLayers) {0u}; i < numLayers; ++i)
 			gliTex.push_back(gli_wrapper::GliTextureWrapper {extents.width, extents.height, imgRead->GetFormat(), numLevels});
 
-		prosper::util::BufferCreateInfo bufCreateInfo {};
-		bufCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUToCPU;
+		BufferCreateInfo bufCreateInfo {};
+		bufCreateInfo.memoryFeatures = MemoryFeatureFlags::GPUToCPU;
 		bufCreateInfo.size = gliTex[0].size() * gliTex.size();
-		bufCreateInfo.usageFlags = prosper::BufferUsageFlags::TransferDstBit;
-		bufCreateInfo.flags |= prosper::util::BufferCreateInfo::Flags::Persistent;
+		bufCreateInfo.usageFlags = BufferUsageFlags::TransferDstBit;
+		bufCreateInfo.flags |= BufferCreateInfo::Flags::Persistent;
 		auto buf = context.CreateBuffer(bufCreateInfo);
-		buf->SetPermanentlyMapped(true, prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
+		buf->SetPermanentlyMapped(true, IBuffer::MapFlags::ReadBit | IBuffer::MapFlags::WriteBit);
 
 		setupCmd->RecordImageBarrier(*imgRead, ImageLayout::ShaderReadOnlyOptimal, ImageLayout::TransferSrcOptimal);
 		// Initialize buffer with image data
@@ -2251,7 +2251,7 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 			for(auto iMipmap = decltype(numLevels) {0u}; iMipmap < numLevels; ++iMipmap) {
 				auto extents = imgRead->GetExtents(iMipmap);
 				auto mipmapSize = gliTex[iLayer].size(iMipmap);
-				prosper::util::BufferImageCopyInfo copyInfo {};
+				BufferImageCopyInfo copyInfo {};
 				copyInfo.baseArrayLayer = iLayer;
 				copyInfo.bufferOffset = bufferOffset;
 				copyInfo.dstImageLayout = ImageLayout::TransferSrcOptimal;
@@ -2299,12 +2299,12 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 			outDeleter = nullptr;
 			return static_cast<const uint8_t *>(gliTex[iLayer].data(0u, 0u /* face */, iMipmap));
 		};
-		/*auto fullFileName = uimg::get_absolute_path(fileName,texInfo.containerFormat);
+		/*auto fullFileName = pragma::image::get_absolute_path(fileName,texInfo.containerFormat);
 		switch(texInfo.containerFormat)
 		{
-		case uimg::TextureInfo::ContainerFormat::DDS:
+		case pragma::image::TextureInfo::ContainerFormat::DDS:
 			return gli::save_dds(gliTex,fullFileName);
-		case uimg::TextureInfo::ContainerFormat::KTX:
+		case pragma::image::TextureInfo::ContainerFormat::KTX:
 			return gli::save_ktx(gliTex,fullFileName);
 		}*/
 		return nullptr;
@@ -2312,16 +2312,16 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 
 	std::vector<std::vector<size_t>> layerMipmapOffsets {};
 	uint32_t sizePerPixel = 0u;
-	if(image.GetTiling() != ImageTiling::Linear || umath::is_flag_set(image.GetCreateInfo().memoryFeatures, prosper::MemoryFeatureFlags::HostAccessable) == false || image.GetFormat() != *dstFormat) {
+	if(image.GetTiling() != ImageTiling::Linear || pragma::math::is_flag_set(image.GetCreateInfo().memoryFeatures, MemoryFeatureFlags::HostAccessable) == false || image.GetFormat() != *dstFormat) {
 		// Convert the image into the target format
 		auto &context = image.GetContext();
 		uint32_t famIdx;
-		auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal, famIdx);
+		auto setupCmd = context.AllocatePrimaryLevelCommandBuffer(QueueFamilyType::Universal, famIdx);
 		setupCmd->StartRecording();
 
 		auto copyCreateInfo = image.GetCreateInfo();
 		copyCreateInfo.format = *dstFormat;
-		copyCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+		copyCreateInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 		copyCreateInfo.postCreateLayout = ImageLayout::TransferDstOptimal;
 		copyCreateInfo.tiling = ImageTiling::Optimal; // Needs to be in optimal tiling because some GPUs do not support linear tiling with mipmaps
 		setupCmd->RecordImageBarrier(image, ImageLayout::ShaderReadOnlyOptimal, ImageLayout::TransferSrcOptimal);
@@ -2352,14 +2352,14 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		}
 		setupCmd->RecordImageBarrier(*imgRead, ImageLayout::TransferDstOptimal, ImageLayout::TransferSrcOptimal);
 
-		prosper::util::BufferImageCopyInfo copyInfo {};
+		BufferImageCopyInfo copyInfo {};
 		copyInfo.dstImageLayout = ImageLayout::TransferSrcOptimal;
 
 		struct ImageMipmapData {
 			uint32_t mipmapIndex = 0u;
 			uint64_t bufferOffset = 0ull;
 			uint64_t bufferSize = 0ull;
-			prosper::Extent2D extents = {};
+			Extent2D extents = {};
 		};
 		struct ImageLayerData {
 			std::vector<ImageMipmapData> mipmaps = {};
@@ -2392,12 +2392,12 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		context.FlushCommandBuffer(*setupCmd);
 
 		/*// The dds library expects the image data in RGB form, so we have to do some conversions in some cases.
-		std::optional<util::Format> imgBufFormat = {};
+		std::optional<pragma::util::Format> imgBufFormat = {};
 		switch(srcFormat)
 		{
 		case Anvil::Format::B8G8R8_UNORM:
 		case Anvil::Format::B8G8R8A8_UNORM:
-		imgBufFormat = util::Format::RGBA32; // TODO: dst format
+		imgBufFormat = pragma::util::Format::RGBA32; // TODO: dst format
 		break;
 		}
 		if(imgBufFormat.has_value())
@@ -2411,8 +2411,8 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		if(buf->Read(mipmapData.bufferOffset,mipmapData.bufferSize,imgData.data()))
 		{
 		// Swap red and blue channels, then write the new image data back to the buffer
-		auto imgBuf = util::ImageBuffer::Create(imgData.data(),mipmapData.extents.width,mipmapData.extents.height,*imgBufFormat,true);
-		imgBuf->SwapChannels(util::ImageBuffer::Channel::Red,util::ImageBuffer::Channel::Blue);
+		auto imgBuf = pragma::util::ImageBuffer::Create(imgData.data(),mipmapData.extents.width,mipmapData.extents.height,*imgBufFormat,true);
+		imgBuf->SwapChannels(pragma::util::ImageBuffer::Channel::Red,util::ImageBuffer::Channel::Blue);
 		buf->Write(mipmapData.bufferOffset,mipmapData.bufferSize,imgData.data());
 		}
 		}
@@ -2426,7 +2426,7 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 			auto size = extents.width * extents.height * sizePerPixel;
 			void *mappedPtr = nullptr;
 
-			if(buf->Map(offset, sizePerPixel, prosper::IBuffer::MapFlags::None, &mappedPtr) == false)
+			if(buf->Map(offset, sizePerPixel, IBuffer::MapFlags::None, &mappedPtr) == false)
 				return nullptr;
 			outDeleter = [buf]() {
 				buf->Unmap(); // Note: setMipmapData copies the data, so we don't need to keep it mapped
@@ -2447,12 +2447,12 @@ std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> 
 		return static_cast<uint8_t *>(data);
 	};
 }
-bool prosper::util::compress_image(prosper::IImage &image, const uimg::TextureInfo &texInfo, const uimg::TextureOutputHandler &outputHandler, const std::function<void(const std::string &)> &errorHandler)
+bool prosper::util::compress_image(IImage &image, const pragma::image::TextureInfo &texInfo, const pragma::image::TextureOutputHandler &outputHandler, const std::function<void(const std::string &)> &errorHandler)
 {
 	auto extents = image.GetExtents();
 	auto dstFormat = image.GetFormat();
 
-	uimg::TextureSaveInfo saveInfo {};
+	pragma::image::TextureSaveInfo saveInfo {};
 	saveInfo.numLayers = image.GetLayerCount();
 	saveInfo.numMipmaps = image.GetMipmapCount();
 	saveInfo.cubemap = image.IsCubemap();
@@ -2460,14 +2460,14 @@ bool prosper::util::compress_image(prosper::IImage &image, const uimg::TextureIn
 	saveInfo.height = extents.height;
 	saveInfo.szPerPixel = get_pixel_size(dstFormat);
 	saveInfo.texInfo = texInfo;
-	return uimg::compress_texture(outputHandler, prosper::util::image_to_data(image, dstFormat), saveInfo, errorHandler);
+	return pragma::image::compress_texture(outputHandler, util::image_to_data(image, dstFormat), saveInfo, errorHandler);
 }
-bool prosper::util::compress_image(prosper::IImage &image, const uimg::TextureInfo &texInfo, std::vector<std::vector<std::vector<uint8_t>>> &outputData, const std::function<void(const std::string &)> &errorHandler)
+bool prosper::util::compress_image(IImage &image, const pragma::image::TextureInfo &texInfo, std::vector<std::vector<std::vector<uint8_t>>> &outputData, const std::function<void(const std::string &)> &errorHandler)
 {
 	auto extents = image.GetExtents();
 	auto dstFormat = image.GetFormat();
 
-	uimg::TextureSaveInfo saveInfo {};
+	pragma::image::TextureSaveInfo saveInfo {};
 	saveInfo.numLayers = image.GetLayerCount();
 	saveInfo.numMipmaps = image.GetMipmapCount();
 	saveInfo.cubemap = image.IsCubemap();
@@ -2475,7 +2475,7 @@ bool prosper::util::compress_image(prosper::IImage &image, const uimg::TextureIn
 	saveInfo.height = extents.height;
 	saveInfo.szPerPixel = get_pixel_size(dstFormat);
 	saveInfo.texInfo = texInfo;
-	return uimg::compress_texture(outputData, prosper::util::image_to_data(image, dstFormat), saveInfo, errorHandler);
+	return pragma::image::compress_texture(outputData, util::image_to_data(image, dstFormat), saveInfo, errorHandler);
 }
 
 bool prosper::util::is_packed_format(Format format)
@@ -2551,20 +2551,20 @@ bool prosper::util::is_srgb_format(Format format)
 	return false;
 }
 
-bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &image, const uimg::TextureInfo &texInfo, const std::function<void(const std::string &)> &errorHandler)
+bool prosper::util::save_texture(const std::string &fileName, IImage &image, const pragma::image::TextureInfo &texInfo, const std::function<void(const std::string &)> &errorHandler)
 {
-	std::shared_ptr<prosper::IImage> imgRead = image.shared_from_this();
+	std::shared_ptr<IImage> imgRead = image.shared_from_this();
 	auto srcFormat = image.GetFormat();
 	auto dstFormat = srcFormat;
-	if(texInfo.inputFormat != uimg::TextureInfo::InputFormat::KeepInputImageFormat)
+	if(texInfo.inputFormat != pragma::image::TextureInfo::InputFormat::KeepInputImageFormat)
 		dstFormat = ::get_prosper_format(texInfo.inputFormat);
 
-	uimg::ChannelMask channelMask {};
+	pragma::image::ChannelMask channelMask {};
 	if(is_packed_format(srcFormat))
 		channelMask.Reverse();
 
-	if(texInfo.outputFormat == uimg::TextureInfo::OutputFormat::KeepInputImageFormat || is_compressed_format(imgRead->GetFormat())) {
-		std::optional<uimg::TextureInfo> convTexInfo = {};
+	if(texInfo.outputFormat == pragma::image::TextureInfo::OutputFormat::KeepInputImageFormat || is_compressed_format(imgRead->GetFormat())) {
+		std::optional<pragma::image::TextureInfo> convTexInfo = {};
 		if(is_compatible(imgRead->GetFormat(), texInfo.outputFormat) == false) {
 			// Convert the image into the target format
 			auto &context = image.GetContext();
@@ -2579,7 +2579,7 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 			auto copyCreateInfo = image.GetCreateInfo();
 			//copyCreateInfo.format = Anvil::Format::BC1_RGBA_UNORM_BLOCK;//get_anvil_format(texInfo.outputFormat);
 			copyCreateInfo.format = Format::R32G32B32A32_SFloat;
-			copyCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+			copyCreateInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 			copyCreateInfo.postCreateLayout = ImageLayout::TransferDstOptimal;
 			copyCreateInfo.tiling = ImageTiling::Optimal; // Needs to be in optimal tiling because some GPUs do not support linear tiling with mipmaps
 			setupCmd->RecordImageBarrier(image, ImageLayout::ShaderReadOnlyOptimal, ImageLayout::TransferSrcOptimal);
@@ -2589,7 +2589,7 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 			context.FlushSetupCommandBuffer();
 
 			convTexInfo = texInfo;
-			convTexInfo->inputFormat = uimg::TextureInfo::InputFormat::R32G32B32A32_Float;
+			convTexInfo->inputFormat = pragma::image::TextureInfo::InputFormat::R32G32B32A32_Float;
 		}
 
 		// No conversion needed, just copy the image data to a buffer and save it directly
@@ -2601,13 +2601,13 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 
 		gli_wrapper::GliTextureWrapper gliTex {extents.width, extents.height, imgRead->GetFormat(), numLevels};
 
-		prosper::util::BufferCreateInfo bufCreateInfo {};
-		bufCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::GPUToCPU;
+		BufferCreateInfo bufCreateInfo {};
+		bufCreateInfo.memoryFeatures = MemoryFeatureFlags::GPUToCPU;
 		bufCreateInfo.size = gliTex.size();
-		bufCreateInfo.usageFlags = prosper::BufferUsageFlags::TransferDstBit;
-		bufCreateInfo.flags |= prosper::util::BufferCreateInfo::Flags::Persistent;
+		bufCreateInfo.usageFlags = BufferUsageFlags::TransferDstBit;
+		bufCreateInfo.flags |= BufferCreateInfo::Flags::Persistent;
 		auto buf = context.CreateBuffer(bufCreateInfo);
-		buf->SetPermanentlyMapped(true, prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
+		buf->SetPermanentlyMapped(true, IBuffer::MapFlags::ReadBit | IBuffer::MapFlags::WriteBit);
 
 		setupCmd->RecordImageBarrier(*imgRead, ImageLayout::ShaderReadOnlyOptimal, ImageLayout::TransferSrcOptimal);
 		// Initialize buffer with image data
@@ -2616,7 +2616,7 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 			for(auto iMipmap = decltype(numLevels) {0u}; iMipmap < numLevels; ++iMipmap) {
 				auto extents = imgRead->GetExtents(iMipmap);
 				auto mipmapSize = gliTex.size(iMipmap);
-				prosper::util::BufferImageCopyInfo copyInfo {};
+				BufferImageCopyInfo copyInfo {};
 				copyInfo.baseArrayLayer = iLayer;
 				copyInfo.bufferOffset = bufferOffset;
 				copyInfo.dstImageLayout = ImageLayout::TransferSrcOptimal;
@@ -2655,32 +2655,32 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 					mipmapData.push_back(dstData);
 				}
 			}
-			uimg::TextureSaveInfo saveInfo {};
+			pragma::image::TextureSaveInfo saveInfo {};
 			saveInfo.width = extents.width;
 			saveInfo.height = extents.height;
 			saveInfo.szPerPixel = sizeof(float) * 4;
 			saveInfo.texInfo = *convTexInfo;
 			saveInfo.channelMask = channelMask;
-			return uimg::save_texture(fileName, layerMipmapData, saveInfo);
+			return pragma::image::save_texture(fileName, layerMipmapData, saveInfo);
 		}
-		auto fullFileName = uimg::get_absolute_path(fileName, texInfo.containerFormat);
+		auto fullFileName = pragma::image::get_absolute_path(fileName, texInfo.containerFormat);
 		auto success = false;
 		switch(texInfo.containerFormat) {
-		case uimg::TextureInfo::ContainerFormat::DDS:
+		case pragma::image::TextureInfo::ContainerFormat::DDS:
 			success = gliTex.save_dds(fullFileName);
 			break;
-		case uimg::TextureInfo::ContainerFormat::KTX:
+		case pragma::image::TextureInfo::ContainerFormat::KTX:
 			success = gliTex.save_ktx(fullFileName);
 			break;
 		}
 		if(success)
-			filemanager::update_file_index_cache(fullFileName, true);
+			pragma::fs::update_file_index_cache(fullFileName, true);
 		return success;
 	}
 	auto cubemap = imgRead->IsCubemap();
 	auto extents = imgRead->GetExtents();
 
-	uimg::TextureSaveInfo saveInfo {};
+	pragma::image::TextureSaveInfo saveInfo {};
 	saveInfo.width = extents.width;
 	saveInfo.height = extents.height;
 	saveInfo.numLayers = imgRead->GetLayerCount();
@@ -2689,5 +2689,5 @@ bool prosper::util::save_texture(const std::string &fileName, prosper::IImage &i
 	saveInfo.texInfo = texInfo;
 	saveInfo.cubemap = cubemap;
 	saveInfo.channelMask = channelMask;
-	return uimg::save_texture(fileName, prosper::util::image_to_data(*imgRead, dstFormat), saveInfo, errorHandler);
+	return pragma::image::save_texture(fileName, util::image_to_data(*imgRead, dstFormat), saveInfo, errorHandler);
 }

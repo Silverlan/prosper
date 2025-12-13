@@ -308,31 +308,31 @@ export {
 
 			struct DLLPROSPER RenderPassCreateInfo {
 				struct DLLPROSPER AttachmentInfo {
-					AttachmentInfo(prosper::Format format = prosper::Format::R8G8B8A8_UNorm, prosper::ImageLayout initialLayout = prosper::ImageLayout::ColorAttachmentOptimal, prosper::AttachmentLoadOp loadOp = prosper::AttachmentLoadOp::DontCare,
-					  prosper::AttachmentStoreOp storeOp = prosper::AttachmentStoreOp::Store, prosper::SampleCountFlags sampleCount = prosper::SampleCountFlags::e1Bit, prosper::ImageLayout finalLayout = prosper::ImageLayout::ShaderReadOnlyOptimal,
-					  prosper::AttachmentLoadOp stencilLoadOp = prosper::AttachmentLoadOp::DontCare, prosper::AttachmentStoreOp stencilStoreOp = prosper::AttachmentStoreOp::DontCare);
+					AttachmentInfo(Format format = Format::R8G8B8A8_UNorm, ImageLayout initialLayout = ImageLayout::ColorAttachmentOptimal, AttachmentLoadOp loadOp = AttachmentLoadOp::DontCare,
+					  AttachmentStoreOp storeOp = AttachmentStoreOp::Store, SampleCountFlags sampleCount = SampleCountFlags::e1Bit, ImageLayout finalLayout = ImageLayout::ShaderReadOnlyOptimal,
+					  AttachmentLoadOp stencilLoadOp = AttachmentLoadOp::DontCare, AttachmentStoreOp stencilStoreOp = AttachmentStoreOp::DontCare);
 					bool operator==(const AttachmentInfo &other) const;
 					bool operator!=(const AttachmentInfo &other) const;
-					prosper::Format format = prosper::Format::R8G8B8A8_UNorm;
-					prosper::SampleCountFlags sampleCount = prosper::SampleCountFlags::e1Bit;
-					prosper::AttachmentLoadOp loadOp = prosper::AttachmentLoadOp::DontCare;
-					prosper::AttachmentStoreOp storeOp = prosper::AttachmentStoreOp::Store;
-					prosper::AttachmentLoadOp stencilLoadOp = prosper::AttachmentLoadOp::DontCare;
-					prosper::AttachmentStoreOp stencilStoreOp = prosper::AttachmentStoreOp::DontCare;
-					prosper::ImageLayout initialLayout = prosper::ImageLayout::ColorAttachmentOptimal;
-					prosper::ImageLayout finalLayout = prosper::ImageLayout::ShaderReadOnlyOptimal;
+					Format format = Format::R8G8B8A8_UNorm;
+					SampleCountFlags sampleCount = SampleCountFlags::e1Bit;
+					AttachmentLoadOp loadOp = AttachmentLoadOp::DontCare;
+					AttachmentStoreOp storeOp = AttachmentStoreOp::Store;
+					AttachmentLoadOp stencilLoadOp = AttachmentLoadOp::DontCare;
+					AttachmentStoreOp stencilStoreOp = AttachmentStoreOp::DontCare;
+					ImageLayout initialLayout = ImageLayout::ColorAttachmentOptimal;
+					ImageLayout finalLayout = ImageLayout::ShaderReadOnlyOptimal;
 				};
 				struct DLLPROSPER SubPass {
 					struct DLLPROSPER Dependency {
-						Dependency(std::size_t sourceSubPassId, std::size_t destinationSubPassId, prosper::PipelineStageFlags sourceStageMask, prosper::PipelineStageFlags destinationStageMask, prosper::AccessFlags sourceAccessMask, prosper::AccessFlags destinationAccessMask);
+						Dependency(std::size_t sourceSubPassId, std::size_t destinationSubPassId, PipelineStageFlags sourceStageMask, PipelineStageFlags destinationStageMask, AccessFlags sourceAccessMask, AccessFlags destinationAccessMask);
 						bool operator==(const Dependency &other) const;
 						bool operator!=(const Dependency &other) const;
 						std::size_t sourceSubPassId;
 						std::size_t destinationSubPassId;
-						prosper::PipelineStageFlags sourceStageMask;
-						prosper::PipelineStageFlags destinationStageMask;
-						prosper::AccessFlags sourceAccessMask;
-						prosper::AccessFlags destinationAccessMask;
+						PipelineStageFlags sourceStageMask;
+						PipelineStageFlags destinationStageMask;
+						AccessFlags sourceAccessMask;
+						AccessFlags destinationAccessMask;
 					};
 					SubPass(const std::vector<std::size_t> &colorAttachments = {}, bool useDepthStencilAttachment = false, std::vector<Dependency> dependencies = {});
 					bool operator==(const SubPass &other) const;
@@ -347,7 +347,7 @@ export {
 				std::vector<AttachmentInfo> attachments;
 				std::vector<SubPass> subPasses;
 			};
-			using namespace umath::scoped_enum::bitwise;
+			using namespace pragma::math::scoped_enum::bitwise;
 		};
 
 		class DLLPROSPER DescriptorSetCreateInfo {
@@ -664,9 +664,9 @@ export {
 		};
 
 		struct DLLPROSPER IndexBufferInfo {
-			std::shared_ptr<prosper::IBuffer> buffer = nullptr;
-			prosper::IndexType indexType = prosper::IndexType::UInt16;
-			prosper::DeviceSize offset = 0;
+			std::shared_ptr<IBuffer> buffer = nullptr;
+			IndexType indexType = IndexType::UInt16;
+			DeviceSize offset = 0;
 		};
 
 		enum class Vendor : uint32_t;
@@ -691,7 +691,7 @@ export {
 
 		struct DLLPROSPER WindowSettings : public pragma::platform::WindowCreationInfo {
 			bool windowedMode = true;
-			prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
+			PresentModeKHR presentMode = PresentModeKHR::Immediate;
 		};
 
 		class DescriptorSetCreateInfo;
@@ -706,9 +706,9 @@ export {
 
 		class ShaderStageProgram;
 		struct DLLPROSPER ShaderStageData {
-			std::unique_ptr<prosper::ShaderModule, std::function<void(prosper::ShaderModule *)>> module = nullptr;
-			std::unique_ptr<prosper::ShaderModuleStageEntryPoint> entryPoint = nullptr;
-			prosper::ShaderStage stage = prosper::ShaderStage::Fragment;
+			std::unique_ptr<ShaderModule, std::function<void(ShaderModule *)>> module = nullptr;
+			std::unique_ptr<ShaderModuleStageEntryPoint> entryPoint = nullptr;
+			ShaderStage stage = ShaderStage::Fragment;
 			std::string path;
 
 			std::shared_ptr<ShaderStageProgram> program = nullptr;
@@ -741,10 +741,10 @@ export {
 			std::vector<Binding> bindings;
 			uint32_t setIndex = 0u; // This value will be set after the shader has been baked
 
-			std::unique_ptr<prosper::DescriptorSetCreateInfo> ToProsperDescriptorSetInfo() const;
+			std::unique_ptr<DescriptorSetCreateInfo> ToProsperDescriptorSetInfo() const;
 		  private:
 			friend Shader;
-			std::unique_ptr<prosper::DescriptorSetCreateInfo> Bake();
+			std::unique_ptr<DescriptorSetCreateInfo> Bake();
 			bool m_bWasBaked = false;
 			const char *m_name = "";
 		};
@@ -753,13 +753,13 @@ export {
 		class IRenderPass;
 		struct DLLPROSPER PipelineInfo {
 			PipelineInfo() = default;
-			prosper::PipelineID id = std::numeric_limits<prosper::PipelineID>::max();
+			PipelineID id = std::numeric_limits<PipelineID>::max();
 			std::shared_ptr<IRenderPass> renderPass = nullptr; // Only used for graphics shader
 			std::string debugName;
 
 			// TODO: These should be unique_ptrs, but that results in compiler errors
 			// that I haven't been able to get around
-			std::shared_ptr<prosper::BasePipelineCreateInfo> createInfo = nullptr;
+			std::shared_ptr<BasePipelineCreateInfo> createInfo = nullptr;
 		};
 
 		struct DLLPROSPER ShaderResources {
@@ -825,7 +825,7 @@ export {
 			std::shared_ptr<void> values = nullptr;
 		};
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 
 	REGISTER_ENUM_FLAGS(prosper::PrDescriptorSetBindingFlags)
 	REGISTER_ENUM_FLAGS(prosper::util::TextureCreateInfo::Flags)

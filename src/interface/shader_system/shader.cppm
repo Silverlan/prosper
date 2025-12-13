@@ -31,8 +31,8 @@ export {
 		using ShaderIndex = uint32_t;
 
 		struct DLLPROSPER ShaderBindState {
-			ShaderBindState(prosper::ICommandBuffer &cmdBuf);
-			prosper::ICommandBuffer &commandBuffer;
+			ShaderBindState(ICommandBuffer &cmdBuf);
+			ICommandBuffer &commandBuffer;
 			uint32_t pipelineIdx = std::numeric_limits<uint32_t>::max();
 		};
 
@@ -43,7 +43,7 @@ export {
 		  public:
 			static void SetLogCallback(const std::function<void(Shader &, ShaderStage, const std::string &, const std::string &)> &fLogCallback);
 			static const std::function<void(Shader &, ShaderStage, const std::string &, const std::string &)> &GetLogCallback();
-			static Shader *GetBoundPipeline(prosper::ICommandBuffer &cmdBuffer, uint32_t &outPipelineIdx);
+			static Shader *GetBoundPipeline(ICommandBuffer &cmdBuffer, uint32_t &outPipelineIdx);
 			static void SetRootShaderLocation(const std::string &location);
 			static const std::string &GetRootShaderLocation();
 			//static int32_t Register(const std::string &identifier,const std::function<Shader*(Context&,const std::string&)> &fFactory);
@@ -57,10 +57,10 @@ export {
 			void Release(bool bDelete = true);
 			void SetDebugName(uint32_t pipelineIdx, const std::string &name);
 			const std::string *GetDebugName(uint32_t pipelineIdx) const;
-			virtual std::optional<std::string> GetGlslPrefixCode(prosper::ShaderStage stage) const { return {}; }
+			virtual std::optional<std::string> GetGlslPrefixCode(ShaderStage stage) const { return {}; }
 
-			::util::WeakHandle<const prosper::Shader> GetHandle() const;
-			::util::WeakHandle<prosper::Shader> GetHandle();
+			pragma::util::WeakHandle<const Shader> GetHandle() const;
+			pragma::util::WeakHandle<Shader> GetHandle();
 
 			void Initialize(bool bReloadSourceCode = false);
 			void FinalizeInitialization();
@@ -71,8 +71,8 @@ export {
 			bool IsComputeShader() const;
 			bool IsRaytracingShader() const;
 			PipelineBindPoint GetPipelineBindPoint() const;
-			const prosper::ShaderModuleStageEntryPoint *GetModuleStageEntryPoint(prosper::ShaderStage stage, uint32_t pipelineIdx = 0u) const;
-			bool GetPipelineId(prosper::PipelineID &pipelineId, uint32_t pipelineIdx = 0u, bool waitForLoad = true) const;
+			const ShaderModuleStageEntryPoint *GetModuleStageEntryPoint(ShaderStage stage, uint32_t pipelineIdx = 0u) const;
+			bool GetPipelineId(PipelineID &pipelineId, uint32_t pipelineIdx = 0u, bool waitForLoad = true) const;
 
 			void BakePipeline(uint32_t pipelineIdx) const;
 			void BakePipelines() const;
@@ -91,13 +91,13 @@ export {
 			template<class T>
 			bool RecordPushConstants(ShaderBindState &bindState, const T &data, uint32_t offset = 0u) const;
 			bool RecordPushConstants(ShaderBindState &bindState, uint32_t size, const void *data, uint32_t offset = 0u) const;
-			bool RecordBindDescriptorSets(ShaderBindState &bindState, const std::vector<prosper::IDescriptorSet *> &descSets, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
+			bool RecordBindDescriptorSets(ShaderBindState &bindState, const std::vector<IDescriptorSet *> &descSets, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
 			uint32_t AddDescriptorSetGroup(DescriptorSetInfo &descSetInfo);
 			std::optional<uint32_t> FindDescriptorSetIndex(const std::string &name) const;
-			bool AttachPushConstantRange(uint32_t offset, uint32_t size, prosper::ShaderStageFlags stages);
-			virtual bool RecordBindDescriptorSet(ShaderBindState &bindState, prosper::IDescriptorSet &descSet, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
+			bool AttachPushConstantRange(uint32_t offset, uint32_t size, ShaderStageFlags stages);
+			virtual bool RecordBindDescriptorSet(ShaderBindState &bindState, IDescriptorSet &descSet, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const;
 
-			prosper::ShaderModule *GetModule(ShaderStage stage);
+			ShaderModule *GetModule(ShaderStage stage);
 			bool IsValid() const;
 			const std::string &GetIdentifier() const;
 			ShaderIndex GetIndex() const { return m_shaderIndex; }
@@ -112,7 +112,7 @@ export {
 			const ShaderResources &GetShaderResources() const { return m_shaderResources; }
 			std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(uint32_t setIdx) const;
 
-			std::array<std::shared_ptr<ShaderStageData>, umath::to_integral(prosper::ShaderStage::Count)> &GetStages();
+			std::array<std::shared_ptr<ShaderStageData>, pragma::math::to_integral(ShaderStage::Count)> &GetStages();
 
 			void SetMultiThreadedPipelineInitializationEnabled(bool enabled) { m_enableMultiThreadedPipelineInitialization = enabled; }
 
@@ -134,13 +134,13 @@ export {
 			virtual void ClearShaderResources();
 			virtual void GetShaderPreprocessorDefinitions(std::unordered_map<std::string, std::string> &outDefinitions, std::string &outPrefixCode);
 			void ClearPipelines();
-			prosper::PipelineID InitPipelineId(uint32_t pipelineIdx);
+			PipelineID InitPipelineId(uint32_t pipelineIdx);
 			void FlushLoad() const;
 			std::vector<PipelineInfo> &GetPipelineInfos() { return m_pipelineInfos; }
 
 			ShaderStageData *GetStage(ShaderStage stage);
 			const ShaderStageData *GetStage(ShaderStage stage) const;
-			void InitializeDescriptorSetGroups(prosper::BasePipelineCreateInfo &pipelineInfo);
+			void InitializeDescriptorSetGroups(BasePipelineCreateInfo &pipelineInfo);
 			// Pipeline this pipeline is derived from
 			std::weak_ptr<Shader> m_basePipeline = {};
 			mutable bool m_loading = false;
@@ -154,7 +154,7 @@ export {
 			bool InitializeSources(bool bReload = false);
 			void InitializeStages();
 
-			std::array<std::shared_ptr<ShaderStageData>, umath::to_integral(prosper::ShaderStage::Count)> m_stages;
+			std::array<std::shared_ptr<ShaderStageData>, pragma::math::to_integral(ShaderStage::Count)> m_stages;
 			bool m_bValid = false;
 			bool m_bFirstTimeInit = true;
 			bool m_enableMultiThreadedPipelineInitialization = true;
@@ -163,40 +163,40 @@ export {
 			std::vector<PipelineInfo> m_pipelineInfos {};
 
 			PipelineBindPoint m_pipelineBindPoint = static_cast<PipelineBindPoint>(-1);
-			std::vector<prosper::PipelineID> m_cachedPipelineIds;
+			std::vector<PipelineID> m_cachedPipelineIds;
 		};
 
 		class IRenderBuffer;
 		class DLLPROSPER ShaderGraphics : public Shader {
 		  protected:
-			virtual void PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+			virtual void PrepareGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo);
 		  public:
 			struct DLLPROSPER VertexBinding {
 				VertexBinding() = default;
-				VertexBinding(prosper::VertexInputRate inputRate, uint32_t stride = std::numeric_limits<uint32_t>::max());
-				VertexBinding(const VertexBinding &vbOther, std::optional<prosper::VertexInputRate> inputRate = {}, std::optional<uint32_t> stride = {});
+				VertexBinding(VertexInputRate inputRate, uint32_t stride = std::numeric_limits<uint32_t>::max());
+				VertexBinding(const VertexBinding &vbOther, std::optional<VertexInputRate> inputRate = {}, std::optional<uint32_t> stride = {});
 				uint32_t stride = std::numeric_limits<uint32_t>::max();
-				prosper::VertexInputRate inputRate = prosper::VertexInputRate::Vertex;
+				VertexInputRate inputRate = VertexInputRate::Vertex;
 
 				uint32_t GetBindingIndex() const;
 			  private:
-				friend void ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+				friend void ShaderGraphics::PrepareGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo);
 				std::function<void()> initializer = nullptr;
 
 				uint32_t bindingIndex = std::numeric_limits<uint32_t>::max();
 			};
 			struct DLLPROSPER VertexAttribute {
 				VertexAttribute() = default;
-				VertexAttribute(const VertexBinding &binding, prosper::Format format, size_t startOffset = std::numeric_limits<size_t>::max());
+				VertexAttribute(const VertexBinding &binding, Format format, size_t startOffset = std::numeric_limits<size_t>::max());
 				VertexAttribute(const VertexAttribute &vaOther);
-				VertexAttribute(const VertexAttribute &vaOther, const VertexBinding &binding, std::optional<prosper::Format> format = {});
-				prosper::Format format = prosper::Format::R8G8B8A8_UNorm;
+				VertexAttribute(const VertexAttribute &vaOther, const VertexBinding &binding, std::optional<Format> format = {});
+				Format format = Format::R8G8B8A8_UNorm;
 				uint32_t startOffset = std::numeric_limits<uint32_t>::max();
 				const VertexBinding *binding = nullptr;
 
 				uint32_t GetLocation() const;
 			  private:
-				friend void ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+				friend void ShaderGraphics::PrepareGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo);
 				std::function<void()> initializer = nullptr;
 
 				uint32_t location = std::numeric_limits<uint32_t>::max();
@@ -209,19 +209,19 @@ export {
 				RenderPassTargetAsViewportAndScissor = RenderPassTargetAsViewport | RenderPassTargetAsScissor
 			};
 
-			ShaderGraphics(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader, const std::string &gsShader = "");
+			ShaderGraphics(IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader, const std::string &gsShader = "");
 			virtual ~ShaderGraphics() override;
-			virtual bool RecordBindDescriptorSet(ShaderBindState &bindState, prosper::IDescriptorSet &descSet, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const override;
+			virtual bool RecordBindDescriptorSet(ShaderBindState &bindState, IDescriptorSet &descSet, uint32_t firstSet = 0u, const std::vector<uint32_t> &dynamicOffsets = {}) const override;
 			bool RecordBindRenderBuffer(ShaderBindState &bindState, const IRenderBuffer &renderBuffer) const;
 			bool RecordBindVertexBuffers(ShaderBindState &bindState, const std::vector<IBuffer *> &buffers, uint32_t startBinding = 0u, const std::vector<DeviceSize> &offsets = {}) const;
-			bool RecordBindVertexBuffer(ShaderBindState &bindState, prosper::IBuffer &buffer, uint32_t startBinding = 0u, DeviceSize offset = 0ull) const;
-			bool RecordBindIndexBuffer(ShaderBindState &bindState, prosper::IBuffer &indexBuffer, prosper::IndexType indexType = prosper::IndexType::UInt16, DeviceSize offset = 0ull) const;
+			bool RecordBindVertexBuffer(ShaderBindState &bindState, IBuffer &buffer, uint32_t startBinding = 0u, DeviceSize offset = 0ull) const;
+			bool RecordBindIndexBuffer(ShaderBindState &bindState, IBuffer &indexBuffer, IndexType indexType = IndexType::UInt16, DeviceSize offset = 0ull) const;
 			bool RecordDraw(ShaderBindState &bindState, uint32_t vertCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const;
 			bool RecordDrawIndexed(ShaderBindState &bindState, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, uint32_t firstInstance = 0u) const;
 			void AddVertexAttribute(VertexAttribute &attr);
-			bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::ShaderStageFlags stageFlags, uint32_t constantId, uint32_t numBytes, const void *data);
+			bool AddSpecializationConstant(GraphicsPipelineCreateInfo &pipelineInfo, ShaderStageFlags stageFlags, uint32_t constantId, uint32_t numBytes, const void *data);
 			template<typename T>
-			bool AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::ShaderStageFlags stageFlags, uint32_t constantId, const T &value)
+			bool AddSpecializationConstant(GraphicsPipelineCreateInfo &pipelineInfo, ShaderStageFlags stageFlags, uint32_t constantId, const T &value)
 			{
 				return AddSpecializationConstant(pipelineInfo, stageFlags, constantId, sizeof(T), &value);
 			}
@@ -231,21 +231,21 @@ export {
 
 			const std::shared_ptr<IRenderPass> &GetRenderPass(uint32_t pipelineIdx = 0u) const;
 			template<class TShader>
-			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context, uint32_t pipelineIdx = 0u);
+			static const std::shared_ptr<IRenderPass> &GetRenderPass(IPrContext &context, uint32_t pipelineIdx = 0u);
 		  protected:
 			bool RecordViewportScissor(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t scissorX, uint32_t scissorY, uint32_t scissorW, uint32_t scissorH, uint32_t pipelineIdx = 0u) const;
 			bool RecordBeginDrawViewport(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t pipelineIdx = 0u, RecordFlags recordFlags = RecordFlags::RenderPassTargetAsViewportAndScissor) const;
-			void SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
-			void ToggleDynamicViewportState(prosper::GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable);
-			void ToggleDynamicScissorState(prosper::GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable);
-			virtual void InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
+			void SetGenericAlphaColorBlendAttachmentProperties(GraphicsPipelineCreateInfo &pipelineInfo);
+			void ToggleDynamicViewportState(GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable);
+			void ToggleDynamicScissorState(GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable);
+			virtual void InitializeGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
 			virtual void InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx);
 			virtual void ClearShaderResources() override;
 
-			void CreateCachedRenderPass(size_t hashCode, const prosper::util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx, const std::string &debugName = "");
+			void CreateCachedRenderPass(size_t hashCode, const util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx, const std::string &debugName = "");
 			template<class TShader>
-			void CreateCachedRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx);
-			static const std::shared_ptr<IRenderPass> &GetRenderPass(prosper::IPrContext &context, size_t hashCode, uint32_t pipelineIdx);
+			void CreateCachedRenderPass(const util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx);
+			static const std::shared_ptr<IRenderPass> &GetRenderPass(IPrContext &context, size_t hashCode, uint32_t pipelineIdx);
 		  private:
 			virtual void InitializePipeline() override;
 			std::vector<std::reference_wrapper<VertexAttribute>> m_vertexAttributes = {};
@@ -253,34 +253,34 @@ export {
 
 		class DLLPROSPER ShaderCompute : public Shader {
 		  public:
-			ShaderCompute(prosper::IPrContext &context, const std::string &identifier, const std::string &csShader);
+			ShaderCompute(IPrContext &context, const std::string &identifier, const std::string &csShader);
 
 			bool RecordDispatch(ShaderBindState &bindState, uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const;
 			virtual bool RecordBeginCompute(ShaderBindState &bindState, uint32_t pipelineIdx = 0u) const;
 			virtual void RecordCompute(ShaderBindState &bindState) const;
 			virtual void RecordEndCompute(ShaderBindState &bindState) const;
-			bool AddSpecializationConstant(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t constantId, uint32_t numBytes, const void *data);
+			bool AddSpecializationConstant(ComputePipelineCreateInfo &pipelineInfo, uint32_t constantId, uint32_t numBytes, const void *data);
 		  protected:
-			virtual void InitializeComputePipeline(prosper::ComputePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
+			virtual void InitializeComputePipeline(ComputePipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
 		  private:
 			virtual void InitializePipeline() override;
 		};
 
 		class DLLPROSPER ShaderRaytracing : public Shader {
 		  public:
-			ShaderRaytracing(prosper::IPrContext &context, const std::string &identifier, const std::string &rtShader);
+			ShaderRaytracing(IPrContext &context, const std::string &identifier, const std::string &rtShader);
 		  protected:
-			virtual void InitializeRaytracingPipeline(prosper::RayTracingPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
+			virtual void InitializeRaytracingPipeline(RayTracingPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx);
 		  private:
 			virtual void InitializePipeline() override;
 		};
 
 		namespace util {
-			DLLPROSPER void set_graphics_pipeline_polygon_mode(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::PolygonMode polygonMode);
-			DLLPROSPER void set_graphics_pipeline_line_width(prosper::GraphicsPipelineCreateInfo &pipelineInfo, float lineWidth);
-			DLLPROSPER void set_graphics_pipeline_cull_mode_flags(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::CullModeFlags cullModeFlags);
-			DLLPROSPER void set_graphics_pipeline_front_face(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::FrontFace frontFace);
-			DLLPROSPER void set_generic_alpha_color_blend_attachment_properties(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+			DLLPROSPER void set_graphics_pipeline_polygon_mode(GraphicsPipelineCreateInfo &pipelineInfo, PolygonMode polygonMode);
+			DLLPROSPER void set_graphics_pipeline_line_width(GraphicsPipelineCreateInfo &pipelineInfo, float lineWidth);
+			DLLPROSPER void set_graphics_pipeline_cull_mode_flags(GraphicsPipelineCreateInfo &pipelineInfo, CullModeFlags cullModeFlags);
+			DLLPROSPER void set_graphics_pipeline_front_face(GraphicsPipelineCreateInfo &pipelineInfo, FrontFace frontFace);
+			DLLPROSPER void set_generic_alpha_color_blend_attachment_properties(GraphicsPipelineCreateInfo &pipelineInfo);
 
 			enum class DynamicStateFlags : uint32_t {
 				None = 0u,
@@ -302,11 +302,11 @@ export {
 				ExclusiveScissorNV = ViewportCoarseSampleOrderNV<<1u
 #endif
 			};
-			DLLPROSPER void set_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo, DynamicStateFlags states, bool enabled = true);
-			DLLPROSPER bool are_dynamic_states_enabled(prosper::GraphicsPipelineCreateInfo &pipelineInfo, DynamicStateFlags states);
-			DLLPROSPER DynamicStateFlags get_enabled_dynamic_states(prosper::GraphicsPipelineCreateInfo &pipelineInfo);
+			DLLPROSPER void set_dynamic_states_enabled(GraphicsPipelineCreateInfo &pipelineInfo, DynamicStateFlags states, bool enabled = true);
+			DLLPROSPER bool are_dynamic_states_enabled(GraphicsPipelineCreateInfo &pipelineInfo, DynamicStateFlags states);
+			DLLPROSPER DynamicStateFlags get_enabled_dynamic_states(GraphicsPipelineCreateInfo &pipelineInfo);
 
-			using namespace umath::scoped_enum::bitwise;
+			using namespace pragma::math::scoped_enum::bitwise;
 		};
 
 		DLLPROSPER Shader *find_shader(const IPrContext &context, const std::type_info &typeInfo);
@@ -341,7 +341,7 @@ export {
 		}
 #pragma warning(pop)
 
-		using namespace umath::scoped_enum::bitwise;
+		using namespace pragma::math::scoped_enum::bitwise;
 	};
 
 #pragma warning(pop)

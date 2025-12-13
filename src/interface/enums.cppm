@@ -687,9 +687,9 @@ export {
 	};
 }
 export namespace prosper {
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
-export namespace umath::scoped_enum::bitwise {
+export namespace pragma::math::scoped_enum::bitwise {
 	template<>
 	struct enable_bitwise_operators<prosper::MemoryFeatureFlags> : std::true_type {};
 	template<>

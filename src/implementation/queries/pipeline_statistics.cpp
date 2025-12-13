@@ -11,12 +11,12 @@ using namespace prosper;
 
 PipelineStatisticsQuery::PipelineStatisticsQuery(IQueryPool &queryPool, uint32_t queryId) : Query(queryPool, queryId) {}
 
-void PipelineStatisticsQuery::OnReset(prosper::ICommandBuffer &cmdBuffer)
+void PipelineStatisticsQuery::OnReset(ICommandBuffer &cmdBuffer)
 {
 	Query::OnReset(cmdBuffer);
 	m_bReset = true;
 }
-bool PipelineStatisticsQuery::RecordBegin(prosper::ICommandBuffer &cmdBuffer) { return cmdBuffer.RecordBeginPipelineStatisticsQuery(*this); }
-bool PipelineStatisticsQuery::RecordEnd(prosper::ICommandBuffer &cmdBuffer) const { return cmdBuffer.RecordEndPipelineStatisticsQuery(*this); }
+bool PipelineStatisticsQuery::RecordBegin(ICommandBuffer &cmdBuffer) { return cmdBuffer.RecordBeginPipelineStatisticsQuery(*this); }
+bool PipelineStatisticsQuery::RecordEnd(ICommandBuffer &cmdBuffer) const { return cmdBuffer.RecordEndPipelineStatisticsQuery(*this); }
 bool PipelineStatisticsQuery::QueryResult(PipelineStatistics &outStatistics) const { return GetContext().QueryResult(*this, outStatistics); }
 bool PipelineStatisticsQuery::IsReset() const { return m_bReset; }

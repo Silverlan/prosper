@@ -30,8 +30,8 @@ export {
 		};
 		struct DLLPROSPER ShaderPipeline {
 			ShaderPipeline() = default;
-			ShaderPipeline(prosper::Shader &shader, uint32_t pipeline);
-			::util::WeakHandle<prosper::Shader> shader {};
+			ShaderPipeline(Shader &shader, uint32_t pipeline);
+			pragma::util::WeakHandle<Shader> shader {};
 			uint32_t pipeline = 0;
 		};
 		enum class Vendor : uint32_t { AMD = 4098, Nvidia = 4318, Intel = 32902, Unknown = std::numeric_limits<uint32_t>::max() };
@@ -88,7 +88,7 @@ export {
 		};
 
 		struct DLLPROSPER Callbacks {
-			std::function<void(prosper::DebugMessageSeverityFlags, const std::string &)> validationCallback = nullptr;
+			std::function<void(DebugMessageSeverityFlags, const std::string &)> validationCallback = nullptr;
 			std::function<void()> onWindowInitialized = nullptr;
 			std::function<void()> onClose = nullptr;
 			std::function<void(uint32_t, uint32_t)> onResolutionChanged = nullptr;
@@ -141,7 +141,7 @@ export {
 				};
 				uint32_t width = 0u;
 				uint32_t height = 0u;
-				prosper::PresentModeKHR presentMode = prosper::PresentModeKHR::Immediate;
+				PresentModeKHR presentMode = PresentModeKHR::Immediate;
 				bool windowless = false;
 				bool enableDiagnostics = false;
 				std::optional<DeviceInfo> device = {};
@@ -161,7 +161,7 @@ export {
 
 			virtual void Initialize(const CreateInfo &createInfo);
 			virtual bool ApplyGLSLPostProcessing(std::string &inOutGlslCode, std::string &outErrMsg) const { return true; }
-			virtual bool InitializeShaderSources(prosper::Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage, const std::string &prefixCode = {}, const std::unordered_map<std::string, std::string> &definitions = {}) const;
+			virtual bool InitializeShaderSources(Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, ShaderStage &outErrStage, const std::string &prefixCode = {}, const std::unordered_map<std::string, std::string> &definitions = {}) const;
 			virtual std::string GetAPIIdentifier() const = 0;
 			virtual std::string GetAPIAbbreviation() const = 0;
 			virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
@@ -174,12 +174,12 @@ export {
 			bool IsDiagnosticsModeEnabled() const;
 			bool IsWindowless() const;
 
-			void SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback);
+			void SetPreDeviceCreationCallback(const std::function<void(const util::VendorDeviceInfo &)> &callback);
 
-			void SetLogHandler(const ::util::LogHandler &logHandler, const std::function<bool(::util::LogSeverity)> &getLevel = nullptr);
+			void SetLogHandler(const pragma::util::LogHandler &logHandler, const std::function<bool(pragma::util::LogSeverity)> &getLevel = nullptr);
 			bool ShouldLog() const;
-			bool ShouldLog(::util::LogSeverity level) const;
-			void Log(const std::string &msg, ::util::LogSeverity level = ::util::LogSeverity::Info) const;
+			bool ShouldLog(pragma::util::LogSeverity level) const;
+			void Log(const std::string &msg, pragma::util::LogSeverity level = pragma::util::LogSeverity::Info) const;
 
 			void SetProfilingHandler(const std::function<void(const char *)> &startProfling, const std::function<void()> &endProfling);
 			void StartProfiling(const char *name) const;
@@ -212,21 +212,21 @@ export {
 			uint32_t GetWindowHeight() const;
 			const std::string &GetAppName() const;
 			uint32_t GetPrimaryWindowSwapchainImageCount() const;
-			prosper::IImage *GetSwapchainImage(uint32_t idx);
-			prosper::IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
+			IImage *GetSwapchainImage(uint32_t idx);
+			IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
-			virtual bool IsImageFormatSupported(prosper::Format format, prosper::ImageUsageFlags usageFlags, prosper::ImageType type = prosper::ImageType::e2D, prosper::ImageTiling tiling = prosper::ImageTiling::Optimal) const = 0;
+			virtual bool IsImageFormatSupported(Format format, ImageUsageFlags usageFlags, ImageType type = ImageType::e2D, ImageTiling tiling = ImageTiling::Optimal) const = 0;
 			virtual uint32_t GetUniversalQueueFamilyIndex() const = 0;
 			virtual util::Limits GetPhysicalDeviceLimits() const = 0;
 			virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query) = 0;
 			std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const util::ImageCreateInfo &imgCreateInfo);
 			// If image tiling is not specified, return value will refer to buffer feature support
-			virtual prosper::FeatureSupport AreFormatFeaturesSupported(Format format, FormatFeatureFlags featureFlags, std::optional<ImageTiling> tiling) const = 0;
-			virtual void BakeShaderPipeline(prosper::PipelineID pipelineId, prosper::PipelineBindPoint pipelineType) = 0;
+			virtual FeatureSupport AreFormatFeaturesSupported(Format format, FormatFeatureFlags featureFlags, std::optional<ImageTiling> tiling) const = 0;
+			virtual void BakeShaderPipeline(PipelineID pipelineId, PipelineBindPoint pipelineType) = 0;
 
 			void ChangeResolution(uint32_t width, uint32_t height);
-			void ChangePresentMode(prosper::PresentModeKHR presentMode);
-			prosper::PresentModeKHR GetPresentMode() const;
+			void ChangePresentMode(PresentModeKHR presentMode);
+			PresentModeKHR GetPresentMode() const;
 
 			const WindowSettings &GetInitialWindowSettings() const;
 			WindowSettings &GetInitialWindowSettings();
@@ -235,10 +235,10 @@ export {
 			ShaderManager &GetShaderManager() const;
 
 			void RegisterShader(const std::string &identifier, const std::function<Shader *(IPrContext &, const std::string &)> &fFactory);
-			::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
+			pragma::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
 
 			void GetScissorViewportInfo(Rect2D *out_scissors, Viewport *out_viewports); // TODO: Deprecated?
-			virtual bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const = 0;
+			virtual bool IsPresentationModeSupported(PresentModeKHR presentMode) const = 0;
 			virtual Vendor GetPhysicalDeviceVendor() const = 0;
 			virtual MemoryRequirements GetMemoryRequirements(IImage &img) = 0;
 			// Clamps the specified size in bytes to a percentage of the total available GPU memory
@@ -249,8 +249,8 @@ export {
 
 			FrameIndex GetLastFrameId() const;
 			void Draw();
-			const std::shared_ptr<prosper::IPrimaryCommandBuffer> &GetSetupCommandBuffer();
-			void FlushCommandBuffer(prosper::ICommandBuffer &cmd);
+			const std::shared_ptr<IPrimaryCommandBuffer> &GetSetupCommandBuffer();
+			void FlushCommandBuffer(ICommandBuffer &cmd);
 			void FlushSetupCommandBuffer();
 
 			void KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource);
@@ -268,16 +268,16 @@ export {
 			const std::vector<std::shared_ptr<IDynamicResizableBuffer>> &GetDeviceImageBuffers() const;
 
 			std::shared_ptr<IBuffer> AllocateTemporaryBuffer(DeviceSize size, uint32_t alignment = 0, const void *data = nullptr);
-			void AllocateTemporaryBuffer(prosper::IImage &img, const void *data = nullptr);
+			void AllocateTemporaryBuffer(IImage &img, const void *data = nullptr);
 
 			std::shared_ptr<IBuffer> AllocateDeviceImageBuffer(DeviceSize size, uint32_t alignment = 0, const void *data = nullptr);
-			void AllocateDeviceImageBuffer(prosper::IImage &img, const void *data = nullptr);
+			void AllocateDeviceImageBuffer(IImage &img, const void *data = nullptr);
 
-			virtual std::shared_ptr<prosper::IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType, uint32_t &universalQueueFamilyIndex) = 0;
-			virtual std::shared_ptr<prosper::ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType, uint32_t &universalQueueFamilyIndex) = 0;
-			virtual std::shared_ptr<prosper::ICommandBufferPool> CreateCommandBufferPool(prosper::QueueFamilyType queueFamilyType) = 0;
-			virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd, prosper::QueueFamilyType queueFamilyType, bool shouldBlock = false, prosper::IFence *fence = nullptr) = 0;
-			void SubmitCommandBuffer(prosper::ICommandBuffer &cmd, bool shouldBlock = false, prosper::IFence *fence = nullptr);
+			virtual std::shared_ptr<IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(QueueFamilyType queueFamilyType, uint32_t &universalQueueFamilyIndex) = 0;
+			virtual std::shared_ptr<ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(QueueFamilyType queueFamilyType, uint32_t &universalQueueFamilyIndex) = 0;
+			virtual std::shared_ptr<ICommandBufferPool> CreateCommandBufferPool(QueueFamilyType queueFamilyType) = 0;
+			virtual void SubmitCommandBuffer(ICommandBuffer &cmd, QueueFamilyType queueFamilyType, bool shouldBlock = false, IFence *fence = nullptr) = 0;
+			void SubmitCommandBuffer(ICommandBuffer &cmd, bool shouldBlock = false, IFence *fence = nullptr);
 
 			bool IsRecording() const;
 
@@ -306,39 +306,39 @@ export {
 			virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo, const std::function<const uint8_t *(uint32_t layer, uint32_t mipmap, uint32_t &dataSize, uint32_t &rowSize)> &getImageData = nullptr) = 0;
 			std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo, const ImageData &imgData);
 			std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo, const uint8_t *data);
-			std::shared_ptr<IImage> CreateImage(uimg::ImageBuffer &imgBuffer, const std::optional<util::ImageCreateInfo> &imgCreateInfo = {});
-			std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<uimg::ImageBuffer>, 6> &imgBuffers, const std::optional<util::ImageCreateInfo> &imgCreateInfo = {});
+			std::shared_ptr<IImage> CreateImage(pragma::image::ImageBuffer &imgBuffer, const std::optional<util::ImageCreateInfo> &imgCreateInfo = {});
+			std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<pragma::image::ImageBuffer>, 6> &imgBuffers, const std::optional<util::ImageCreateInfo> &imgCreateInfo = {});
 			virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo) = 0;
 			std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
 			virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) = 0;
 			virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window, bool allowMt = true, const std::string &debugName = {}) = 0;
-			virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width, uint32_t height, uint32_t layers, const std::vector<prosper::IImageView *> &attachments) = 0;
+			virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width, uint32_t height, uint32_t layers, const std::vector<IImageView *> &attachments) = 0;
 			virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader, uint32_t pipelineIdx = 0u) const = 0;
 			std::shared_ptr<Texture> CreateTexture(const util::TextureCreateInfo &createInfo, IImage &img, const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo = util::ImageViewCreateInfo {},
 			  const std::optional<util::SamplerCreateInfo> &samplerCreateInfo = util::SamplerCreateInfo {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures, const std::shared_ptr<IRenderPass> &rp = nullptr, const util::RenderTargetCreateInfo &rtCreateInfo = {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture, IImageView &imgView, IRenderPass &rp, const util::RenderTargetCreateInfo &rtCreateInfo = {});
-			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {},
+			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<IBuffer *> &buffers, const std::vector<DeviceSize> &offsets = {},
 			  const std::optional<IndexBufferInfo> &indexBufferInfo = {})
 			  = 0;
-			virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, prosper::ShaderStage stage, const std::string &entrypointName = "main") = 0;
-			virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false, const std::string &prefixCode = {},
+			virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, ShaderStage stage, const std::string &entrypointName = "main") = 0;
+			virtual std::shared_ptr<ShaderStageProgram> CompileShader(ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false, const std::string &prefixCode = {},
 			  const std::unordered_map<std::string, std::string> &definitions = {})
 			  = 0;
-			virtual std::optional<std::unordered_map<prosper::ShaderStage, std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage, std::string> &shaderStages, std::string &outInfoLog) { return {}; }
-			virtual bool GetParsedShaderSourceCode(prosper::Shader &shader, std::vector<std::string> &outGlslCodePerStage, std::vector<prosper::ShaderStage> &outGlslCodeStages, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage) const = 0;
-			std::optional<std::string> FindShaderFile(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt = nullptr);
-			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::ComputePipelineCreateInfo &createInfo, prosper::ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
-			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::RayTracingPipelineCreateInfo &createInfo, prosper::ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
-			virtual std::optional<PipelineID> AddPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, const prosper::GraphicsPipelineCreateInfo &createInfo, IRenderPass &rp, prosper::ShaderStageData *shaderStageFs = nullptr, prosper::ShaderStageData *shaderStageVs = nullptr,
-			  prosper::ShaderStageData *shaderStageGs = nullptr, prosper::ShaderStageData *shaderStageTc = nullptr, prosper::ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max())
+			virtual std::optional<std::unordered_map<ShaderStage, std::string>> OptimizeShader(const std::unordered_map<ShaderStage, std::string> &shaderStages, std::string &outInfoLog) { return {}; }
+			virtual bool GetParsedShaderSourceCode(Shader &shader, std::vector<std::string> &outGlslCodePerStage, std::vector<ShaderStage> &outGlslCodeStages, std::string &outInfoLog, std::string &outDebugInfoLog, ShaderStage &outErrStage) const = 0;
+			std::optional<std::string> FindShaderFile(ShaderStage stage, const std::string &fileName, std::string *optOutExt = nullptr);
+			virtual std::optional<PipelineID> AddPipeline(Shader &shader, PipelineID shaderPipelineId, const ComputePipelineCreateInfo &createInfo, ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
+			virtual std::optional<PipelineID> AddPipeline(Shader &shader, PipelineID shaderPipelineId, const RayTracingPipelineCreateInfo &createInfo, ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
+			virtual std::optional<PipelineID> AddPipeline(Shader &shader, PipelineID shaderPipelineId, const GraphicsPipelineCreateInfo &createInfo, IRenderPass &rp, ShaderStageData *shaderStageFs = nullptr, ShaderStageData *shaderStageVs = nullptr,
+			  ShaderStageData *shaderStageGs = nullptr, ShaderStageData *shaderStageTc = nullptr, ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max())
 			  = 0;
-			prosper::Shader *GetShaderPipeline(PipelineID id, uint32_t &outPipelineIdx) const;
+			Shader *GetShaderPipeline(PipelineID id, uint32_t &outPipelineIdx) const;
 			virtual bool ClearPipeline(bool graphicsShader, PipelineID pipelineId) = 0;
 			uint32_t GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
 
-			virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType, uint32_t maxConcurrentQueries) = 0;
-			virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags, uint32_t maxConcurrentQueries) = 0;
+			virtual std::shared_ptr<IQueryPool> CreateQueryPool(QueryType queryType, uint32_t maxConcurrentQueries) = 0;
+			virtual std::shared_ptr<IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags, uint32_t maxConcurrentQueries) = 0;
 			virtual bool QueryResult(const TimestampQuery &query, std::chrono::nanoseconds &outTimestampValue) const = 0;
 			virtual bool QueryResult(const PipelineStatisticsQuery &query, PipelineStatistics &outStatistics) const = 0;
 			virtual bool QueryResult(const Query &query, uint32_t &r) const = 0;
@@ -347,7 +347,7 @@ export {
 			void SetCallbacks(const Callbacks &callbacks);
 			virtual void DrawFrameCore();
 			virtual void EndFrame();
-			void SetPresentMode(prosper::PresentModeKHR presentMode);
+			void SetPresentMode(PresentModeKHR presentMode);
 
 			virtual std::optional<std::string> DumpMemoryBudget() const { return {}; }
 			virtual std::optional<std::string> DumpMemoryStats() const { return {}; }
@@ -361,8 +361,8 @@ export {
 			virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const { return {}; }
 			virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const { return {}; }
 
-			//DLLPROSPER_VK std::vector<util::VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);
-			//DLLPROSPER_VK std::optional<util::PhysicalDeviceMemoryProperties> get_physical_device_memory_properties(const IPrContext &context);
+			//DLLPROSPER_VK std::vector<pragma::util::VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);
+			//DLLPROSPER_VK std::optional<pragma::util::PhysicalDeviceMemoryProperties> get_physical_device_memory_properties(const IPrContext &context);
 
 			virtual void AddDebugObjectInformation(std::string &msgValidation) {}
 			bool ValidationCallback(DebugMessageSeverityFlags severityFlags, const std::string &message);
@@ -379,7 +379,7 @@ export {
 			virtual bool IsInstanceExtensionEnabled(const std::string &ext) const { return false; }
 
 			void SetMultiThreadedRenderingEnabled(bool enabled);
-			bool IsMultiThreadedRenderingEnabled() const { return umath::is_flag_set(m_stateFlags, StateFlags::EnableMultiThreadedRendering); }
+			bool IsMultiThreadedRenderingEnabled() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::EnableMultiThreadedRendering); }
 
 			virtual bool SupportsMultiThreadedResourceAllocation() const { return false; }
 
@@ -413,17 +413,17 @@ export {
 			void CloseWindowsScheduledForClosing();
 		  protected:
 			IPrContext(const std::string &appName, bool bEnableValidation = false);
-			void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, prosper::BufferUsageFlags usageFlags);
+			void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, BufferUsageFlags usageFlags);
 			virtual void UpdateMultiThreadedRendering(bool mtEnabled);
 			void ReloadPipelineLoader();
 			void CheckDeviceLimits();
 
-			std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffer, const std::optional<util::ImageCreateInfo> &createInfo = {});
-			virtual std::shared_ptr<IImageView> DoCreateImageView(const util::ImageViewCreateInfo &createInfo, IImage &img, Format format, ImageViewType imgViewType, prosper::ImageAspectFlags aspectMask, uint32_t numLayers) = 0;
+			std::shared_ptr<IImage> CreateImage(const std::vector<std::shared_ptr<pragma::image::ImageBuffer>> &imgBuffer, const std::optional<util::ImageCreateInfo> &createInfo = {});
+			virtual std::shared_ptr<IImageView> DoCreateImageView(const util::ImageViewCreateInfo &createInfo, IImage &img, Format format, ImageViewType imgViewType, ImageAspectFlags aspectMask, uint32_t numLayers) = 0;
 			virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) = 0;
 			virtual void DoWaitIdle() = 0;
 			virtual void DoFlushCommandBuffer(ICommandBuffer &cmd) = 0;
-			virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, const void *data, prosper::DeviceSize bufferBaseSize, uint32_t alignment) = 0;
+			virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, const void *data, DeviceSize bufferBaseSize, uint32_t alignment) = 0;
 			virtual void OnClose();
 			virtual void Release();
 			virtual void InitBuffers();
@@ -438,7 +438,7 @@ export {
 			IPrContext(const IPrContext &) = delete;
 			IPrContext &operator=(const IPrContext &) = delete;
 
-			void AddShaderPipeline(prosper::Shader &shader, uint32_t shaderPipelineIdx, PipelineID pipelineId);
+			void AddShaderPipeline(Shader &shader, uint32_t shaderPipelineIdx, PipelineID pipelineId);
 			void ClearKeepAliveResources();
 			void ClearKeepAliveResources(uint32_t n);
 			void InitDummyTextures();
@@ -448,16 +448,16 @@ export {
 			virtual void InitAPI(const CreateInfo &createInfo) = 0;
 			virtual void OnSwapchainResourcesCleared(uint32_t swapchainIdx) {}
 
-			prosper::PresentModeKHR m_presentMode = prosper::PresentModeKHR::Immediate;
+			PresentModeKHR m_presentMode = PresentModeKHR::Immediate;
 			StateFlags m_stateFlags = StateFlags::Idle;
 			std::mutex m_waitIdleMutex;
 
 			std::string m_appName;
-			std::shared_ptr<prosper::IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
+			std::shared_ptr<IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 			std::vector<ShaderPipeline> m_shaderPipelines;
 			std::unique_ptr<ShaderPipelineLoader> m_pipelineLoader;
 
-			std::function<void(const prosper::util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
+			std::function<void(const util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
 
 			Callbacks m_callbacks {};
 			std::vector<std::vector<std::shared_ptr<void>>> m_keepAliveResources;
@@ -468,24 +468,24 @@ export {
 			std::mutex m_tmpBufferMutex;
 			std::vector<std::shared_ptr<IDynamicResizableBuffer>> m_deviceImgBuffers = {};
 			std::mutex m_aliveResourceMutex;
-			::util::LogHandler m_logHandler;
-			std::function<bool(::util::LogSeverity)> m_logHandlerLevel;
+			pragma::util::LogHandler m_logHandler;
+			std::function<bool(pragma::util::LogSeverity)> m_logHandlerLevel;
 			std::function<void(const char *)> m_startProfiling;
 			std::function<void()> m_endProfiling;
 
-			std::queue<std::function<void(prosper::IPrimaryCommandBuffer &)>> m_scheduledBufferUpdates;
+			std::queue<std::function<void(IPrimaryCommandBuffer &)>> m_scheduledBufferUpdates;
 
 			WindowSettings m_initialWindowSettings {};
 
 			std::thread::id m_mainThreadId;
 			bool m_useReservedDeviceLocalImageBuffer = true;
-			std::shared_ptr<prosper::Texture> m_dummyTexture = nullptr;
-			std::shared_ptr<prosper::Texture> m_dummyCubemapTexture = nullptr;
-			std::shared_ptr<prosper::IBuffer> m_dummyBuffer = nullptr;
+			std::shared_ptr<Texture> m_dummyTexture = nullptr;
+			std::shared_ptr<Texture> m_dummyCubemapTexture = nullptr;
+			std::shared_ptr<IBuffer> m_dummyBuffer = nullptr;
 
 			struct ValidationData {
-				std::unordered_map<prosper::IImage *, std::chrono::steady_clock::time_point> lastImageUsage;
-				std::unordered_map<prosper::IBuffer *, std::chrono::steady_clock::time_point> lastBufferUsage;
+				std::unordered_map<IImage *, std::chrono::steady_clock::time_point> lastImageUsage;
+				std::unordered_map<IBuffer *, std::chrono::steady_clock::time_point> lastBufferUsage;
 				std::mutex mutex;
 			};
 			std::unique_ptr<ValidationData> m_validationData = nullptr;
@@ -515,7 +515,7 @@ export {
 			return r;
 		}
 
-		using namespace umath::scoped_enum::bitwise;
+		using namespace pragma::math::scoped_enum::bitwise;
 	};
 #pragma warning(pop)
 

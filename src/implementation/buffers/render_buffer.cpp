@@ -9,8 +9,8 @@ import :buffer.render_buffer;
 
 using namespace prosper;
 
-IRenderBuffer::IRenderBuffer(prosper::IPrContext &context, const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets, const std::optional<IndexBufferInfo> &indexBufferInfo)
-    : prosper::ContextObject {context}, m_indexBufferInfo {indexBufferInfo}, m_offsets {offsets}, m_pipelineCreateInfo {pipelineCreateInfo}
+IRenderBuffer::IRenderBuffer(IPrContext &context, const GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<IBuffer *> &buffers, const std::vector<DeviceSize> &offsets, const std::optional<IndexBufferInfo> &indexBufferInfo)
+    : ContextObject {context}, m_indexBufferInfo {indexBufferInfo}, m_offsets {offsets}, m_pipelineCreateInfo {pipelineCreateInfo}
 {
 	m_buffers.reserve(buffers.size());
 	m_reallocationCallbacks.reserve(buffers.size());
@@ -31,6 +31,6 @@ IRenderBuffer::~IRenderBuffer()
 	}
 }
 
-const std::vector<std::shared_ptr<prosper::IBuffer>> &IRenderBuffer::GetBuffers() const { return m_buffers; }
-const prosper::IndexBufferInfo *IRenderBuffer::GetIndexBufferInfo() const { return const_cast<IRenderBuffer *>(this)->GetIndexBufferInfo(); }
-prosper::IndexBufferInfo *IRenderBuffer::GetIndexBufferInfo() { return m_indexBufferInfo.has_value() ? &*m_indexBufferInfo : nullptr; }
+const std::vector<std::shared_ptr<IBuffer>> &IRenderBuffer::GetBuffers() const { return m_buffers; }
+const IndexBufferInfo *IRenderBuffer::GetIndexBufferInfo() const { return const_cast<IRenderBuffer *>(this)->GetIndexBufferInfo(); }
+IndexBufferInfo *IRenderBuffer::GetIndexBufferInfo() { return m_indexBufferInfo.has_value() ? &*m_indexBufferInfo : nullptr; }

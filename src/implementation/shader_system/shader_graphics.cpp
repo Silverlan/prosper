@@ -11,10 +11,10 @@ import :shader_system.pipeline_create_info;
 import :shader_system.pipeline_loader;
 import :shader_system.shader;
 
-prosper::ShaderGraphics::VertexBinding::VertexBinding(prosper::VertexInputRate inputRate, uint32_t stride) : stride(stride), inputRate(inputRate) {}
-prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOther, std::optional<prosper::VertexInputRate> inputRate, std::optional<uint32_t> stride)
+prosper::ShaderGraphics::VertexBinding::VertexBinding(VertexInputRate inputRate, uint32_t stride) : stride(stride), inputRate(inputRate) {}
+prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOther, std::optional<VertexInputRate> inputRate, std::optional<uint32_t> stride)
 {
-	auto pinputRate = inputRate ? std::make_shared<prosper::VertexInputRate>(*inputRate) : nullptr;
+	auto pinputRate = inputRate ? std::make_shared<VertexInputRate>(*inputRate) : nullptr;
 	auto pstride = stride ? std::make_shared<uint32_t>(*stride) : nullptr;
 	initializer = [this, &vbOther, pinputRate, pstride]() {
 		*this = vbOther;
@@ -26,7 +26,7 @@ prosper::ShaderGraphics::VertexBinding::VertexBinding(const VertexBinding &vbOth
 	};
 }
 uint32_t prosper::ShaderGraphics::VertexBinding::GetBindingIndex() const { return bindingIndex; }
-prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding, prosper::Format format, size_t startOffset)
+prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexBinding &binding, Format format, size_t startOffset)
     : binding(&binding), format(format), startOffset {(startOffset == std::numeric_limits<size_t>::max()) ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(startOffset)}
 {
 }
@@ -38,9 +38,9 @@ prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute 
 		initializer = nullptr;
 	};
 }
-prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute &vaOther, const VertexBinding &binding, std::optional<prosper::Format> format) : binding(&binding)
+prosper::ShaderGraphics::VertexAttribute::VertexAttribute(const VertexAttribute &vaOther, const VertexBinding &binding, std::optional<Format> format) : binding(&binding)
 {
-	auto pformat = format ? std::make_shared<prosper::Format>(*format) : nullptr;
+	auto pformat = format ? std::make_shared<Format>(*format) : nullptr;
 	initializer = [this, &vaOther, pformat]() {
 		this->format = vaOther.format;
 		this->startOffset = vaOther.startOffset;
@@ -66,13 +66,13 @@ struct RenderPassManager {
 
 static uint32_t s_shaderCount = 0u;
 static std::vector<std::unique_ptr<RenderPassManager>> s_rpManagers = {};
-prosper::ShaderGraphics::ShaderGraphics(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader, const std::string &gsShader) : Shader(context, identifier, vsShader, fsShader, gsShader) { ++s_shaderCount; }
+prosper::ShaderGraphics::ShaderGraphics(IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader, const std::string &gsShader) : Shader(context, identifier, vsShader, fsShader, gsShader) { ++s_shaderCount; }
 prosper::ShaderGraphics::~ShaderGraphics()
 {
 	if(--s_shaderCount == 0u)
 		s_rpManagers.clear();
 }
-const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(prosper::IPrContext &context, size_t hashCode, uint32_t pipelineIdx)
+const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderPass(IPrContext &context, size_t hashCode, uint32_t pipelineIdx)
 {
 	auto it = std::find_if(s_rpManagers.begin(), s_rpManagers.end(), [&context](const std::unique_ptr<RenderPassManager> &rpMan) { return rpMan->context.lock().get() == &context; });
 	static std::shared_ptr<IRenderPass> nptr = nullptr;
@@ -88,7 +88,7 @@ const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderP
 		return nptr;
 	return itRp->renderPass;
 }
-void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode, const prosper::util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx, const std::string &debugName)
+void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode, const util::RenderPassCreateInfo &renderPassInfo, std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx, const std::string &debugName)
 {
 	auto &context = GetContext();
 	auto it = std::find_if(s_rpManagers.begin(), s_rpManagers.end(), [&context](const std::unique_ptr<RenderPassManager> &rpMan) { return rpMan->context.lock().get() == &context; });
@@ -127,7 +127,7 @@ void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode, const pros
 	}
 	outRenderPass = itRp->renderPass;
 }
-void prosper::ShaderGraphics::InitializeGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) { pipelineInfo.ToggleDynamicStates(true, {prosper::DynamicState::Viewport}); }
+void prosper::ShaderGraphics::InitializeGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo, uint32_t pipelineIdx) { pipelineInfo.ToggleDynamicStates(true, {DynamicState::Viewport}); }
 
 void prosper::ShaderGraphics::ClearShaderResources()
 {
@@ -149,11 +149,11 @@ void prosper::ShaderGraphics::InitializePipeline()
 	auto *modGs = GetStage(ShaderStage::Geometry);
 	auto *modTessControl = GetStage(ShaderStage::TessellationControl);
 	auto *modTessEval = GetStage(ShaderStage::TessellationEvaluation);
-	auto firstPipelineId = std::numeric_limits<prosper::PipelineID>::max();
+	auto firstPipelineId = std::numeric_limits<PipelineID>::max();
 
 	static std::chrono::high_resolution_clock::duration accTime {0};
 	auto t = std::chrono::high_resolution_clock::now();
-	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", ::util::LogSeverity::Debug);
+	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", pragma::util::LogSeverity::Debug);
 	for(auto pipelineIdx = decltype(pipelineInfos.size()) {0}; pipelineIdx < pipelineInfos.size(); ++pipelineIdx) {
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
@@ -161,10 +161,10 @@ void prosper::ShaderGraphics::InitializePipeline()
 		InitializeRenderPass(renderPass, pipelineIdx);
 		if(renderPass == nullptr)
 			continue;
-		prosper::SubPassID subPassId {0};
+		SubPassID subPassId {0};
 
-		auto basePipelineId = std::numeric_limits<prosper::PipelineID>::max();
-		if(firstPipelineId != std::numeric_limits<prosper::PipelineID>::max())
+		auto basePipelineId = std::numeric_limits<PipelineID>::max();
+		if(firstPipelineId != std::numeric_limits<PipelineID>::max())
 			basePipelineId = firstPipelineId;
 		else if(m_basePipeline.expired() == false) {
 			assert(!GetContext().GetPipelineLoader().IsShaderQueued(m_basePipeline.lock()->GetIndex()));
@@ -172,27 +172,27 @@ void prosper::ShaderGraphics::InitializePipeline()
 			m_basePipeline.lock()->GetPipelineId(basePipelineId, 0u, false);
 		}
 
-		prosper::PipelineCreateFlags createFlags = prosper::PipelineCreateFlags::AllowDerivativesBit;
-		auto bIsDerivative = basePipelineId != std::numeric_limits<prosper::PipelineID>::max();
+		PipelineCreateFlags createFlags = PipelineCreateFlags::AllowDerivativesBit;
+		auto bIsDerivative = basePipelineId != std::numeric_limits<PipelineID>::max();
 		if(bIsDerivative)
-			createFlags = createFlags | prosper::PipelineCreateFlags::DerivativeBit;
-		auto gfxPipelineInfo = prosper::GraphicsPipelineCreateInfo::Create(createFlags, renderPass.get(), subPassId, (modFs != nullptr) ? *modFs->entryPoint : prosper::ShaderModuleStageEntryPoint(), (modGs != nullptr) ? *modGs->entryPoint : prosper::ShaderModuleStageEntryPoint(),
-		  (modTessControl != nullptr) ? *modTessControl->entryPoint : prosper::ShaderModuleStageEntryPoint(), (modTessEval != nullptr) ? *modTessEval->entryPoint : prosper::ShaderModuleStageEntryPoint(), (modVs != nullptr) ? *modVs->entryPoint : prosper::ShaderModuleStageEntryPoint(),
+			createFlags = createFlags | PipelineCreateFlags::DerivativeBit;
+		auto gfxPipelineInfo = GraphicsPipelineCreateInfo::Create(createFlags, renderPass.get(), subPassId, (modFs != nullptr) ? *modFs->entryPoint : ShaderModuleStageEntryPoint(), (modGs != nullptr) ? *modGs->entryPoint : ShaderModuleStageEntryPoint(),
+		  (modTessControl != nullptr) ? *modTessControl->entryPoint : ShaderModuleStageEntryPoint(), (modTessEval != nullptr) ? *modTessEval->entryPoint : ShaderModuleStageEntryPoint(), (modVs != nullptr) ? *modVs->entryPoint : ShaderModuleStageEntryPoint(),
 		  nullptr, bIsDerivative ? &basePipelineId : nullptr);
 
 		if(gfxPipelineInfo == nullptr)
 			continue;
 		gfxPipelineInfo->SetName(GetIdentifier() +"_" +std::to_string(pipelineIdx));
 		ToggleDynamicViewportState(*gfxPipelineInfo, true);
-		gfxPipelineInfo->SetPrimitiveTopology(prosper::PrimitiveTopology::TriangleList);
+		gfxPipelineInfo->SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
-		gfxPipelineInfo->SetRasterizationProperties(prosper::PolygonMode::Fill, prosper::CullModeFlags::BackBit, prosper::FrontFace::CounterClockwise, 1.0f /* line_width */
+		gfxPipelineInfo->SetRasterizationProperties(PolygonMode::Fill, CullModeFlags::BackBit, FrontFace::CounterClockwise, 1.0f /* line_width */
 		);
 
 		auto &rpInfo = renderPass->GetCreateInfo();
 		auto numAttachments = rpInfo.attachments.size();
-		auto samples = (numAttachments > 0) ? rpInfo.attachments.front().sampleCount : prosper::SampleCountFlags::e1Bit;
-		if(samples != prosper::SampleCountFlags::e1Bit)
+		auto samples = (numAttachments > 0) ? rpInfo.attachments.front().sampleCount : SampleCountFlags::e1Bit;
+		if(samples != SampleCountFlags::e1Bit)
 			gfxPipelineInfo->SetMultisamplingProperties(samples, 0.f, std::numeric_limits<SampleMask>::max());
 
 		InitializeGfxPipeline(*gfxPipelineInfo, pipelineIdx);
@@ -203,7 +203,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 
 		PrepareGfxPipeline(*gfxPipelineInfo);
 
-		if(prosper::util::are_dynamic_states_enabled(*gfxPipelineInfo, prosper::util::DynamicStateFlags::Scissor) == false)
+		if(util::are_dynamic_states_enabled(*gfxPipelineInfo, util::DynamicStateFlags::Scissor) == false)
 			gfxPipelineInfo->SetScissorBoxProperties(0u, 0, 0, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
 		else
 			gfxPipelineInfo->SetDynamicScissorBoxesCount(1u);
@@ -214,7 +214,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 		pipelineInfo.createInfo = std::move(gfxPipelineInfo);
 		if(result.has_value()) {
 			pipelineInfo.id = *result;
-			if(firstPipelineId == std::numeric_limits<prosper::PipelineID>::max())
+			if(firstPipelineId == std::numeric_limits<PipelineID>::max())
 				firstPipelineId = pipelineInfo.id;
 			pipelineInfo.renderPass = renderPass;
 			OnPipelineInitialized(pipelineIdx);
@@ -225,7 +225,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 			pipelineInfo.id = std::numeric_limits<PipelineID>::max();
 	}
 }
-void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreateInfo &pipelineInfo)
+void prosper::ShaderGraphics::PrepareGfxPipeline(GraphicsPipelineCreateInfo &pipelineInfo)
 {
 	// Initialize vertex bindings and attributes
 
@@ -253,7 +253,7 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreate
 		auto &binding = const_cast<VertexBinding &>(*attr.binding);
 		if(binding.stride == std::numeric_limits<uint32_t>::max())
 			binding.stride = 0u;
-		binding.stride += prosper::util::get_byte_size(static_cast<Format>(attr.format));
+		binding.stride += util::get_byte_size(static_cast<Format>(attr.format));
 	}
 	//
 
@@ -263,9 +263,9 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreate
 
 	struct VertexBindingInfo {
 		uint32_t binding;
-		prosper::VertexInputRate stepRate;
+		VertexInputRate stepRate;
 		uint32_t strideInBytes;
-		std::vector<prosper::VertexInputAttribute> attributes;
+		std::vector<VertexInputAttribute> attributes;
 	};
 	std::vector<VertexBindingInfo> vertexBindingsInfo {};
 	vertexBindingsInfo.reserve(m_vertexAttributes.size());
@@ -286,13 +286,13 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreate
 			auto it = nextStartOffsets.find(attr.binding);
 			startOffset = (it != nextStartOffsets.end()) ? it->second : 0u;
 		}
-		nextStartOffsets[attr.binding] = startOffset + prosper::util::get_byte_size(static_cast<Format>(attr.format));
+		nextStartOffsets[attr.binding] = startOffset + util::get_byte_size(static_cast<Format>(attr.format));
 
 		auto vertexBindingIdx = 0u;
 		auto it = vertexBindingIndices.find(attr.binding);
 		if(it == vertexBindingIndices.end()) {
 			it = vertexBindingIndices.insert(std::make_pair(attr.binding, vertexBindingCount++)).first;
-			const_cast<prosper::ShaderGraphics::VertexBinding &>(*attr.binding).bindingIndex = it->second;
+			const_cast<VertexBinding &>(*attr.binding).bindingIndex = it->second;
 			vertexBindingsInfo.push_back({});
 		}
 		vertexBindingIdx = it->second;
@@ -308,17 +308,17 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(prosper::GraphicsPipelineCreate
 			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " + std::to_string(vertexBindingInfo.binding));
 	}
 }
-void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<prosper::ShaderGraphics>({{prosper::util::RenderPassCreateInfo::AttachmentInfo {}}}, outRenderPass, pipelineIdx); }
-void prosper::ShaderGraphics::SetGenericAlphaColorBlendAttachmentProperties(prosper::GraphicsPipelineCreateInfo &pipelineInfo) { prosper::util::set_generic_alpha_color_blend_attachment_properties(pipelineInfo); }
-void prosper::ShaderGraphics::ToggleDynamicViewportState(prosper::GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable)
+void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<ShaderGraphics>({{util::RenderPassCreateInfo::AttachmentInfo {}}}, outRenderPass, pipelineIdx); }
+void prosper::ShaderGraphics::SetGenericAlphaColorBlendAttachmentProperties(GraphicsPipelineCreateInfo &pipelineInfo) { util::set_generic_alpha_color_blend_attachment_properties(pipelineInfo); }
+void prosper::ShaderGraphics::ToggleDynamicViewportState(GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable)
 {
-	pipelineInfo.ToggleDynamicStates(bEnable, {prosper::DynamicState::Viewport});
+	pipelineInfo.ToggleDynamicStates(bEnable, {DynamicState::Viewport});
 	pipelineInfo.SetDynamicViewportCount(bEnable ? 1u : 0u);
 }
 
-void prosper::ShaderGraphics::ToggleDynamicScissorState(prosper::GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable)
+void prosper::ShaderGraphics::ToggleDynamicScissorState(GraphicsPipelineCreateInfo &pipelineInfo, bool bEnable)
 {
-	pipelineInfo.ToggleDynamicStates(bEnable, {prosper::DynamicState::Scissor});
+	pipelineInfo.ToggleDynamicStates(bEnable, {DynamicState::Scissor});
 	pipelineInfo.SetDynamicScissorBoxesCount(bEnable ? 1u : 0u);
 }
 
@@ -329,18 +329,18 @@ const std::shared_ptr<prosper::IRenderPass> &prosper::ShaderGraphics::GetRenderP
 	return pipelineInfo->renderPass;
 }
 bool prosper::ShaderGraphics::RecordBindRenderBuffer(ShaderBindState &bindState, const IRenderBuffer &renderBuffer) const { return bindState.commandBuffer.RecordBindRenderBuffer(renderBuffer); }
-bool prosper::ShaderGraphics::RecordBindVertexBuffers(ShaderBindState &bindState, const std::vector<IBuffer *> &buffers, uint32_t startBinding, const std::vector<prosper::DeviceSize> &offsets) const
+bool prosper::ShaderGraphics::RecordBindVertexBuffers(ShaderBindState &bindState, const std::vector<IBuffer *> &buffers, uint32_t startBinding, const std::vector<DeviceSize> &offsets) const
 {
 	return bindState.commandBuffer.RecordBindVertexBuffers(*this, buffers, startBinding, offsets);
 }
 
-bool prosper::ShaderGraphics::RecordBindVertexBuffer(ShaderBindState &bindState, prosper::IBuffer &buffer, uint32_t startBinding, DeviceSize offset) const { return bindState.commandBuffer.RecordBindVertexBuffers(*this, {&buffer}, startBinding, {offset}); }
-bool prosper::ShaderGraphics::RecordBindIndexBuffer(ShaderBindState &bindState, prosper::IBuffer &indexBuffer, prosper::IndexType indexType, DeviceSize offset) const { return bindState.commandBuffer.RecordBindIndexBuffer(indexBuffer, indexType, offset); }
+bool prosper::ShaderGraphics::RecordBindVertexBuffer(ShaderBindState &bindState, IBuffer &buffer, uint32_t startBinding, DeviceSize offset) const { return bindState.commandBuffer.RecordBindVertexBuffers(*this, {&buffer}, startBinding, {offset}); }
+bool prosper::ShaderGraphics::RecordBindIndexBuffer(ShaderBindState &bindState, IBuffer &indexBuffer, IndexType indexType, DeviceSize offset) const { return bindState.commandBuffer.RecordBindIndexBuffer(indexBuffer, indexType, offset); }
 
 bool prosper::ShaderGraphics::RecordDraw(ShaderBindState &bindState, uint32_t vertCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const { return bindState.commandBuffer.RecordDraw(vertCount, instanceCount, firstVertex, firstInstance); }
 
 bool prosper::ShaderGraphics::RecordDrawIndexed(ShaderBindState &bindState, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t firstInstance) const { return bindState.commandBuffer.RecordDrawIndexed(indexCount, instanceCount, firstIndex, firstInstance); }
-bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelineCreateInfo &pipelineInfo, prosper::ShaderStageFlags stageFlags, uint32_t constantId, uint32_t numBytes, const void *data)
+bool prosper::ShaderGraphics::AddSpecializationConstant(GraphicsPipelineCreateInfo &pipelineInfo, ShaderStageFlags stageFlags, uint32_t constantId, uint32_t numBytes, const void *data)
 {
 	for(auto v : util::shader_stage_flags_to_shader_stages(stageFlags)) {
 		if(pipelineInfo.AddSpecializationConstant(v, constantId, numBytes, data) == false)
@@ -349,7 +349,7 @@ bool prosper::ShaderGraphics::AddSpecializationConstant(prosper::GraphicsPipelin
 	return true;
 }
 void prosper::ShaderGraphics::AddVertexAttribute(VertexAttribute &attr) { m_vertexAttributes.push_back(attr); }
-bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState, prosper::IDescriptorSet &descSet, uint32_t firstSet, const std::vector<uint32_t> &dynamicOffsets) const
+bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState, IDescriptorSet &descSet, uint32_t firstSet, const std::vector<uint32_t> &dynamicOffsets) const
 {
 #if 0
 	if(GetContext().IsValidationEnabled())
@@ -397,11 +397,11 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState
 		}
 	}
 #endif
-	return prosper::Shader::RecordBindDescriptorSet(bindState, descSet, firstSet, dynamicOffsets);
+	return Shader::RecordBindDescriptorSet(bindState, descSet, firstSet, dynamicOffsets);
 }
 bool prosper::ShaderGraphics::RecordViewportScissor(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t scissorX, uint32_t scissorY, uint32_t scissorW, uint32_t scissorH, uint32_t pipelineIdx) const
 {
-	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo *>(GetPipelineCreateInfo(pipelineIdx));
+	auto *info = static_cast<const GraphicsPipelineCreateInfo *>(GetPipelineCreateInfo(pipelineIdx));
 	if(info == nullptr)
 		return false;
 	auto nDynamicScissors = info->GetDynamicScissorBoxesCount();
@@ -422,7 +422,7 @@ bool prosper::ShaderGraphics::RecordViewportScissor(ShaderBindState &bindState, 
 }
 bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState, uint32_t width, uint32_t height, uint32_t pipelineIdx, RecordFlags recordFlags) const
 {
-	auto *info = static_cast<const prosper::GraphicsPipelineCreateInfo *>(GetPipelineCreateInfo(pipelineIdx));
+	auto *info = static_cast<const GraphicsPipelineCreateInfo *>(GetPipelineCreateInfo(pipelineIdx));
 	if(info == nullptr)
 		return false;
 	if(RecordBindPipeline(bindState, pipelineIdx) == false)
@@ -439,7 +439,7 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 			auto &rpCreateInfo = rp->GetCreateInfo();
 			prosper::SampleCountFlags sampleCount;
 			info->GetMultisamplingProperties(&sampleCount,nullptr);
-			auto numAttachments = umath::min(fb->GetAttachmentCount(),static_cast<uint32_t>(rpCreateInfo.attachments.size()));
+			auto numAttachments = pragma::math::min(fb->GetAttachmentCount(),static_cast<uint32_t>(rpCreateInfo.attachments.size()));
 			for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
 			{
 				auto *imgView = fb->GetAttachment(i);
@@ -449,7 +449,7 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 				auto &attInfo = rpCreateInfo.attachments.at(i);
 				auto rpSampleCount = attInfo.sampleCount;
 				auto bRpHasColorAttachment = false;
-				if(util::is_depth_format(attInfo.format) == false)
+				if(pragma::util::is_depth_format(attInfo.format) == false)
 					bRpHasColorAttachment = true;
 
 				if((sampleCount &img.GetSampleCount()) == prosper::SampleCountFlags::None)
@@ -492,7 +492,7 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 		auto bScissor = (nDynamicScissors > 0u && (recordFlags & RecordFlags::RenderPassTargetAsScissor) != RecordFlags::None) ? true : false;
 		auto bViewport = (nDynamicViewports > 0u && (recordFlags & RecordFlags::RenderPassTargetAsViewport) != RecordFlags::None) ? true : false;
 		if(bScissor || bViewport) {
-			prosper::Extent2D extents {width, height};
+			Extent2D extents {width, height};
 			if(bScissor) {
 				if(bindState.commandBuffer.RecordSetScissor(extents.width, extents.height) == false)
 					return false;
@@ -507,9 +507,9 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 }
 bool prosper::ShaderGraphics::RecordBeginDraw(ShaderBindState &bindState, uint32_t pipelineIdx, RecordFlags recordFlags) const
 {
-	prosper::Extent2D extents;
+	Extent2D extents;
 	if(bindState.commandBuffer.IsPrimary()) {
-		prosper::IImage *img;
+		IImage *img;
 		if(bindState.commandBuffer.GetPrimaryCommandBufferPtr()->GetActiveRenderPassTarget(nullptr, &img) == false || img == nullptr)
 			return false;
 		extents = img->GetExtents();

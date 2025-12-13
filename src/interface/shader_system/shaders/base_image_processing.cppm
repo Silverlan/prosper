@@ -12,19 +12,19 @@ export import :shader_system.shader;
 export namespace prosper {
 	class RenderTarget;
 	namespace shaderBaseImageProcessing {
-		CLASS_ENUM_COMPAT prosper::DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
+		CLASS_ENUM_COMPAT DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
 	}
 	class DLLPROSPER ShaderBaseImageProcessing : public ShaderGraphics {
 	  public:
-		static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_VERTEX;
-		static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_POSITION;
+		static VertexBinding VERTEX_BINDING_VERTEX;
+		static VertexAttribute VERTEX_ATTRIBUTE_POSITION;
 
-		static prosper::ShaderGraphics::VertexBinding VERTEX_BINDING_UV;
-		static prosper::ShaderGraphics::VertexAttribute VERTEX_ATTRIBUTE_UV;
+		static VertexBinding VERTEX_BINDING_UV;
+		static VertexAttribute VERTEX_ATTRIBUTE_UV;
 
-		ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader);
-		ShaderBaseImageProcessing(prosper::IPrContext &context, const std::string &identifier, const std::string &fsShader);
-		bool RecordDraw(ShaderBindState &bindState, prosper::IDescriptorSet &descSetTexture) const;
+		ShaderBaseImageProcessing(IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader);
+		ShaderBaseImageProcessing(IPrContext &context, const std::string &identifier, const std::string &fsShader);
+		bool RecordDraw(ShaderBindState &bindState, IDescriptorSet &descSetTexture) const;
 		virtual bool RecordDraw(ShaderBindState &bindState) const override;
 	  protected:
 		void AddDefaultVertexAttributes();

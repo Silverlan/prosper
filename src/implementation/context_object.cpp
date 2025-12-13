@@ -13,7 +13,7 @@ ContextObject::ContextObject(IPrContext &context) : m_wpContext(context.shared_f
 
 IPrContext &ContextObject::GetContext() const { return *(m_wpContext.lock()); }
 
-void prosper::ContextObject::SetDebugName(const std::string &name)
+void ContextObject::SetDebugName(const std::string &name)
 {
 	// if(s_lookupHandler == nullptr)
 	// 	return;
@@ -21,4 +21,4 @@ void prosper::ContextObject::SetDebugName(const std::string &name)
 		m_dbgName += ",";
 	m_dbgName += name;
 }
-const std::string &prosper::ContextObject::GetDebugName() const { return m_dbgName; }
+const std::string &ContextObject::GetDebugName() const { return m_dbgName; }

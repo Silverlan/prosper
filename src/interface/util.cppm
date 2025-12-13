@@ -32,12 +32,12 @@ export {
 			struct BufferCreateInfo;
 			struct ImageCreateInfo;
 
-			DLLPROSPER Format get_prosper_format(const uimg::ImageBuffer &imgBuffer);
-			DLLPROSPER prosper::util::ImageCreateInfo get_image_create_info(const uimg::ImageBuffer &imgBuffer, bool cubemap = false);
+			DLLPROSPER Format get_prosper_format(const pragma::image::ImageBuffer &imgBuffer);
+			DLLPROSPER ImageCreateInfo get_image_create_info(const pragma::image::ImageBuffer &imgBuffer, bool cubemap = false);
 
-			DLLPROSPER BufferBarrier create_buffer_barrier(const util::BufferBarrierInfo &barrierInfo, IBuffer &buffer);
-			DLLPROSPER ImageBarrier create_image_barrier(IImage &img, const util::ImageBarrierInfo &barrierInfo, std::optional<prosper::ImageAspectFlags> aspectMask = {});
-			DLLPROSPER ImageBarrier create_image_barrier(IImage &img, const BarrierImageLayout &srcBarrierInfo, const BarrierImageLayout &dstBarrierInfo, const ImageSubresourceRange &subresourceRange = {}, std::optional<prosper::ImageAspectFlags> aspectMask = {});
+			DLLPROSPER BufferBarrier create_buffer_barrier(const BufferBarrierInfo &barrierInfo, IBuffer &buffer);
+			DLLPROSPER ImageBarrier create_image_barrier(IImage &img, const ImageBarrierInfo &barrierInfo, std::optional<ImageAspectFlags> aspectMask = {});
+			DLLPROSPER ImageBarrier create_image_barrier(IImage &img, const BarrierImageLayout &srcBarrierInfo, const BarrierImageLayout &dstBarrierInfo, const ImageSubresourceRange &subresourceRange = {}, std::optional<ImageAspectFlags> aspectMask = {});
 
 			DLLPROSPER void calculate_mipmap_size(uint32_t w, uint32_t h, uint32_t *wMipmap, uint32_t *hMipmap, uint32_t level);
 			DLLPROSPER uint32_t calculate_mipmap_size(uint32_t v, uint32_t level);
@@ -74,29 +74,29 @@ export {
 			DLLPROSPER uint32_t get_block_size(Format format);
 			DLLPROSPER uint32_t get_pixel_size(Format format);
 			DLLPROSPER uint32_t get_component_count(Format format);
-			DLLPROSPER bool get_format_channel_mask(Format format, uimg::ChannelMask &outChannelMask);
-			DLLPROSPER prosper::AccessFlags get_read_access_mask();
-			DLLPROSPER prosper::AccessFlags get_write_access_mask();
-			DLLPROSPER prosper::AccessFlags get_image_read_access_mask();
-			DLLPROSPER prosper::AccessFlags get_image_write_access_mask();
-			DLLPROSPER prosper::PipelineBindPoint get_pipeline_bind_point(prosper::ShaderStageFlags shaderStages);
-			DLLPROSPER prosper::ShaderStage shader_stage_flag_to_shader_stage(prosper::ShaderStageFlags flag);
-			DLLPROSPER std::vector<prosper::ShaderStage> shader_stage_flags_to_shader_stages(prosper::ShaderStageFlags flags);
+			DLLPROSPER bool get_format_channel_mask(Format format, pragma::image::ChannelMask &outChannelMask);
+			DLLPROSPER AccessFlags get_read_access_mask();
+			DLLPROSPER AccessFlags get_write_access_mask();
+			DLLPROSPER AccessFlags get_image_read_access_mask();
+			DLLPROSPER AccessFlags get_image_write_access_mask();
+			DLLPROSPER PipelineBindPoint get_pipeline_bind_point(ShaderStageFlags shaderStages);
+			DLLPROSPER ShaderStage shader_stage_flag_to_shader_stage(ShaderStageFlags flag);
+			DLLPROSPER std::vector<ShaderStage> shader_stage_flags_to_shader_stages(ShaderStageFlags flags);
 			DLLPROSPER ImageAspectFlags get_aspect_mask(IImage &img);
 			DLLPROSPER ImageAspectFlags get_aspect_mask(Format format);
-			DLLPROSPER void apply_image_subresource_range(const prosper::util::ImageSubresourceRange &srcRange, prosper::util::ImageSubresourceRange &vkRange, prosper::IImage &img);
+			DLLPROSPER void apply_image_subresource_range(const ImageSubresourceRange &srcRange, ImageSubresourceRange &vkRange, IImage &img);
 
-			DLLPROSPER bool compress_image(prosper::IImage &image, const uimg::TextureInfo &texInfo, const uimg::TextureOutputHandler &outputHandler, const std::function<void(const std::string &)> &errorHandler = nullptr);
-			DLLPROSPER bool compress_image(prosper::IImage &image, const uimg::TextureInfo &texInfo, std::vector<std::vector<std::vector<uint8_t>>> &outputData, const std::function<void(const std::string &)> &errorHandler = nullptr);
-			DLLPROSPER bool save_texture(const std::string &fileName, prosper::IImage &image, const uimg::TextureInfo &texInfo, const std::function<void(const std::string &)> &errorHandler = nullptr);
-			DLLPROSPER std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> image_to_data(prosper::IImage &image, const std::optional<prosper::Format> &dstFormat = {});
+			DLLPROSPER bool compress_image(IImage &image, const pragma::image::TextureInfo &texInfo, const pragma::image::TextureOutputHandler &outputHandler, const std::function<void(const std::string &)> &errorHandler = nullptr);
+			DLLPROSPER bool compress_image(IImage &image, const pragma::image::TextureInfo &texInfo, std::vector<std::vector<std::vector<uint8_t>>> &outputData, const std::function<void(const std::string &)> &errorHandler = nullptr);
+			DLLPROSPER bool save_texture(const std::string &fileName, IImage &image, const pragma::image::TextureInfo &texInfo, const std::function<void(const std::string &)> &errorHandler = nullptr);
+			DLLPROSPER std::function<const uint8_t *(uint32_t, uint32_t, std::function<void(void)> &)> image_to_data(IImage &image, const std::optional<Format> &dstFormat = {});
 
 			// Returns the padding required to align the offset with the specified alignment
 			DLLPROSPER uint32_t get_offset_alignment_padding(uint32_t offset, uint32_t alignment);
 			// Returns the size with padding required to align with the specified alignment
 			DLLPROSPER uint32_t get_aligned_size(uint32_t size, uint32_t alignment);
 
-			DLLPROSPER void get_image_layout_transition_access_masks(prosper::ImageLayout oldLayout, prosper::ImageLayout newLayout, prosper::AccessFlags &readAccessMask, prosper::AccessFlags &writeAccessMask);
+			DLLPROSPER void get_image_layout_transition_access_masks(ImageLayout oldLayout, ImageLayout newLayout, AccessFlags &readAccessMask, AccessFlags &writeAccessMask);
 
 			struct DLLPROSPER Limits {
 				float maxSamplerAnisotropy = 0.f;
@@ -114,9 +114,9 @@ export {
 			template<class T>
 			std::shared_ptr<T> unique_ptr_to_shared_ptr(std::unique_ptr<T, std::function<void(T *)>> v);
 
-			DLLPROSPER prosper::Format get_vk_format(uimg::Format format);
+			DLLPROSPER Format get_vk_format(pragma::image::Format format);
 		};
-		using namespace umath::scoped_enum::bitwise;
+		using namespace pragma::math::scoped_enum::bitwise;
 	};
 #pragma warning(pop)
 

@@ -11,9 +11,9 @@ using namespace prosper;
 
 TimerQuery::TimerQuery(const std::shared_ptr<TimestampQuery> &tsQuery0, const std::shared_ptr<TimestampQuery> &tsQuery1) : ContextObject(tsQuery0->GetContext()), std::enable_shared_from_this<TimerQuery>(), m_tsQuery0(tsQuery0), m_tsQuery1(tsQuery1) {}
 
-bool TimerQuery::Reset(prosper::ICommandBuffer &cmdBuffer) const { return m_tsQuery0->Reset(cmdBuffer) && m_tsQuery1->Reset(cmdBuffer); }
-bool TimerQuery::Begin(prosper::ICommandBuffer &cmdBuffer) const { return m_tsQuery0->Write(cmdBuffer); }
-bool TimerQuery::End(prosper::ICommandBuffer &cmdBuffer) const { return m_tsQuery1->Write(cmdBuffer); }
+bool TimerQuery::Reset(ICommandBuffer &cmdBuffer) const { return m_tsQuery0->Reset(cmdBuffer) && m_tsQuery1->Reset(cmdBuffer); }
+bool TimerQuery::Begin(ICommandBuffer &cmdBuffer) const { return m_tsQuery0->Write(cmdBuffer); }
+bool TimerQuery::End(ICommandBuffer &cmdBuffer) const { return m_tsQuery1->Write(cmdBuffer); }
 
 bool TimerQuery::QueryResult(std::chrono::nanoseconds &outDuration) const
 {
@@ -34,4 +34,4 @@ bool TimerQuery::IsResultAvailable() const
 		return true;
 	return (m_tsQuery0->IsResultAvailable() && m_tsQuery1->IsResultAvailable()) ? true : false;
 }
-prosper::PipelineStageFlags TimerQuery::GetPipelineStage() const { return m_tsQuery0->GetPipelineStage(); }
+PipelineStageFlags TimerQuery::GetPipelineStage() const { return m_tsQuery0->GetPipelineStage(); }

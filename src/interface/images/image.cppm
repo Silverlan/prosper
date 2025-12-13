@@ -45,12 +45,12 @@ export {
 			virtual std::optional<util::SubresourceLayout> GetSubresourceLayout(uint32_t layerId = 0, uint32_t mipMapIdx = 0) = 0;
 			const util::ImageCreateInfo &GetCreateInfo() const;
 			util::ImageCreateInfo &GetCreateInfo();
-			const prosper::IBuffer *GetMemoryBuffer() const;
-			prosper::IBuffer *GetMemoryBuffer();
+			const IBuffer *GetMemoryBuffer() const;
+			IBuffer *GetMemoryBuffer();
 			bool SetMemoryBuffer(IBuffer &buffer);
 			virtual DeviceSize GetAlignment() const = 0;
 			virtual const void *GetInternalHandle() const = 0;
-			prosper::FeatureSupport AreFormatFeaturesSupported(FormatFeatureFlags featureFlags) const;
+			FeatureSupport AreFormatFeaturesSupported(FormatFeatureFlags featureFlags) const;
 
 			bool IsSrgb() const;
 			bool IsNormalMap() const;
@@ -67,14 +67,14 @@ export {
 			virtual bool WriteImageData(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t layerIndex, uint32_t mipLevel, uint64_t size, const uint8_t *data) = 0;
 			virtual bool Map(DeviceSize offset, DeviceSize size, void **outPtr = nullptr) = 0;
 			virtual bool Unmap() = 0;
-			std::shared_ptr<uimg::ImageBuffer> ToHostImageBuffer(uimg::Format format, prosper::ImageLayout curImgLayout) const;
-			std::shared_ptr<IImage> Copy(prosper::ICommandBuffer &cmd, const util::ImageCreateInfo &copyCreateInfo);
-			bool Copy(prosper::ICommandBuffer &cmd, IImage &imgDst);
-			std::shared_ptr<IImage> Convert(prosper::ICommandBuffer &cmd, Format newFormat);
+			std::shared_ptr<pragma::image::ImageBuffer> ToHostImageBuffer(pragma::image::Format format, ImageLayout curImgLayout) const;
+			std::shared_ptr<IImage> Copy(ICommandBuffer &cmd, const util::ImageCreateInfo &copyCreateInfo);
+			bool Copy(ICommandBuffer &cmd, IImage &imgDst);
+			std::shared_ptr<IImage> Convert(ICommandBuffer &cmd, Format newFormat);
 		  protected:
 			IImage(IPrContext &context, const util::ImageCreateInfo &createInfo);
 			virtual bool DoSetMemoryBuffer(IBuffer &buffer) = 0;
-			std::shared_ptr<prosper::IBuffer> m_buffer = nullptr; // Optional buffer
+			std::shared_ptr<IBuffer> m_buffer = nullptr; // Optional buffer
 			util::ImageCreateInfo m_createInfo {};
 		};
 	};

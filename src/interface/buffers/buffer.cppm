@@ -125,7 +125,7 @@ export {
 		{
 			return Read(offset, sizeof(tOut), &tOut);
 		}
-		using namespace umath::scoped_enum::bitwise;
+		using namespace pragma::math::scoped_enum::bitwise;
 	};
 
 	REGISTER_ENUM_FLAGS(prosper::IBuffer::MapFlags)

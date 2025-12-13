@@ -9,19 +9,19 @@ import :shader_system.manager;
 import :shader_system.shader;
 
 prosper::ShaderManager::ShaderManager(IPrContext &context) : ContextObject(context) {}
-util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(const std::string &identifier)
+pragma::util::WeakHandle<pragma::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(const std::string &identifier)
 {
 	auto lidentifier = identifier;
-	ustring::to_lower(lidentifier);
+	pragma::string::to_lower(lidentifier);
 	auto it = m_shaderInfo.find(lidentifier);
 	if(it != m_shaderInfo.end())
 		return it->second;
-	auto shaderInfo = std::make_shared<::util::ShaderInfo>(lidentifier);
+	auto shaderInfo = std::make_shared<pragma::util::ShaderInfo>(lidentifier);
 	it = m_shaderInfo.insert(std::make_pair(lidentifier, shaderInfo)).first;
 	return it->second;
 }
 
-::util::WeakHandle<prosper::Shader> prosper::ShaderManager::LoadShader(const std::string &identifier)
+pragma::util::WeakHandle<prosper::Shader> prosper::ShaderManager::LoadShader(const std::string &identifier)
 {
 	auto it = m_shaderNameToIndex.find(identifier);
 	if(it != m_shaderNameToIndex.end())
@@ -43,8 +43,8 @@ util::WeakHandle<::util::ShaderInfo> prosper::ShaderManager::PreRegisterShader(c
 		m_shaders.reserve(m_shaders.size() * 1.1 + 100);
 	m_shaders.push_back(shader);
 	m_shaderNameToIndex.insert(std::make_pair(identifier, m_shaders.size() - 1));
-	auto wpShader = ::util::WeakHandle<Shader>(shader);
-	wpShaderInfo.get()->SetShader(std::make_shared<::util::WeakHandle<Shader>>(wpShader));
+	auto wpShader = pragma::util::WeakHandle<Shader>(shader);
+	wpShaderInfo.get()->SetShader(std::make_shared<pragma::util::WeakHandle<Shader>>(wpShader));
 	auto &context = GetContext();
 	context.Log("Initializing shader '" + identifier + "'...");
 	shader->Initialize();
@@ -57,7 +57,7 @@ void prosper::ShaderManager::RegisterShader(const std::string &identifier, const
 		std::cout << "[PR] Registering shader '" << identifier << "'..." << std::endl;
 	auto wpShaderInfo = PreRegisterShader(identifier);
 	auto lidentifier = identifier;
-	ustring::to_lower(lidentifier);
+	pragma::string::to_lower(lidentifier);
 
 	// The shader will be initialized lazily (whenever it's accessed for the first time)
 	m_shaderFactories[lidentifier] = fFactory;
@@ -72,12 +72,12 @@ void prosper::ShaderManager::RegisterShader(const std::string &identifier, const
 		LoadShader(identifier); // Immediately start loading the shader
 }
 prosper::Shader *prosper::ShaderManager::GetShader(ShaderIndex index) const { return (index < m_shaders.size()) ? m_shaders.at(index).get() : nullptr; }
-util::WeakHandle<prosper::Shader> prosper::ShaderManager::GetShader(const std::string &identifier) const
+pragma::util::WeakHandle<prosper::Shader> prosper::ShaderManager::GetShader(const std::string &identifier) const
 {
 	return const_cast<ShaderManager *>(this)->LoadShader(identifier);
 	/*auto lidentifier = identifier;
 	auto it = m_shaders.find(lidentifier);
-	return (it != m_shaders.end()) ? ::util::WeakHandle<Shader>(it->second) : ::util::WeakHandle<Shader>();*/
+	return (it != m_shaders.end()) ? pragma::util::WeakHandle<Shader>(it->second) : pragma::util::WeakHandle<Shader>();*/
 }
 const std::vector<std::shared_ptr<prosper::Shader>> &prosper::ShaderManager::GetShaders() const { return m_shaders; }
 bool prosper::ShaderManager::RemoveShader(Shader &shader)

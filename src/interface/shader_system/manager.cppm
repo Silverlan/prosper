@@ -23,10 +23,10 @@ export {
 			ShaderManager(IPrContext &context);
 			~ShaderManager() = default;
 
-			::util::WeakHandle<::util::ShaderInfo> PreRegisterShader(const std::string &identifier);
+			pragma::util::WeakHandle<pragma::util::ShaderInfo> PreRegisterShader(const std::string &identifier);
 			void RegisterShader(const std::string &identifier, const std::function<Shader *(IPrContext &, const std::string &)> &fFactory);
 			void RegisterShader(const std::string &identifier, const std::function<Shader *(IPrContext &, const std::string &, bool &)> &fFactory);
-			::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
+			pragma::util::WeakHandle<Shader> GetShader(const std::string &identifier) const;
 			Shader *GetShader(ShaderIndex index) const;
 			const std::vector<std::shared_ptr<Shader>> &GetShaders() const;
 			const std::unordered_map<std::string, ShaderIndex> &GetShaderNameToIndexTable() const { return m_shaderNameToIndex; }
@@ -41,14 +41,14 @@ export {
 			ShaderManager(const ShaderManager &) = delete;
 			ShaderManager &operator=(const ShaderManager &) = delete;
 		  private:
-			::util::WeakHandle<Shader> LoadShader(const std::string &identifier);
+			pragma::util::WeakHandle<Shader> LoadShader(const std::string &identifier);
 			std::unordered_map<std::string, ShaderIndex> m_shaderNameToIndex;
 			std::vector<std::shared_ptr<Shader>> m_shaders;
 
 			std::unordered_map<std::string, std::function<Shader *(IPrContext &, const std::string &, bool &)>> m_shaderFactories {};
 
 			// Pre-registered shaders
-			std::unordered_map<std::string, std::shared_ptr<::util::ShaderInfo>> m_shaderInfo;
+			std::unordered_map<std::string, std::shared_ptr<pragma::util::ShaderInfo>> m_shaderInfo;
 		};
 
 		template<class T>

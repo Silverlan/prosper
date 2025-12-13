@@ -45,18 +45,18 @@ bool prosper::ICommandBuffer::RecordUpdateGenericShaderReadBuffer(IBuffer &buffe
 }
 bool prosper::ICommandBuffer::RecordBlitImage(const util::BlitInfo &blitInfo, IImage &imgSrc, IImage &imgDst)
 {
-	if(prosper::debug::is_debug_recorded_image_layout_enabled()) {
+	if(debug::is_debug_recorded_image_layout_enabled()) {
 		ImageLayout lastImgLayout;
 		for(auto i = blitInfo.srcSubresourceLayer.baseArrayLayer; i < (blitInfo.srcSubresourceLayer.baseArrayLayer + blitInfo.srcSubresourceLayer.layerCount); ++i) {
-			if(prosper::debug::get_last_recorded_image_layout(*this, imgSrc, lastImgLayout, i, blitInfo.srcSubresourceLayer.mipLevel) && lastImgLayout != ImageLayout::TransferSrcOptimal) {
-				debug::exec_debug_validation_callback(GetContext(), prosper::DebugReportObjectTypeEXT::Image,
-				  "Blit: Source image 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) + " for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " + prosper::util::to_string(lastImgLayout) + "!");
+			if(debug::get_last_recorded_image_layout(*this, imgSrc, lastImgLayout, i, blitInfo.srcSubresourceLayer.mipLevel) && lastImgLayout != ImageLayout::TransferSrcOptimal) {
+				debug::exec_debug_validation_callback(GetContext(), DebugReportObjectTypeEXT::Image,
+				  "Blit: Source image 0x" + pragma::math::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) + " for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
 			}
 		}
 		for(auto i = blitInfo.dstSubresourceLayer.baseArrayLayer; i < (blitInfo.dstSubresourceLayer.baseArrayLayer + blitInfo.dstSubresourceLayer.layerCount); ++i) {
-			if(prosper::debug::get_last_recorded_image_layout(*this, imgDst, lastImgLayout, i, blitInfo.dstSubresourceLayer.mipLevel) && lastImgLayout != ImageLayout::TransferDstOptimal) {
-				debug::exec_debug_validation_callback(GetContext(), prosper::DebugReportObjectTypeEXT::Image,
-				  "Blit: Destination image 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) + " for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
+			if(debug::get_last_recorded_image_layout(*this, imgDst, lastImgLayout, i, blitInfo.dstSubresourceLayer.mipLevel) && lastImgLayout != ImageLayout::TransferDstOptimal) {
+				debug::exec_debug_validation_callback(GetContext(), DebugReportObjectTypeEXT::Image,
+				  "Blit: Destination image 0x" + pragma::math::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) + " for blit has to be in layout VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
 			}
 		}
 	}
@@ -78,15 +78,15 @@ bool prosper::ICommandBuffer::RecordBlitImage(const util::BlitInfo &blitInfo, II
 }
 bool prosper::ICommandBuffer::RecordResolveImage(IImage &imgSrc, IImage &imgDst)
 {
-	if(prosper::debug::is_debug_recorded_image_layout_enabled()) {
+	if(debug::is_debug_recorded_image_layout_enabled()) {
 		ImageLayout lastImgLayout;
-		if(prosper::debug::get_last_recorded_image_layout(*this, imgSrc, lastImgLayout) && lastImgLayout != ImageLayout::TransferSrcOptimal) {
-			debug::exec_debug_validation_callback(GetContext(), prosper::DebugReportObjectTypeEXT::Image,
-			  "Resolve: Source image 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) + " for resolve has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
+		if(debug::get_last_recorded_image_layout(*this, imgSrc, lastImgLayout) && lastImgLayout != ImageLayout::TransferSrcOptimal) {
+			debug::exec_debug_validation_callback(GetContext(), DebugReportObjectTypeEXT::Image,
+			  "Resolve: Source image 0x" + pragma::math::to_hex_string(reinterpret_cast<uint64_t>(&imgSrc)) + " for resolve has to be in layout VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
 		}
-		if(prosper::debug::get_last_recorded_image_layout(*this, imgDst, lastImgLayout) && lastImgLayout != ImageLayout::TransferDstOptimal) {
-			debug::exec_debug_validation_callback(GetContext(), prosper::DebugReportObjectTypeEXT::Image,
-			  "Resolve: Destination image 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) + " for resolve has to be in layout VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
+		if(debug::get_last_recorded_image_layout(*this, imgDst, lastImgLayout) && lastImgLayout != ImageLayout::TransferDstOptimal) {
+			debug::exec_debug_validation_callback(GetContext(), DebugReportObjectTypeEXT::Image,
+			  "Resolve: Destination image 0x" + pragma::math::to_hex_string(reinterpret_cast<uint64_t>(&imgDst)) + " for resolve has to be in layout VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, but is in layout " + util::to_string(lastImgLayout) + "!");
 		}
 	}
 	auto srcAspectMask = util::get_aspect_mask(imgSrc);
@@ -98,7 +98,7 @@ bool prosper::ICommandBuffer::RecordResolveImage(IImage &imgSrc, IImage &imgDst)
 	util::ImageResolve resolve {srcLayer, Offset3D {0, 0, 0}, destLayer, Offset3D {0, 0, 0}, Extent3D {srcExtents.width, srcExtents.height, 1}};
 	return DoRecordResolveImage(imgSrc, imgDst, resolve);
 }
-bool prosper::ICommandBuffer::RecordBlitTexture(prosper::Texture &texSrc, IImage &imgDst)
+bool prosper::ICommandBuffer::RecordBlitTexture(Texture &texSrc, IImage &imgDst)
 {
 	if(texSrc.IsMSAATexture() == false)
 		return RecordBlitImage({}, texSrc.GetImage(), imgDst);
@@ -106,14 +106,14 @@ bool prosper::ICommandBuffer::RecordBlitTexture(prosper::Texture &texSrc, IImage
 }
 bool prosper::ICommandBuffer::RecordGenerateMipmaps(IImage &img, ImageLayout currentLayout, AccessFlags srcAccessMask, PipelineStageFlags srcStage)
 {
-	auto blitInfo = prosper::util::BlitInfo {};
+	auto blitInfo = util::BlitInfo {};
 	auto numMipmaps = img.GetMipmapCount();
 	auto numLayers = img.GetLayerCount();
-	prosper::util::PipelineBarrierInfo barrierInfo {};
+	util::PipelineBarrierInfo barrierInfo {};
 	barrierInfo.srcStageMask = srcStage;
 	barrierInfo.dstStageMask = PipelineStageFlags::TransferBit;
 
-	prosper::util::ImageBarrierInfo imgBarrierInfo {};
+	util::ImageBarrierInfo imgBarrierInfo {};
 	imgBarrierInfo.subresourceRange.levelCount = 1u;
 	imgBarrierInfo.subresourceRange.baseArrayLayer = 0u;
 	imgBarrierInfo.subresourceRange.layerCount = numLayers;

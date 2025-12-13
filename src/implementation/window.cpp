@@ -9,7 +9,7 @@ import :window;
 
 using namespace prosper;
 
-prosper::Window::Window(IPrContext &context, const WindowSettings &windowCreationInfo) : ContextObject {context}, m_settings {windowCreationInfo} {}
+Window::Window(IPrContext &context, const WindowSettings &windowCreationInfo) : ContextObject {context}, m_settings {windowCreationInfo} {}
 Window::~Window() {}
 
 void Window::OnWindowInitialized()
@@ -17,16 +17,16 @@ void Window::OnWindowInitialized()
 	m_scheduledWindowReloadInfo = nullptr;
 	if(m_initCallback) {
 		auto &context = GetContext();
-		if(context.ShouldLog(::util::LogSeverity::Debug))
-			context.Log("Running window initialization callback...", ::util::LogSeverity::Debug);
+		if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+			context.Log("Running window initialization callback...", pragma::util::LogSeverity::Debug);
 		m_initCallback();
 	}
 }
 
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer() const { return m_commandBuffers.at(GetLastAcquiredSwapchainImageIndex()); }
-const std::shared_ptr<prosper::IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer(uint32_t swapchainIdx) const
+const std::shared_ptr<IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer() const { return m_commandBuffers.at(GetLastAcquiredSwapchainImageIndex()); }
+const std::shared_ptr<IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer(uint32_t swapchainIdx) const
 {
-	static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
+	static std::shared_ptr<IPrimaryCommandBuffer> nptr = nullptr;
 	return (swapchainIdx < m_commandBuffers.size()) ? m_commandBuffers.at(swapchainIdx) : nptr;
 }
 
@@ -76,7 +76,7 @@ void Window::SetMonitor(pragma::platform::Monitor &monitor)
 	auto &changeInfo = ScheduleWindowReload();
 	changeInfo.monitor = monitor;
 }
-void Window::SetPresentMode(prosper::PresentModeKHR presentMode)
+void Window::SetPresentMode(PresentModeKHR presentMode)
 {
 	auto &creationInfo = m_settings;
 	if(presentMode == creationInfo.presentMode)
@@ -227,30 +227,30 @@ void Window::ReloadStagingRenderTarget()
 	m_stagingRenderTarget = nullptr;
 
 	auto resolution = (*this)->GetSize();
-	resolution.x = umath::max(resolution.x, 1);
-	resolution.y = umath::max(resolution.y, 1);
-	prosper::util::ImageCreateInfo createInfo {};
-	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::ColorAttachmentBit | prosper::ImageUsageFlags::SampledBit;
+	resolution.x = pragma::math::max(resolution.x, 1);
+	resolution.y = pragma::math::max(resolution.y, 1);
+	util::ImageCreateInfo createInfo {};
+	createInfo.usage = ImageUsageFlags::TransferDstBit | ImageUsageFlags::TransferSrcBit | ImageUsageFlags::ColorAttachmentBit | ImageUsageFlags::SampledBit;
 	auto colorFormat = createInfo.format = STAGING_RENDER_TARGET_COLOR_FORMAT;
 	createInfo.width = resolution.x;
 	createInfo.height = resolution.y;
-	createInfo.postCreateLayout = prosper::ImageLayout::ColorAttachmentOptimal;
+	createInfo.postCreateLayout = ImageLayout::ColorAttachmentOptimal;
 	auto stagingImg = context.CreateImage(createInfo);
 
-	createInfo.usage = prosper::ImageUsageFlags::TransferDstBit | prosper::ImageUsageFlags::TransferSrcBit | prosper::ImageUsageFlags::DepthStencilAttachmentBit | prosper::ImageUsageFlags::SampledBit;
+	createInfo.usage = ImageUsageFlags::TransferDstBit | ImageUsageFlags::TransferSrcBit | ImageUsageFlags::DepthStencilAttachmentBit | ImageUsageFlags::SampledBit;
 	auto depthStencilFormat = createInfo.format = STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT;
-	createInfo.postCreateLayout = prosper::ImageLayout::DepthStencilAttachmentOptimal;
+	createInfo.postCreateLayout = ImageLayout::DepthStencilAttachmentOptimal;
 	auto depthStencilImg = context.CreateImage(createInfo);
 
-	prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
+	util::ImageViewCreateInfo imgViewCreateInfo {};
 	auto stagingTex = context.CreateTexture({}, *stagingImg, imgViewCreateInfo);
-	imgViewCreateInfo.aspectFlags = prosper::ImageAspectFlags::StencilBit;
+	imgViewCreateInfo.aspectFlags = ImageAspectFlags::StencilBit;
 	auto depthStencilTex = context.CreateTexture({}, *depthStencilImg, imgViewCreateInfo);
 
-	auto rp = context.CreateRenderPass(prosper::util::RenderPassCreateInfo {
-	  {prosper::util::RenderPassCreateInfo::AttachmentInfo {colorFormat, prosper::ImageLayout::ColorAttachmentOptimal, prosper::AttachmentLoadOp::DontCare, prosper::AttachmentStoreOp::Store, prosper::SampleCountFlags::e1Bit, prosper::ImageLayout::ColorAttachmentOptimal},
-	    prosper::util::RenderPassCreateInfo::AttachmentInfo {depthStencilFormat, prosper::ImageLayout::DepthStencilAttachmentOptimal, prosper::AttachmentLoadOp::DontCare, prosper::AttachmentStoreOp::DontCare, prosper::SampleCountFlags::e1Bit,
-	      prosper::ImageLayout::DepthStencilAttachmentOptimal, prosper::AttachmentLoadOp::Clear, prosper::AttachmentStoreOp::Store}}});
+	auto rp = context.CreateRenderPass(util::RenderPassCreateInfo {
+	  {util::RenderPassCreateInfo::AttachmentInfo {colorFormat, ImageLayout::ColorAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::Store, SampleCountFlags::e1Bit, ImageLayout::ColorAttachmentOptimal},
+	    util::RenderPassCreateInfo::AttachmentInfo {depthStencilFormat, ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::DontCare, SampleCountFlags::e1Bit,
+	      ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::Clear, AttachmentStoreOp::Store}}});
 
 	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex, depthStencilTex}, rp); //,finalDepthTex},rp);
 	m_stagingRenderTarget->SetDebugName("engine_staging_rt");
@@ -261,19 +261,19 @@ void Window::ReloadStagingRenderTarget()
 pragma::platform::Window *Window::operator->() { return m_glfwWindow.get(); }
 pragma::platform::Window &Window::operator*() { return *operator->(); }
 
-prosper::IRenderPass &Window::GetStagingRenderPass() const
+IRenderPass &Window::GetStagingRenderPass() const
 {
 	auto rt = GetStagingRenderTarget();
 	return rt->GetRenderPass();
 }
 
-std::shared_ptr<prosper::RenderTarget> &Window::GetStagingRenderTarget()
+std::shared_ptr<RenderTarget> &Window::GetStagingRenderTarget()
 {
 	if(!m_stagingRenderTarget)
 		const_cast<Window *>(this)->ReloadStagingRenderTarget();
 	return m_stagingRenderTarget;
 }
 
-prosper::IImage *Window::GetSwapchainImage(uint32_t idx) { return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr; }
+IImage *Window::GetSwapchainImage(uint32_t idx) { return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr; }
 
-prosper::IFramebuffer *Window::GetSwapchainFramebuffer(uint32_t idx) { return (idx < m_swapchainFramebuffers.size()) ? m_swapchainFramebuffers.at(idx).get() : nullptr; }
+IFramebuffer *Window::GetSwapchainFramebuffer(uint32_t idx) { return (idx < m_swapchainFramebuffers.size()) ? m_swapchainFramebuffers.at(idx).get() : nullptr; }

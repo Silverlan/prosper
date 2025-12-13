@@ -34,7 +34,7 @@ uint32_t IUniformResizableBuffer::GetAlignment() const
 uint64_t IUniformResizableBuffer::GetStride() const
 {
 	std::unique_lock lock {m_bufferMutex}; // TODO: Why do we need this lock?
-	return prosper::util::get_aligned_size(m_bufferInstanceSize, m_alignment);
+	return util::get_aligned_size(m_bufferInstanceSize, m_alignment);
 }
 
 const std::vector<IBuffer *> &IUniformResizableBuffer::GetAllocatedSubBuffers() const { return m_allocatedSubBuffers; }
@@ -50,7 +50,7 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 	std::unique_lock lock {m_bufferMutex};
 	auto offset = 0ull;
 	auto bUseExistingSlot = false;
-	auto baseAlignedInstanceSize = prosper::util::get_aligned_size(m_bufferInstanceSize, m_alignment);
+	auto baseAlignedInstanceSize = util::get_aligned_size(m_bufferInstanceSize, m_alignment);
 	auto alignedInstanceSize = baseAlignedInstanceSize; // *numInstances;
 	if(m_freeOffsets.empty() == false) {
 		offset = m_freeOffsets.front();

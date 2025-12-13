@@ -21,8 +21,8 @@ export namespace prosper {
 
 		virtual void Bake(IRenderPass &rp) {}
 		uint32_t GetAttachmentCount() const;
-		prosper::IImageView *GetAttachment(uint32_t i);
-		const prosper::IImageView *GetAttachment(uint32_t i) const;
+		IImageView *GetAttachment(uint32_t i);
+		const IImageView *GetAttachment(uint32_t i) const;
 		void GetSize(uint32_t &width, uint32_t &height, uint32_t &depth) const;
 		uint32_t GetWidth() const;
 		uint32_t GetHeight() const;

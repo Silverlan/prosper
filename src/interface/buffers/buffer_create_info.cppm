@@ -30,7 +30,7 @@ export {
 			BufferUsageFlags usageFlags = BufferUsageFlags::UniformBufferBit;
 			MemoryFeatureFlags memoryFeatures = MemoryFeatureFlags::GPUBulk; // Only used if AllocateMemory-flag is set
 		};
-		using namespace umath::scoped_enum::bitwise;
+		using namespace pragma::math::scoped_enum::bitwise;
 	};
 	REGISTER_ENUM_FLAGS(prosper::util::BufferCreateInfo::Flags)
 }

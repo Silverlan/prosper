@@ -9,7 +9,7 @@ import :shader_system.descriptor_array_manager;
 
 using namespace prosper;
 
-DescriptorArrayManager::DescriptorArrayManager(const std::shared_ptr<prosper::IDescriptorSetGroup> &matArrayDsg, ArrayIndex maxArrayLayers, uint32_t bindingIndex) : m_dsgArray {matArrayDsg}, m_maxArrayLayers {maxArrayLayers}, m_bindingIndex {bindingIndex} {}
+DescriptorArrayManager::DescriptorArrayManager(const std::shared_ptr<IDescriptorSetGroup> &matArrayDsg, ArrayIndex maxArrayLayers, uint32_t bindingIndex) : m_dsgArray {matArrayDsg}, m_maxArrayLayers {maxArrayLayers}, m_bindingIndex {bindingIndex} {}
 
 void DescriptorArrayManager::PushFreeIndex(ArrayIndex index) { m_freeIndices.push(index); }
 
@@ -25,7 +25,7 @@ std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::PopFre
 	return m_nextIndex++;
 }
 
-std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::AddItem(const std::function<bool(prosper::IDescriptorSet &, ArrayIndex, uint32_t)> &fAddBinding)
+std::optional<DescriptorArrayManager::ArrayIndex> DescriptorArrayManager::AddItem(const std::function<bool(IDescriptorSet &, ArrayIndex, uint32_t)> &fAddBinding)
 {
 	auto index = PopFreeIndex();
 	if(index.has_value() == false)

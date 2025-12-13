@@ -18,23 +18,23 @@ export {
 	namespace prosper {
 		class ShaderGraphics;
 		class IBuffer;
-		class DLLPROSPER IRenderBuffer : public prosper::ContextObject {
+		class DLLPROSPER IRenderBuffer : public ContextObject {
 		  public:
 			virtual ~IRenderBuffer() override;
-			const std::vector<std::shared_ptr<prosper::IBuffer>> &GetBuffers() const;
-			const std::vector<prosper::DeviceSize> &GetOffsets() const { return m_offsets; }
-			const prosper::GraphicsPipelineCreateInfo &GetPipelineCreateInfo() const { return m_pipelineCreateInfo; }
+			const std::vector<std::shared_ptr<IBuffer>> &GetBuffers() const;
+			const std::vector<DeviceSize> &GetOffsets() const { return m_offsets; }
+			const GraphicsPipelineCreateInfo &GetPipelineCreateInfo() const { return m_pipelineCreateInfo; }
 			const IndexBufferInfo *GetIndexBufferInfo() const;
 			IndexBufferInfo *GetIndexBufferInfo();
 		  protected:
-			IRenderBuffer(prosper::IPrContext &context, const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets, const std::optional<IndexBufferInfo> &indexBufferInfo = {});
+			IRenderBuffer(IPrContext &context, const GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<IBuffer *> &buffers, const std::vector<DeviceSize> &offsets, const std::optional<IndexBufferInfo> &indexBufferInfo = {});
 			virtual void Reload() = 0;
 
-			std::vector<std::shared_ptr<prosper::IBuffer>> m_buffers;
-			std::vector<prosper::DeviceSize> m_offsets;
+			std::vector<std::shared_ptr<IBuffer>> m_buffers;
+			std::vector<DeviceSize> m_offsets;
 			std::optional<IndexBufferInfo> m_indexBufferInfo {};
 			std::vector<CallbackHandle> m_reallocationCallbacks {};
-			const prosper::GraphicsPipelineCreateInfo &m_pipelineCreateInfo;
+			const GraphicsPipelineCreateInfo &m_pipelineCreateInfo;
 		};
 	};
 #pragma warning(pop)

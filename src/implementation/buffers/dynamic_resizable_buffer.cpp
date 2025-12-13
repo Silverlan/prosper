@@ -87,7 +87,7 @@ static void test_dynamic_resizable_buffer()
 }
 */
 
-IDynamicResizableBuffer::IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const prosper::util::BufferCreateInfo &createInfo, uint64_t maxTotalSize) : IResizableBuffer {buffer, maxTotalSize}
+IDynamicResizableBuffer::IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo, uint64_t maxTotalSize) : IResizableBuffer {buffer, maxTotalSize}
 {
 	m_freeRanges.push_back({0ull, createInfo.size});
 	m_alignment = context.CalcBufferAlignment(createInfo.usageFlags);
@@ -141,7 +141,7 @@ std::list<IDynamicResizableBuffer::Range>::iterator IDynamicResizableBuffer::Fin
 	auto minSize = std::numeric_limits<DeviceSize>::max();
 	for(auto it = m_freeRanges.begin(); it != m_freeRanges.end(); ++it) {
 		auto &range = *it;
-		auto reqSize = size + prosper::util::get_offset_alignment_padding(range.startOffset, alignment);
+		auto reqSize = size + util::get_offset_alignment_padding(range.startOffset, alignment);
 		if(reqSize > range.size || range.size > minSize)
 			continue;
 		minSize = range.size;
@@ -230,7 +230,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 		auto rangeStartOffset = it->startOffset;
 		auto rangeSize = it->size;
 		m_freeRanges.erase(it);
-		offset += prosper::util::get_offset_alignment_padding(offset, alignment);
+		offset += util::get_offset_alignment_padding(offset, alignment);
 
 		if(offset > rangeStartOffset)
 			MarkMemoryRangeAsFree(rangeStartOffset, offset - rangeStartOffset); // Anterior range
@@ -240,7 +240,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 		bUseExistingSlot = true;
 	}
 	else {
-		auto padding = prosper::util::get_offset_alignment_padding(m_baseSize, alignment);
+		auto padding = util::get_offset_alignment_padding(m_baseSize, alignment);
 		if(m_baseSize + requestSize + padding > m_maxTotalSize)
 			return nullptr; // Total capacity has been reached
 		if(reallocateIfNoSpaceAvailable == false)
@@ -248,7 +248,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 		GetContext().WaitIdle();
 		// Re-allocate buffer; Increase previous size by additional factor
 		auto oldSize = m_baseSize;
-		m_baseSize += umath::max(m_createInfo.size, requestSize + padding);
+		m_baseSize += pragma::math::max(m_createInfo.size, requestSize + padding);
 		auto createInfo = m_createInfo;
 		createInfo.size = m_baseSize;
 		auto newBuffer = GetContext().CreateBuffer(createInfo);

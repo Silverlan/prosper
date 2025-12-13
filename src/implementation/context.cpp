@@ -19,7 +19,7 @@ import pragma.platform;
 /* Uncomment the #define below to enable off-screen rendering */
 // #define ENABLE_OFFSCREEN_RENDERING
 
-prosper::ShaderPipeline::ShaderPipeline(prosper::Shader &shader, uint32_t pipeline) : shader {shader.GetHandle()}, pipeline {pipeline} {}
+prosper::ShaderPipeline::ShaderPipeline(Shader &shader, uint32_t pipeline) : shader {shader.GetHandle()}, pipeline {pipeline} {}
 
 prosper::IPrContext::IPrContext(const std::string &appName, bool bEnableValidation)
     : m_appName(appName), m_commonBufferCache {*this}, m_mainThreadId {std::this_thread::get_id()}
@@ -28,13 +28,13 @@ prosper::IPrContext::IPrContext(const std::string &appName, bool bEnableValidati
       m_apiDumpRecorder {std::make_unique<debug::ApiDumpRecorder>()}
 #endif
 {
-	umath::set_flag(m_stateFlags, StateFlags::ValidationEnabled, bEnableValidation);
+	pragma::math::set_flag(m_stateFlags, StateFlags::ValidationEnabled, bEnableValidation);
 	m_initialWindowSettings.title = appName;
 }
 
 prosper::IPrContext::~IPrContext()
 {
-	if(umath::is_flag_set(m_stateFlags, StateFlags::Closed) == false)
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::Closed) == false)
 		throw std::logic_error {"Prosper context has to be closed before being destroyed!"};
 }
 
@@ -44,7 +44,7 @@ std::optional<prosper::util::PhysicalDeviceImageFormatProperties> prosper::IPrCo
 {
 	ImageFormatPropertiesQuery query {};
 	query.createFlags = ImageCreateFlags::None;
-	if(umath::is_flag_set(imgCreateInfo.flags, util::ImageCreateInfo::Flags::Cubemap))
+	if(pragma::math::is_flag_set(imgCreateInfo.flags, util::ImageCreateInfo::Flags::Cubemap))
 		query.createFlags |= ImageCreateFlags::CubeCompatibleBit;
 	query.format = imgCreateInfo.format;
 	query.imageType = imgCreateInfo.type;
@@ -53,8 +53,8 @@ std::optional<prosper::util::PhysicalDeviceImageFormatProperties> prosper::IPrCo
 	return GetPhysicalDeviceImageFormatProperties(query);
 }
 
-void prosper::IPrContext::SetValidationEnabled(bool b) { umath::set_flag(m_stateFlags, StateFlags::ValidationEnabled, b); }
-bool prosper::IPrContext::IsValidationEnabled() const { return umath::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled); }
+void prosper::IPrContext::SetValidationEnabled(bool b) { pragma::math::set_flag(m_stateFlags, StateFlags::ValidationEnabled, b); }
+bool prosper::IPrContext::IsValidationEnabled() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled); }
 
 const std::string &prosper::IPrContext::GetAppName() const { return m_appName; }
 uint32_t prosper::IPrContext::GetPrimaryWindowSwapchainImageCount() const { return GetWindow().GetSwapchainImageCount(); }
@@ -73,7 +73,7 @@ void prosper::IPrContext::InitWindow()
 	auto oldSize = (m_window != nullptr) ? m_window->GetGlfwWindow().GetSize() : Vector2i();
 	auto onWindowReloaded = [this]() {
 		OnWindowInitialized();
-		if(m_window && umath::is_flag_set(m_stateFlags, StateFlags::Initialized) == true) {
+		if(m_window && pragma::math::is_flag_set(m_stateFlags, StateFlags::Initialized) == true) {
 			auto &initWindowSettings = GetInitialWindowSettings();
 			auto newSize = m_window->GetGlfwWindow().GetSize();
 			if(newSize.x != initWindowSettings.width || newSize.y != initWindowSettings.height) {
@@ -83,18 +83,18 @@ void prosper::IPrContext::InitWindow()
 			}
 		}
 	};
-	if(ShouldLog(::util::LogSeverity::Debug))
-		m_logHandler("Creating window...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		m_logHandler("Creating window...", pragma::util::LogSeverity::Debug);
 	auto newWindow = CreateWindow(m_initialWindowSettings);
 	assert(newWindow != nullptr);
-	auto it = std::find_if(m_windows.begin(), m_windows.end(), [&newWindow](const std::weak_ptr<prosper::Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == newWindow; });
+	auto it = std::find_if(m_windows.begin(), m_windows.end(), [&newWindow](const std::weak_ptr<Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == newWindow; });
 	if(it != m_windows.end())
 		m_windows.erase(it); // We'll handle the insertion of the primary window ourselves
 	newWindow->SetInitCallback(onWindowReloaded);
 
 	it = m_windows.end();
 	if(m_window)
-		it = std::find_if(m_windows.begin(), m_windows.end(), [this](const std::weak_ptr<prosper::Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == m_window; });
+		it = std::find_if(m_windows.begin(), m_windows.end(), [this](const std::weak_ptr<Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == m_window; });
 	if(!m_window)
 		m_window = newWindow; // We'll assume that the first window created is the primary window
 	if(it != m_windows.end())
@@ -103,10 +103,10 @@ void prosper::IPrContext::InitWindow()
 		m_windows.push_back(newWindow);
 	onWindowReloaded();
 }
-bool prosper::IPrContext::IsClosed() const { return umath::is_flag_set(m_stateFlags, StateFlags::Closed); }
+bool prosper::IPrContext::IsClosed() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::Closed); }
 void prosper::IPrContext::Close()
 {
-	if(umath::is_flag_set(m_stateFlags, StateFlags::Closed))
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::Closed))
 		return;
 	WaitIdle();
 	OnClose();
@@ -157,9 +157,9 @@ void prosper::IPrContext::DrawFrameCore()
 }
 void prosper::IPrContext::CloseWindowsScheduledForClosing()
 {
-	if(!umath::is_flag_set(m_stateFlags, StateFlags::WindowScheduledForClosing))
+	if(!pragma::math::is_flag_set(m_stateFlags, StateFlags::WindowScheduledForClosing))
 		return;
-	umath::set_flag(m_stateFlags, StateFlags::WindowScheduledForClosing, false);
+	pragma::math::set_flag(m_stateFlags, StateFlags::WindowScheduledForClosing, false);
 	for(auto it = m_windows.begin(); it != m_windows.end();) {
 		auto &window = *it;
 		if(window->ScheduledForClose() == false) {
@@ -170,21 +170,21 @@ void prosper::IPrContext::CloseWindowsScheduledForClosing()
 		it = m_windows.erase(it);
 	}
 }
-void prosper::IPrContext::SetWindowScheduledForClosing() { umath::set_flag(m_stateFlags, StateFlags::WindowScheduledForClosing); }
+void prosper::IPrContext::SetWindowScheduledForClosing() { pragma::math::set_flag(m_stateFlags, StateFlags::WindowScheduledForClosing); }
 
-void prosper::IPrContext::AllocateDeviceImageBuffer(prosper::IImage &img, const void *data)
+void prosper::IPrContext::AllocateDeviceImageBuffer(IImage &img, const void *data)
 {
 	auto req = GetMemoryRequirements(img);
 	auto buf = AllocateDeviceImageBuffer(req.size, req.alignment, data);
 	img.SetMemoryBuffer(*buf);
 }
-std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer(prosper::DeviceSize size, uint32_t alignment, const void *data)
+std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer(DeviceSize size, uint32_t alignment, const void *data)
 {
 	if(!m_useReservedDeviceLocalImageBuffer)
 		return nullptr;
 	static uint64_t totalAllocated = 0;
 	totalAllocated += size;
-	auto fAllocateImgBuf = [this, size, alignment, data](prosper::IDynamicResizableBuffer &deviceImgBuf) -> std::shared_ptr<IBuffer> { return deviceImgBuf.AllocateBuffer(size, alignment, data); };
+	auto fAllocateImgBuf = [this, size, alignment, data](IDynamicResizableBuffer &deviceImgBuf) -> std::shared_ptr<IBuffer> { return deviceImgBuf.AllocateBuffer(size, alignment, data); };
 	for(auto &deviceImgBuf : m_deviceImgBuffers) {
 		auto buf = fAllocateImgBuf(*deviceImgBuf);
 		if(buf)
@@ -205,9 +205,9 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer
 		std::cout << "Allocated: " << numAllocated << " / " << imgBuf->GetSize() << std::endl;
 	}
 
-	std::cout << "Image of buffer size " << ::util::get_pretty_bytes(size) << " (alignment " << alignment << ") was requested, but does not fit into previous buffer(s) (" << m_deviceImgBuffers.size() << ")! Allocating new buffer of size " << ::util::get_pretty_bytes(bufferSize) << "..."
+	std::cout << "Image of buffer size " << pragma::util::get_pretty_bytes(size) << " (alignment " << alignment << ") was requested, but does not fit into previous buffer(s) (" << m_deviceImgBuffers.size() << ")! Allocating new buffer of size " << pragma::util::get_pretty_bytes(bufferSize) << "..."
 	          << std::endl;
-	std::cout << "Total allocated: " << ::util::get_pretty_bytes(totalAllocated) << std::endl;
+	std::cout << "Total allocated: " << pragma::util::get_pretty_bytes(totalAllocated) << std::endl;
 	util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 	createInfo.size = bufferSize;
@@ -222,7 +222,7 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer
 	return buf;
 }
 
-std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateTemporaryBuffer(prosper::DeviceSize size, uint32_t alignment, const void *data)
+std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateTemporaryBuffer(DeviceSize size, uint32_t alignment, const void *data)
 {
 	std::unique_lock lock {m_tmpBufferMutex};
 	if(m_tmpBuffer == nullptr)
@@ -239,7 +239,7 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateTemporaryBuffer(p
 	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit | BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
 	return CreateBuffer(createInfo, data);
 }
-void prosper::IPrContext::AllocateTemporaryBuffer(prosper::IImage &img, const void *data)
+void prosper::IPrContext::AllocateTemporaryBuffer(IImage &img, const void *data)
 {
 	auto req = GetMemoryRequirements(img);
 	auto buf = AllocateTemporaryBuffer(req.size, req.alignment, data);
@@ -248,7 +248,7 @@ void prosper::IPrContext::AllocateTemporaryBuffer(prosper::IImage &img, const vo
 
 void prosper::IPrContext::ChangeResolution(uint32_t width, uint32_t height)
 {
-	if(umath::is_flag_set(m_stateFlags, StateFlags::Initialized) == false) {
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::Initialized) == false) {
 		m_initialWindowSettings.width = width;
 		m_initialWindowSettings.height = height;
 		return;
@@ -266,39 +266,39 @@ void prosper::IPrContext::ChangeResolution(uint32_t width, uint32_t height)
 void prosper::IPrContext::OnResolutionChanged(uint32_t width, uint32_t height)
 {
 	if(m_callbacks.onResolutionChanged) {
-		if(ShouldLog(::util::LogSeverity::Debug))
-			Log("Running 'onResolutionChanged' callback...", ::util::LogSeverity::Debug);
+		if(ShouldLog(pragma::util::LogSeverity::Debug))
+			Log("Running 'onResolutionChanged' callback...", pragma::util::LogSeverity::Debug);
 		m_callbacks.onResolutionChanged(width, height);
 	}
 }
 void prosper::IPrContext::OnWindowInitialized()
 {
 	if(m_callbacks.onWindowInitialized) {
-		if(ShouldLog(::util::LogSeverity::Debug))
-			Log("Running 'onWindowInitialized' callback...", ::util::LogSeverity::Debug);
+		if(ShouldLog(pragma::util::LogSeverity::Debug))
+			Log("Running 'onWindowInitialized' callback...", pragma::util::LogSeverity::Debug);
 		m_callbacks.onWindowInitialized();
 	}
 }
 void prosper::IPrContext::OnSwapchainInitialized() {}
 
-void prosper::IPrContext::SetPresentMode(prosper::PresentModeKHR presentMode)
+void prosper::IPrContext::SetPresentMode(PresentModeKHR presentMode)
 {
 	if(IsPresentationModeSupported(presentMode) == false) {
 		switch(presentMode) {
-		case prosper::PresentModeKHR::Immediate:
+		case PresentModeKHR::Immediate:
 			throw std::runtime_error("Immediate present mode not supported!");
 		default:
-			return SetPresentMode(prosper::PresentModeKHR::Fifo);
+			return SetPresentMode(PresentModeKHR::Fifo);
 		}
 	}
 	m_presentMode = presentMode;
 }
 prosper::PresentModeKHR prosper::IPrContext::GetPresentMode() const { return m_presentMode; }
-void prosper::IPrContext::ChangePresentMode(prosper::PresentModeKHR presentMode)
+void prosper::IPrContext::ChangePresentMode(PresentModeKHR presentMode)
 {
 	auto oldPresentMode = GetPresentMode();
 	SetPresentMode(presentMode);
-	if(oldPresentMode == GetPresentMode() || umath::is_flag_set(m_stateFlags, StateFlags::Initialized) == false)
+	if(oldPresentMode == GetPresentMode() || pragma::math::is_flag_set(m_stateFlags, StateFlags::Initialized) == false)
 		return;
 	WaitIdle();
 	ReloadSwapchain();
@@ -359,7 +359,7 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetS
 {
 	if(std::this_thread::get_id() != m_mainThreadId) {
 		std::cout << "WARNING: Attempted to create primary command buffer on non-main thread, this is not allowed!" << std::endl;
-		static std::shared_ptr<prosper::IPrimaryCommandBuffer> nptr = nullptr;
+		static std::shared_ptr<IPrimaryCommandBuffer> nptr = nullptr;
 		return nptr;
 	}
 	if(m_setupCmdBuffer)
@@ -367,7 +367,7 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetS
 	if(m_setupCmdBuffer != nullptr)
 		return m_setupCmdBuffer;
 	uint32_t queueFamilyIndex;
-	m_setupCmdBuffer = AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType::Universal, queueFamilyIndex);
+	m_setupCmdBuffer = AllocatePrimaryLevelCommandBuffer(QueueFamilyType::Universal, queueFamilyIndex);
 	if(m_setupCmdBuffer == nullptr)
 		throw std::runtime_error {"Unable to allocate setup command buffer!"};
 	if(m_setupCmdBuffer->StartRecording(true, false) == false)
@@ -375,7 +375,7 @@ const std::shared_ptr<prosper::IPrimaryCommandBuffer> &prosper::IPrContext::GetS
 	return m_setupCmdBuffer;
 }
 
-void prosper::IPrContext::FlushCommandBuffer(prosper::ICommandBuffer &cmd) { DoFlushCommandBuffer(cmd); }
+void prosper::IPrContext::FlushCommandBuffer(ICommandBuffer &cmd) { DoFlushCommandBuffer(cmd); }
 
 void prosper::IPrContext::FlushSetupCommandBuffer()
 {
@@ -401,7 +401,7 @@ void prosper::IPrContext::ClearKeepAliveResources(uint32_t n)
 	if(idx >= m_keepAliveResources.size())
 		return;
 	auto &resources = m_keepAliveResources.at(idx);
-	n = umath::min(static_cast<size_t>(n), resources.size());
+	n = pragma::math::min(static_cast<size_t>(n), resources.size());
 	while(n-- > 0u)
 		resources.erase(resources.begin());
 }
@@ -418,22 +418,22 @@ void prosper::IPrContext::ClearKeepAliveResources()
 		m_aliveResourceMutex.unlock();
 		return;
 	}
-	if(umath::is_flag_set(m_stateFlags, StateFlags::ClearingKeepAliveResources)) {
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::ClearingKeepAliveResources)) {
 		m_aliveResourceMutex.unlock();
 		throw std::logic_error("ClearKeepAliveResources mustn't be called by a resource destructor!");
 	}
 	auto resources = std::move(m_keepAliveResources.at(idx));
 	m_keepAliveResources.at(idx).clear();
 	m_aliveResourceMutex.unlock();
-	umath::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources);
+	pragma::math::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources);
 	resources.clear();
-	umath::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources, false);
+	pragma::math::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources, false);
 
 	OnSwapchainResourcesCleared(idx);
 }
 void prosper::IPrContext::SetMultiThreadedRenderingEnabled(bool enabled)
 {
-	umath::set_flag(m_stateFlags, StateFlags::EnableMultiThreadedRendering);
+	pragma::math::set_flag(m_stateFlags, StateFlags::EnableMultiThreadedRendering);
 	UpdateMultiThreadedRendering(enabled);
 }
 void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
@@ -441,12 +441,12 @@ void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::
 	if(!resource)
 		return;
 	std::scoped_lock lock {m_aliveResourceMutex};
-	if(umath::is_flag_set(m_stateFlags, StateFlags::Idle) || umath::is_flag_set(m_stateFlags, StateFlags::ClearingKeepAliveResources))
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::Idle) || pragma::math::is_flag_set(m_stateFlags, StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
 	DoKeepResourceAliveUntilPresentationComplete(resource);
 }
 
-void prosper::IPrContext::SetDeviceBusy(bool busy) { umath::set_flag(m_stateFlags, StateFlags::Idle, !busy); }
+void prosper::IPrContext::SetDeviceBusy(bool busy) { pragma::math::set_flag(m_stateFlags, StateFlags::Idle, !busy); }
 
 prosper::PipelineID prosper::IPrContext::ReserveShaderPipeline()
 {
@@ -456,7 +456,7 @@ prosper::PipelineID prosper::IPrContext::ReserveShaderPipeline()
 	m_shaderPipelines.push_back({});
 	return m_shaderPipelines.size() - 1;
 }
-void prosper::IPrContext::AddShaderPipeline(prosper::Shader &shader, uint32_t shaderPipelineIdx, PipelineID pipelineId)
+void prosper::IPrContext::AddShaderPipeline(Shader &shader, uint32_t shaderPipelineIdx, PipelineID pipelineId)
 {
 	if(m_shaderPipelines.size() == m_shaderPipelines.capacity())
 		m_shaderPipelines.reserve(m_shaderPipelines.size() * 1.5 + 50);
@@ -475,12 +475,12 @@ prosper::Shader *prosper::IPrContext::GetShaderPipeline(PipelineID id, uint32_t 
 void prosper::IPrContext::WaitIdle(bool forceWait)
 {
 	std::unique_lock lock {m_waitIdleMutex};
-	if(!forceWait && umath::is_flag_set(m_stateFlags, StateFlags::Idle))
+	if(!forceWait && pragma::math::is_flag_set(m_stateFlags, StateFlags::Idle))
 		return;
 	if(m_setupCmdBuffer)
 		FlushSetupCommandBuffer();
 	DoWaitIdle();
-	umath::set_flag(m_stateFlags, StateFlags::Idle);
+	pragma::math::set_flag(m_stateFlags, StateFlags::Idle);
 	ClearKeepAliveResources();
 }
 
@@ -495,18 +495,18 @@ bool prosper::IPrContext::ValidationCallback(DebugMessageSeverityFlags severityF
 	return true;
 }
 
-void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, prosper::BufferUsageFlags usageFlags)
+void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, BufferUsageFlags usageFlags)
 {
 	alignment = CalcBufferAlignment(usageFlags);
-	auto alignedInstanceSize = prosper::util::get_aligned_size(instanceSize, alignment);
-	auto alignedBufferBaseSize = static_cast<uint64_t>(umath::floor(bufferBaseSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
-	auto alignedMaxTotalSize = static_cast<uint64_t>(umath::floor(maxTotalSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
+	auto alignedInstanceSize = util::get_aligned_size(instanceSize, alignment);
+	auto alignedBufferBaseSize = static_cast<uint64_t>(pragma::math::floor(bufferBaseSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
+	auto alignedMaxTotalSize = static_cast<uint64_t>(pragma::math::floor(maxTotalSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
 
 	bufferBaseSize = alignedBufferBaseSize;
 	maxTotalSize = alignedMaxTotalSize;
 }
 
-std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(prosper::util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage, const void *data,
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage, const void *data,
   std::optional<DeviceSize> customAlignment)
 {
 	createInfo.size = ClampDeviceMemorySize(createInfo.size, clampSizeToAvailableGPUMemoryPercentage, createInfo.memoryFeatures);
@@ -552,32 +552,32 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 	m_initialWindowSettings.height = createInfo.height;
 	if(createInfo.windowless)
 		m_initialWindowSettings.flags |= pragma::platform::WindowCreationInfo::Flags::Windowless;
-	if(umath::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled))
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled))
 		m_validationData = std::unique_ptr<ValidationData> {new ValidationData {}};
 	ChangePresentMode(createInfo.presentMode);
 	InitAPI(createInfo);
-	if(ShouldLog(::util::LogSeverity::Debug))
-		Log("Initializing buffers...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		Log("Initializing buffers...", pragma::util::LogSeverity::Debug);
 	InitBuffers();
-	if(ShouldLog(::util::LogSeverity::Debug))
-		Log("Initializing graphics pipelines...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		Log("Initializing graphics pipelines...", pragma::util::LogSeverity::Debug);
 	InitGfxPipelines();
-	if(ShouldLog(::util::LogSeverity::Debug))
-		Log("Initializing dummy resources...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		Log("Initializing dummy resources...", pragma::util::LogSeverity::Debug);
 	InitDummyTextures();
 	InitDummyBuffer();
-	umath::set_flag(m_stateFlags, StateFlags::Initialized);
+	pragma::math::set_flag(m_stateFlags, StateFlags::Initialized);
 
-	if(ShouldLog(::util::LogSeverity::Debug))
-		Log("Registering core shaders...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		Log("Registering core shaders...", pragma::util::LogSeverity::Debug);
 	auto &shaderManager = GetShaderManager();
-	shaderManager.RegisterShader("copy_image", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderCopyImage(context, identifier); });
-	shaderManager.RegisterShader("flip_image", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderFlipImage(context, identifier); });
-	shaderManager.RegisterShader("blur_horizontal", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderBlurH(context, identifier); });
-	shaderManager.RegisterShader("blur_vertical", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderBlurV(context, identifier); });
+	shaderManager.RegisterShader("copy_image", [](IPrContext &context, const std::string &identifier) { return new ShaderCopyImage(context, identifier); });
+	shaderManager.RegisterShader("flip_image", [](IPrContext &context, const std::string &identifier) { return new ShaderFlipImage(context, identifier); });
+	shaderManager.RegisterShader("blur_horizontal", [](IPrContext &context, const std::string &identifier) { return new ShaderBlurH(context, identifier); });
+	shaderManager.RegisterShader("blur_vertical", [](IPrContext &context, const std::string &identifier) { return new ShaderBlurV(context, identifier); });
 
-	if(ShouldLog(::util::LogSeverity::Debug))
-		Log("Initialization complete!", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		Log("Initialization complete!", pragma::util::LogSeverity::Debug);
 }
 
 void prosper::IPrContext::InitBuffers() {}
@@ -588,15 +588,15 @@ void prosper::IPrContext::DrawFrame()
 		m_callbacks.drawFrame();
 }
 
-bool prosper::IPrContext::IsDiagnosticsModeEnabled() const { return umath::is_flag_set(m_stateFlags, StateFlags::DiagnosticsEnabled); }
-bool prosper::IPrContext::IsWindowless() const { return umath::is_flag_set(m_stateFlags, StateFlags::Windowless); }
+bool prosper::IPrContext::IsDiagnosticsModeEnabled() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::DiagnosticsEnabled); }
+bool prosper::IPrContext::IsWindowless() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::Windowless); }
 
 prosper::ShaderManager &prosper::IPrContext::GetShaderManager() const { return *m_shaderManager; }
 
-std::optional<std::string> prosper::IPrContext::FindShaderFile(prosper::ShaderStage stage, const std::string &fileName, std::string *optOutExt) { return prosper::glsl::find_shader_file(stage, fileName, optOutExt); }
+std::optional<std::string> prosper::IPrContext::FindShaderFile(ShaderStage stage, const std::string &fileName, std::string *optOutExt) { return glsl::find_shader_file(stage, fileName, optOutExt); }
 
 void prosper::IPrContext::RegisterShader(const std::string &identifier, const std::function<Shader *(IPrContext &, const std::string &)> &fFactory) { return m_shaderManager->RegisterShader(identifier, fFactory); }
-::util::WeakHandle<prosper::Shader> prosper::IPrContext::GetShader(const std::string &identifier) const { return m_shaderManager->GetShader(identifier); }
+pragma::util::WeakHandle<prosper::Shader> prosper::IPrContext::GetShader(const std::string &identifier) const { return m_shaderManager->GetShader(identifier); }
 
 const std::shared_ptr<prosper::Texture> &prosper::IPrContext::GetDummyTexture() const { return m_dummyTexture; }
 const std::shared_ptr<prosper::Texture> &prosper::IPrContext::GetDummyCubemapTexture() const { return m_dummyCubemapTexture; }
@@ -605,8 +605,8 @@ const std::shared_ptr<prosper::IDynamicResizableBuffer> &prosper::IPrContext::Ge
 const std::vector<std::shared_ptr<prosper::IDynamicResizableBuffer>> &prosper::IPrContext::GetDeviceImageBuffers() const { return m_deviceImgBuffers; }
 void prosper::IPrContext::InitDummyBuffer()
 {
-	prosper::util::BufferCreateInfo createInfo {};
-	createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+	util::BufferCreateInfo createInfo {};
+	createInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 	createInfo.size = 1ull;
 	createInfo.usageFlags = BufferUsageFlags::UniformBufferBit | BufferUsageFlags::StorageBufferBit | BufferUsageFlags::VertexBufferBit;
 	m_dummyBuffer = CreateBuffer(createInfo);
@@ -615,22 +615,22 @@ void prosper::IPrContext::InitDummyBuffer()
 }
 void prosper::IPrContext::InitDummyTextures()
 {
-	prosper::util::ImageCreateInfo createInfo {};
+	util::ImageCreateInfo createInfo {};
 	createInfo.format = Format::R8G8B8A8_UNorm;
 	createInfo.height = 1u;
 	createInfo.width = 1u;
-	createInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+	createInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 	createInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
 	createInfo.usage = ImageUsageFlags::SampledBit;
 	auto img = CreateImage(createInfo);
 	assert(img);
-	prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
-	prosper::util::SamplerCreateInfo samplerCreateInfo {};
+	util::ImageViewCreateInfo imgViewCreateInfo {};
+	util::SamplerCreateInfo samplerCreateInfo {};
 	m_dummyTexture = CreateTexture({}, *img, imgViewCreateInfo, samplerCreateInfo);
 	assert(m_dummyTexture);
 	m_dummyTexture->SetDebugName("context_dummy_tex");
 
-	createInfo.flags |= prosper::util::ImageCreateInfo::Flags::Cubemap;
+	createInfo.flags |= util::ImageCreateInfo::Flags::Cubemap;
 	createInfo.layers = 6u;
 	auto imgCubemap = CreateImage(createInfo);
 	m_dummyCubemapTexture = CreateTexture({}, *imgCubemap, imgViewCreateInfo, samplerCreateInfo);
@@ -638,25 +638,25 @@ void prosper::IPrContext::InitDummyTextures()
 	m_dummyCubemapTexture->SetDebugName("context_dummy_cubemap_tex");
 }
 
-void prosper::IPrContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd, bool shouldBlock, prosper::IFence *fence) { SubmitCommandBuffer(cmd, cmd.GetQueueFamilyType(), shouldBlock, fence); }
+void prosper::IPrContext::SubmitCommandBuffer(ICommandBuffer &cmd, bool shouldBlock, IFence *fence) { SubmitCommandBuffer(cmd, cmd.GetQueueFamilyType(), shouldBlock, fence); }
 
-bool prosper::IPrContext::IsRecording() const { return umath::is_flag_set(m_stateFlags, StateFlags::IsRecording); }
+bool prosper::IPrContext::IsRecording() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::IsRecording); }
 bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo)
 {
 	if(size == 0u)
 		return true;
-	if((buffer->GetUsageFlags() & prosper::BufferUsageFlags::TransferDstBit) == prosper::BufferUsageFlags::None)
+	if((buffer->GetUsageFlags() & BufferUsageFlags::TransferDstBit) == BufferUsageFlags::None)
 		throw std::logic_error("Buffer has to have been created with VK_BUFFER_USAGE_TRANSFER_DST_BIT flag to allow buffer updates on command buffer!");
-	const auto fRecordSrcBarrier = [this, buffer, updateInfo, offset, size](prosper::ICommandBuffer &cmdBuffer) {
+	const auto fRecordSrcBarrier = [this, buffer, updateInfo, offset, size](ICommandBuffer &cmdBuffer) {
 		if(updateInfo.srcAccessMask.has_value()) {
 			cmdBuffer.RecordBufferBarrier(*buffer, *updateInfo.srcStageMask, PipelineStageFlags::TransferBit, *updateInfo.srcAccessMask, AccessFlags::TransferWriteBit, offset, size);
 		}
 	};
-	const auto fUpdateBuffer = [](prosper::ICommandBuffer &cmdBuffer, prosper::IBuffer &buffer, const uint8_t *data, uint64_t offset, uint64_t size) {
+	const auto fUpdateBuffer = [](ICommandBuffer &cmdBuffer, IBuffer &buffer, const uint8_t *data, uint64_t offset, uint64_t size) {
 		auto dataOffset = 0ull;
 		const auto maxUpdateSize = 65'536u; // Maximum size allowed per vkCmdUpdateBuffer-call (see https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		do {
-			auto updateSize = umath::min(static_cast<uint64_t>(maxUpdateSize), size);
+			auto updateSize = pragma::math::min(static_cast<uint64_t>(maxUpdateSize), size);
 			if(cmdBuffer.RecordUpdateBuffer(buffer, offset, updateSize, data + dataOffset) == false)
 				return false;
 			dataOffset += maxUpdateSize;
@@ -707,7 +707,7 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuff
 	// We'll have to make a copy of the data for later
 	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
 	memcpy(ptrData->data(), data, size);
-	m_scheduledBufferUpdates.push([buffer, fRecordSrcBarrier, fUpdateBuffer, offset, size, ptrData, updateInfo](prosper::ICommandBuffer &cmdBuffer) {
+	m_scheduledBufferUpdates.push([buffer, fRecordSrcBarrier, fUpdateBuffer, offset, size, ptrData, updateInfo](ICommandBuffer &cmdBuffer) {
 		fRecordSrcBarrier(cmdBuffer);
 		fUpdateBuffer(cmdBuffer, *buffer, ptrData->data(), offset, size);
 
@@ -729,7 +729,7 @@ void prosper::IPrContext::InitTemporaryBuffer()
 	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit | BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
 	m_tmpBuffer = CreateDynamicResizableBuffer(createInfo, maxBufferSize);
 	assert(m_tmpBuffer);
-	m_tmpBuffer->SetPermanentlyMapped(true, prosper::IBuffer::MapFlags::ReadBit | prosper::IBuffer::MapFlags::WriteBit);
+	m_tmpBuffer->SetPermanentlyMapped(true, IBuffer::MapFlags::ReadBit | IBuffer::MapFlags::WriteBit);
 }
 
 void prosper::IPrContext::Draw()
@@ -843,7 +843,7 @@ void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
 		if(binding == nullptr)
 			continue;
 		switch(binding->GetType()) {
-		case prosper::DescriptorSetBinding::Type::Texture:
+		case DescriptorSetBinding::Type::Texture:
 			{
 				std::optional<uint32_t> layer {};
 				auto *tex = ds.GetBoundTexture(i, &layer);
@@ -851,7 +851,7 @@ void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
 					UpdateLastUsageTime(tex->GetImage());
 				break;
 			}
-		case prosper::DescriptorSetBinding::Type::ArrayTexture:
+		case DescriptorSetBinding::Type::ArrayTexture:
 			{
 				auto numTextures = ds.GetBoundArrayTextureCount(i);
 				for(auto j = decltype(numTextures) {0u}; j < numTextures; ++j) {
@@ -861,9 +861,9 @@ void prosper::IPrContext::UpdateLastUsageTimes(IDescriptorSet &ds)
 				}
 				break;
 			}
-		case prosper::DescriptorSetBinding::Type::UniformBuffer:
-		case prosper::DescriptorSetBinding::Type::DynamicUniformBuffer:
-		case prosper::DescriptorSetBinding::Type::StorageBuffer:
+		case DescriptorSetBinding::Type::UniformBuffer:
+		case DescriptorSetBinding::Type::DynamicUniformBuffer:
+		case DescriptorSetBinding::Type::StorageBuffer:
 			{
 				auto *buf = ds.GetBoundBuffer(i);
 				if(buf)
@@ -879,9 +879,9 @@ prosper::WindowSettings &prosper::IPrContext::GetInitialWindowSettings() { retur
 
 void prosper::IPrContext::SetCallbacks(const Callbacks &callbacks) { m_callbacks = callbacks; }
 
-void prosper::IPrContext::SetPreDeviceCreationCallback(const std::function<void(const prosper::util::VendorDeviceInfo &)> &callback) { m_preDeviceCreationCallback = callback; }
+void prosper::IPrContext::SetPreDeviceCreationCallback(const std::function<void(const util::VendorDeviceInfo &)> &callback) { m_preDeviceCreationCallback = callback; }
 
-void prosper::IPrContext::SetLogHandler(const ::util::LogHandler &logHandler, const std::function<bool(::util::LogSeverity)> &getLevel)
+void prosper::IPrContext::SetLogHandler(const pragma::util::LogHandler &logHandler, const std::function<bool(pragma::util::LogSeverity)> &getLevel)
 {
 	m_logHandler = logHandler;
 	m_logHandlerLevel = getLevel;
@@ -901,14 +901,14 @@ void prosper::IPrContext::EndProfiling() const
 	if(m_endProfiling)
 		m_endProfiling();
 }
-void prosper::IPrContext::Log(const std::string &msg, ::util::LogSeverity level) const
+void prosper::IPrContext::Log(const std::string &msg, pragma::util::LogSeverity level) const
 {
 	if(!ShouldLog(level))
 		return;
 	m_logHandler(msg, level);
 }
 bool prosper::IPrContext::ShouldLog() const { return m_logHandler != nullptr; }
-bool prosper::IPrContext::ShouldLog(::util::LogSeverity level) const
+bool prosper::IPrContext::ShouldLog(pragma::util::LogSeverity level) const
 {
 	if(!ShouldLog())
 		return false;
@@ -919,10 +919,10 @@ bool prosper::IPrContext::ShouldLog(::util::LogSeverity level) const
 
 void prosper::IPrContext::Run()
 {
-	auto t = ::util::Clock::now();
+	auto t = pragma::util::Clock::now();
 	while(true) // TODO
 	{
-		auto tNow = ::util::Clock::now();
+		auto tNow = pragma::util::Clock::now();
 		auto tDelta = tNow - t;
 		auto bResChanged = false;
 		if(std::chrono::duration_cast<std::chrono::seconds>(tDelta).count() > 5 && bResChanged == false) {
@@ -934,15 +934,15 @@ void prosper::IPrContext::Run()
 	}
 }
 
-bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, prosper::ShaderStage &outErrStage, const std::string &prefixCode, const std::unordered_map<std::string, std::string> &definitions) const
+bool prosper::IPrContext::InitializeShaderSources(Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, ShaderStage &outErrStage, const std::string &prefixCode, const std::unordered_map<std::string, std::string> &definitions) const
 {
 	auto &stages = shader.GetStages();
 	for(auto i = decltype(stages.size()) {0}; i < stages.size(); ++i) {
 		auto &stage = stages.at(i);
 		if(stage == nullptr || stage->path.empty())
 			continue;
-		auto stagePrefixCode = shader.GetGlslPrefixCode(static_cast<prosper::ShaderStage>(i));
-		stage->program = const_cast<IPrContext *>(this)->CompileShader(static_cast<prosper::ShaderStage>(i), stage->path, outInfoLog, outDebugInfoLog, bReload, stagePrefixCode ? (*stagePrefixCode + prefixCode) : prefixCode, definitions);
+		auto stagePrefixCode = shader.GetGlslPrefixCode(static_cast<ShaderStage>(i));
+		stage->program = const_cast<IPrContext *>(this)->CompileShader(static_cast<ShaderStage>(i), stage->path, outInfoLog, outDebugInfoLog, bReload, stagePrefixCode ? (*stagePrefixCode + prefixCode) : prefixCode, definitions);
 		if(stage->program == nullptr) {
 			outErrStage = stage->stage;
 			return false;
@@ -954,19 +954,19 @@ bool prosper::IPrContext::InitializeShaderSources(prosper::Shader &shader, bool 
 void prosper::IPrContext::Crash()
 {
 	auto &shaderManager = GetShaderManager();
-	shaderManager.RegisterShader("crash", [](prosper::IPrContext &context, const std::string &identifier) { return new ShaderCrash(context, identifier); });
+	shaderManager.RegisterShader("crash", [](IPrContext &context, const std::string &identifier) { return new ShaderCrash(context, identifier); });
 	auto *crash = dynamic_cast<ShaderCrash *>(shaderManager.GetShader("crash").get());
 	if(crash) {
-		prosper::util::ImageCreateInfo imgCreateInfo {};
+		util::ImageCreateInfo imgCreateInfo {};
 		imgCreateInfo.format = Format::R32_SFloat;
 		imgCreateInfo.height = 1u;
 		imgCreateInfo.width = 1u;
-		imgCreateInfo.memoryFeatures = prosper::MemoryFeatureFlags::DeviceLocal;
+		imgCreateInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 		imgCreateInfo.postCreateLayout = ImageLayout::ColorAttachmentOptimal;
 		imgCreateInfo.usage = ImageUsageFlags::ColorAttachmentBit;
 		auto img = CreateImage(imgCreateInfo);
-		prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
-		prosper::util::SamplerCreateInfo samplerCreateInfo {};
+		util::ImageViewCreateInfo imgViewCreateInfo {};
+		util::SamplerCreateInfo samplerCreateInfo {};
 		auto tex = CreateTexture({}, *img, imgViewCreateInfo, samplerCreateInfo);
 		auto rt = CreateRenderTarget({tex}, crash->GetRenderPass());
 

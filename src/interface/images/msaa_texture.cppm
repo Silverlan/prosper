@@ -16,7 +16,7 @@ export namespace prosper {
 		const std::shared_ptr<Texture> &GetResolvedTexture() const;
 
 		virtual bool IsMSAATexture() const override;
-		std::shared_ptr<Texture> Resolve(prosper::ICommandBuffer &cmdBuffer, ImageLayout msaaLayoutIn, ImageLayout msaaLayoutOut, ImageLayout resolvedLayoutIn, ImageLayout resolvedLayoutOut);
+		std::shared_ptr<Texture> Resolve(ICommandBuffer &cmdBuffer, ImageLayout msaaLayoutIn, ImageLayout msaaLayoutOut, ImageLayout resolvedLayoutIn, ImageLayout resolvedLayoutOut);
 
 		// Resets resolved flag
 		void Reset();
