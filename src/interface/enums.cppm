@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include <util_enum_flags.hpp>
 
 export module pragma.prosper:enums;
 
@@ -689,49 +690,28 @@ export {
 export namespace prosper {
 	using namespace pragma::math::scoped_enum::bitwise;
 };
-export namespace pragma::math::scoped_enum::bitwise {
-	template<>
-	struct enable_bitwise_operators<prosper::MemoryFeatureFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::QueueFamilyFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::BufferUsageFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::ImageUsageFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::SampleCountFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::ImageCreateFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::ImageAspectFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::AccessFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::PipelineStageFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::ShaderStageFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::StencilFaceFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::QueryResultFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::DescriptorBindingFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::PipelineCreateFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::CullModeFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::ColorComponentFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::DebugMessageSeverityFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::MemoryPropertyFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::QueryPipelineStatisticFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::DebugReportFlags> : std::true_type {};
-	template<>
-	struct enable_bitwise_operators<prosper::FormatFeatureFlags> : std::true_type {};
+export {
+	REGISTER_ENUM_FLAGS(prosper::MemoryFeatureFlags)
+	REGISTER_ENUM_FLAGS(prosper::QueueFamilyFlags)
+	REGISTER_ENUM_FLAGS(prosper::BufferUsageFlags)
+	REGISTER_ENUM_FLAGS(prosper::ImageUsageFlags)
+	REGISTER_ENUM_FLAGS(prosper::SampleCountFlags)
+	REGISTER_ENUM_FLAGS(prosper::ImageCreateFlags)
+	REGISTER_ENUM_FLAGS(prosper::ImageAspectFlags)
+	REGISTER_ENUM_FLAGS(prosper::AccessFlags)
+	REGISTER_ENUM_FLAGS(prosper::PipelineStageFlags)
+	REGISTER_ENUM_FLAGS(prosper::ShaderStageFlags)
+	REGISTER_ENUM_FLAGS(prosper::StencilFaceFlags)
+	REGISTER_ENUM_FLAGS(prosper::QueryResultFlags)
+	REGISTER_ENUM_FLAGS(prosper::DescriptorBindingFlags)
+	REGISTER_ENUM_FLAGS(prosper::PipelineCreateFlags)
+	REGISTER_ENUM_FLAGS(prosper::CullModeFlags)
+	REGISTER_ENUM_FLAGS(prosper::ColorComponentFlags)
+	REGISTER_ENUM_FLAGS(prosper::DebugMessageSeverityFlags)
+	REGISTER_ENUM_FLAGS(prosper::MemoryPropertyFlags)
+	REGISTER_ENUM_FLAGS(prosper::QueryPipelineStatisticFlags)
+	REGISTER_ENUM_FLAGS(prosper::DebugReportFlags)
+	REGISTER_ENUM_FLAGS(prosper::FormatFeatureFlags)
 }
 export namespace prosper::util {
 	inline constexpr PipelineStageFlags PIPELINE_STAGE_SHADER_INPUT_FLAGS = PipelineStageFlags::ComputeShaderBit | PipelineStageFlags::FragmentShaderBit | PipelineStageFlags::VertexShaderBit | PipelineStageFlags::GeometryShaderBit;
