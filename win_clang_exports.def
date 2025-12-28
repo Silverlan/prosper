@@ -1,0 +1,3 @@
+LIBRARY "prosper"
+EXPORTS
+    ?DESCRIPTOR_SET_TEXTURE@shaderBaseImageProcessing@prosper@@3UDescriptorSetInfo@2@A
