@@ -16,6 +16,9 @@ decltype(ShaderBaseImageProcessing::VERTEX_BINDING_UV) ShaderBaseImageProcessing
 decltype(ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV) ShaderBaseImageProcessing::VERTEX_ATTRIBUTE_UV = {VERTEX_BINDING_UV, CommonBufferCache::GetSquareUvFormat()};
 
 decltype(shaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE) shaderBaseImageProcessing::DESCRIPTOR_SET_TEXTURE = {"TEXTURE", {DescriptorSetInfo::Binding {"TEXTURE", DescriptorType::CombinedImageSampler, ShaderStageFlags::FragmentBit}}};
+
+DescriptorSetInfo shaderBaseImageProcessing::get_descriptor_set_texture() { return DESCRIPTOR_SET_TEXTURE; }
+
 ShaderBaseImageProcessing::ShaderBaseImageProcessing(IPrContext &context, const std::string &identifier, const std::string &vsShader, const std::string &fsShader) : ShaderGraphics(context, identifier, vsShader, fsShader) {}
 
 ShaderBaseImageProcessing::ShaderBaseImageProcessing(IPrContext &context, const std::string &identifier, const std::string &fsShader) : ShaderBaseImageProcessing(context, identifier, "programs/image/noop_uv", fsShader) {}

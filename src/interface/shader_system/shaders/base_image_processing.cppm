@@ -9,6 +9,8 @@ export namespace prosper {
 	class RenderTarget;
 	namespace shaderBaseImageProcessing {
 		CLASS_ENUM_COMPAT DescriptorSetInfo DESCRIPTOR_SET_TEXTURE;
+		// WINDOWS_CLANG_COMPILER_FIX
+		DLLPROSPER DescriptorSetInfo get_descriptor_set_texture();
 	}
 	class DLLPROSPER ShaderBaseImageProcessing : public ShaderGraphics {
 	  public:
