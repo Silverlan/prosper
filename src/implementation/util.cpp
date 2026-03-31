@@ -161,6 +161,7 @@ prosper::util::ImageCreateInfo prosper::util::get_image_create_info(const pragma
 	imgCreateInfo.tiling = ImageTiling::Optimal;
 	imgCreateInfo.usage = ImageUsageFlags::SampledBit;
 	imgCreateInfo.layers = cubemap ? 6 : 1;
+	imgCreateInfo.debugName = "image_from_image_buffer";
 	if(cubemap)
 		imgCreateInfo.flags |= ImageCreateInfo::Flags::Cubemap;
 	return imgCreateInfo;

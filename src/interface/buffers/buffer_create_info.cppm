@@ -14,6 +14,7 @@ export {
 		struct DLLPROSPER BufferCreateInfo {
 			DeviceSize size = 0ull;
 			QueueFamilyFlags queueFamilyMask = QueueFamilyFlags::GraphicsBit;
+		    std::string_view debugName; // Only valid during creation!
 			enum class Flags : uint32_t {
 				None = 0u,
 				ConcurrentSharing = 1u, // Exclusive sharing is used if this flag is not set

@@ -175,14 +175,16 @@ std::shared_ptr<BlurSet> BlurSet::Create(IPrContext &context, const std::shared_
 	createInfo.format = util::is_compressed_format(format) ? Format::R8G8B8A8_UNorm : format; // If it's a compressed format, we'll fall back to RGBA8
 	createInfo.usage = ImageUsageFlags::SampledBit | ImageUsageFlags::ColorAttachmentBit | ImageUsageFlags::TransferDstBit;
 	createInfo.postCreateLayout = ImageLayout::ShaderReadOnlyOptimal;
+	createInfo.debugName = "blur_staging";
 	auto imgViewCreateInfo = util::ImageViewCreateInfo {};
 	auto samplerCreateInfo = util::SamplerCreateInfo {};
 	samplerCreateInfo.addressModeU = SamplerAddressMode::ClampToEdge;
 	samplerCreateInfo.addressModeV = SamplerAddressMode::ClampToEdge;
 	auto img = context.CreateImage(createInfo);
 	auto tex = context.CreateTexture({}, *img, imgViewCreateInfo, samplerCreateInfo);
-	auto stagingRt = context.CreateRenderTarget({tex}, rp.shared_from_this());
-	stagingRt->SetDebugName("blur_staging_rt");
+	util::RenderTargetCreateInfo rtCreateInfo {};
+	rtCreateInfo.debugName = "blur_staging_rt";
+	auto stagingRt = context.CreateRenderTarget({tex}, rp.shared_from_this(), rtCreateInfo);
 
 	auto stagingDescSetGroup = context.CreateDescriptorSetGroup(ShaderBlurBase::DESCRIPTOR_SET_TEXTURE);
 	auto &stagingTex = stagingRt->GetTexture();

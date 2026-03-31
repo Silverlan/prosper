@@ -236,6 +236,7 @@ export {
 				SampleCountFlags samples = SampleCountFlags::e1Bit;
 				ImageTiling tiling = ImageTiling::Optimal;
 				ImageLayout postCreateLayout = ImageLayout::ColorAttachmentOptimal;
+				std::string_view debugName; // Only valid during creation!
 
 				enum class Flags : uint32_t {
 					None = 0u,
@@ -260,6 +261,7 @@ export {
 			struct DLLPROSPER TextureCreateInfo {
 				TextureCreateInfo(IImageView &imgView, ISampler *smp = nullptr);
 				TextureCreateInfo() = default;
+				std::string_view debugName; // Only valid during creation!
 				std::shared_ptr<ISampler> sampler = nullptr;
 				std::shared_ptr<IImageView> imageView = nullptr;
 
@@ -303,6 +305,7 @@ export {
 
 			struct DLLPROSPER RenderTargetCreateInfo {
 				bool useLayerFramebuffers = false;
+				std::string_view debugName; // Only valid during creation!
 			};
 
 			struct DLLPROSPER RenderPassCreateInfo {

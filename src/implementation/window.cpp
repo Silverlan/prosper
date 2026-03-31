@@ -235,11 +235,13 @@ void Window::ReloadStagingRenderTarget()
 	createInfo.width = resolution.x;
 	createInfo.height = resolution.y;
 	createInfo.postCreateLayout = ImageLayout::ColorAttachmentOptimal;
+	createInfo.debugName = "engine_staging";
 	auto stagingImg = context.CreateImage(createInfo);
 
 	createInfo.usage = ImageUsageFlags::TransferDstBit | ImageUsageFlags::TransferSrcBit | ImageUsageFlags::DepthStencilAttachmentBit | ImageUsageFlags::SampledBit;
 	auto depthStencilFormat = createInfo.format = STAGING_RENDER_TARGET_DEPTH_STENCIL_FORMAT;
 	createInfo.postCreateLayout = ImageLayout::DepthStencilAttachmentOptimal;
+	createInfo.debugName = "engine_staging_depth";
 	auto depthStencilImg = context.CreateImage(createInfo);
 
 	util::ImageViewCreateInfo imgViewCreateInfo {};
@@ -252,8 +254,9 @@ void Window::ReloadStagingRenderTarget()
 	    util::RenderPassCreateInfo::AttachmentInfo {depthStencilFormat, ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::DontCare, SampleCountFlags::e1Bit,
 	      ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::Clear, AttachmentStoreOp::Store}}});
 
-	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex, depthStencilTex}, rp); //,finalDepthTex},rp);
-	m_stagingRenderTarget->SetDebugName("engine_staging_rt");
+	util::RenderTargetCreateInfo rtCreateInfo {};
+	rtCreateInfo.debugName = "engine_staging_rt";
+	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex, depthStencilTex}, rp, rtCreateInfo); //,finalDepthTex},rp);
 	m_stagingRenderTarget->Bake();
 	// Vulkan TODO: Resize when window resolution was changed
 }

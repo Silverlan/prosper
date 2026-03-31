@@ -205,8 +205,8 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer
 		std::cout << "Allocated: " << numAllocated << " / " << imgBuf->GetSize() << std::endl;
 	}
 
-	std::cout << "Image of buffer size " << pragma::util::get_pretty_bytes(size) << " (alignment " << alignment << ") was requested, but does not fit into previous buffer(s) (" << m_deviceImgBuffers.size() << ")! Allocating new buffer of size " << pragma::util::get_pretty_bytes(bufferSize) << "..."
-	          << std::endl;
+	std::cout << "Image of buffer size " << pragma::util::get_pretty_bytes(size) << " (alignment " << alignment << ") was requested, but does not fit into previous buffer(s) (" << m_deviceImgBuffers.size() << ")! Allocating new buffer of size " << pragma::util::get_pretty_bytes(bufferSize)
+	          << "..." << std::endl;
 	std::cout << "Total allocated: " << pragma::util::get_pretty_bytes(totalAllocated) << std::endl;
 	util::BufferCreateInfo createInfo {};
 	createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
@@ -609,9 +609,9 @@ void prosper::IPrContext::InitDummyBuffer()
 	createInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 	createInfo.size = 1ull;
 	createInfo.usageFlags = BufferUsageFlags::UniformBufferBit | BufferUsageFlags::StorageBufferBit | BufferUsageFlags::VertexBufferBit;
+	createInfo.debugName = "context_dummy_buf";
 	m_dummyBuffer = CreateBuffer(createInfo);
 	assert(m_dummyBuffer);
-	m_dummyBuffer->SetDebugName("context_dummy_buf");
 }
 void prosper::IPrContext::InitDummyTextures()
 {
@@ -626,16 +626,18 @@ void prosper::IPrContext::InitDummyTextures()
 	assert(img);
 	util::ImageViewCreateInfo imgViewCreateInfo {};
 	util::SamplerCreateInfo samplerCreateInfo {};
-	m_dummyTexture = CreateTexture({}, *img, imgViewCreateInfo, samplerCreateInfo);
+	util::TextureCreateInfo texCreateInfo {};
+	texCreateInfo.debugName = "context_dummy_tex";
+	m_dummyTexture = CreateTexture(texCreateInfo, *img, imgViewCreateInfo, samplerCreateInfo);
 	assert(m_dummyTexture);
-	m_dummyTexture->SetDebugName("context_dummy_tex");
 
 	createInfo.flags |= util::ImageCreateInfo::Flags::Cubemap;
 	createInfo.layers = 6u;
 	auto imgCubemap = CreateImage(createInfo);
-	m_dummyCubemapTexture = CreateTexture({}, *imgCubemap, imgViewCreateInfo, samplerCreateInfo);
+	texCreateInfo = {};
+	texCreateInfo.debugName = "context_dummy_cubemap_tex";
+	m_dummyCubemapTexture = CreateTexture(texCreateInfo, *imgCubemap, imgViewCreateInfo, samplerCreateInfo);
 	assert(m_dummyCubemapTexture);
-	m_dummyCubemapTexture->SetDebugName("context_dummy_cubemap_tex");
 }
 
 void prosper::IPrContext::SubmitCommandBuffer(ICommandBuffer &cmd, bool shouldBlock, IFence *fence) { SubmitCommandBuffer(cmd, cmd.GetQueueFamilyType(), shouldBlock, fence); }
@@ -964,6 +966,7 @@ void prosper::IPrContext::Crash()
 		imgCreateInfo.memoryFeatures = MemoryFeatureFlags::DeviceLocal;
 		imgCreateInfo.postCreateLayout = ImageLayout::ColorAttachmentOptimal;
 		imgCreateInfo.usage = ImageUsageFlags::ColorAttachmentBit;
+		imgCreateInfo.debugName = "crash";
 		auto img = CreateImage(imgCreateInfo);
 		util::ImageViewCreateInfo imgViewCreateInfo {};
 		util::SamplerCreateInfo samplerCreateInfo {};

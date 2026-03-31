@@ -45,8 +45,8 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexUvB
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertexData.size() * sizeof(vertexData.front());
 		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
+		createInfo.debugName = "square_vertex_uv_buf";
 		auto buf = m_context.CreateBuffer(createInfo, vertexData.data());
-		buf->SetDebugName("square_vertex_uv_buf");
 		m_squareVertexUvBuffer = buf;
 	}
 	return m_squareVertexUvBuffer;
@@ -71,8 +71,8 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareVertexBuf
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertices.size() * sizeof(Vector2);
 		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
+		createInfo.debugName = "square_vertex_buf";
 		auto buf = m_context.CreateBuffer(createInfo, vertices.data());
-		buf->SetDebugName("square_vertex_buf");
 		m_squareVertexBuffer = buf;
 	}
 	return m_squareVertexBuffer;
@@ -85,8 +85,8 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetSquareUvBuffer(
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = uvCoordinates.size() * sizeof(Vector2);
 		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
+		createInfo.debugName = "square_uv_buf";
 		auto buf = m_context.CreateBuffer(createInfo, uvCoordinates.data());
-		buf->SetDebugName("square_uv_buf");
 		m_squareUvBuffer = buf;
 	}
 	return m_squareUvBuffer;
@@ -117,8 +117,8 @@ std::shared_ptr<prosper::IBuffer> prosper::CommonBufferCache::GetLineVertexBuffe
 		createInfo.usageFlags = BufferUsageFlags::VertexBufferBit;
 		createInfo.size = vertices.size() * sizeof(Vector2);
 		createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
+		createInfo.debugName = "line_vertex_buf";
 		auto buf = m_context.CreateBuffer(createInfo, vertices.data());
-		buf->SetDebugName("line_vertex_buf");
 		m_lineVertexBuffer = buf;
 	}
 	return m_lineVertexBuffer;
