@@ -24,7 +24,7 @@ export {
 				DeviceSize startOffset;
 				DeviceSize size;
 			};
-			IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo, uint64_t maxTotalSize);
+			IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo);
 			void InsertFreeMemoryRange(std::list<Range>::iterator itWhere, DeviceSize startOffset, DeviceSize size);
 			void MarkMemoryRangeAsFree(DeviceSize startOffset, DeviceSize size);
 			void ReleaseBufferSafely() override {}

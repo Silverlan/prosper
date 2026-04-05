@@ -11,23 +11,25 @@ import :buffer.resizable_buffer;
 
 using namespace prosper;
 
-IResizableBuffer::IResizableBuffer(IBuffer &parent, uint64_t maxTotalSize) : IBuffer {parent.GetContext(), parent.GetCreateInfo(), parent.GetStartOffset(), parent.GetSize()}, m_maxTotalSize {maxTotalSize}, m_baseSize {parent.GetCreateInfo().size} {}
+IResizableBuffer::IResizableBuffer(IBuffer &parent) : IBuffer {parent.GetContext(), parent.GetCreateInfo(), parent.GetStartOffset(), parent.GetSize()}, m_baseSize {parent.GetCreateInfo().size} {}
 
 void IResizableBuffer::AddReallocationCallback(const std::function<void()> &fCallback) { m_onReallocCallbacks.push_back(fCallback); }
 
 void IResizableBuffer::ReallocateMemory() { ReallocateMemory(m_baseSize); }
 
-void IResizableBuffer::ReallocateMemory(size_t requiredSize)
+bool IResizableBuffer::ReallocateMemory(size_t requiredSize)
 {
+	if(!IsResizable())
+		return false;
 	auto &context = GetContext();
 	if(m_reallocationBehavior == ReallocationBehavior::DeviceWaitIdle)
 		context.WaitIdle();
+	context.Log("Reallocating prosper buffer '" + GetDebugName() + "' of size " + pragma::util::get_pretty_bytes(m_baseSize) + " to " + pragma::util::get_pretty_bytes(requiredSize) + "...");
 
 	// Re-allocate buffer; Double current size to avoid frequent re-allocation
 	auto oldSize = m_baseSize;
 	while(m_baseSize < requiredSize)
 		m_baseSize *= 2;
-	m_baseSize = pragma::math::min(m_baseSize, m_maxTotalSize);
 	auto createInfo = m_createInfo;
 	createInfo.size = m_baseSize;
 	auto newBuffer = context.CreateBuffer(createInfo);
@@ -43,6 +45,7 @@ void IResizableBuffer::ReallocateMemory(size_t requiredSize)
 	MoveInternalBuffer(*newBuffer);
 	m_size = m_baseSize;
 	newBuffer = nullptr;
+	return true;
 }
 
 void IResizableBuffer::RunReallocationCallbacks()

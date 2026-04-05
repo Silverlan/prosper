@@ -295,9 +295,9 @@ export {
 			void ReleaseResource(void *resource);
 
 			virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr) = 0;
-			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage = 1.f, const void *data = nullptr,
+			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data = nullptr,
 			  std::optional<DeviceSize> customAlignment = {});
-			virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage = 1.f, const void *data = nullptr) = 0;
+			virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) = 0;
 			virtual std::shared_ptr<IEvent> CreateEvent() = 0;
 			virtual std::shared_ptr<IFence> CreateFence(bool createSignalled = false) = 0;
 			virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo) = 0;
@@ -412,7 +412,7 @@ export {
 			void CloseWindowsScheduledForClosing();
 		  protected:
 			IPrContext(const std::string &appName, bool bEnableValidation = false);
-			void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, BufferUsageFlags usageFlags);
+			void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint32_t &alignment, BufferUsageFlags usageFlags);
 			virtual void UpdateMultiThreadedRendering(bool mtEnabled);
 			void ReloadPipelineLoader();
 			void CheckDeviceLimits();
@@ -422,7 +422,7 @@ export {
 			virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) = 0;
 			virtual void DoWaitIdle() = 0;
 			virtual void DoFlushCommandBuffer(ICommandBuffer &cmd) = 0;
-			virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, const void *data, DeviceSize bufferBaseSize, uint32_t alignment) = 0;
+			virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, const void *data, DeviceSize bufferBaseSize, uint32_t alignment) = 0;
 			virtual void OnClose();
 			virtual void Release();
 			virtual void InitBuffers();

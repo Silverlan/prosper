@@ -87,7 +87,7 @@ static void test_dynamic_resizable_buffer()
 }
 */
 
-IDynamicResizableBuffer::IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo, uint64_t maxTotalSize) : IResizableBuffer {buffer, maxTotalSize}
+IDynamicResizableBuffer::IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo) : IResizableBuffer {buffer}
 {
 	m_freeRanges.push_back({0ull, createInfo.size});
 	m_alignment = context.CalcBufferAlignment(createInfo.usageFlags);
@@ -223,10 +223,13 @@ bool IDynamicResizableBuffer::EnsureCapacity(DeviceSize requestSize, uint32_t al
 	std::scoped_lock lock {m_bufferMutex};
 	auto padding = util::get_offset_alignment_padding(m_baseSize, alignment);
 	auto requiredSize = m_baseSize + requestSize + padding;
-	if(requiredSize > m_maxTotalSize)
+	/*if(requiredSize > m_maxTotalSize) {
+		GetContext().Log("Unable to allocate prosper buffer of size " + pragma::util::get_pretty_bytes(requestSize) + " as it would exceed size of parent buffer '" + GetDebugName() + "' of size " + pragma::util::get_pretty_bytes(GetSize()), pragma::util::LogSeverity::Warning);
 		return false; // Total capacity has been reached
+	}*/
 	auto oldSize = m_baseSize;
-	ReallocateMemory(requiredSize);
+	if(!ReallocateMemory(requiredSize))
+		return false;
 
 	// Update free range
 	auto bNewRange = true;

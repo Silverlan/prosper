@@ -11,8 +11,7 @@ import :buffer.uniform_resizable_buffer;
 
 using namespace prosper;
 
-IUniformResizableBuffer::IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint64_t maxTotalSize, uint32_t alignment)
-    : IResizableBuffer {buffer, maxTotalSize}, m_bufferInstanceSize {bufferInstanceSize}, m_alignment {alignment}
+IUniformResizableBuffer::IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint32_t alignment) : IResizableBuffer {buffer}, m_bufferInstanceSize {bufferInstanceSize}, m_alignment {alignment}
 {
 	m_createInfo.size = alignedBufferBaseSize;
 
@@ -51,9 +50,12 @@ bool IUniformResizableBuffer::EnsureCapacity(uint32_t instanceCount)
 	auto baseAlignedInstanceSize = util::get_aligned_size(m_bufferInstanceSize, m_alignment);
 	auto alignedInstanceSize = baseAlignedInstanceSize * instanceCount;
 	auto requiredSize = m_assignedMemory + alignedInstanceSize;
-	if(requiredSize > m_maxTotalSize)
+	/*if(requiredSize > m_maxTotalSize) {
+		GetContext().Log("Unable to allocate prosper buffer of size " + pragma::util::get_pretty_bytes(requiredSize) + " as it would exceed size of parent buffer '" + GetDebugName() + "' of size " + pragma::util::get_pretty_bytes(GetSize()), pragma::util::LogSeverity::Warning);
 		return false; // Total capacity has been reached
-	ReallocateMemory(requiredSize);
+	}*/
+	if(!ReallocateMemory(requiredSize))
+		return false;
 
 	auto numMaxBuffers = m_baseSize / baseAlignedInstanceSize;
 	m_allocatedSubBuffers.resize(numMaxBuffers, nullptr);

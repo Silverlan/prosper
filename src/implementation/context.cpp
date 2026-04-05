@@ -193,7 +193,6 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer
 
 	// Allocate new image buffer with device memory
 	uint64_t bufferSize = 512 * 1'024 * 1'024; // 512 MiB
-	auto maxTotalPercent = 0.5f;
 
 	if(m_deviceImgBuffers.empty() == false) {
 		auto &imgBuf = m_deviceImgBuffers.back();
@@ -212,7 +211,7 @@ std::shared_ptr<prosper::IBuffer> prosper::IPrContext::AllocateDeviceImageBuffer
 	createInfo.memoryFeatures = MemoryFeatureFlags::GPUBulk;
 	createInfo.size = bufferSize;
 	createInfo.usageFlags = BufferUsageFlags::None;
-	auto deviceImgBuffer = CreateDynamicResizableBuffer(createInfo, bufferSize, maxTotalPercent);
+	auto deviceImgBuffer = CreateDynamicResizableBuffer(createInfo);
 	assert(deviceImgBuffer);
 	std::cout << "Device image buffer size: " << bufferSize << std::endl;
 	if(deviceImgBuffer == nullptr)
@@ -495,30 +494,27 @@ bool prosper::IPrContext::ValidationCallback(DebugMessageSeverityFlags severityF
 	return true;
 }
 
-void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint64_t &maxTotalSize, uint32_t &alignment, BufferUsageFlags usageFlags)
+void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint32_t &alignment, BufferUsageFlags usageFlags)
 {
 	alignment = CalcBufferAlignment(usageFlags);
 	auto alignedInstanceSize = util::get_aligned_size(instanceSize, alignment);
 	auto alignedBufferBaseSize = static_cast<uint64_t>(pragma::math::floor(bufferBaseSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
-	auto alignedMaxTotalSize = static_cast<uint64_t>(pragma::math::floor(maxTotalSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
+	//auto alignedMaxTotalSize = static_cast<uint64_t>(pragma::math::floor(maxTotalSize / static_cast<long double>(alignedInstanceSize))) * alignedInstanceSize;
 
 	bufferBaseSize = alignedBufferBaseSize;
-	maxTotalSize = alignedMaxTotalSize;
+	//maxTotalSize = alignedMaxTotalSize;
 }
 
-std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage, const void *data,
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data,
   std::optional<DeviceSize> customAlignment)
 {
-	createInfo.size = ClampDeviceMemorySize(createInfo.size, clampSizeToAvailableGPUMemoryPercentage, createInfo.memoryFeatures);
-	maxTotalSize = ClampDeviceMemorySize(maxTotalSize, clampSizeToAvailableGPUMemoryPercentage, createInfo.memoryFeatures);
-
 	auto bufferBaseSize = createInfo.size;
 	auto alignment = 0u;
 	if(customAlignment.has_value())
 		alignment = *customAlignment;
 	else
-		CalcAlignedSizes(bufferInstanceSize, bufferBaseSize, maxTotalSize, alignment, createInfo.usageFlags);
-	return DoCreateUniformResizableBuffer(createInfo, bufferInstanceSize, maxTotalSize, data, bufferBaseSize, alignment);
+		CalcAlignedSizes(bufferInstanceSize, bufferBaseSize, alignment, createInfo.usageFlags);
+	return DoCreateUniformResizableBuffer(createInfo, bufferInstanceSize, data, bufferBaseSize, alignment);
 }
 
 void prosper::IPrContext::UpdateMultiThreadedRendering(bool mtEnabled) { ReloadPipelineLoader(); }
@@ -723,16 +719,16 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuff
 void prosper::IPrContext::InitTemporaryBuffer()
 {
 	auto bufferSize = 8ull * 1'024ull * 1'024ull;    // 8 MiB
-	auto maxBufferSize = 8ull * 1'024ull * 1'024ull; // 8 MiB
 	util::BufferCreateInfo createInfo {};
 	createInfo.debugName = "temp_buffer";
 	createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::Dynamic;
 	createInfo.size = bufferSize;
 	createInfo.flags |= util::BufferCreateInfo::Flags::Persistent;
 	createInfo.usageFlags = BufferUsageFlags::IndexBufferBit | BufferUsageFlags::StorageBufferBit | BufferUsageFlags::TransferDstBit | BufferUsageFlags::TransferSrcBit | BufferUsageFlags::UniformBufferBit | BufferUsageFlags::VertexBufferBit;
-	m_tmpBuffer = CreateDynamicResizableBuffer(createInfo, maxBufferSize);
+	m_tmpBuffer = CreateDynamicResizableBuffer(createInfo);
 	assert(m_tmpBuffer);
 	m_tmpBuffer->SetPermanentlyMapped(true, IBuffer::MapFlags::ReadBit | IBuffer::MapFlags::WriteBit);
+	m_tmpBuffer->SetResizable(false);
 }
 
 void prosper::IPrContext::Draw()
