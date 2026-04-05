@@ -11,6 +11,7 @@ export {
 	namespace prosper {
 		class DLLPROSPER IUniformResizableBuffer : public IResizableBuffer {
 		  public:
+			bool EnsureCapacity(uint32_t instanceCount);
 			std::shared_ptr<IBuffer> AllocateBuffer(const void *data = nullptr);
 
 			uint64_t GetInstanceSize() const;
@@ -28,7 +29,6 @@ export {
 			uint64_t m_assignedMemory = 0ull;
 			uint32_t m_alignment = 0u;
 			mutable std::recursive_mutex m_bufferMutex;
-			std::vector<IBuffer *> m_allocatedSubBuffers;
 			std::queue<uint64_t> m_freeOffsets;
 		};
 	};

@@ -378,6 +378,11 @@ void IDescriptorSet::ReloadBinding(uint32_t bindingIdx)
 		}
 	}
 	static_assert(pragma::math::to_integral(DescriptorSetBinding::Type::Count) == 7u, "Update this implementation when new types are added!");
+	// TODO: We wait idle in case the descriptor set is still in use.
+	// It would be better to have one descriptor set per swapchain image, flag them as dirty
+	// and update them the next time they're used.
+	GetDescriptorSetGroup().GetContext().WaitIdle(false);
+	Update();
 }
 
 IBuffer *IDescriptorSet::GetBoundBuffer(uint32_t bindingIndex, uint64_t *outStartOffset, uint64_t *outSize)

@@ -60,12 +60,14 @@ export {
 			SubBufferIndex GetBaseIndex() const;
 			BufferUsageFlags GetUsageFlags() const;
 			CallbackHandle AddReallocationCallback(const std::function<void()> &fCallback);
+			void CallReallocationCallbacks();
 			virtual const void *GetInternalHandle() const { return nullptr; }
 
 			virtual void Bake() {};
 
 			// For internal use only!
 			virtual void Initialize();
+			virtual void RecreateInternalSubBuffer(IBuffer &newParentBuffer) {}
 
 			template<class T, typename = std::enable_if_t<std::is_base_of_v<IBuffer, T>>>
 			T &GetAPITypeRef()
@@ -83,7 +85,6 @@ export {
 		  protected:
 			friend IUniformResizableBuffer;
 			friend IDynamicResizableBuffer;
-			virtual void RecreateInternalSubBuffer(IBuffer &newParentBuffer) {}
 			virtual void OnRelease() override;
 
 			virtual bool DoWrite(Offset offset, Size size, const void *data) const = 0;

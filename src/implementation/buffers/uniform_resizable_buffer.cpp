@@ -45,6 +45,23 @@ uint64_t IUniformResizableBuffer::GetAssignedMemory() const
 }
 uint32_t IUniformResizableBuffer::GetTotalInstanceCount() const { return m_allocatedSubBuffers.size(); }
 
+bool IUniformResizableBuffer::EnsureCapacity(uint32_t instanceCount)
+{
+	std::scoped_lock lock {m_bufferMutex};
+	auto baseAlignedInstanceSize = util::get_aligned_size(m_bufferInstanceSize, m_alignment);
+	auto alignedInstanceSize = baseAlignedInstanceSize * instanceCount;
+	auto requiredSize = m_assignedMemory + alignedInstanceSize;
+	if(requiredSize > m_maxTotalSize)
+		return false; // Total capacity has been reached
+	ReallocateMemory(requiredSize);
+
+	auto numMaxBuffers = m_baseSize / baseAlignedInstanceSize;
+	m_allocatedSubBuffers.resize(numMaxBuffers, nullptr);
+
+	RunReallocationCallbacks();
+	return true;
+}
+
 std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *data)
 {
 	std::unique_lock lock {m_bufferMutex};
@@ -58,43 +75,8 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 		bUseExistingSlot = true;
 	}
 	else {
-		if(m_assignedMemory + alignedInstanceSize > m_baseSize) {
-			if(m_assignedMemory + alignedInstanceSize > m_maxTotalSize)
-				return nullptr; // Total capacity has been reached
-			GetContext().WaitIdle();
-			// Re-allocate buffer; Increase previous size by additional factor
-			auto oldSize = m_baseSize;
-			m_baseSize += m_createInfo.size;
-			auto createInfo = m_createInfo;
-			createInfo.size = m_baseSize;
-			auto newBuffer = GetContext().CreateBuffer(createInfo);
-			assert(newBuffer);
-			std::vector<uint8_t> data(oldSize);
-			Read(0ull, data.size(), data.data());
-			for(auto *subBuffer : m_allocatedSubBuffers) {
-				if(subBuffer == nullptr)
-					continue;
-				subBuffer->RecreateInternalSubBuffer(*newBuffer);
-			}
-			newBuffer->Write(0ull, data.size(), data.data());
-			MoveInternalBuffer(*newBuffer);
-			newBuffer = nullptr;
-			auto numMaxBuffers = createInfo.size / baseAlignedInstanceSize;
-			m_allocatedSubBuffers.resize(numMaxBuffers, nullptr);
-
-			for(auto *subBuffer : m_allocatedSubBuffers) {
-				if(subBuffer == nullptr)
-					continue;
-				for(auto &cb : subBuffer->m_reallocationCallbacks) {
-					if(cb.IsValid() == false)
-						continue;
-					cb();
-				}
-			}
-
-			for(auto &f : m_onReallocCallbacks)
-				f();
-		}
+		if(m_assignedMemory + alignedInstanceSize > m_baseSize && EnsureCapacity(1) == false)
+			return nullptr;
 		offset = m_assignedMemory;
 	}
 

@@ -216,6 +216,35 @@ void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData, std::
 		(*bufferData) << +v;
 }
 
+bool IDynamicResizableBuffer::EnsureCapacity(DeviceSize requestSize, uint32_t alignment)
+{
+	if(requestSize == 0ull)
+		return true;
+	std::scoped_lock lock {m_bufferMutex};
+	auto padding = util::get_offset_alignment_padding(m_baseSize, alignment);
+	auto requiredSize = m_baseSize + requestSize + padding;
+	if(requiredSize > m_maxTotalSize)
+		return false; // Total capacity has been reached
+	auto oldSize = m_baseSize;
+	ReallocateMemory(requiredSize);
+
+	// Update free range
+	auto bNewRange = true;
+	if(m_freeRanges.empty() == false) {
+		auto &rangeLast = m_freeRanges.back();
+		if(rangeLast.startOffset + rangeLast.size == oldSize) {
+			rangeLast.size += m_baseSize - rangeLast.startOffset;
+			bNewRange = false;
+		}
+	}
+	if(bNewRange == true)
+		m_freeRanges.push_back({oldSize, m_baseSize - oldSize});
+	//
+
+	RunReallocationCallbacks();
+	return true;
+}
+
 std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize size, const void *data) { return AllocateBuffer(size, m_alignment, data); }
 std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requestSize, uint32_t alignment, const void *data, bool reallocateIfNoSpaceAvailable)
 {
@@ -223,7 +252,6 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 		return nullptr;
 	std::scoped_lock lock {m_bufferMutex};
 	auto offset = 0ull;
-	auto bUseExistingSlot = false;
 	auto it = FindFreeRange(requestSize, alignment);
 	if(it != m_freeRanges.end()) {
 		offset = it->startOffset;
@@ -236,55 +264,10 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 			MarkMemoryRangeAsFree(rangeStartOffset, offset - rangeStartOffset); // Anterior range
 		if(offset + requestSize < rangeStartOffset + rangeSize)
 			MarkMemoryRangeAsFree(offset + requestSize, (rangeStartOffset + rangeSize) - (offset + requestSize)); // Posterior range
-
-		bUseExistingSlot = true;
 	}
 	else {
-		auto padding = util::get_offset_alignment_padding(m_baseSize, alignment);
-		if(m_baseSize + requestSize + padding > m_maxTotalSize)
-			return nullptr; // Total capacity has been reached
-		if(reallocateIfNoSpaceAvailable == false)
+		if(reallocateIfNoSpaceAvailable == false || EnsureCapacity(requestSize, alignment) == false)
 			return nullptr;
-		GetContext().WaitIdle();
-		// Re-allocate buffer; Increase previous size by additional factor
-		auto oldSize = m_baseSize;
-		m_baseSize += pragma::math::max(m_createInfo.size, requestSize + padding);
-		auto createInfo = m_createInfo;
-		createInfo.size = m_baseSize;
-		auto newBuffer = GetContext().CreateBuffer(createInfo);
-		assert(newBuffer);
-		std::vector<uint8_t> oldData(oldSize);
-		Read(0ull, oldData.size(), oldData.data());
-
-		for(auto *subBuffer : m_allocatedSubBuffers)
-			subBuffer->RecreateInternalSubBuffer(*newBuffer);
-		newBuffer->Write(0ull, oldData.size(), oldData.data());
-		MoveInternalBuffer(*newBuffer);
-		newBuffer = nullptr;
-
-		// Update free range
-		auto bNewRange = true;
-		if(m_freeRanges.empty() == false) {
-			auto &rangeLast = m_freeRanges.back();
-			if(rangeLast.startOffset + rangeLast.size == oldSize) {
-				rangeLast.size += m_baseSize - rangeLast.startOffset;
-				bNewRange = false;
-			}
-		}
-		if(bNewRange == true)
-			m_freeRanges.push_back({oldSize, m_baseSize - oldSize});
-		//
-
-		for(auto *subBuffer : m_allocatedSubBuffers) {
-			for(auto &cb : subBuffer->m_reallocationCallbacks) {
-				if(cb.IsValid() == false)
-					continue;
-				cb();
-			}
-		}
-
-		for(auto &f : m_onReallocCallbacks)
-			f();
 		return AllocateBuffer(requestSize, alignment, data);
 	}
 

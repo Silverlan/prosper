@@ -169,3 +169,17 @@ CallbackHandle prosper::IBuffer::AddReallocationCallback(const std::function<voi
 	m_reallocationCallbacks.push_back(cb);
 	return cb;
 }
+
+void prosper::IBuffer::CallReallocationCallbacks()
+{
+	auto &reallocCallbacks = m_reallocationCallbacks;
+	for(auto it = reallocCallbacks.begin(); it != reallocCallbacks.end();) {
+		auto &cb = *it;
+		if(!cb.IsValid()) {
+			it = reallocCallbacks.erase(it);
+			continue;
+		}
+		cb();
+		++it;
+	}
+}
