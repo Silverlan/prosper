@@ -718,7 +718,7 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuff
 
 void prosper::IPrContext::InitTemporaryBuffer()
 {
-	auto bufferSize = 8ull * 1'024ull * 1'024ull;    // 8 MiB
+	constexpr size_t bufferSize = 8ull * 1'024ull * 1'024ull;    // 8 MiB
 	util::BufferCreateInfo createInfo {};
 	createInfo.debugName = "temp_buffer";
 	createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::Dynamic;
