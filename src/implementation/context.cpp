@@ -536,6 +536,10 @@ void prosper::IPrContext::CheckDeviceLimits()
 
 void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
+	m_heapManager = createInfo.heapManager;
+	if(m_heapManager)
+		m_heap = m_heapManager->CreateHeap("prosper");
+	pragma::util::HeapScope heapScope {m_heap};
 	if(createInfo.enableDiagnostics)
 		m_stateFlags |= StateFlags::DiagnosticsEnabled;
 	if(createInfo.windowless)

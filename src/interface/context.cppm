@@ -144,6 +144,7 @@ export {
 				bool windowless = false;
 				bool enableDiagnostics = false;
 				std::optional<DeviceInfo> device = {};
+				pragma::util::HeapManager *heapManager = nullptr;
 
 				std::unordered_map<std::string, ExtensionAvailability> extensions;
 				std::vector<std::string> layers;
@@ -455,6 +456,8 @@ export {
 			std::shared_ptr<IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 			std::vector<ShaderPipeline> m_shaderPipelines;
 			std::unique_ptr<ShaderPipelineLoader> m_pipelineLoader;
+			pragma::util::HeapManager *m_heapManager = nullptr;
+			const pragma::util::Heap *m_heap = nullptr;
 
 			std::function<void(const util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
 
