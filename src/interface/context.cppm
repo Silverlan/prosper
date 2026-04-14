@@ -158,13 +158,13 @@ export {
 			static std::shared_ptr<TContext> Create(const std::string &appName, uint32_t width, uint32_t height, bool bEnableValidation = false);
 			virtual ~IPrContext();
 
-			virtual void Initialize(const CreateInfo &createInfo);
+			virtual std::expected<void, std::string> Initialize(const CreateInfo &createInfo);
 			virtual bool ApplyGLSLPostProcessing(std::string &inOutGlslCode, std::string &outErrMsg) const { return true; }
 			virtual bool InitializeShaderSources(Shader &shader, bool bReload, std::string &outInfoLog, std::string &outDebugInfoLog, ShaderStage &outErrStage, const std::string &prefixCode = {}, const std::unordered_map<std::string, std::string> &definitions = {}) const;
 			virtual std::string GetAPIIdentifier() const = 0;
 			virtual std::string GetAPIAbbreviation() const = 0;
 			virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) = 0;
-			virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) = 0;
+			virtual std::expected<std::shared_ptr<Window>, std::string> CreateWindow(const WindowSettings &windowCreationInfo) = 0;
 
 #ifdef PR_DEBUG_API_DUMP
 			debug::ApiDumpRecorder &GetApiDumpRecorder() const { return *m_apiDumpRecorder; }
@@ -229,7 +229,7 @@ export {
 
 			const WindowSettings &GetInitialWindowSettings() const;
 			WindowSettings &GetInitialWindowSettings();
-			virtual void ReloadWindow() = 0;
+			virtual std::expected<void, std::string> ReloadWindow() = 0;
 
 			ShaderManager &GetShaderManager() const;
 
@@ -443,8 +443,8 @@ export {
 			void InitDummyTextures();
 			void InitDummyBuffer();
 			void InitTemporaryBuffer();
-			void InitWindow();
-			virtual void InitAPI(const CreateInfo &createInfo) = 0;
+			std::expected<void, std::string> InitWindow();
+			virtual std::expected<void, std::string> InitAPI(const CreateInfo &createInfo) = 0;
 			virtual void OnSwapchainResourcesCleared(uint32_t swapchainIdx) {}
 
 			PresentModeKHR m_presentMode = PresentModeKHR::Immediate;

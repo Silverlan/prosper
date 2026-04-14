@@ -38,7 +38,7 @@ export namespace prosper {
 
 		void Close();
 		bool IsValid() const;
-		void UpdateWindow();
+		std::expected<void, std::string> UpdateWindow();
 
 		const WindowSettings &GetWindowSettings() const { return m_settings; }
 		void SetWindowedMode(bool b);
@@ -82,7 +82,7 @@ export namespace prosper {
 		friend IPrContext;
 		Window(IPrContext &context, const WindowSettings &windowCreationInfo);
 		void DoClose();
-		virtual void InitWindow() = 0;
+		virtual std::expected<void, std::string> InitWindow() = 0;
 		virtual void ReleaseWindow() = 0;
 		virtual void InitCommandBuffers() = 0;
 		void InitSwapchain();
@@ -92,8 +92,8 @@ export namespace prosper {
 		virtual void DoReleaseSwapchain() = 0;
 		virtual void Release();
 		virtual void OnWindowInitialized();
-		void ReloadWindow();
-		virtual void DoReloadWindow();
+		std::expected<void, std::string> ReloadWindow();
+		virtual std::expected<void, std::string> DoReloadWindow();
 
 		WindowChangeInfo &ScheduleWindowReload();
 		std::unique_ptr<WindowChangeInfo> m_scheduledWindowReloadInfo = nullptr;

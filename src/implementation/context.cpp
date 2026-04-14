@@ -68,7 +68,7 @@ uint32_t prosper::IPrContext::GetWindowWidth() const { return m_initialWindowSet
 uint32_t prosper::IPrContext::GetWindowHeight() const { return m_initialWindowSettings.height; }
 
 uint32_t prosper::IPrContext::GetLastAcquiredPrimaryWindowSwapchainImageIndex() const { return GetWindow().GetLastAcquiredSwapchainImageIndex(); }
-void prosper::IPrContext::InitWindow()
+std::expected<void, std::string> prosper::IPrContext::InitWindow()
 {
 	auto oldSize = (m_window != nullptr) ? m_window->GetGlfwWindow().GetSize() : Vector2i();
 	auto onWindowReloaded = [this]() {
@@ -85,8 +85,10 @@ void prosper::IPrContext::InitWindow()
 	};
 	if(ShouldLog(pragma::util::LogSeverity::Debug))
 		m_logHandler("Creating window...", pragma::util::LogSeverity::Debug);
-	auto newWindow = CreateWindow(m_initialWindowSettings);
-	assert(newWindow != nullptr);
+	auto res = CreateWindow(m_initialWindowSettings);
+	if(!res)
+		return std::unexpected {res.error()};
+	auto &newWindow = res.value();
 	auto it = std::find_if(m_windows.begin(), m_windows.end(), [&newWindow](const std::weak_ptr<Window> &wpWindow) { return !wpWindow.expired() && wpWindow.lock() == newWindow; });
 	if(it != m_windows.end())
 		m_windows.erase(it); // We'll handle the insertion of the primary window ourselves
@@ -102,6 +104,7 @@ void prosper::IPrContext::InitWindow()
 	else
 		m_windows.push_back(newWindow);
 	onWindowReloaded();
+	return {};
 }
 bool prosper::IPrContext::IsClosed() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::Closed); }
 void prosper::IPrContext::Close()
@@ -505,8 +508,7 @@ void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize, uint64_t &buff
 	//maxTotalSize = alignedMaxTotalSize;
 }
 
-std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data,
-  std::optional<DeviceSize> customAlignment)
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data, std::optional<DeviceSize> customAlignment)
 {
 	auto bufferBaseSize = createInfo.size;
 	auto alignment = 0u;
@@ -534,7 +536,7 @@ void prosper::IPrContext::CheckDeviceLimits()
 	}
 }
 
-void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
+std::expected<void, std::string> prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
 	if(createInfo.enableDiagnostics)
 		m_stateFlags |= StateFlags::DiagnosticsEnabled;
@@ -551,7 +553,9 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled))
 		m_validationData = std::unique_ptr<ValidationData> {new ValidationData {}};
 	ChangePresentMode(createInfo.presentMode);
-	InitAPI(createInfo);
+	auto res = InitAPI(createInfo);
+	if(!res)
+		return std::unexpected {res.error()};
 	if(ShouldLog(pragma::util::LogSeverity::Debug))
 		Log("Initializing buffers...", pragma::util::LogSeverity::Debug);
 	InitBuffers();
@@ -574,6 +578,7 @@ void prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 
 	if(ShouldLog(pragma::util::LogSeverity::Debug))
 		Log("Initialization complete!", pragma::util::LogSeverity::Debug);
+	return {};
 }
 
 void prosper::IPrContext::InitBuffers() {}
@@ -718,7 +723,7 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuff
 
 void prosper::IPrContext::InitTemporaryBuffer()
 {
-	constexpr size_t bufferSize = 8ull * 1'024ull * 1'024ull;    // 8 MiB
+	constexpr size_t bufferSize = 8ull * 1'024ull * 1'024ull; // 8 MiB
 	util::BufferCreateInfo createInfo {};
 	createInfo.debugName = "temp_buffer";
 	createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::Dynamic;

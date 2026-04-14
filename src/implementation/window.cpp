@@ -135,10 +135,10 @@ void Window::SetResolutionHeight(uint32_t h)
 }
 float Window::GetAspectRatio() const { return m_aspectRatio; }
 
-void Window::UpdateWindow()
+std::expected<void, std::string> Window::UpdateWindow()
 {
 	if(m_scheduledWindowReloadInfo == nullptr)
-		return;
+		return {};
 	GetContext().WaitIdle();
 	auto &creationInfo = m_settings;
 	if(m_scheduledWindowReloadInfo->windowedMode.has_value())
@@ -163,7 +163,7 @@ void Window::UpdateWindow()
 	}
 	else
 		creationInfo.monitor = nullptr;
-	ReloadWindow();
+	return ReloadWindow();
 }
 
 void Window::InitSwapchain()
@@ -189,14 +189,16 @@ void Window::ReloadSwapchain()
 	InitSwapchain();
 }
 
-void Window::DoReloadWindow()
+std::expected<void, std::string> Window::DoReloadWindow()
 {
 	ReleaseWindow();
-	InitWindow();
+	if(auto res = InitWindow(); !res)
+		return res;
 	ReloadSwapchain();
+	return {};
 }
 
-void Window::ReloadWindow()
+std::expected<void, std::string> Window::ReloadWindow()
 {
 	std::optional<pragma::platform::CallbackInterface> callbacks {};
 	std::optional<Vector2> cursorPosOverride {};
@@ -204,13 +206,15 @@ void Window::ReloadWindow()
 		callbacks = m_glfwWindow->GetCallbacks();
 		cursorPosOverride = m_glfwWindow->GetCursorPosOverride();
 	}
-	DoReloadWindow();
+	if(auto res = DoReloadWindow(); !res)
+		return res;
 	// Restore callbacks and override position
 	if(m_glfwWindow && callbacks.has_value()) {
 		m_glfwWindow->SetCallbacks(*callbacks);
 		if(cursorPosOverride.has_value())
 			m_glfwWindow->SetCursorPosOverride(*cursorPosOverride);
 	}
+	return {};
 }
 
 Window::WindowChangeInfo &Window::ScheduleWindowReload()
