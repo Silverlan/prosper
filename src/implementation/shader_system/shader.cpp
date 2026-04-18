@@ -127,13 +127,13 @@ void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::s
 		std::string dsName {dsInfo->GetName()};
 		pragma::string::to_upper(dsName);
 		auto glslDsName = "DESCRIPTOR_SET_" + dsName;
-		outDefinitions[glslDsName] = std::to_string(iSet);
+		outDefinitions[glslDsName] = pragma::util::to_string(iSet);
 		auto numBindings = dsInfo->GetBindingCount();
 		for(size_t iBinding = 0; iBinding < numBindings; ++iBinding) {
 			std::string bindingName {dsInfo->GetBindingName(iBinding)};
 			pragma::string::to_upper(bindingName);
 			auto glslBindingName = glslDsName + "_BINDING_" + bindingName;
-			outDefinitions[glslBindingName] = std::to_string(iBinding);
+			outDefinitions[glslBindingName] = pragma::util::to_string(iBinding);
 
 			DescriptorType descType;
 			uint32_t arraySize;
@@ -142,7 +142,7 @@ void prosper::Shader::GetShaderPreprocessorDefinitions(std::unordered_map<std::s
 				if(resType) {
 					auto &idx = resourceBindingIndices[pragma::math::to_integral(*resType)];
 					auto glslRecBindingName = glslDsName + "_RESOURCE_BINDING_" + bindingName;
-					outDefinitions[glslRecBindingName] = std::to_string(idx);
+					outDefinitions[glslRecBindingName] = pragma::util::to_string(idx);
 					idx += arraySize;
 				}
 			}
@@ -299,7 +299,7 @@ const std::string *prosper::Shader::GetDebugName(uint32_t pipelineIdx) const
 }
 void prosper::Shader::OnPipelineInitialized(uint32_t pipelineIdx)
 {
-	SetDebugName(pipelineIdx, "shader_" + GetIdentifier() + "_pipeline" + std::to_string(pipelineIdx));
+	SetDebugName(pipelineIdx, "shader_" + GetIdentifier() + "_pipeline" + pragma::util::to_string(pipelineIdx));
 	// auto *vkPipeline = GetPipelineManager()->GetPipelineInfo(m_pipelineInfos.at(pipelineIdx).id);
 	// if(vkPipeline != nullptr)
 	// 	prosper::debug::register_debug_shader_pipeline(vkPipeline,{this,pipelineIdx});

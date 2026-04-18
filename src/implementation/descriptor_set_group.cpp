@@ -217,7 +217,7 @@ const std::vector<std::unique_ptr<DescriptorSetBinding>> &IDescriptorSet::GetBin
 DescriptorSetBinding &IDescriptorSet::SetBinding(uint32_t bindingIndex, std::unique_ptr<DescriptorSetBinding> binding)
 {
 	if(bindingIndex >= m_bindings.size())
-		throw std::invalid_argument {std::to_string(bindingIndex) + " exceeds descriptor set binding count " + std::to_string(m_bindings.size()) + " of descriptor set group " + GetDescriptorSetGroup().GetDebugName()};
+		throw std::invalid_argument {pragma::util::to_string(bindingIndex) + " exceeds descriptor set binding count " + pragma::util::to_string(m_bindings.size()) + " of descriptor set group " + GetDescriptorSetGroup().GetDebugName()};
 	m_bindings.at(bindingIndex) = std::move(binding);
 	return *m_bindings.at(bindingIndex);
 }

@@ -37,7 +37,7 @@ void Texture::SetDebugName(const std::string &name)
 		m_image->SetDebugName(name + "_img");
 	auto idx = 0u;
 	for(auto &imgView : m_imageViews)
-		imgView->SetDebugName(name + "_imgView" + std::to_string(idx++));
+		imgView->SetDebugName(name + "_imgView" + pragma::util::to_string(idx++));
 	if(m_sampler != nullptr)
 		m_sampler->SetDebugName(name + "_smp");
 }

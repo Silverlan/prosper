@@ -167,7 +167,7 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 						includeLines.back().includeStack = includeStack;
 						includeStack.pop();
 						lineId--; // Why?
-						          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +std::to_string(lineId) +std::string("\n");
+						          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +util::to_string(lineId) +std::string("\n");
 						g_globalIncludeFileCacheMutex.lock();
 						g_globalIncludeFileCache[strPath] = subShader;
 						g_globalIncludeFileCacheMutex.unlock();
@@ -220,7 +220,7 @@ static bool glsl_preprocessing(prosper::IPrContext &context, prosper::ShaderStag
 	definitions["API_COORD_TRANSFORM(T)"] = '(' + glslDefinitions.apiCoordTransform + ')';
 	definitions["API_SCREEN_SPACE_TRANSFORM(T)"] = '(' + glslDefinitions.apiScreenSpaceTransform + ')';
 	definitions["API_DEPTH_TRANSFORM(T)"] = '(' + glslDefinitions.apiDepthTransform + ')';
-	//definitions["__MAX_VERTEX_TEXTURE_IMAGE_UNITS__"] = std::to_string(maxTextureUnits);
+	//definitions["__MAX_VERTEX_TEXTURE_IMAGE_UNITS__"] = util::to_string(maxTextureUnits);
 	std::string prefix = (bHlsl == false) ? "GLS_" : "HLS_";
 	switch(stage) {
 	case prosper::ShaderStage::Fragment:
@@ -621,7 +621,7 @@ void prosper::glsl::translate_error(const std::string &shaderCode, const std::st
 					file = fullGlslFilepath.GetString();
 				}
 
-				msgOut << "ERROR: " << pragma::util::FilePath(file).GetString() << ":" << std::to_string(line) << ": " << msg.substr(end + 1);
+				msgOut << "ERROR: " << pragma::util::FilePath(file).GetString() << ":" << util::to_string(line) << ": " << msg.substr(end + 1);
 				lineInternal = line;
 
 				auto preprocessedPath = pragma::util::FilePath(file);

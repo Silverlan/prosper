@@ -1126,7 +1126,7 @@ std::string prosper::util::to_string(Vendor vendor)
 	}
 	return "Unknown";
 }
-std::string prosper::util::to_string(SampleCountFlags samples) { return std::to_string(pragma::math::to_integral(samples)); }
+std::string prosper::util::to_string(SampleCountFlags samples) { return pragma::util::to_string(pragma::math::to_integral(samples)); }
 void prosper::util::to_string(const BufferCreateInfo &createInfo, std::stringstream &out)
 {
 	out << "size: " << createInfo.size << "\n";
@@ -1902,7 +1902,7 @@ prosper::ShaderStage prosper::util::shader_stage_flag_to_shader_stage(ShaderStag
 	case ShaderStageFlags::VertexBit:
 		return ShaderStage::Vertex;
 	}
-	throw std::logic_error {std::to_string(pragma::math::to_integral(flag)) + " is not a unique shader stage flag"};
+	throw std::logic_error {pragma::util::to_string(pragma::math::to_integral(flag)) + " is not a unique shader stage flag"};
 }
 
 std::vector<prosper::ShaderStage> prosper::util::shader_stage_flags_to_shader_stages(ShaderStageFlags flags)

@@ -74,7 +74,7 @@ bool prosper::IBuffer::Map(Offset offset, Size size, BufferUsageFlags deviceUsag
 bool prosper::IBuffer::Write(Offset offset, Size size, const void *data) const
 {
 	if(offset + size > GetSize())
-		throw std::out_of_range {"Memory write range (offset: " + std::to_string(offset) + ", size: " + std::to_string(size) + ") out of bounds of buffer of size " + std::to_string(GetSize()) + "!"};
+		throw std::out_of_range {"Memory write range (offset: " + pragma::util::to_string(offset) + ", size: " + pragma::util::to_string(size) + ") out of bounds of buffer of size " + pragma::util::to_string(GetSize()) + "!"};
 	auto parent = GetParent();
 	if(parent != nullptr)
 		return parent->Write(GetStartOffset() + offset, size, data);
@@ -103,7 +103,7 @@ bool prosper::IBuffer::Write(Offset offset, Size size, const void *data) const
 bool prosper::IBuffer::Read(Offset offset, Size size, void *data) const
 {
 	if(offset + size > GetSize())
-		throw std::out_of_range {"Memory read range (offset: " + std::to_string(offset) + ", size: " + std::to_string(size) + ") out of bounds of buffer of size " + std::to_string(GetSize()) + "!"};
+		throw std::out_of_range {"Memory read range (offset: " + pragma::util::to_string(offset) + ", size: " + pragma::util::to_string(size) + ") out of bounds of buffer of size " + pragma::util::to_string(GetSize()) + "!"};
 	auto parent = GetParent();
 	if(parent != nullptr)
 		return parent->Read(GetStartOffset() + offset, size, data);
@@ -133,7 +133,7 @@ void prosper::IBuffer::Initialize() {}
 bool prosper::IBuffer::Map(Offset offset, Size size, MapFlags mapFlags, void **optOutMappedPtr) const
 {
 	if(offset + size > GetSize())
-		throw std::out_of_range {"Memory map range (offset: " + std::to_string(offset) + ", size: " + std::to_string(size) + ") out of bounds of buffer of size " + std::to_string(GetSize()) + "!"};
+		throw std::out_of_range {"Memory map range (offset: " + pragma::util::to_string(offset) + ", size: " + pragma::util::to_string(size) + ") out of bounds of buffer of size " + pragma::util::to_string(GetSize()) + "!"};
 	auto parent = GetParent();
 	if(parent != nullptr)
 		return parent->Map(GetStartOffset() + offset, size, mapFlags, optOutMappedPtr);

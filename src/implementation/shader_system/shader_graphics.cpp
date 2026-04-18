@@ -116,7 +116,7 @@ void prosper::ShaderGraphics::CreateCachedRenderPass(size_t hashCode, const util
 			if(debugName.empty() == false)
 				rp->SetDebugName(debugName);
 			else
-				rp->SetDebugName("shader_" + std::to_string(hashCode) + "_rp");
+				rp->SetDebugName("shader_" + pragma::util::to_string(hashCode) + "_rp");
 			if(itRp == rps.end()) {
 				rps.push_back({pipelineIdx, rp, renderPassInfo});
 				itRp = rps.end() - 1u;
@@ -153,7 +153,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 
 	static std::chrono::high_resolution_clock::duration accTime {0};
 	auto t = std::chrono::high_resolution_clock::now();
-	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", pragma::util::LogSeverity::Debug);
+	GetContext().Log("Initializing " + pragma::util::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", pragma::util::LogSeverity::Debug);
 	for(auto pipelineIdx = decltype(pipelineInfos.size()) {0}; pipelineIdx < pipelineInfos.size(); ++pipelineIdx) {
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
@@ -182,7 +182,7 @@ void prosper::ShaderGraphics::InitializePipeline()
 
 		if(gfxPipelineInfo == nullptr)
 			continue;
-		gfxPipelineInfo->SetName(GetIdentifier() +"_" +std::to_string(pipelineIdx));
+		gfxPipelineInfo->SetName(GetIdentifier() +"_" +pragma::util::to_string(pipelineIdx));
 		ToggleDynamicViewportState(*gfxPipelineInfo, true);
 		gfxPipelineInfo->SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
@@ -305,7 +305,7 @@ void prosper::ShaderGraphics::PrepareGfxPipeline(GraphicsPipelineCreateInfo &pip
 	}
 	for(auto &vertexBindingInfo : vertexBindingsInfo) {
 		if(pipelineInfo.AddVertexBinding(vertexBindingInfo.binding, vertexBindingInfo.stepRate, vertexBindingInfo.strideInBytes, vertexBindingInfo.attributes.size(), vertexBindingInfo.attributes.data()) == false)
-			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " + std::to_string(vertexBindingInfo.binding));
+			throw std::runtime_error("Unable to add graphics pipeline vertex attribute for binding " + pragma::util::to_string(vertexBindingInfo.binding));
 	}
 }
 void prosper::ShaderGraphics::InitializeRenderPass(std::shared_ptr<IRenderPass> &outRenderPass, uint32_t pipelineIdx) { CreateCachedRenderPass<ShaderGraphics>({{util::RenderPassCreateInfo::AttachmentInfo {}}}, outRenderPass, pipelineIdx); }
@@ -389,7 +389,7 @@ bool prosper::ShaderGraphics::RecordBindDescriptorSet(ShaderBindState &bindState
 				{
 					debug::exec_debug_validation_callback(
 						vk::DebugReportObjectTypeEXT::eImage,"Bind descriptor set: Image 0x" +::util::to_hex_string(reinterpret_cast<uint64_t>(img->get_image())) +
-						" at binding " +std::to_string(i) +", array index " +std::to_string(j) +" is multi-sampled with sample count of " +vk::to_string(imgSampleCount) +
+						" at binding " +pragma::util::to_string(i) +", array index " +pragma::util::to_string(j) +" is multi-sampled with sample count of " +vk::to_string(imgSampleCount) +
 						". Is this intended?"
 					);
 				}
@@ -456,8 +456,8 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 				{
 					debug::exec_debug_validation_callback(
 						GetContext(),DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound image '" +img.GetDebugName() +
-						"' (with sample count " +util::to_string(img.GetSampleCount()) +") and shader pipeline '" +
-						*GetDebugName(pipelineIdx) +"' (with sample count "+util::to_string(sampleCount) +")!"
+						"' (with sample count " +pragma::util::to_string(img.GetSampleCount()) +") and shader pipeline '" +
+						*GetDebugName(pipelineIdx) +"' (with sample count "+pragma::util::to_string(sampleCount) +")!"
 					);
 					return false;
 				}
@@ -467,8 +467,8 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 					{
 						debug::exec_debug_validation_callback(
 							GetContext(),DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
-							"' (with sample count " +util::to_string(rpSampleCount) +") and shader pipeline '" +
-							*GetDebugName(pipelineIdx) +"' (with sample count "+util::to_string(sampleCount) +")!"
+							"' (with sample count " +pragma::util::to_string(rpSampleCount) +") and shader pipeline '" +
+							*GetDebugName(pipelineIdx) +"' (with sample count "+pragma::util::to_string(sampleCount) +")!"
 						);
 						return false;
 					}
@@ -476,8 +476,8 @@ bool prosper::ShaderGraphics::RecordBeginDrawViewport(ShaderBindState &bindState
 					{
 						debug::exec_debug_validation_callback(
 							GetContext(),DebugReportObjectTypeEXT::Pipeline,"Begin draw: Incompatible sample count between currently bound render pass '" +rp->GetDebugName() +
-							"' (with sample count " +util::to_string(rpSampleCount) +") and render target attachment " +std::to_string(i) +" ('" +img.GetDebugName() +"')" +
-							" for image '" +img.GetDebugName() +"', which has sample count of " +util::to_string(sampleCount) +")!"
+							"' (with sample count " +pragma::util::to_string(rpSampleCount) +") and render target attachment " +pragma::util::to_string(i) +" ('" +img.GetDebugName() +"')" +
+							" for image '" +img.GetDebugName() +"', which has sample count of " +pragma::util::to_string(sampleCount) +")!"
 						);
 						return false;
 					}

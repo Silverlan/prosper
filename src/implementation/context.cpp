@@ -530,7 +530,7 @@ void prosper::IPrContext::CheckDeviceLimits()
 	auto limits = GetPhysicalDeviceLimits();
 	constexpr uint32_t reqMaxBoundDescriptorSets = 8; // TODO: This should be specified by the application
 	if(limits.maxBoundDescriptorSets && limits.maxBoundDescriptorSets < reqMaxBoundDescriptorSets) {
-		std::string msg = "maxBoundDescriptorSets is " + std::to_string(*limits.maxBoundDescriptorSets) + ", but minimum of " + std::to_string(reqMaxBoundDescriptorSets) + " is required!";
+		std::string msg = "maxBoundDescriptorSets is " + pragma::util::to_string(*limits.maxBoundDescriptorSets) + ", but minimum of " + pragma::util::to_string(reqMaxBoundDescriptorSets) + " is required!";
 		Log(msg);
 		throw std::logic_error(msg);
 	}

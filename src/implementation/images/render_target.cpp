@@ -45,10 +45,10 @@ void RenderTarget::SetDebugName(const std::string &name)
 	ContextObject::SetDebugName(name);
 	auto idx = 0u;
 	for(auto &tex : m_textures)
-		tex->SetDebugName(name + "_tex" + std::to_string(idx++));
+		tex->SetDebugName(name + "_tex" + pragma::util::to_string(idx++));
 	idx = 0u;
 	for(auto &fb : m_framebuffers)
-		fb->SetDebugName(name + "_fb" + std::to_string(idx++));
+		fb->SetDebugName(name + "_fb" + pragma::util::to_string(idx++));
 	if(m_renderPass != nullptr)
 		m_renderPass->SetDebugName(name + "_rp");
 }

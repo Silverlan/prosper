@@ -68,7 +68,7 @@ namespace prosper::debug {
 	    requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
 	std::unique_ptr<BaseDumpValue> dump(const T &val)
 	{
-		return std::make_unique<DataDumpValue>(std::to_string(val));
+		return std::make_unique<DataDumpValue>(pragma::util::to_string(val));
 	}
 
 	DLLPROSPER std::unique_ptr<BaseDumpValue> dump(const std::string &val);
@@ -117,7 +117,7 @@ namespace prosper::debug {
 		auto dv = std::make_unique<StructDumpValue>("std::vector");
 		size_t i = 0;
 		for(auto &v : vec)
-			dv->AddKeyValue("[" + std::to_string(i++) + "]", v);
+			dv->AddKeyValue("[" + pragma::util::to_string(i++) + "]", v);
 		return dv;
 	}
 
@@ -127,7 +127,7 @@ namespace prosper::debug {
 		auto dv = std::make_unique<StructDumpValue>("std::array");
 		size_t i = 0;
 		for(auto &v : arr)
-			dv->AddKeyValue("[" + std::to_string(i++) + "]", v);
+			dv->AddKeyValue("[" + pragma::util::to_string(i++) + "]", v);
 		return dv;
 	}
 

@@ -27,7 +27,7 @@ void prosper::ShaderCompute::InitializePipeline()
 	/* Configure the graphics pipeline */
 	auto *modCmp = GetStage(ShaderStage::Compute);
 	auto firstPipelineId = std::numeric_limits<PipelineID>::max();
-	GetContext().Log("Initializing " + std::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", pragma::util::LogSeverity::Debug);
+	GetContext().Log("Initializing " + pragma::util::to_string(pipelineInfos.size()) + " shader pipelines for shader '" + GetIdentifier() + "'...", pragma::util::LogSeverity::Debug);
 	for(auto pipelineIdx = decltype(pipelineInfos.size()) {0}; pipelineIdx < pipelineInfos.size(); ++pipelineIdx) {
 		if(ShouldInitializePipeline(pipelineIdx) == false)
 			continue;
@@ -47,7 +47,7 @@ void prosper::ShaderCompute::InitializePipeline()
 		auto computePipelineInfo = ComputePipelineCreateInfo::Create(createFlags, (modCmp != nullptr) ? *modCmp->entryPoint : ShaderModuleStageEntryPoint(), bIsDerivative ? &basePipelineId : nullptr);
 		if(computePipelineInfo == nullptr)
 			continue;
-		computePipelineInfo->SetName(GetIdentifier() +"_" +std::to_string(pipelineIdx));
+		computePipelineInfo->SetName(GetIdentifier() +"_" +pragma::util::to_string(pipelineIdx));
 		InitializeComputePipeline(*computePipelineInfo, pipelineIdx);
 		InitializeDescriptorSetGroups(*computePipelineInfo);
 
