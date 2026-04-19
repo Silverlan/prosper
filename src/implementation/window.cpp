@@ -137,8 +137,11 @@ float Window::GetAspectRatio() const { return m_aspectRatio; }
 
 std::expected<void, std::string> Window::UpdateWindow()
 {
-	if(m_scheduledWindowReloadInfo == nullptr)
+	if(m_scheduledWindowReloadInfo == nullptr) {
+		if(m_scheduledRenderTargetReloadTime && std::chrono::steady_clock::now() >= *m_scheduledRenderTargetReloadTime)
+			ReloadStagingRenderTarget();
 		return {};
+	}
 	GetContext().WaitIdle();
 	auto &creationInfo = m_settings;
 	if(m_scheduledWindowReloadInfo->windowedMode.has_value())
@@ -224,11 +227,14 @@ Window::WindowChangeInfo &Window::ScheduleWindowReload()
 	return *m_scheduledWindowReloadInfo;
 }
 
+void Window::ScheduleStagingRenderTargetReload(std::chrono::milliseconds delay) { m_scheduledRenderTargetReloadTime = std::chrono::steady_clock::now() + delay; }
+
 void Window::ReloadStagingRenderTarget()
 {
 	auto &context = GetContext();
 	context.WaitIdle();
 	m_stagingRenderTarget = nullptr;
+	m_scheduledRenderTargetReloadTime = {};
 
 	auto resolution = (*this)->GetSize();
 	resolution.x = pragma::math::max(resolution.x, 1);
@@ -253,16 +259,17 @@ void Window::ReloadStagingRenderTarget()
 	imgViewCreateInfo.aspectFlags = ImageAspectFlags::StencilBit;
 	auto depthStencilTex = context.CreateTexture({}, *depthStencilImg, imgViewCreateInfo);
 
-	auto rp = context.CreateRenderPass(util::RenderPassCreateInfo {
-	  {util::RenderPassCreateInfo::AttachmentInfo {colorFormat, ImageLayout::ColorAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::Store, SampleCountFlags::e1Bit, ImageLayout::ColorAttachmentOptimal},
-	    util::RenderPassCreateInfo::AttachmentInfo {depthStencilFormat, ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::DontCare, SampleCountFlags::e1Bit,
-	      ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::Clear, AttachmentStoreOp::Store}}});
+	auto rp = context.CreateRenderPass(util::RenderPassCreateInfo {{util::RenderPassCreateInfo::AttachmentInfo {colorFormat, ImageLayout::ColorAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::Store, SampleCountFlags::e1Bit, ImageLayout::ColorAttachmentOptimal},
+	  util::RenderPassCreateInfo::AttachmentInfo {depthStencilFormat, ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::DontCare, AttachmentStoreOp::DontCare, SampleCountFlags::e1Bit, ImageLayout::DepthStencilAttachmentOptimal, AttachmentLoadOp::Clear,
+	    AttachmentStoreOp::Store}}});
 
 	util::RenderTargetCreateInfo rtCreateInfo {};
 	rtCreateInfo.debugName = "engine_staging_rt";
 	m_stagingRenderTarget = context.CreateRenderTarget({stagingTex, depthStencilTex}, rp, rtCreateInfo); //,finalDepthTex},rp);
 	m_stagingRenderTarget->Bake();
-	// Vulkan TODO: Resize when window resolution was changed
+
+	if(m_stagingTargetReloadCallback)
+		m_stagingTargetReloadCallback();
 }
 
 pragma::platform::Window *Window::operator->() { return m_glfwWindow.get(); }

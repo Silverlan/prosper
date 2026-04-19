@@ -35,6 +35,7 @@ export namespace prosper {
 		std::shared_ptr<RenderTarget> &GetStagingRenderTarget();
 		const std::shared_ptr<RenderTarget> &GetStagingRenderTarget() const { return const_cast<Window *>(this)->GetStagingRenderTarget(); }
 		void ReloadStagingRenderTarget();
+		void ScheduleStagingRenderTargetReload(std::chrono::milliseconds delay = std::chrono::milliseconds {50});
 
 		void Close();
 		bool IsValid() const;
@@ -60,6 +61,9 @@ export namespace prosper {
 
 		void SetInitCallback(const std::function<void()> &callback) { m_initCallback = callback; }
 		const std::function<void()> &GetInitCallback() const { return m_initCallback; }
+
+		void SetStagingTargetReloadCallback(const std::function<void()> &callback) { m_stagingTargetReloadCallback = callback; }
+		const std::function<void()> &GetStagingTargetReloadCallback() const { return m_stagingTargetReloadCallback; }
 
 		void AddCloseListener(const std::function<void()> &callback) { m_closeListeners.push_back(callback); }
 		const std::vector<std::function<void()>> &GetCloseListeners() const { return m_closeListeners; }
@@ -98,8 +102,10 @@ export namespace prosper {
 		WindowChangeInfo &ScheduleWindowReload();
 		std::unique_ptr<WindowChangeInfo> m_scheduledWindowReloadInfo = nullptr;
 		std::vector<std::shared_ptr<IPrimaryCommandBuffer>> m_commandBuffers;
+		std::optional<std::chrono::steady_clock::time_point> m_scheduledRenderTargetReloadTime = {};
 
 		std::function<void()> m_initCallback = nullptr;
+		std::function<void()> m_stagingTargetReloadCallback = nullptr;
 		std::vector<std::function<void()>> m_closeListeners;
 		std::vector<std::function<void()>> m_closedListeners;
 		WindowSettings m_settings {};
