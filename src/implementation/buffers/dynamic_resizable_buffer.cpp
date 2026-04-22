@@ -236,7 +236,7 @@ bool IDynamicResizableBuffer::EnsureCapacity(DeviceSize requestSize, uint32_t al
 	if(m_freeRanges.empty() == false) {
 		auto &rangeLast = m_freeRanges.back();
 		if(rangeLast.startOffset + rangeLast.size == oldSize) {
-			rangeLast.size += m_baseSize - rangeLast.startOffset;
+			rangeLast.size = m_baseSize - rangeLast.startOffset;
 			bNewRange = false;
 		}
 	}
