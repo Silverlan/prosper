@@ -98,6 +98,7 @@ static bool translate_layout_ids(std::string &shader, const std::unordered_map<s
 // Including shader files can be expensive, so we cache all included files for the future
 static std::unordered_map<std::string, std::string> g_globalIncludeFileCache;
 static std::mutex g_globalIncludeFileCacheMutex;
+static std::atomic<bool> g_globalIncludeFileCacheEnabled = true;
 
 static bool glsl_preprocessing(const std::string &path, std::string &shader, const std::unordered_map<std::string, std::string> &definitions, std::string &outErr, std::unordered_set<std::string> &includeCache, std::vector<prosper::glsl::IncludeLine> &includeLines, unsigned int &lineId,
   std::stack<std::string> &includeStack, bool = false)
@@ -142,15 +143,17 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 				if(!useIncludeCache || includeCache.find(strPath) == includeCache.end()) {
 					includeCache.insert(strPath);
 
-					g_globalIncludeFileCacheMutex.lock();
-					auto it = g_globalIncludeFileCache.find(strPath);
-					auto isInCache = it != g_globalIncludeFileCache.end();
-					g_globalIncludeFileCacheMutex.unlock();
-					if(isInCache) {
-						shader = shader.substr(0, brLast) + it->second + shader.substr(br);
-						br = brLast + it->second.length();
-						len = shader.length();
-						continue;
+					if(g_globalIncludeFileCacheEnabled) {
+						g_globalIncludeFileCacheMutex.lock();
+						auto it = g_globalIncludeFileCache.find(strPath);
+						auto isInCache = it != g_globalIncludeFileCache.end();
+						g_globalIncludeFileCacheMutex.unlock();
+						if(isInCache) {
+							shader = shader.substr(0, brLast) + it->second + shader.substr(br);
+							br = brLast + it->second.length();
+							len = shader.length();
+							continue;
+						}
 					}
 					auto f = pragma::fs::open_file(includePath.GetString(), pragma::fs::FileMode::Read | pragma::fs::FileMode::Binary);
 					if(f != NULL) {
@@ -168,9 +171,11 @@ static bool glsl_preprocessing(const std::string &path, std::string &shader, con
 						includeStack.pop();
 						lineId--; // Why?
 						          //subShader = std::string("\n#line 1\n") +subShader +std::string("\n#line ") +util::to_string(lineId) +std::string("\n");
-						g_globalIncludeFileCacheMutex.lock();
-						g_globalIncludeFileCache[strPath] = subShader;
-						g_globalIncludeFileCacheMutex.unlock();
+						if(g_globalIncludeFileCacheEnabled) {
+							g_globalIncludeFileCacheMutex.lock();
+							g_globalIncludeFileCache[strPath] = subShader;
+							g_globalIncludeFileCacheMutex.unlock();
+						}
 						shader = shader.substr(0, brLast) + std::string("//") + l + std::string("\n") + subShader + shader.substr(br);
 						br = static_cast<uint32_t>(brLast) + static_cast<uint32_t>(l.length()) + 3 + static_cast<uint32_t>(subShader.length());
 					}
@@ -676,6 +681,9 @@ void prosper::glsl::dump_parsed_shader(IPrContext &context, uint32_t stage, cons
 		return;
 	fOut->WriteString(shaderCode);
 }
+
+void prosper::glsl::set_global_include_file_cache_enabled(bool enabled) { g_globalIncludeFileCacheEnabled = enabled; }
+bool prosper::glsl::is_global_include_file_cache_enabled() { return g_globalIncludeFileCacheEnabled; }
 
 const std::vector<std::string> &prosper::glsl::get_glsl_file_extensions()
 {

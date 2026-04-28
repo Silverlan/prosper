@@ -29,6 +29,8 @@ export namespace prosper {
 			std::string apiScreenSpaceTransform = "T"; // Arguments: T (mat4)
 			std::string apiDepthTransform = "T";       // Arguments: T (mat4)
 		};
+		DLLPROSPER void set_global_include_file_cache_enabled(bool enabled);
+		DLLPROSPER bool is_global_include_file_cache_enabled();
 		DLLPROSPER const std::vector<std::string> &get_glsl_file_extensions();
 		DLLPROSPER std::string get_shader_file_extension(ShaderStage stage);
 		DLLPROSPER bool is_glsl_file_extension(const std::string &ext);
