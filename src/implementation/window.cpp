@@ -40,7 +40,6 @@ void Window::Release()
 	m_guiCommandBufferGroup = nullptr;
 
 	m_stagingRenderTarget = nullptr;
-	m_lastSemaporeUsed = 0u;
 }
 
 void Window::Close()

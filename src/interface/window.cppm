@@ -117,7 +117,6 @@ export namespace prosper {
 		std::shared_ptr<RenderTarget> m_stagingRenderTarget = nullptr;
 		std::vector<std::shared_ptr<IImage>> m_swapchainImages {};
 		std::vector<std::shared_ptr<IFramebuffer>> m_swapchainFramebuffers {};
-		uint32_t m_lastSemaporeUsed = 0u;
 		bool m_closed = false;
 	};
 };
