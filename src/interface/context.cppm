@@ -144,6 +144,7 @@ export {
 				bool windowless = false;
 				bool enableDiagnostics = false;
 				std::optional<DeviceInfo> device = {};
+				uint8_t maxNumberOfFramesInFlight = 2;
 
 				std::unordered_map<std::string, ExtensionAvailability> extensions;
 				std::vector<std::string> layers;
@@ -214,6 +215,9 @@ export {
 			IImage *GetSwapchainImage(uint32_t idx);
 			IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
+			uint8_t GetFrameResourceIndex() const { return m_currentFrame; }
+			uint8_t GetMaxNumberOfFramesInFlight() const { return m_maxFramesInFlight; }
+
 			virtual bool IsImageFormatSupported(Format format, ImageUsageFlags usageFlags, ImageType type = ImageType::e2D, ImageTiling tiling = ImageTiling::Optimal) const = 0;
 			virtual uint32_t GetUniversalQueueFamilyIndex() const = 0;
 			virtual util::Limits GetPhysicalDeviceLimits() const = 0;
@@ -280,9 +284,13 @@ export {
 
 			bool IsRecording() const;
 
-			bool ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo = {});
+			bool ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo = {});
 			template<typename T>
-			bool ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo = {});
+			bool ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo = {});
+
+			bool ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo = {});
+			template<typename T>
+			bool ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo = {});
 
 			void WaitIdle(bool forceWait = true);
 			virtual void Flush() = 0;
@@ -295,6 +303,7 @@ export {
 			void ReleaseResource(void *resource);
 
 			virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr) = 0;
+			std::shared_ptr<SwapBuffer> CreateSwapBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr);
 			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data = nullptr,
 			  std::optional<DeviceSize> customAlignment = {});
 			virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) = 0;
@@ -309,7 +318,9 @@ export {
 			std::shared_ptr<IImage> CreateCubemap(std::array<std::shared_ptr<pragma::image::ImageBuffer>, 6> &imgBuffers, const std::optional<util::ImageCreateInfo> &imgCreateInfo = {});
 			virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo) = 0;
 			std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
-			virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) = 0;
+			std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
+			std::shared_ptr<SwapDescriptorSetGroup> CreateSwapDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
+			std::shared_ptr<SwapDescriptorSetGroup> CreateSwapDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
 			virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window, bool allowMt = true, const std::string &debugName = {}) = 0;
 			virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width, uint32_t height, uint32_t layers, const std::vector<IImageView *> &attachments) = 0;
 			virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader, uint32_t pipelineIdx = 0u) const = 0;
@@ -358,7 +369,7 @@ export {
 			virtual std::optional<std::string> DumpExtensions() const { return {}; }
 			virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const { return {}; }
 			virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const { return {}; }
-			virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const { return {}; }
+			virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicalDeviceMemoryProperties() const { return {}; }
 
 			//DLLPROSPER_VK std::vector<pragma::util::VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);
 			//DLLPROSPER_VK std::optional<pragma::util::PhysicalDeviceMemoryProperties> get_physical_device_memory_properties(const IPrContext &context);
@@ -423,6 +434,7 @@ export {
 			virtual void DoWaitIdle() = 0;
 			virtual void DoFlushCommandBuffer(ICommandBuffer &cmd) = 0;
 			virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, const void *data, DeviceSize bufferBaseSize, uint32_t alignment) = 0;
+			virtual std::shared_ptr<IDescriptorSetGroup> DoCreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo, size_t numDescSetGroups) = 0;
 			virtual void OnClose();
 			virtual void Release();
 			virtual void InitBuffers();
@@ -455,6 +467,9 @@ export {
 			std::shared_ptr<IPrimaryCommandBuffer> m_setupCmdBuffer = nullptr;
 			std::vector<ShaderPipeline> m_shaderPipelines;
 			std::unique_ptr<ShaderPipelineLoader> m_pipelineLoader;
+
+			uint8_t m_currentFrame = 0;
+			uint8_t m_maxFramesInFlight = 2;
 
 			std::function<void(const util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
 
@@ -497,7 +512,13 @@ export {
 		};
 
 		template<typename T>
-		bool IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
+		bool IPrContext::ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
+		{
+			return ScheduleRecordUpdateBuffer(buffer, offset, sizeof(data), &data, updateInfo);
+		}
+
+		template<typename T>
+		bool IPrContext::ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
 		{
 			return ScheduleRecordUpdateBuffer(buffer, offset, sizeof(data), &data, updateInfo);
 		}

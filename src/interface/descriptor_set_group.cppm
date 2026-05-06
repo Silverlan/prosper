@@ -181,6 +181,7 @@ export {
 			virtual ~IDescriptorSetGroup() override;
 			IDescriptorSet *GetDescriptorSet(uint32_t index = 0);
 			const IDescriptorSet *GetDescriptorSet(uint32_t index = 0) const;
+			virtual uint32_t GetDescriptorSetCount() const = 0;
 			uint32_t GetBindingCount() const;
 
 			const DescriptorSetCreateInfo &GetDescriptorSetCreateInfo() const;
@@ -192,15 +193,13 @@ export {
 
 		class SwapBuffer;
 		struct DescriptorSetInfo;
-		class DLLPROSPER SwapDescriptorSet : public std::enable_shared_from_this<SwapDescriptorSet> {
+		class DLLPROSPER SwapDescriptorSetGroup : public ContextObject, public std::enable_shared_from_this<SwapDescriptorSetGroup> {
 		  public:
-			using SubDescriptorSetIndex = uint32_t;
-			static std::shared_ptr<SwapDescriptorSet> Create(Window &window, std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
-			static std::shared_ptr<SwapDescriptorSet> Create(Window &window, const DescriptorSetInfo &descSetInfo);
-			IDescriptorSet &GetDescriptorSet(SubDescriptorSetIndex idx);
-			const IDescriptorSet &GetDescriptorSet(SubDescriptorSetIndex idx) const { return const_cast<SwapDescriptorSet *>(this)->GetDescriptorSet(idx); }
-			IDescriptorSet &GetDescriptorSet();
-			const IDescriptorSet &GetDescriptorSet() const { return const_cast<SwapDescriptorSet *>(this)->GetDescriptorSet(); }
+			static std::shared_ptr<SwapDescriptorSetGroup> Create(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg);
+			IDescriptorSet &GetDescriptorSet(uint32_t idx);
+			const IDescriptorSet &GetDescriptorSet(uint32_t idx) const { return const_cast<SwapDescriptorSetGroup *>(this)->GetDescriptorSet(idx); }
+			IDescriptorSet &GetCurrentDescriptorSet();
+			const IDescriptorSet &GetCurrentDescriptorSet() const { return const_cast<SwapDescriptorSetGroup *>(this)->GetCurrentDescriptorSet(); }
 
 			void SetBindingStorageImage(Texture &texture, uint32_t bindingIdx, uint32_t layerId);
 			void SetBindingStorageImage(Texture &texture, uint32_t bindingIdx);
@@ -211,22 +210,22 @@ export {
 			void SetBindingUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 			void SetBindingDynamicUniformBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 			void SetBindingStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingDynamicStorageBuffer(IBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 
 			void SetBindingUniformBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 			void SetBindingDynamicUniformBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 			void SetBindingStorageBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 
-			void Update();
-
 			IDescriptorSet *operator->();
-			const IDescriptorSet *operator->() const { return const_cast<SwapDescriptorSet *>(this)->operator->(); }
+			const IDescriptorSet *operator->() const { return const_cast<SwapDescriptorSetGroup *>(this)->operator->(); }
 			IDescriptorSet &operator*();
-			const IDescriptorSet &operator*() const { return const_cast<SwapDescriptorSet *>(this)->operator*(); }
+			const IDescriptorSet &operator*() const { return const_cast<SwapDescriptorSetGroup *>(this)->operator*(); }
+
+			IDescriptorSetGroup &GetDescriptorSetGroup() { return *m_dsg; }
+			const IDescriptorSetGroup &GetDescriptorSetGroup() const { return const_cast<SwapDescriptorSetGroup *>(this)->GetDescriptorSetGroup(); }
 		  private:
-			SwapDescriptorSet(Window &window, std::vector<std::shared_ptr<IDescriptorSetGroup>> &&dsgs);
-			std::vector<std::shared_ptr<IDescriptorSetGroup>> m_dsgs;
-			std::weak_ptr<Window> m_window {};
-			Window *m_windowPtr = nullptr;
+			SwapDescriptorSetGroup(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg);
+			std::shared_ptr<IDescriptorSetGroup> m_dsg;
 		};
 	};
 #pragma warning(pop)

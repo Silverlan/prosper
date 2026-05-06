@@ -68,7 +68,7 @@ export namespace prosper {
 	class ShaderRaytracing;
 	class StSwapCommandBufferGroup;
 	class SwapBuffer;
-	class SwapDescriptorSet;
+	class SwapDescriptorSetGroup;
 	class Texture;
 	class TimestampQuery;
 	class TimerQuery;

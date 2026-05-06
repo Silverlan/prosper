@@ -508,6 +508,22 @@ void prosper::IPrContext::CalcAlignedSizes(uint64_t instanceSize, uint64_t &buff
 	//maxTotalSize = alignedMaxTotalSize;
 }
 
+std::shared_ptr<prosper::SwapBuffer> prosper::IPrContext::CreateSwapBuffer(const util::BufferCreateInfo &createInfo, const void *data)
+{
+	auto &window = GetWindow();
+	auto numFramesInFlight = GetMaxNumberOfFramesInFlight();
+	std::vector<std::shared_ptr<IBuffer>> buffers;
+	buffers.reserve(numFramesInFlight);
+	for(size_t i = 0; i < numFramesInFlight; ++i) {
+		auto buf = CreateBuffer(createInfo, data);
+		if(!buf)
+			return nullptr;
+		buf->SetPermanentlyMapped(true, IBuffer::MapFlags::WriteBit | IBuffer::MapFlags::PersistentBit);
+		buffers.push_back(buf);
+	}
+	return SwapBuffer::Create(*this, std::move(buffers));
+}
+
 std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data, std::optional<DeviceSize> customAlignment)
 {
 	auto bufferBaseSize = createInfo.size;
@@ -538,6 +554,8 @@ void prosper::IPrContext::CheckDeviceLimits()
 
 std::expected<void, std::string> prosper::IPrContext::Initialize(const CreateInfo &createInfo)
 {
+	m_maxFramesInFlight = createInfo.maxNumberOfFramesInFlight;
+
 	if(createInfo.enableDiagnostics)
 		m_stateFlags |= StateFlags::DiagnosticsEnabled;
 	if(createInfo.windowless)
@@ -644,15 +662,15 @@ void prosper::IPrContext::InitDummyTextures()
 void prosper::IPrContext::SubmitCommandBuffer(ICommandBuffer &cmd, bool shouldBlock, IFence *fence) { SubmitCommandBuffer(cmd, cmd.GetQueueFamilyType(), shouldBlock, fence); }
 
 bool prosper::IPrContext::IsRecording() const { return pragma::math::is_flag_set(m_stateFlags, StateFlags::IsRecording); }
-bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuffer> &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo)
+bool prosper::IPrContext::ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo)
 {
 	if(size == 0u)
 		return true;
-	if((buffer->GetUsageFlags() & BufferUsageFlags::TransferDstBit) == BufferUsageFlags::None)
+	if((buffer.GetUsageFlags() & BufferUsageFlags::TransferDstBit) == BufferUsageFlags::None)
 		throw std::logic_error("Buffer has to have been created with VK_BUFFER_USAGE_TRANSFER_DST_BIT flag to allow buffer updates on command buffer!");
-	const auto fRecordSrcBarrier = [this, buffer, updateInfo, offset, size](ICommandBuffer &cmdBuffer) {
+	const auto fRecordSrcBarrier = [this, &buffer, updateInfo, offset, size](ICommandBuffer &cmdBuffer) {
 		if(updateInfo.srcAccessMask.has_value()) {
-			cmdBuffer.RecordBufferBarrier(*buffer, *updateInfo.srcStageMask, PipelineStageFlags::TransferBit, *updateInfo.srcAccessMask, AccessFlags::TransferWriteBit, offset, size);
+			cmdBuffer.RecordBufferBarrier(buffer, *updateInfo.srcStageMask, PipelineStageFlags::TransferBit, *updateInfo.srcAccessMask, AccessFlags::TransferWriteBit, offset, size);
 		}
 	};
 	const auto fUpdateBuffer = [](ICommandBuffer &cmdBuffer, IBuffer &buffer, const uint8_t *data, uint64_t offset, uint64_t size) {
@@ -699,10 +717,10 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuff
 		if(drawCmd->GetActiveRenderPassTargetInfo() == nullptr) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);
-			if(fUpdateBuffer(*drawCmd, *buffer, static_cast<const uint8_t *>(data), offset, size) == false)
+			if(fUpdateBuffer(*drawCmd, buffer, static_cast<const uint8_t *>(data), offset, size) == false)
 				return false;
 			if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value()) {
-				drawCmd->RecordBufferBarrier(*buffer, PipelineStageFlags::TransferBit, *updateInfo.postUpdateBarrierStageMask, AccessFlags::TransferWriteBit, *updateInfo.postUpdateBarrierAccessMask, offset, size);
+				drawCmd->RecordBufferBarrier(buffer, PipelineStageFlags::TransferBit, *updateInfo.postUpdateBarrierStageMask, AccessFlags::TransferWriteBit, *updateInfo.postUpdateBarrierAccessMask, offset, size);
 			}
 			return true;
 		}
@@ -710,13 +728,33 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(const std::shared_ptr<IBuff
 	// We'll have to make a copy of the data for later
 	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
 	memcpy(ptrData->data(), data, size);
-	m_scheduledBufferUpdates.push([buffer, fRecordSrcBarrier, fUpdateBuffer, offset, size, ptrData, updateInfo](ICommandBuffer &cmdBuffer) {
+	m_scheduledBufferUpdates.push([&buffer, fRecordSrcBarrier, fUpdateBuffer, offset, size, ptrData, updateInfo](ICommandBuffer &cmdBuffer) {
 		fRecordSrcBarrier(cmdBuffer);
-		fUpdateBuffer(cmdBuffer, *buffer, ptrData->data(), offset, size);
+		fUpdateBuffer(cmdBuffer, buffer, ptrData->data(), offset, size);
 
 		if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value()) {
-			cmdBuffer.RecordBufferBarrier(*buffer, PipelineStageFlags::TransferBit, *updateInfo.postUpdateBarrierStageMask, AccessFlags::TransferWriteBit, *updateInfo.postUpdateBarrierAccessMask, offset, size);
+			cmdBuffer.RecordBufferBarrier(buffer, PipelineStageFlags::TransferBit, *updateInfo.postUpdateBarrierStageMask, AccessFlags::TransferWriteBit, *updateInfo.postUpdateBarrierAccessMask, offset, size);
 		}
+	});
+	return true;
+}
+bool prosper::IPrContext::ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo)
+{
+	if(size == 0u)
+		return true;
+	const auto fUpdateBuffer = [](IBuffer &buffer, const uint8_t *data, uint64_t offset, uint64_t size) {
+		return buffer.Write(offset, size, data);
+	};
+
+	if(IsRecording()) {
+		// We're mid-frame already and can just update the buffer
+		return fUpdateBuffer(buffer.GetCurrentBuffer(), static_cast<const uint8_t *>(data), offset, size);
+	}
+	// We'll have to make a copy of the data for later
+	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
+	memcpy(ptrData->data(), data, size);
+	m_scheduledBufferUpdates.push([&buffer, fUpdateBuffer, offset, size, ptrData, updateInfo](ICommandBuffer &cmdBuffer) {
+		fUpdateBuffer(buffer.GetCurrentBuffer(), ptrData->data(), offset, size);
 	});
 	return true;
 }
