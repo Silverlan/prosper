@@ -7,6 +7,7 @@ export module pragma.prosper:buffer;
 export import :buffer.buffer;
 export import :buffer.buffer_create_info;
 export import :buffer.dynamic_resizable_buffer;
+export import :buffer.frame_scoped_buffer;
 export import :buffer.render_buffer;
 export import :buffer.resizable_buffer;
 export import :buffer.swap_buffer;

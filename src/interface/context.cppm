@@ -306,8 +306,7 @@ export {
 
 			virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr) = 0;
 			std::shared_ptr<SwapBuffer> CreateSwapBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr);
-			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data = nullptr,
-			  std::optional<DeviceSize> customAlignment = {});
+			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data = nullptr, std::optional<DeviceSize> customAlignment = {});
 			virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) = 0;
 			virtual std::shared_ptr<IEvent> CreateEvent() = 0;
 			virtual std::shared_ptr<IFence> CreateFence(bool createSignalled = false) = 0;
@@ -330,21 +329,17 @@ export {
 			  const std::optional<util::SamplerCreateInfo> &samplerCreateInfo = util::SamplerCreateInfo {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(const std::vector<std::shared_ptr<Texture>> &textures, const std::shared_ptr<IRenderPass> &rp = nullptr, const util::RenderTargetCreateInfo &rtCreateInfo = {});
 			std::shared_ptr<RenderTarget> CreateRenderTarget(Texture &texture, IImageView &imgView, IRenderPass &rp, const util::RenderTargetCreateInfo &rtCreateInfo = {});
-			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<IBuffer *> &buffers, const std::vector<DeviceSize> &offsets = {},
-			  const std::optional<IndexBufferInfo> &indexBufferInfo = {})
-			  = 0;
+			virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(const GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<IBuffer *> &buffers, const std::vector<DeviceSize> &offsets = {}, const std::optional<IndexBufferInfo> &indexBufferInfo = {}) = 0;
 			virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(const std::shared_ptr<ShaderStageProgram> &shaderStageProgram, ShaderStage stage, const std::string &entrypointName = "main") = 0;
 			virtual std::shared_ptr<ShaderStageProgram> CompileShader(ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload = false, const std::string &prefixCode = {},
-			  const std::unordered_map<std::string, std::string> &definitions = {})
-			  = 0;
+			  const std::unordered_map<std::string, std::string> &definitions = {}) = 0;
 			virtual std::optional<std::unordered_map<ShaderStage, std::string>> OptimizeShader(const std::unordered_map<ShaderStage, std::string> &shaderStages, std::string &outInfoLog) { return {}; }
 			virtual bool GetParsedShaderSourceCode(Shader &shader, std::vector<std::string> &outGlslCodePerStage, std::vector<ShaderStage> &outGlslCodeStages, std::string &outInfoLog, std::string &outDebugInfoLog, ShaderStage &outErrStage) const = 0;
 			std::optional<std::string> FindShaderFile(ShaderStage stage, const std::string &fileName, std::string *optOutExt = nullptr);
 			virtual std::optional<PipelineID> AddPipeline(Shader &shader, PipelineID shaderPipelineId, const ComputePipelineCreateInfo &createInfo, ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			virtual std::optional<PipelineID> AddPipeline(Shader &shader, PipelineID shaderPipelineId, const RayTracingPipelineCreateInfo &createInfo, ShaderStageData &stage, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			virtual std::optional<PipelineID> AddPipeline(Shader &shader, PipelineID shaderPipelineId, const GraphicsPipelineCreateInfo &createInfo, IRenderPass &rp, ShaderStageData *shaderStageFs = nullptr, ShaderStageData *shaderStageVs = nullptr,
-			  ShaderStageData *shaderStageGs = nullptr, ShaderStageData *shaderStageTc = nullptr, ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max())
-			  = 0;
+			  ShaderStageData *shaderStageGs = nullptr, ShaderStageData *shaderStageTc = nullptr, ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			Shader *GetShaderPipeline(PipelineID id, uint32_t &outPipelineIdx) const;
 			virtual bool ClearPipeline(bool graphicsShader, PipelineID pipelineId) = 0;
 			uint32_t GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
