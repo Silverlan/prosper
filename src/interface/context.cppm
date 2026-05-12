@@ -157,6 +157,7 @@ export {
 
 			template<class TContext>
 			static std::shared_ptr<TContext> Create(const std::string &appName, uint32_t width, uint32_t height, bool bEnableValidation = false);
+			static uint8_t GetFrameResourceFlag(uint8_t frameResourceIndex) { return 1u << frameResourceIndex; }
 			virtual ~IPrContext();
 
 			virtual std::expected<void, std::string> Initialize(const CreateInfo &createInfo);
@@ -216,6 +217,7 @@ export {
 			IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
 			uint8_t GetFrameResourceIndex() const { return m_currentFrame; }
+			uint8_t GetFrameResourceFlag() const { return GetFrameResourceFlag(GetFrameResourceIndex()); }
 			uint8_t GetMaxNumberOfFramesInFlight() const { return m_maxFramesInFlight; }
 
 			virtual bool IsImageFormatSupported(Format format, ImageUsageFlags usageFlags, ImageType type = ImageType::e2D, ImageTiling tiling = ImageTiling::Optimal) const = 0;
