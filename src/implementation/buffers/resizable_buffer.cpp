@@ -39,8 +39,11 @@ bool IResizableBuffer::ReallocateMemory(size_t requiredSize)
 	if(m_reallocationBehavior == ReallocationBehavior::SafelyFreeOldBuffer)
 		ReleaseBufferSafely();
 
-	for(auto *subBuffer : m_allocatedSubBuffers)
+	for(auto *subBuffer : m_allocatedSubBuffers) {
+		if(!subBuffer)
+			continue;
 		subBuffer->RecreateInternalSubBuffer(*newBuffer);
+	}
 	newBuffer->Write(0ull, oldData.size(), oldData.data());
 	MoveInternalBuffer(*newBuffer);
 	m_size = m_baseSize;
