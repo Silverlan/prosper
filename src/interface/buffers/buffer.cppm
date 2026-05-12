@@ -53,6 +53,7 @@ export {
 			void SetPermanentlyMapped(bool b, MapFlags mapFlags);
 			bool Map(Offset offset, Size size, MapFlags mapFlags, void **optOutMappedPtr = nullptr) const;
 			bool Unmap() const;
+			virtual void *GetMappedDataPointer() = 0;
 
 			virtual std::shared_ptr<IBuffer> CreateSubBuffer(DeviceSize offset, DeviceSize size, const std::function<void(IBuffer &)> &onDestroyedCallback = nullptr) = 0;
 
