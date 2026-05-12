@@ -36,15 +36,25 @@ uint64_t IUniformResizableBuffer::GetStride() const
 	return util::get_aligned_size(m_bufferInstanceSize, m_alignment);
 }
 
-const std::vector<IBuffer *> &IUniformResizableBuffer::GetAllocatedSubBuffers() const { return m_allocatedSubBuffers; }
+const std::vector<IBuffer *> &IUniformResizableBuffer::GetSubBufferTable() const { return m_allocatedSubBuffers; }
 uint64_t IUniformResizableBuffer::GetAssignedMemory() const
 {
 	std::unique_lock lock {m_bufferMutex};
 	return m_assignedMemory;
 }
 uint32_t IUniformResizableBuffer::GetTotalInstanceCount() const { return m_allocatedSubBuffers.size(); }
+uint32_t IUniformResizableBuffer::GetAllocatedInstanceCount() const { return (m_assignedMemory / util::get_aligned_size(m_bufferInstanceSize, m_alignment)) - m_freeOffsets.size(); }
+uint32_t IUniformResizableBuffer::GetFreeInstanceCount() const { return GetTotalInstanceCount() -GetAllocatedInstanceCount(); }
 
-bool IUniformResizableBuffer::EnsureCapacity(uint32_t instanceCount)
+bool IUniformResizableBuffer::EnsureFreeCapacity(uint32_t instanceCount)
+{
+	auto numFreeInstances = GetFreeInstanceCount();
+	if(instanceCount <= numFreeInstances)
+		return false;
+	auto capacityIncrease = instanceCount -numFreeInstances;
+	return IncreaseCapacity(capacityIncrease);
+}
+bool IUniformResizableBuffer::IncreaseCapacity(uint32_t instanceCount)
 {
 	std::scoped_lock lock {m_bufferMutex};
 	auto baseAlignedInstanceSize = util::get_aligned_size(m_bufferInstanceSize, m_alignment);
@@ -77,7 +87,7 @@ std::shared_ptr<IBuffer> IUniformResizableBuffer::AllocateBuffer(const void *dat
 		bUseExistingSlot = true;
 	}
 	else {
-		if(m_assignedMemory + alignedInstanceSize > m_baseSize && EnsureCapacity(1) == false)
+		if(m_assignedMemory + alignedInstanceSize > m_baseSize && IncreaseCapacity(1) == false)
 			return nullptr;
 		offset = m_assignedMemory;
 	}

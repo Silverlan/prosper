@@ -215,8 +215,7 @@ void IDynamicResizableBuffer::DebugPrint(std::stringstream &strFilledData, std::
 	for(auto &v : data)
 		(*bufferData) << +v;
 }
-
-bool IDynamicResizableBuffer::EnsureCapacity(DeviceSize requestSize, uint32_t alignment)
+bool IDynamicResizableBuffer::IncreaseCapacity(DeviceSize requestSize, uint32_t alignment)
 {
 	if(requestSize == 0ull)
 		return true;
@@ -269,7 +268,7 @@ std::shared_ptr<IBuffer> IDynamicResizableBuffer::AllocateBuffer(DeviceSize requ
 			MarkMemoryRangeAsFree(offset + requestSize, (rangeStartOffset + rangeSize) - (offset + requestSize)); // Posterior range
 	}
 	else {
-		if(reallocateIfNoSpaceAvailable == false || EnsureCapacity(requestSize, alignment) == false)
+		if(reallocateIfNoSpaceAvailable == false || IncreaseCapacity(requestSize, alignment) == false)
 			return nullptr;
 		return AllocateBuffer(requestSize, alignment, data);
 	}

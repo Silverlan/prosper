@@ -11,7 +11,8 @@ export {
 	namespace prosper {
 		class DLLPROSPER IUniformResizableBuffer : public IResizableBuffer {
 		  public:
-			bool EnsureCapacity(uint32_t instanceCount);
+			bool IncreaseCapacity(uint32_t instanceCount);
+			bool EnsureFreeCapacity(uint32_t instanceCount);
 			std::shared_ptr<IBuffer> AllocateBuffer(const void *data = nullptr);
 
 			uint64_t GetInstanceSize() const;
@@ -19,10 +20,12 @@ export {
 			uint64_t GetStride() const;
 
 			// This is *not* thread-safe!
-			const std::vector<IBuffer *> &GetAllocatedSubBuffers() const;
+			const std::vector<IBuffer *> &GetSubBufferTable() const;
 
 			uint64_t GetAssignedMemory() const;
 			uint32_t GetTotalInstanceCount() const;
+			uint32_t GetAllocatedInstanceCount() const;
+			uint32_t GetFreeInstanceCount() const;
 		  protected:
 			IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint32_t alignment);
 			uint64_t m_bufferInstanceSize = 0ull; // Size of each sub-buffer
