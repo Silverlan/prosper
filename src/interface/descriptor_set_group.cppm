@@ -195,6 +195,40 @@ export {
 		struct DescriptorSetInfo;
 		class DLLPROSPER SwapDescriptorSetGroup : public ContextObject, public std::enable_shared_from_this<SwapDescriptorSetGroup> {
 		  public:
+			template<typename T, typename Parent>
+			class Iterator {
+			  public:
+				using iterator_category = std::forward_iterator_tag;
+				using value_type = T;
+				using difference_type = std::ptrdiff_t;
+				using pointer = T *;
+				using reference = T &;
+
+				Iterator(Parent *owner, uint32_t index) : m_owner {owner}, m_index {index} {}
+
+				reference operator*() const { return m_owner->GetDescriptorSet(m_index); }
+				pointer operator->() const { return &m_owner->GetDescriptorSet(m_index); }
+
+				Iterator &operator++()
+				{
+					m_index++;
+					return *this;
+				}
+
+				Iterator operator++(int)
+				{
+					Iterator tmp = *this;
+					++(*this);
+					return tmp;
+				}
+
+				bool operator==(const Iterator &other) const { return m_index == other.m_index; }
+				bool operator!=(const Iterator &other) const { return !(*this == other); }
+			  private:
+				Parent *m_owner;
+				uint32_t m_index;
+			};
+
 			static std::shared_ptr<SwapDescriptorSetGroup> Create(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg);
 			IDescriptorSet &GetDescriptorSet(uint32_t idx);
 			const IDescriptorSet &GetDescriptorSet(uint32_t idx) const { return const_cast<SwapDescriptorSetGroup *>(this)->GetDescriptorSet(idx); }
@@ -223,6 +257,18 @@ export {
 
 			IDescriptorSetGroup &GetDescriptorSetGroup() { return *m_dsg; }
 			const IDescriptorSetGroup &GetDescriptorSetGroup() const { return const_cast<SwapDescriptorSetGroup *>(this)->GetDescriptorSetGroup(); }
+
+			using iterator = Iterator<IDescriptorSet, SwapDescriptorSetGroup>;
+			using const_iterator = Iterator<const IDescriptorSet, const SwapDescriptorSetGroup>;
+
+			iterator begin() { return iterator(this, 0); }
+			iterator end() { return iterator(this, static_cast<uint32_t>(m_dsg->GetDescriptorSetCount())); }
+
+			const_iterator begin() const { return const_iterator {this, 0}; }
+			const_iterator end() const { return const_iterator {this, static_cast<uint32_t>(m_dsg->GetDescriptorSetCount())}; }
+
+			const_iterator cbegin() const { return begin(); }
+			const_iterator cend() const { return end(); }
 		  private:
 			SwapDescriptorSetGroup(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg);
 			std::shared_ptr<IDescriptorSetGroup> m_dsg;
