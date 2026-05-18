@@ -6,10 +6,13 @@ module;
 module pragma.prosper;
 
 import :context_object;
+import :debug.object_register;
 
 using namespace prosper;
 
-ContextObject::ContextObject(IPrContext &context) : m_wpContext(context.shared_from_this()) {}
+ContextObject::ContextObject(IPrContext &context) : m_wpContext(context.shared_from_this()) { debug::ObjectRegister::register_context_object(*this); }
+
+ContextObject::~ContextObject() { debug::ObjectRegister::unregister_context_object(*this); }
 
 IPrContext &ContextObject::GetContext() const { return *(m_wpContext.lock()); }
 

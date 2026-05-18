@@ -9,8 +9,9 @@ module pragma.prosper;
 
 import :buffer.swap_buffer;
 
-std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IPrContext &context, IUniformResizableBuffer &buffer, const void *data)
+std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IUniformResizableBuffer &buffer, const void *data)
 {
+	auto &context = buffer.GetContext();
 	auto numBuffers = context.GetMaxNumberOfFramesInFlight();
 	std::vector<std::shared_ptr<IBuffer>> buffers;
 	buffers.reserve(numBuffers);
@@ -23,19 +24,20 @@ std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IPrContext &con
 	return std::shared_ptr<SwapBuffer> {new SwapBuffer {context, std::move(buffers)}};
 }
 
-std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IPrContext &context, IDynamicResizableBuffer &buffer, DeviceSize size, uint32_t instanceCount)
+std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IDynamicResizableBuffer &buffer, DeviceSize size)
 {
+	auto &context = buffer.GetContext();
 	auto numBuffers = context.GetMaxNumberOfFramesInFlight();
 	auto alignedSize = util::get_aligned_size(size, buffer.GetAlignment());
 	std::vector<std::shared_ptr<IBuffer>> buffers;
 	buffers.reserve(numBuffers);
 	for(auto i = decltype(numBuffers) {0u}; i < numBuffers; ++i)
-		buffers.push_back(buffer.AllocateBuffer(alignedSize * instanceCount));
+		buffers.push_back(buffer.AllocateBuffer(alignedSize));
 	return std::shared_ptr<SwapBuffer> {new SwapBuffer {context, std::move(buffers)}};
 }
 std::shared_ptr<prosper::SwapBuffer> prosper::SwapBuffer::Create(IPrContext &context, std::vector<std::shared_ptr<IBuffer>> &&buffers) { return std::shared_ptr<SwapBuffer> {new SwapBuffer {context, std::move(buffers)}}; }
 
-prosper::SwapBuffer::SwapBuffer(IPrContext &context, std::vector<std::shared_ptr<IBuffer>> &&buffers) : ContextObject{context}, m_buffers {std::move(buffers)}
+prosper::SwapBuffer::SwapBuffer(IPrContext &context, std::vector<std::shared_ptr<IBuffer>> &&buffers) : ContextObject {context}, m_buffers {std::move(buffers)}
 {
 	assert(!m_buffers.empty());
 	assert(window.GetSwapchainImageCount() == m_buffers.size());
@@ -70,5 +72,10 @@ prosper::IBuffer &prosper::SwapBuffer::Write(IBuffer::Offset offset, IBuffer::Si
 		buf.Write(offset, size, data);
 	}
 	return buf;
+}
+bool prosper::SwapBuffer::IsCurrentBufferDirty() const
+{
+	auto flag = GetCurrentBufferFlag();
+	return (m_buffersDirty & flag) != 0;
 }
 bool prosper::SwapBuffer::IsDirty() const { return m_buffersDirty != 0; }

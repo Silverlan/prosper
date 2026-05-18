@@ -19,8 +19,13 @@ uint32_t IDescriptorSetGroup::GetBindingCount() const { return GetDescriptorSetC
 
 const DescriptorSetCreateInfo &IDescriptorSetGroup::GetDescriptorSetCreateInfo() const { return m_createInfo; }
 
-IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) { return m_descriptorSets.at(index).get(); }
-const IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) const { return const_cast<IDescriptorSetGroup *>(this)->GetDescriptorSet(index); }
+IDescriptorSet *IDescriptorSetGroup::GetDescriptorSet(uint32_t index) const { return m_descriptorSets.at(index).get(); }
+std::shared_ptr<IDescriptorSet> IDescriptorSetGroup::GetDescriptorSetPtr(uint32_t index) const
+{
+	if(index >= m_descriptorSets.size())
+		return nullptr;
+	return m_descriptorSets[index];
+}
 
 ShaderModuleStageEntryPoint::ShaderModuleStageEntryPoint(const ShaderModuleStageEntryPoint &in) : name {in.name}, shader_module_ptr {in.shader_module_ptr}, stage {in.stage} {}
 
@@ -538,7 +543,13 @@ DescriptorSetBindingDynamicStorageBuffer::DescriptorSetBindingDynamicStorageBuff
 
 ///////////////////
 
-std::shared_ptr<SwapDescriptorSetGroup> SwapDescriptorSetGroup::Create(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg) { return std::shared_ptr<SwapDescriptorSetGroup> {new SwapDescriptorSetGroup {context, dsg}}; }
+std::shared_ptr<SwapDescriptorSetGroup> SwapDescriptorSetGroup::Create(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg, const SwapDescriptorSetGroupCreateInfo &createInfo)
+{
+	auto swapDsg = std::shared_ptr<SwapDescriptorSetGroup> {new SwapDescriptorSetGroup {context, dsg}};
+	swapDsg->SetDebugName(createInfo.debugName);
+	dsg->SetDebugName(createInfo.debugName);
+	return swapDsg;
+}
 
 SwapDescriptorSetGroup::SwapDescriptorSetGroup(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg) : ContextObject {context}, m_dsg {dsg} {}
 IDescriptorSet *SwapDescriptorSetGroup::operator->()
@@ -548,7 +559,8 @@ IDescriptorSet *SwapDescriptorSetGroup::operator->()
 }
 IDescriptorSet &SwapDescriptorSetGroup::operator*() { return *operator->(); }
 IDescriptorSet &SwapDescriptorSetGroup::GetCurrentDescriptorSet() { return operator*(); }
-IDescriptorSet &SwapDescriptorSetGroup::GetDescriptorSet(uint32_t idx) { return *m_dsg->GetDescriptorSet(idx); }
+IDescriptorSet &SwapDescriptorSetGroup::GetDescriptorSet(uint32_t idx) const { return *m_dsg->GetDescriptorSet(idx); }
+std::shared_ptr<IDescriptorSet> SwapDescriptorSetGroup::GetDescriptorSetPtr(uint32_t index) const { return m_dsg->GetDescriptorSetPtr(index); }
 void SwapDescriptorSetGroup::SetBindingStorageImage(Texture &texture, uint32_t bindingIdx, uint32_t layerId)
 {
 	auto n = m_dsg->GetDescriptorSetCount();
@@ -627,4 +639,35 @@ void SwapDescriptorSetGroup::SetBindingStorageBuffer(SwapBuffer &buffer, uint32_
 	auto n = m_dsg->GetDescriptorSetCount();
 	for(size_t i = 0; i < n; ++i)
 		m_dsg->GetDescriptorSet(i)->SetBindingStorageBuffer(buffer.GetBuffer(i), bindingIdx, startOffset, size);
+}
+void SwapDescriptorSetGroup::SetBindingDynamicStorageBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size)
+{
+	auto n = m_dsg->GetDescriptorSetCount();
+	for(size_t i = 0; i < n; ++i)
+		m_dsg->GetDescriptorSet(i)->SetBindingDynamicStorageBuffer(buffer.GetBuffer(i), bindingIdx, startOffset, size);
+}
+
+void SwapDescriptorSetGroup::SetBindingUniformBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size)
+{
+	auto n = m_dsg->GetDescriptorSetCount();
+	for(size_t i = 0; i < n; ++i)
+		m_dsg->GetDescriptorSet(i)->SetBindingUniformBuffer(buffer.GetBuffer(i), bindingIdx, startOffset, size);
+}
+void SwapDescriptorSetGroup::SetBindingDynamicUniformBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size)
+{
+	auto n = m_dsg->GetDescriptorSetCount();
+	for(size_t i = 0; i < n; ++i)
+		m_dsg->GetDescriptorSet(i)->SetBindingDynamicUniformBuffer(buffer.GetBuffer(i), bindingIdx, startOffset, size);
+}
+void SwapDescriptorSetGroup::SetBindingStorageBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size)
+{
+	auto n = m_dsg->GetDescriptorSetCount();
+	for(size_t i = 0; i < n; ++i)
+		m_dsg->GetDescriptorSet(i)->SetBindingStorageBuffer(buffer.GetBuffer(i), bindingIdx, startOffset, size);
+}
+void SwapDescriptorSetGroup::SetBindingDynamicStorageBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset, uint64_t size)
+{
+	auto n = m_dsg->GetDescriptorSetCount();
+	for(size_t i = 0; i < n; ++i)
+		m_dsg->GetDescriptorSet(i)->SetBindingDynamicStorageBuffer(buffer.GetBuffer(i), bindingIdx, startOffset, size);
 }

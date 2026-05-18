@@ -20,6 +20,7 @@ export {
 	namespace prosper {
 		class IUniformResizableBuffer;
 		class IDynamicResizableBuffer;
+		class IResizableBuffer;
 
 		class DLLPROSPER IBuffer : public ContextObject, public std::enable_shared_from_this<IBuffer> {
 		  public:
@@ -86,6 +87,7 @@ export {
 		  protected:
 			friend IUniformResizableBuffer;
 			friend IDynamicResizableBuffer;
+			friend IResizableBuffer;
 			virtual void OnRelease() override;
 
 			virtual bool DoWrite(Offset offset, Size size, const void *data) const = 0;

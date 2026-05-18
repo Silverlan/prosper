@@ -9,7 +9,7 @@ export {
 #pragma warning(push)
 #pragma warning(disable : 4251)
 	namespace prosper {
-		class DLLPROSPER IUniformResizableBuffer : public IResizableBuffer {
+		class DLLPROSPER IUniformResizableBuffer : public IBaseResizableBuffer {
 		  public:
 			bool IncreaseCapacity(uint32_t instanceCount);
 			bool EnsureFreeCapacity(uint32_t instanceCount);

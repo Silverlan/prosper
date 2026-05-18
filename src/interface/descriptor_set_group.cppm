@@ -176,25 +176,6 @@ export {
 
 		class DLLPROSPER IDescriptorSetGroup : public ContextObject, public std::enable_shared_from_this<IDescriptorSetGroup> {
 		  public:
-			IDescriptorSetGroup(const IDescriptorSetGroup &) = delete;
-			IDescriptorSetGroup &operator=(const IDescriptorSetGroup &) = delete;
-			virtual ~IDescriptorSetGroup() override;
-			IDescriptorSet *GetDescriptorSet(uint32_t index = 0);
-			const IDescriptorSet *GetDescriptorSet(uint32_t index = 0) const;
-			virtual uint32_t GetDescriptorSetCount() const = 0;
-			uint32_t GetBindingCount() const;
-
-			const DescriptorSetCreateInfo &GetDescriptorSetCreateInfo() const;
-		  protected:
-			IDescriptorSetGroup(IPrContext &context, const DescriptorSetCreateInfo &createInfo);
-			std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
-			DescriptorSetCreateInfo m_createInfo;
-		};
-
-		class SwapBuffer;
-		struct DescriptorSetInfo;
-		class DLLPROSPER SwapDescriptorSetGroup : public ContextObject, public std::enable_shared_from_this<SwapDescriptorSetGroup> {
-		  public:
 			template<typename T, typename Parent>
 			class Iterator {
 			  public:
@@ -229,9 +210,41 @@ export {
 				uint32_t m_index;
 			};
 
-			static std::shared_ptr<SwapDescriptorSetGroup> Create(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg);
-			IDescriptorSet &GetDescriptorSet(uint32_t idx);
-			const IDescriptorSet &GetDescriptorSet(uint32_t idx) const { return const_cast<SwapDescriptorSetGroup *>(this)->GetDescriptorSet(idx); }
+			IDescriptorSetGroup(const IDescriptorSetGroup &) = delete;
+			IDescriptorSetGroup &operator=(const IDescriptorSetGroup &) = delete;
+			virtual ~IDescriptorSetGroup() override;
+			IDescriptorSet *GetDescriptorSet(uint32_t index = 0) const;
+			std::shared_ptr<IDescriptorSet> GetDescriptorSetPtr(uint32_t index = 0) const;
+			virtual uint32_t GetDescriptorSetCount() const = 0;
+			uint32_t GetBindingCount() const;
+
+			const DescriptorSetCreateInfo &GetDescriptorSetCreateInfo() const;
+
+			using iterator = Iterator<IDescriptorSet, IDescriptorSetGroup>;
+			using const_iterator = Iterator<const IDescriptorSet, const IDescriptorSetGroup>;
+
+			iterator begin() { return iterator(this, 0); }
+			iterator end() { return iterator(this, static_cast<uint32_t>(GetDescriptorSetCount())); }
+
+			const_iterator begin() const { return const_iterator {this, 0}; }
+			const_iterator end() const { return const_iterator {this, static_cast<uint32_t>(GetDescriptorSetCount())}; }
+
+			const_iterator cbegin() const { return begin(); }
+			const_iterator cend() const { return end(); }
+		  protected:
+			IDescriptorSetGroup(IPrContext &context, const DescriptorSetCreateInfo &createInfo);
+			std::vector<std::shared_ptr<IDescriptorSet>> m_descriptorSets = {};
+			DescriptorSetCreateInfo m_createInfo;
+		};
+
+		class SwapBuffer;
+		class InFlightIndexedBuffer;
+		struct DescriptorSetInfo;
+		class DLLPROSPER SwapDescriptorSetGroup : public ContextObject, public std::enable_shared_from_this<SwapDescriptorSetGroup> {
+		  public:
+			static std::shared_ptr<SwapDescriptorSetGroup> Create(IPrContext &context, const std::shared_ptr<IDescriptorSetGroup> &dsg, const SwapDescriptorSetGroupCreateInfo &createInfo = {});
+			IDescriptorSet &GetDescriptorSet(uint32_t idx) const;
+			std::shared_ptr<IDescriptorSet> GetDescriptorSetPtr(uint32_t index) const;
 			IDescriptorSet &GetCurrentDescriptorSet();
 			const IDescriptorSet &GetCurrentDescriptorSet() const { return const_cast<SwapDescriptorSetGroup *>(this)->GetCurrentDescriptorSet(); }
 
@@ -249,6 +262,12 @@ export {
 			void SetBindingUniformBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 			void SetBindingDynamicUniformBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 			void SetBindingStorageBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingDynamicStorageBuffer(SwapBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+
+			void SetBindingUniformBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingDynamicUniformBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingStorageBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
+			void SetBindingDynamicStorageBuffer(InFlightIndexedBuffer &buffer, uint32_t bindingIdx, uint64_t startOffset = 0ull, uint64_t size = std::numeric_limits<uint64_t>::max());
 
 			IDescriptorSet *operator->();
 			const IDescriptorSet *operator->() const { return const_cast<SwapDescriptorSetGroup *>(this)->operator->(); }
@@ -258,8 +277,8 @@ export {
 			IDescriptorSetGroup &GetDescriptorSetGroup() { return *m_dsg; }
 			const IDescriptorSetGroup &GetDescriptorSetGroup() const { return const_cast<SwapDescriptorSetGroup *>(this)->GetDescriptorSetGroup(); }
 
-			using iterator = Iterator<IDescriptorSet, SwapDescriptorSetGroup>;
-			using const_iterator = Iterator<const IDescriptorSet, const SwapDescriptorSetGroup>;
+			using iterator = IDescriptorSetGroup::Iterator<IDescriptorSet, SwapDescriptorSetGroup>;
+			using const_iterator = IDescriptorSetGroup::Iterator<const IDescriptorSet, const SwapDescriptorSetGroup>;
 
 			iterator begin() { return iterator(this, 0); }
 			iterator end() { return iterator(this, static_cast<uint32_t>(m_dsg->GetDescriptorSetCount())); }

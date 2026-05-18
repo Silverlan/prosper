@@ -56,6 +56,7 @@ export {
 		class IDescriptorSet;
 		class IUniformResizableBuffer;
 		class IDynamicResizableBuffer;
+		class IResizableBuffer;
 		class ISampler;
 		class IImageView;
 		class IImage;
@@ -217,6 +218,7 @@ export {
 			IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
 			uint8_t GetFrameResourceIndex() const { return m_currentFrame; }
+			uint8_t GetPreviousFrameResourceIndex(uint8_t curIdx) const { return (curIdx == 0) ? (GetMaxNumberOfFramesInFlight() - 1) : (curIdx - 1); }
 			uint8_t GetFrameResourceFlag() const { return GetFrameResourceFlag(GetFrameResourceIndex()); }
 			uint8_t GetMaxNumberOfFramesInFlight() const { return m_maxFramesInFlight; }
 
@@ -308,6 +310,7 @@ export {
 			std::shared_ptr<SwapBuffer> CreateSwapBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr);
 			std::shared_ptr<IUniformResizableBuffer> CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data = nullptr, std::optional<DeviceSize> customAlignment = {});
 			virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) = 0;
+			virtual std::shared_ptr<IResizableBuffer> CreateResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) = 0;
 			virtual std::shared_ptr<IEvent> CreateEvent() = 0;
 			virtual std::shared_ptr<IFence> CreateFence(bool createSignalled = false) = 0;
 			virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo) = 0;
@@ -320,8 +323,8 @@ export {
 			virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo) = 0;
 			std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
 			std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
-			std::shared_ptr<SwapDescriptorSetGroup> CreateSwapDescriptorSetGroup(const DescriptorSetInfo &descSetInfo);
-			std::shared_ptr<SwapDescriptorSetGroup> CreateSwapDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo);
+			std::shared_ptr<SwapDescriptorSetGroup> CreateSwapDescriptorSetGroup(const DescriptorSetInfo &descSetInfo, const SwapDescriptorSetGroupCreateInfo &createInfo = {});
+			std::shared_ptr<SwapDescriptorSetGroup> CreateSwapDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo, const SwapDescriptorSetGroupCreateInfo &createInfo = {});
 			virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window, bool allowMt = true, const std::string &debugName = {}) = 0;
 			virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width, uint32_t height, uint32_t layers, const std::vector<IImageView *> &attachments) = 0;
 			virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader, uint32_t pipelineIdx = 0u) const = 0;
@@ -364,6 +367,7 @@ export {
 			virtual std::optional<std::string> DumpImageFormatProperties() const { return {}; }
 			virtual std::optional<std::string> DumpLayers() const { return {}; }
 			virtual std::optional<std::string> DumpExtensions() const { return {}; }
+			virtual std::optional<std::string> DumpBufferMemoryUsage() const { return {}; }
 			virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const { return {}; }
 			virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const { return {}; }
 			virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicalDeviceMemoryProperties() const { return {}; }
@@ -510,12 +514,6 @@ export {
 
 		template<typename T>
 		bool IPrContext::ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
-		{
-			return ScheduleRecordUpdateBuffer(buffer, offset, sizeof(data), &data, updateInfo);
-		}
-
-		template<typename T>
-		bool IPrContext::ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo)
 		{
 			return ScheduleRecordUpdateBuffer(buffer, offset, sizeof(data), &data, updateInfo);
 		}

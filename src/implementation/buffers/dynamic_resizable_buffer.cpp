@@ -87,7 +87,7 @@ static void test_dynamic_resizable_buffer()
 }
 */
 
-IDynamicResizableBuffer::IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo) : IResizableBuffer {buffer}
+IDynamicResizableBuffer::IDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo) : IBaseResizableBuffer {buffer}
 {
 	m_freeRanges.push_back({0ull, createInfo.size});
 	m_alignment = context.CalcBufferAlignment(createInfo.usageFlags);

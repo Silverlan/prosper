@@ -443,7 +443,7 @@ void prosper::IPrContext::KeepResourceAliveUntilPresentationComplete(const std::
 	if(!resource)
 		return;
 	std::scoped_lock lock {m_aliveResourceMutex};
-	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::Idle) || pragma::math::is_flag_set(m_stateFlags, StateFlags::ClearingKeepAliveResources))
+	if(/*pragma::math::is_flag_set(m_stateFlags, StateFlags::Idle) || */pragma::math::is_flag_set(m_stateFlags, StateFlags::ClearingKeepAliveResources))
 		return; // No need to keep resource around if device is currently idling (i.e. nothing is in progress)
 	DoKeepResourceAliveUntilPresentationComplete(resource);
 }
@@ -519,9 +519,14 @@ std::shared_ptr<prosper::SwapBuffer> prosper::IPrContext::CreateSwapBuffer(const
 		if(!buf)
 			return nullptr;
 		buf->SetPermanentlyMapped(true, IBuffer::MapFlags::WriteBit | IBuffer::MapFlags::PersistentBit);
+		if(!createInfo.debugName.empty())
+			buf->SetDebugName(std::format("sb_{}_{}", createInfo.debugName, i));
 		buffers.push_back(buf);
 	}
-	return SwapBuffer::Create(*this, std::move(buffers));
+	auto swapBuf = SwapBuffer::Create(*this, std::move(buffers));
+	if(!createInfo.debugName.empty() && swapBuf)
+		swapBuf->SetDebugName(std::format("sb_{}", createInfo.debugName));
+	return swapBuf;
 }
 
 std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUniformResizableBuffer(util::BufferCreateInfo createInfo, uint64_t bufferInstanceSize, const void *data, std::optional<DeviceSize> customAlignment)
@@ -532,7 +537,11 @@ std::shared_ptr<prosper::IUniformResizableBuffer> prosper::IPrContext::CreateUni
 		alignment = *customAlignment;
 	else
 		CalcAlignedSizes(bufferInstanceSize, bufferBaseSize, alignment, createInfo.usageFlags);
-	return DoCreateUniformResizableBuffer(createInfo, bufferInstanceSize, data, bufferBaseSize, alignment);
+	auto buf = DoCreateUniformResizableBuffer(createInfo, bufferInstanceSize, data, bufferBaseSize, alignment);
+	if(!buf)
+		return nullptr;
+	buf->SetDebugName(std::format("urb_{}", createInfo.debugName));
+	return buf;
 }
 
 void prosper::IPrContext::UpdateMultiThreadedRendering(bool mtEnabled) { ReloadPipelineLoader(); }
@@ -568,8 +577,10 @@ std::expected<void, std::string> prosper::IPrContext::Initialize(const CreateInf
 	m_initialWindowSettings.height = createInfo.height;
 	if(createInfo.windowless)
 		m_initialWindowSettings.flags |= pragma::platform::WindowCreationInfo::Flags::Windowless;
-	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled))
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled)) {
 		m_validationData = std::unique_ptr<ValidationData> {new ValidationData {}};
+		debug::ObjectRegister::initialize();
+	}
 	ChangePresentMode(createInfo.presentMode);
 	auto res = InitAPI(createInfo);
 	if(!res)
@@ -735,26 +746,6 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t o
 		if(updateInfo.postUpdateBarrierStageMask.has_value() && updateInfo.postUpdateBarrierAccessMask.has_value()) {
 			cmdBuffer.RecordBufferBarrier(buffer, PipelineStageFlags::TransferBit, *updateInfo.postUpdateBarrierStageMask, AccessFlags::TransferWriteBit, *updateInfo.postUpdateBarrierAccessMask, offset, size);
 		}
-	});
-	return true;
-}
-bool prosper::IPrContext::ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo)
-{
-	if(size == 0u)
-		return true;
-	const auto fUpdateBuffer = [](IBuffer &buffer, const uint8_t *data, uint64_t offset, uint64_t size) {
-		return buffer.Write(offset, size, data);
-	};
-
-	if(IsRecording()) {
-		// We're mid-frame already and can just update the buffer
-		return fUpdateBuffer(buffer.GetCurrentBuffer(), static_cast<const uint8_t *>(data), offset, size);
-	}
-	// We'll have to make a copy of the data for later
-	auto ptrData = std::make_shared<std::vector<uint8_t>>(size);
-	memcpy(ptrData->data(), data, size);
-	m_scheduledBufferUpdates.push([&buffer, fUpdateBuffer, offset, size, ptrData, updateInfo](ICommandBuffer &cmdBuffer) {
-		fUpdateBuffer(buffer.GetCurrentBuffer(), ptrData->data(), offset, size);
 	});
 	return true;
 }

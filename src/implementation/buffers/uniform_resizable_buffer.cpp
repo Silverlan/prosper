@@ -11,7 +11,7 @@ import :buffer.uniform_resizable_buffer;
 
 using namespace prosper;
 
-IUniformResizableBuffer::IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint32_t alignment) : IResizableBuffer {buffer}, m_bufferInstanceSize {bufferInstanceSize}, m_alignment {alignment}
+IUniformResizableBuffer::IUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint32_t alignment) : IBaseResizableBuffer {buffer}, m_bufferInstanceSize {bufferInstanceSize}, m_alignment {alignment}
 {
 	m_createInfo.size = alignedBufferBaseSize;
 

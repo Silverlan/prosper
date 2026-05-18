@@ -13,12 +13,13 @@ export {
 		class DLLPROSPER SwapBuffer : public ContextObject, public std::enable_shared_from_this<SwapBuffer> {
 		  public:
 			using SubBufferIndex = uint32_t;
-			static std::shared_ptr<SwapBuffer> Create(IPrContext &context, IUniformResizableBuffer &buffer, const void *data = nullptr);
-			static std::shared_ptr<SwapBuffer> Create(IPrContext &context, IDynamicResizableBuffer &buffer, DeviceSize size, uint32_t instanceCount);
+			static std::shared_ptr<SwapBuffer> Create(IUniformResizableBuffer &buffer, const void *data = nullptr);
+			static std::shared_ptr<SwapBuffer> Create(IDynamicResizableBuffer &buffer, DeviceSize size);
 			static std::shared_ptr<SwapBuffer> Create(IPrContext &context, std::vector<std::shared_ptr<IBuffer>> &&buffers);
 			IBuffer &GetBuffer(SubBufferIndex idx);
 			const IBuffer &GetBuffer(SubBufferIndex idx) const { return const_cast<SwapBuffer *>(this)->GetBuffer(idx); }
 			IBuffer &GetCurrentBuffer() const;
+			bool IsCurrentBufferDirty() const;
 			bool IsDirty() const;
 
 			IBuffer &Write(IBuffer::Offset offset, IBuffer::Size size, const void *data, bool flagAsDirty = true);

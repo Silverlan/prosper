@@ -13,7 +13,7 @@ export {
 		class DLLPROSPER ContextObject {
 		  public:
 			ContextObject(IPrContext &context);
-			virtual ~ContextObject() = default;
+			virtual ~ContextObject();
 
 			IPrContext &GetContext() const;
 

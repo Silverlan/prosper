@@ -59,6 +59,8 @@ bool prosper::IBuffer::Map(Offset offset, Size size, BufferUsageFlags deviceUsag
 		createInfo.memoryFeatures = MemoryFeatureFlags::HostAccessable | MemoryFeatureFlags::HostCached;
 		createInfo.size = size;
 		createInfo.usageFlags = hostUsageFlags;
+		auto mapBufDebugName = std::format("{}_host_mapped", GetDebugName());
+		createInfo.debugName = mapBufDebugName;
 		auto buf = context.CreateBuffer(createInfo);
 		if(buf == nullptr)
 			return false;
@@ -129,7 +131,11 @@ bool prosper::IBuffer::Read(Offset offset, Size size, void *data) const
 	}
 	return DoRead(offset, size, data);
 }
-void prosper::IBuffer::Initialize() {}
+void prosper::IBuffer::Initialize()
+{
+	if(!m_createInfo.debugName.empty())
+		SetDebugName(std::string {m_createInfo.debugName});
+}
 bool prosper::IBuffer::Map(Offset offset, Size size, MapFlags mapFlags, void **optOutMappedPtr) const
 {
 	if(offset + size > GetSize())

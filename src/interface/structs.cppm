@@ -412,6 +412,10 @@ export {
 			uint32_t m_variableDescriptorCountBindingSize = 0;
 		};
 
+		struct DLLPROSPER SwapDescriptorSetGroupCreateInfo {
+			std::string debugName;
+		};
+
 		struct DLLPROSPER SpecializationConstant {
 			SpecializationConstant(uint32_t constantId, uint32_t numBytes, uint32_t startOffset) : constantId {constantId}, numBytes {numBytes}, startOffset {startOffset} {}
 			uint32_t constantId;

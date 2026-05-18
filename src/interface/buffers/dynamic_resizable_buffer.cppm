@@ -9,7 +9,7 @@ export {
 	namespace prosper {
 		class IPrContext;
 		class IBuffer;
-		class DLLPROSPER IDynamicResizableBuffer : public IResizableBuffer {
+		class DLLPROSPER IDynamicResizableBuffer : public IBaseResizableBuffer {
 		  public:
 			bool IncreaseCapacity(DeviceSize size, uint32_t alignment);
 			std::shared_ptr<IBuffer> AllocateBuffer(DeviceSize size, const void *data = nullptr);

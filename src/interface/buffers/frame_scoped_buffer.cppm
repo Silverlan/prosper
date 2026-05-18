@@ -31,6 +31,7 @@ export {
 
 			IBuffer &GetCurrentBuffer() const;
 			IBuffer &GetBuffer(uint32_t frameResourceIndex) const;
+			std::optional<BufferChange> UpdateBufferMode(IBuffer::Offset offset, IBuffer::Size size, const void *data);
 			std::optional<BufferChange> Write(IBuffer::Offset offset, IBuffer::Size size, const void *data);
 			void Update();
 

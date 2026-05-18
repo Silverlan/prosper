@@ -9,13 +9,13 @@ export {
 #pragma warning(push)
 #pragma warning(disable : 4251)
 	namespace prosper {
-		class DLLPROSPER IResizableBuffer : virtual public IBuffer {
+		class DLLPROSPER IBaseResizableBuffer : virtual public IBuffer {
 		  public:
 			enum class ReallocationBehavior : uint8_t {
 				DeviceWaitIdle = 0,
 				SafelyFreeOldBuffer,
 			};
-			IResizableBuffer(IBuffer &parent);
+			IBaseResizableBuffer(IBuffer &parent);
 			ReallocationBehavior GetReallocationBehavior() const { return m_reallocationBehavior; }
 			void SetReallocationBehavior(ReallocationBehavior behavior) { m_reallocationBehavior = behavior; }
 			void AddReallocationCallback(const std::function<void()> &fCallback);
@@ -29,6 +29,7 @@ export {
 			virtual void MoveInternalBuffer(IBuffer &other) = 0;
 			virtual void ReleaseBufferSafely() = 0;
 			bool ReallocateMemory(size_t requiredSize);
+			bool Resize(size_t size);
 			void RunReallocationCallbacks();
 
 			std::vector<IBuffer *> m_allocatedSubBuffers;
@@ -37,6 +38,13 @@ export {
 			bool m_resizable = true;
 
 			std::vector<std::function<void()>> m_onReallocCallbacks;
+		};
+
+		class DLLPROSPER IResizableBuffer : public IBaseResizableBuffer {
+		public:
+			IResizableBuffer(IBuffer &parent);
+			bool Resize(size_t newSize);
+			std::shared_ptr<IBuffer> AllocateSubBuffer(Offset offset, DeviceSize size, const void *data = nullptr);
 		};
 	};
 #pragma warning(pop)

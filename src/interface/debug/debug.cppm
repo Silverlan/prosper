@@ -6,3 +6,4 @@ module;
 export module pragma.prosper:debug;
 export import :debug.api_dump_recorder;
 export import :debug.core;
+export import :debug.object_register;

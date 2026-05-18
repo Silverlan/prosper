@@ -58,7 +58,7 @@ void prosper::FrameScopedBuffer::ChangeBufferMode(BufferMode bufferMode)
 	case BufferMode::Dynamic:
 		{
 			m_frameInFlightBuffers.resize(context.GetMaxNumberOfFramesInFlight());
-			auto &baseBuf = m_frameInFlightBuffers.front();
+			auto baseBuf = m_frameInFlightBuffers.front();
 			// Keep the old buffer around temporarily in case it is still in use
 			context.KeepResourceAliveUntilPresentationComplete(baseBuf);
 			m_parentBuffer.EnsureFreeCapacity(m_parentBuffer.GetAllocatedInstanceCount() + m_frameInFlightBuffers.size());
@@ -90,9 +90,37 @@ void prosper::FrameScopedBuffer::Update()
 	if(!pragma::math::is_flag_set(m_dirtyFrameInFlightBuffers, resourceFlag))
 		return;
 	// Copy data from previous buffer
-	auto prevResourceIndex = (resourceIndex == 0) ? (context.GetMaxNumberOfFramesInFlight() - 1) : (resourceIndex - 1);
+	auto prevResourceIndex = context.GetPreviousFrameResourceIndex(resourceIndex);
 	auto &prevBuf = *m_frameInFlightBuffers[prevResourceIndex];
 	Write(0u, prevBuf.GetSize(), prevBuf.GetMappedDataPointer());
+}
+std::optional<prosper::FrameScopedBuffer::BufferChange> prosper::FrameScopedBuffer::UpdateBufferMode(IBuffer::Offset offset, IBuffer::Size size, const void *data)
+{
+	auto *curDataPtr = static_cast<uint8_t *>(GetCurrentBuffer().GetMappedDataPointer());
+	if(std::memcmp(curDataPtr + offset, data, size) == 0)
+		return {};
+
+	auto &context = GetContext();
+	auto curFrame = context.GetLastFrameId(); // TODO: This should be updated immediately after present
+	auto numFramesPassedSinceLastChange = curFrame - m_lastFrameDataChange;
+	auto maxFramesInFlight = context.GetMaxNumberOfFramesInFlight();
+	auto change = BufferChange::NoChange;
+	if(numFramesPassedSinceLastChange > 0) { // If delta frames is 0, we already updated the buffer this frame and don't need to update again
+		if(m_bufferMode == BufferMode::Static) {
+			if(numFramesPassedSinceLastChange < maxFramesInFlight) {
+				// Data was just changed last frame,  we'll have to switch to dynamic buffer mode.
+				ChangeBufferMode(BufferMode::Dynamic);
+				change = BufferChange::ToDynamic;
+			}
+		}
+		else if(numFramesPassedSinceLastChange > FRAME_COOLDOWN_THRESHOLD) {
+			// If the data hasn't changed in a while, chances are it will stay that way for a while, so we can switch back to static buffer mode.
+			ChangeBufferMode(BufferMode::Static);
+			change = BufferChange::ToStatic;
+		}
+	}
+	m_lastFrameDataChange = curFrame;
+	return change;
 }
 std::optional<prosper::FrameScopedBuffer::BufferChange> prosper::FrameScopedBuffer::Write(IBuffer::Offset offset, IBuffer::Size size, const void *data)
 {

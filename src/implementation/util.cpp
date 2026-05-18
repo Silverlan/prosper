@@ -181,17 +181,17 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::IPrContext::CreateDescrip
 	return CreateDescriptorSetGroup(*descSetCreateInfo);
 }
 std::shared_ptr<prosper::IDescriptorSetGroup> prosper::IPrContext::CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) {return DoCreateDescriptorSetGroup(descSetInfo, 1);}
-std::shared_ptr<prosper::SwapDescriptorSetGroup> prosper::IPrContext::CreateSwapDescriptorSetGroup(const DescriptorSetInfo &descSetInfo)
+std::shared_ptr<prosper::SwapDescriptorSetGroup> prosper::IPrContext::CreateSwapDescriptorSetGroup(const DescriptorSetInfo &descSetInfo, const SwapDescriptorSetGroupCreateInfo &createInfo)
 {
 	auto descSetCreateInfo = descSetInfo.ToProsperDescriptorSetInfo();
-	return CreateSwapDescriptorSetGroup(*descSetCreateInfo);
+	return CreateSwapDescriptorSetGroup(*descSetCreateInfo, createInfo);
 }
-std::shared_ptr<prosper::SwapDescriptorSetGroup> prosper::IPrContext::CreateSwapDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo)
+std::shared_ptr<prosper::SwapDescriptorSetGroup> prosper::IPrContext::CreateSwapDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo, const SwapDescriptorSetGroupCreateInfo &createInfo)
 {
 	auto dsg = DoCreateDescriptorSetGroup(descSetInfo, GetMaxNumberOfFramesInFlight());
 	if(!dsg)
 		return nullptr;
-	return SwapDescriptorSetGroup::Create(*this, dsg);
+	return SwapDescriptorSetGroup::Create(*this, dsg, createInfo);
 }
 std::shared_ptr<prosper::Texture> prosper::IPrContext::CreateTexture(const util::TextureCreateInfo &createInfo, IImage &img, const std::optional<util::ImageViewCreateInfo> &imageViewCreateInfo, const std::optional<util::SamplerCreateInfo> &samplerCreateInfo)
 {

@@ -11,25 +11,23 @@ import :buffer.resizable_buffer;
 
 using namespace prosper;
 
-IResizableBuffer::IResizableBuffer(IBuffer &parent) : IBuffer {parent.GetContext(), parent.GetCreateInfo(), parent.GetStartOffset(), parent.GetSize()}, m_baseSize {parent.GetCreateInfo().size} {}
+IBaseResizableBuffer::IBaseResizableBuffer(IBuffer &parent) : IBuffer {parent.GetContext(), parent.GetCreateInfo(), parent.GetStartOffset(), parent.GetSize()}, m_baseSize {parent.GetCreateInfo().size} {}
 
-void IResizableBuffer::AddReallocationCallback(const std::function<void()> &fCallback) { m_onReallocCallbacks.push_back(fCallback); }
+void IBaseResizableBuffer::AddReallocationCallback(const std::function<void()> &fCallback) { m_onReallocCallbacks.push_back(fCallback); }
 
-void IResizableBuffer::ReallocateMemory() { ReallocateMemory(m_baseSize); }
+void IBaseResizableBuffer::ReallocateMemory() { ReallocateMemory(m_baseSize); }
 
-bool IResizableBuffer::ReallocateMemory(size_t requiredSize)
+bool IBaseResizableBuffer::Resize(size_t size)
 {
 	if(!IsResizable())
 		return false;
 	auto &context = GetContext();
 	if(m_reallocationBehavior == ReallocationBehavior::DeviceWaitIdle)
 		context.WaitIdle();
-	context.Log("Reallocating prosper buffer '" + GetDebugName() + "' of size " + pragma::util::get_pretty_bytes(m_baseSize) + " to " + pragma::util::get_pretty_bytes(requiredSize) + "...");
+	context.Log("Reallocating prosper buffer '" + GetDebugName() + "' of size " + pragma::util::get_pretty_bytes(m_baseSize) + " to " + pragma::util::get_pretty_bytes(size) + "...");
 
-	// Re-allocate buffer; Double current size to avoid frequent re-allocation
 	auto oldSize = m_baseSize;
-	while(m_baseSize < requiredSize)
-		m_baseSize *= 2;
+	m_baseSize = size;
 	auto createInfo = m_createInfo;
 	createInfo.size = m_baseSize;
 	auto newBuffer = context.CreateBuffer(createInfo);
@@ -51,7 +49,17 @@ bool IResizableBuffer::ReallocateMemory(size_t requiredSize)
 	return true;
 }
 
-void IResizableBuffer::RunReallocationCallbacks()
+bool IBaseResizableBuffer::ReallocateMemory(size_t requiredSize)
+{
+	// Re-allocate buffer; Double current size to avoid frequent re-allocation
+	auto oldSize = m_baseSize;
+	auto newSize = m_baseSize;
+	while(newSize < requiredSize)
+		newSize *= 2;
+	return Resize(newSize);
+}
+
+void IBaseResizableBuffer::RunReallocationCallbacks()
 {
 	for(auto *subBuffer : m_allocatedSubBuffers) {
 		if(!subBuffer)
@@ -61,4 +69,27 @@ void IResizableBuffer::RunReallocationCallbacks()
 
 	for(auto &f : m_onReallocCallbacks)
 		f();
+}
+
+IResizableBuffer::IResizableBuffer(IBuffer &parent) : IBaseResizableBuffer {parent} {}
+bool IResizableBuffer::Resize(size_t newSize) { return IBaseResizableBuffer::Resize(newSize); }
+std::shared_ptr<IBuffer> IResizableBuffer::AllocateSubBuffer(Offset offset, DeviceSize size, const void *data)
+{
+	if(offset + size > m_baseSize)
+		return nullptr;
+	size_t bufIdx = m_allocatedSubBuffers.size();
+	auto it = std::find_if(m_allocatedSubBuffers.begin(), m_allocatedSubBuffers.end(), [](IBuffer *ptr) { return !ptr; });
+	if(it != m_allocatedSubBuffers.end())
+		bufIdx = (it - m_allocatedSubBuffers.begin());
+	else
+		m_allocatedSubBuffers.resize(bufIdx + 1);
+
+	auto subBuffer = CreateSubBuffer(offset, size, [this, bufIdx](IBuffer &subBuffer) { m_allocatedSubBuffers[bufIdx] = nullptr; });
+	if(!subBuffer)
+		return nullptr;
+	subBuffer->SetParent(*this, bufIdx);
+	if(data != nullptr)
+		subBuffer->Write(0ull, size, data);
+	m_allocatedSubBuffers[bufIdx] = subBuffer.get();
+	return subBuffer;
 }
