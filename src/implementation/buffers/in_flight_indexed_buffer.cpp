@@ -38,7 +38,7 @@ size_t prosper::InFlightIndexedBuffer::GetMaxSubBufferCount() const { return Get
 
 size_t prosper::InFlightIndexedBuffer::GetAllocatedBufferCount() const { return m_nextIndex - m_freeIndices.size(); }
 
-std::optional<prosper::InFlightIndexedBuffer::Index> prosper::InFlightIndexedBuffer::Allocate(const void *baseData)
+std::optional<prosper::InFlightIndexedBuffer::Index> prosper::InFlightIndexedBuffer::Allocate(const void *persistentDataPtr)
 {
 	std::optional<Index> index {};
 	if(!m_freeIndices.empty()) {
@@ -53,12 +53,13 @@ std::optional<prosper::InFlightIndexedBuffer::Index> prosper::InFlightIndexedBuf
 			return {}; // TODO: Re-allocate
 		index = m_nextIndex++;
 	}
-	m_bufferInfos[*index].baseData = baseData;
+	m_bufferInfos[*index].baseData = persistentDataPtr;
 	return index;
 }
 void prosper::InFlightIndexedBuffer::Free(Index index)
 {
 	m_bufferInfos[index].baseData = nullptr;
+	m_bufferInfos[index].dirtyFrames = 0;
 	if(index == m_nextIndex - 1) {
 		--m_nextIndex;
 		return;
@@ -80,10 +81,9 @@ bool prosper::InFlightIndexedBuffer::UpdateDirtyBuffer(Index index)
 	auto resourceFlag = context.GetFrameResourceFlag();
 	// If we're writing a sub-portion, we have to make sure the current buffer is up-to-date
 	if(pragma::math::is_flag_set(m_bufferInfos[index].dirtyFrames, resourceFlag)) {
-		auto prevResourceIdx = context.GetPreviousFrameResourceIndex(resourceIdx);
-		auto &prevBuf = m_frameInFlightBuffers[prevResourceIdx];
 		auto &curBuf = m_frameInFlightBuffers[resourceIdx];
-		curBuf->Write(GetOffset(index), m_sizePerSubBuffer, static_cast<uint8_t *>(prevBuf->GetMappedDataPointer()) + GetOffset(index));
+		curBuf->Write(GetOffset(index), m_sizePerSubBuffer, m_bufferInfos[index].baseData);
+		pragma::math::set_flag(m_bufferInfos[index].dirtyFrames, resourceFlag, false);
 		return true;
 	}
 	return false;
@@ -103,8 +103,12 @@ bool prosper::InFlightIndexedBuffer::Read(Index index, IBuffer::Offset offset, I
 	return m_frameInFlightBuffers[resourceIdx]->Read(offset, size, outData);
 }
 
-bool prosper::InFlightIndexedBuffer::Write(Index index, IBuffer::Offset offset, IBuffer::Size size, const void *data)
+bool prosper::InFlightIndexedBuffer::SyncDataToGpu(Index index)
 {
+	size_t offset = 0;
+	size_t size = m_sizePerSubBuffer;
+	auto *data = m_bufferInfos[index].baseData;
+
 	if(offset != 0 || size != m_sizePerSubBuffer)
 		UpdateDirtyBuffer(index);
 
@@ -129,26 +133,19 @@ void prosper::InFlightIndexedBuffer::UpdateDirtyBuffers()
 	auto &context = GetContext();
 	auto resourceIdx = context.GetFrameResourceIndex();
 	auto resourceFlag = context.GetFrameResourceFlag();
-	auto prevResourceIdx = context.GetPreviousFrameResourceIndex(resourceIdx);
-	auto &prevBuf = m_frameInFlightBuffers[prevResourceIdx];
 	auto &curBuf = m_frameInFlightBuffers[resourceIdx];
-	auto *prevData = static_cast<uint8_t *>(prevBuf->GetMappedDataPointer());
 	size_t nextOffset = 0;
 	for(Index i = 0; i < m_nextIndex; ++i) {
 		auto &bufInfo = m_bufferInfos[i];
 
 		auto offset = nextOffset;
 		nextOffset += m_alignedSizePerSubBuffer;
-		if(bufInfo.dirtyFrames == 0)
+		if(!pragma::math::is_flag_set(bufInfo.dirtyFrames, resourceFlag))
 			continue;
 		pragma::math::set_flag(bufInfo.dirtyFrames, resourceFlag, false);
 		if(bufInfo.dirtyFrames != 0)
 			m_hasDirtyBuffers = true;
-		// Ideally copy from provided base data. If none was specified, copy from previous frame-in-flight data.
-		// The latter only works if UpdateDirtyBuffers is called *every* frame, otherwise stale data may be used.
 		auto *baseData = bufInfo.baseData;
-		if(!baseData)
-			baseData = prevData + offset;
 		curBuf->Write(offset, m_sizePerSubBuffer, baseData);
 	}
 }

@@ -16,7 +16,7 @@ export {
 			static std::shared_ptr<InFlightIndexedBuffer> Create(IResizableBuffer &buffer, size_t sizePerSubBuffer, uint32_t alignment, const void *data = nullptr);
 
 			bool EnsureCapacity(size_t capacity);
-			std::optional<Index> Allocate(const void *baseData = nullptr);
+			std::optional<Index> Allocate(const void *persistentDataPtr);
 			void Free(Index index);
 			IBuffer::Offset GetOffset(Index index) const;
 			size_t GetSize() const;
@@ -28,13 +28,13 @@ export {
 			IBuffer &GetBuffer(uint32_t frameResourceIndex) const;
 			IResizableBuffer &GetBaseBuffer() const { return *m_baseBuffer; }
 
-			bool Write(Index index, IBuffer::Offset offset, IBuffer::Size size, const void *data);
-			bool Read(Index index, IBuffer::Offset offset, IBuffer::Size size, void *outData);
+			bool SyncDataToGpu(Index index);
 			BufferView GetCurrentBufferView(Index index) const;
 			BufferView GetBufferView(Index index, uint8_t frameResourceIndex) const;
 			void UpdateDirtyBuffers();
 		  private:
 			InFlightIndexedBuffer(IPrContext &context, IResizableBuffer &baseBuffer, std::vector<std::shared_ptr<IBuffer>> &&frameInFlightBuffers, size_t sizePerSubBuffer, uint32_t alignment);
+			bool Read(Index index, IBuffer::Offset offset, IBuffer::Size size, void *outData);
 			bool UpdateDirtyBuffer(Index index);
 			struct ItemInfo {
 				uint8_t dirtyFrames = 0;
