@@ -22,31 +22,32 @@ export {
 			enum class BufferChange : uint8_t {
 				NoChange = 0,
 				ToDynamic,
-				ToStatic,
 			};
-			static std::shared_ptr<FrameScopedBuffer> Create(IUniformResizableBuffer &buffer);
+			static std::shared_ptr<FrameScopedBuffer> Create(IUniformResizableBuffer &buffer, const void *persistentDataPtr);
 			~FrameScopedBuffer() override;
 
 			BufferMode GetBufferMode() const { return m_bufferMode; }
 
 			IBuffer &GetCurrentBuffer() const;
 			IBuffer &GetBuffer(uint32_t frameResourceIndex) const;
-			std::optional<BufferChange> UpdateBufferMode(IBuffer::Offset offset, IBuffer::Size size, const void *data);
-			std::optional<BufferChange> Write(IBuffer::Offset offset, IBuffer::Size size, const void *data);
-			void Update();
+			bool CollapseToSingle();
+			BufferChange SyncDataToGpu();
+			void ChangeBufferMode(BufferMode bufferMode);
+			void UpdateCurrentBuffer();
 
 			IBuffer *operator->();
 			const IBuffer *operator->() const { return const_cast<FrameScopedBuffer *>(this)->operator->(); }
 			IBuffer &operator*();
 			const IBuffer &operator*() const { return const_cast<FrameScopedBuffer *>(this)->operator*(); }
 		  private:
-			FrameScopedBuffer(IUniformResizableBuffer &parentBuffer, std::shared_ptr<IBuffer> &buffer);
-			void ChangeBufferMode(BufferMode bufferMode);
+			FrameScopedBuffer(IUniformResizableBuffer &parentBuffer, std::shared_ptr<IBuffer> &buffer, const void *persistentDataPtr);
+			BufferChange Write(IBuffer::Offset offset, IBuffer::Size size, const void *data);
 			IUniformResizableBuffer &m_parentBuffer;
 			BufferMode m_bufferMode = BufferMode::Static;
 			std::vector<std::shared_ptr<IBuffer>> m_frameInFlightBuffers;
 			uint8_t m_dirtyFrameInFlightBuffers = 0;
 			uint64_t m_lastFrameDataChange = 0;
+			const void *m_cpuData = nullptr;
 		};
 	};
 }
