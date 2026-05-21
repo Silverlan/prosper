@@ -140,13 +140,15 @@ void prosper::InFlightIndexedBuffer::UpdateDirtyBuffers()
 
 		auto offset = nextOffset;
 		nextOffset += m_alignedSizePerSubBuffer;
-		if(!pragma::math::is_flag_set(bufInfo.dirtyFrames, resourceFlag))
+		if(bufInfo.dirtyFrames == 0)
 			continue;
-		pragma::math::set_flag(bufInfo.dirtyFrames, resourceFlag, false);
+		if(pragma::math::is_flag_set(bufInfo.dirtyFrames, resourceFlag)) {
+			pragma::math::set_flag(bufInfo.dirtyFrames, resourceFlag, false);
+			auto *baseData = bufInfo.baseData;
+			curBuf->Write(offset, m_sizePerSubBuffer, baseData);
+		}
 		if(bufInfo.dirtyFrames != 0)
 			m_hasDirtyBuffers = true;
-		auto *baseData = bufInfo.baseData;
-		curBuf->Write(offset, m_sizePerSubBuffer, baseData);
 	}
 }
 
