@@ -569,6 +569,10 @@ std::expected<void, std::string> prosper::IPrContext::Initialize(const CreateInf
 		m_stateFlags |= StateFlags::DiagnosticsEnabled;
 	if(createInfo.windowless)
 		m_stateFlags |= StateFlags::Windowless;
+	if(createInfo.forceSingleThreadedMode)
+		m_stateFlags |= StateFlags::ForceSingleThreadedMode;
+	if(createInfo.waitIdleBetweenFrames)
+		m_stateFlags |= StateFlags::WaitIdleBetweenFrames;
 
 	ReloadPipelineLoader();
 

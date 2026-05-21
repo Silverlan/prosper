@@ -124,6 +124,8 @@ export {
 				WindowScheduledForClosing = EnableMultiThreadedRendering << 1u,
 				DiagnosticsEnabled = WindowScheduledForClosing << 1u,
 				Windowless = DiagnosticsEnabled << 1u,
+				ForceSingleThreadedMode = Windowless << 1u,
+				WaitIdleBetweenFrames = ForceSingleThreadedMode << 1u,
 			};
 
 			enum class ExtensionAvailability : uint8_t {
@@ -150,6 +152,10 @@ export {
 				std::unordered_map<std::string, ExtensionAvailability> extensions;
 				std::vector<std::string> layers;
 				std::vector<LayerSetting> layerSettings;
+
+				// Debugging only
+				bool forceSingleThreadedMode = false;
+				bool waitIdleBetweenFrames = false;
 			};
 
 			using ImageMipmapData = const uint8_t *;
