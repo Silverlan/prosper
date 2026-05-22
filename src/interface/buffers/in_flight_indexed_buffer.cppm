@@ -15,7 +15,7 @@ export {
 
 			static std::shared_ptr<InFlightIndexedBuffer> Create(IResizableBuffer &buffer, size_t sizePerSubBuffer, uint32_t alignment, const void *data = nullptr);
 
-			bool EnsureCapacity(size_t capacity);
+			bool IncreaseCapacity(std::optional<size_t> minRequiredSize = {});
 			std::optional<Index> Allocate(const void *persistentDataPtr);
 			void Free(Index index);
 			IBuffer::Offset GetOffset(Index index) const;
@@ -33,7 +33,7 @@ export {
 			BufferView GetBufferView(Index index, uint8_t frameResourceIndex) const;
 			void UpdateDirtyBuffers();
 		  private:
-			InFlightIndexedBuffer(IPrContext &context, IResizableBuffer &baseBuffer, std::vector<std::shared_ptr<IBuffer>> &&frameInFlightBuffers, size_t sizePerSubBuffer, uint32_t alignment);
+			InFlightIndexedBuffer(IPrContext &context, IResizableBuffer &baseBuffer, std::vector<std::shared_ptr<IBuffer>> &&frameInFlightBuffers, size_t sizePerSubBuffer, uint32_t alignment, std::vector<uint8_t> &&initialSubBufferData);
 			bool Read(Index index, IBuffer::Offset offset, IBuffer::Size size, void *outData);
 			bool UpdateDirtyBuffer(Index index);
 			struct ItemInfo {
@@ -44,6 +44,7 @@ export {
 			std::shared_ptr<IResizableBuffer> m_baseBuffer;
 			std::vector<std::shared_ptr<IBuffer>> m_frameInFlightBuffers;
 			std::vector<ItemInfo> m_bufferInfos;
+			std::vector<uint8_t> m_initialSubBufferData;
 			uint32_t m_alignment = 0;
 			bool m_hasDirtyBuffers = false;
 			Index m_nextIndex = 0;

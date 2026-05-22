@@ -29,7 +29,7 @@ export {
 			virtual void MoveInternalBuffer(IBuffer &other) = 0;
 			virtual void ReleaseBufferSafely() = 0;
 			bool ReallocateMemory(size_t requiredSize);
-			bool Resize(size_t size);
+			bool Resize(size_t size, bool copyDataToNewBuffer = true);
 			void RunReallocationCallbacks();
 
 			std::vector<IBuffer *> m_allocatedSubBuffers;
@@ -43,7 +43,7 @@ export {
 		class DLLPROSPER IResizableBuffer : public IBaseResizableBuffer {
 		public:
 			IResizableBuffer(IBuffer &parent);
-			bool Resize(size_t newSize);
+			bool Resize(size_t newSize, bool copyDataToNewBuffer = true);
 			std::shared_ptr<IBuffer> AllocateSubBuffer(Offset offset, DeviceSize size, const void *data = nullptr);
 		};
 	};

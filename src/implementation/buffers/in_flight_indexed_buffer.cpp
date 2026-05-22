@@ -9,26 +9,57 @@ module pragma.prosper;
 
 import :buffer.in_flight_indexed_buffer;
 
-std::shared_ptr<prosper::InFlightIndexedBuffer> prosper::InFlightIndexedBuffer::Create(IResizableBuffer &buffer, size_t sizePerSubBuffer, uint32_t alignment, const void *data)
+static std::vector<uint8_t> create_initial_data(size_t sizePerBuf, size_t sizePerSubBuf, uint32_t alignment, const void *data)
 {
-	auto &context = buffer.GetContext();
+	std::vector<uint8_t> initialData;
+	initialData.resize(sizePerBuf);
+	if(data) {
+		auto alignedSizePerSubBuf = prosper::util::get_aligned_size(sizePerSubBuf, alignment);
+		auto numSubBufs = sizePerBuf / alignedSizePerSubBuf;
+		size_t offset = 0;
+		for(size_t i = 0; i < numSubBufs; ++i) {
+			memcpy(initialData.data() + offset, data, sizePerSubBuf);
+			offset += alignedSizePerSubBuf;
+		}
+	}
+	return initialData;
+}
+
+static std::optional<std::vector<std::shared_ptr<prosper::IBuffer>>> allocate_frame_in_flight_buffers(prosper::IPrContext &context, prosper::IResizableBuffer &buffer, uint32_t alignment, const void *data, size_t sizePerSubBuf)
+{
 	auto numBufs = context.GetMaxNumberOfFramesInFlight();
 	auto sizePerBuf = buffer.GetSize() / numBufs;
 	if(alignment > 0)
 		sizePerBuf = sizePerBuf - (sizePerBuf % alignment);
-	IBuffer::Offset offset = 0;
-	std::vector<std::shared_ptr<IBuffer>> frameInFlightBuffers;
+	prosper::IBuffer::Offset offset = 0;
+	std::vector<std::shared_ptr<prosper::IBuffer>> frameInFlightBuffers;
 	frameInFlightBuffers.resize(numBufs);
+
+	auto initialData = create_initial_data(sizePerBuf, sizePerSubBuf, alignment, data);
 	for(auto &buf : frameInFlightBuffers) {
-		buf = buffer.AllocateSubBuffer(offset, sizePerBuf, data);
+		buf = buffer.AllocateSubBuffer(offset, sizePerBuf, initialData.data());
 		if(!buf)
-			return nullptr;
+			return {};
 		offset += sizePerBuf;
 	}
-	return std::shared_ptr<InFlightIndexedBuffer> {new InFlightIndexedBuffer {buffer.GetContext(), buffer, std::move(frameInFlightBuffers), sizePerSubBuffer, alignment}};
+	return frameInFlightBuffers;
 }
-prosper::InFlightIndexedBuffer::InFlightIndexedBuffer(IPrContext &context, IResizableBuffer &baseBuffer, std::vector<std::shared_ptr<IBuffer>> &&frameInFlightBuffers, size_t sizePerSubBuffer, uint32_t alignment)
-    : ContextObject {context}, m_baseBuffer {std::dynamic_pointer_cast<IResizableBuffer>(baseBuffer.shared_from_this())}, m_frameInFlightBuffers {std::move(frameInFlightBuffers)}, m_sizePerSubBuffer {sizePerSubBuffer}, m_alignment {alignment}
+std::shared_ptr<prosper::InFlightIndexedBuffer> prosper::InFlightIndexedBuffer::Create(IResizableBuffer &buffer, size_t sizePerSubBuffer, uint32_t alignment, const void *data)
+{
+	std::vector<uint8_t> initialSubBufferData;
+	initialSubBufferData.resize(sizePerSubBuffer);
+	if(data)
+		memcpy(initialSubBufferData.data(), data, sizePerSubBuffer);
+
+	auto &context = buffer.GetContext();
+	auto frameInFlightBuffers = allocate_frame_in_flight_buffers(context, buffer, alignment, data, sizePerSubBuffer);
+	if(!frameInFlightBuffers)
+		return nullptr;
+	return std::shared_ptr<InFlightIndexedBuffer> {new InFlightIndexedBuffer {buffer.GetContext(), buffer, std::move(*frameInFlightBuffers), sizePerSubBuffer, alignment, std::move(initialSubBufferData)}};
+}
+prosper::InFlightIndexedBuffer::InFlightIndexedBuffer(IPrContext &context, IResizableBuffer &baseBuffer, std::vector<std::shared_ptr<IBuffer>> &&frameInFlightBuffers, size_t sizePerSubBuffer, uint32_t alignment, std::vector<uint8_t> &&initialSubBufferData)
+    : ContextObject {context}, m_baseBuffer {std::dynamic_pointer_cast<IResizableBuffer>(baseBuffer.shared_from_this())}, m_frameInFlightBuffers {std::move(frameInFlightBuffers)}, m_sizePerSubBuffer {sizePerSubBuffer}, m_alignment {alignment},
+      m_initialSubBufferData {std::move(initialSubBufferData)}
 {
 	m_alignedSizePerSubBuffer = util::get_aligned_size(sizePerSubBuffer, m_alignment);
 	m_bufferInfos.resize(GetMaxSubBufferCount());
@@ -46,11 +77,18 @@ std::optional<prosper::InFlightIndexedBuffer::Index> prosper::InFlightIndexedBuf
 		m_freeIndices.pop();
 	}
 	else {
+		auto maxSubBuffers = GetMaxSubBufferCount();
+		if(m_nextIndex >= maxSubBuffers) {
+			if(!IncreaseCapacity())
+				return {};
+		}
 		auto offset = GetOffset(m_nextIndex);
 		auto size = m_alignedSizePerSubBuffer;
 		auto maxSize = GetSize();
-		if(offset + size > maxSize)
-			return {}; // TODO: Re-allocate
+		if(offset + size > maxSize) {
+			if(!IncreaseCapacity())
+				return {};
+		}
 		index = m_nextIndex++;
 	}
 	m_bufferInfos[*index].baseData = persistentDataPtr;
@@ -152,12 +190,31 @@ void prosper::InFlightIndexedBuffer::UpdateDirtyBuffers()
 	}
 }
 
-bool prosper::InFlightIndexedBuffer::EnsureCapacity(size_t capacity)
+bool prosper::InFlightIndexedBuffer::IncreaseCapacity(std::optional<size_t> minRequiredSize)
 {
-	// TODO
-	/*auto &context = GetContext();
-	auto numBuffers = context.GetMaxNumberOfFramesInFlight();
-	auto totalCapacity = capacity *numBuffers;
-	return m_baseBuffer->Resize(totalCapacity);*/
-	return false;
+	auto &context = GetContext();
+	context.WaitIdle(true);
+	auto numBufs = context.GetMaxNumberOfFramesInFlight();
+	auto curSize = m_baseBuffer->GetSize();
+	auto newSize = curSize * 2;
+	if(minRequiredSize)
+		*minRequiredSize *= numBufs;
+	while(minRequiredSize && newSize < *minRequiredSize)
+		newSize *= 2;
+	m_frameInFlightBuffers.clear();
+	if(!m_baseBuffer->Resize(newSize, false))
+		throw std::runtime_error {"Failed to re-allocate in-flight indexed buffer"};
+	auto newFrameInFlightBuffers = allocate_frame_in_flight_buffers(context, *m_baseBuffer, m_alignment, m_initialSubBufferData.data(), m_sizePerSubBuffer);
+	if(!newFrameInFlightBuffers)
+		throw std::runtime_error {"Could not allocate in-flight indexed sub-buffer"};
+
+	m_frameInFlightBuffers = std::move(*newFrameInFlightBuffers);
+	m_bufferInfos.resize(GetMaxSubBufferCount());
+	for(auto &bufInfo : m_bufferInfos) {
+		if(!bufInfo.baseData)
+			continue;
+		bufInfo.dirtyFrames = (1u << m_frameInFlightBuffers.size()) - 1;
+	}
+	m_hasDirtyBuffers = true;
+	return true;
 }

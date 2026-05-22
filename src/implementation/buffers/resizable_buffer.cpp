@@ -17,7 +17,7 @@ void IBaseResizableBuffer::AddReallocationCallback(const std::function<void()> &
 
 void IBaseResizableBuffer::ReallocateMemory() { ReallocateMemory(m_baseSize); }
 
-bool IBaseResizableBuffer::Resize(size_t size)
+bool IBaseResizableBuffer::Resize(size_t size, bool copyDataToNewBuffer)
 {
 	if(!IsResizable())
 		return false;
@@ -33,7 +33,8 @@ bool IBaseResizableBuffer::Resize(size_t size)
 	auto newBuffer = context.CreateBuffer(createInfo);
 	assert(newBuffer);
 	std::vector<uint8_t> oldData(oldSize);
-	Read(0ull, oldData.size(), oldData.data());
+	if(copyDataToNewBuffer)
+		Read(0ull, oldData.size(), oldData.data());
 	if(m_reallocationBehavior == ReallocationBehavior::SafelyFreeOldBuffer)
 		ReleaseBufferSafely();
 
@@ -42,7 +43,8 @@ bool IBaseResizableBuffer::Resize(size_t size)
 			continue;
 		subBuffer->RecreateInternalSubBuffer(*newBuffer);
 	}
-	newBuffer->Write(0ull, oldData.size(), oldData.data());
+	if(copyDataToNewBuffer)
+		newBuffer->Write(0ull, oldData.size(), oldData.data());
 	MoveInternalBuffer(*newBuffer);
 	m_size = m_baseSize;
 	newBuffer = nullptr;
@@ -72,7 +74,7 @@ void IBaseResizableBuffer::RunReallocationCallbacks()
 }
 
 IResizableBuffer::IResizableBuffer(IBuffer &parent) : IBaseResizableBuffer {parent} {}
-bool IResizableBuffer::Resize(size_t newSize) { return IBaseResizableBuffer::Resize(newSize); }
+bool IResizableBuffer::Resize(size_t newSize, bool copyDataToNewBuffer) { return IBaseResizableBuffer::Resize(newSize, copyDataToNewBuffer); }
 std::shared_ptr<IBuffer> IResizableBuffer::AllocateSubBuffer(Offset offset, DeviceSize size, const void *data)
 {
 	if(offset + size > m_baseSize)
