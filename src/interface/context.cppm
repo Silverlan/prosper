@@ -298,10 +298,6 @@ export {
 			template<typename T>
 			bool ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo = {});
 
-			bool ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, uint64_t size, const void *data, const BufferUpdateInfo &updateInfo = {});
-			template<typename T>
-			bool ScheduleRecordUpdateBuffer(SwapBuffer &buffer, uint64_t offset, const T &data, const BufferUpdateInfo &updateInfo = {});
-
 			void WaitIdle(bool forceWait = true);
 			virtual void Flush() = 0;
 			virtual Result WaitForFence(const IFence &fence, uint64_t timeout = std::numeric_limits<uint64_t>::max()) const = 0;
