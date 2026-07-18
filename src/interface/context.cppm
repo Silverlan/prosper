@@ -224,6 +224,7 @@ export {
 			IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
 			const std::shared_ptr<IPrimaryCommandBuffer> &GetCurrentPrimaryDrawCommandBuffer() { return m_currentDrawCmdBuffer; }
+			const Window *GetCurrentPrimaryDrawCommandBufferWindow() { return m_currentDrawCmdBufferWindow; }
 			uint8_t GetFrameResourceIndex() const { return m_currentFrame; }
 			uint8_t GetPreviousFrameResourceIndex(uint8_t curIdx) const { return (curIdx == 0) ? (GetMaxNumberOfFramesInFlight() - 1) : (curIdx - 1); }
 			uint8_t GetFrameResourceFlag() const { return GetFrameResourceFlag(GetFrameResourceIndex()); }
@@ -425,6 +426,7 @@ export {
 			PipelineID ReserveShaderPipeline();
 			void SetWindowScheduledForClosing();
 			void CloseWindowsScheduledForClosing();
+			void ResetCurrentDrawCommandBuffer();
 		  protected:
 			IPrContext(const std::string &appName, bool bEnableValidation = false);
 			void CalcAlignedSizes(uint64_t instanceSize, uint64_t &bufferBaseSize, uint32_t &alignment, BufferUsageFlags usageFlags);
@@ -462,6 +464,7 @@ export {
 			std::expected<void, std::string> InitWindow();
 			virtual std::expected<void, std::string> InitAPI(const CreateInfo &createInfo) = 0;
 			virtual void OnSwapchainResourcesCleared(uint32_t swapchainIdx) {}
+			void SetCurrentDrawCommandBuffer(Window &window, const std::shared_ptr<IPrimaryCommandBuffer> &cmdBuffer);
 
 			PresentModeKHR m_presentMode = PresentModeKHR::Immediate;
 			StateFlags m_stateFlags = StateFlags::Idle;
@@ -474,7 +477,9 @@ export {
 
 			uint8_t m_currentFrame = 0;
 			uint8_t m_maxFramesInFlight = 2;
+
 			std::shared_ptr<IPrimaryCommandBuffer> m_currentDrawCmdBuffer = nullptr;
+			Window *m_currentDrawCmdBufferWindow = nullptr;
 
 			std::function<void(const util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
 

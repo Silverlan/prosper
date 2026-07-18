@@ -769,6 +769,19 @@ void prosper::IPrContext::InitTemporaryBuffer()
 	m_tmpBuffer->SetResizable(false);
 }
 
+
+void prosper::IPrContext::SetCurrentDrawCommandBuffer(Window &window, const std::shared_ptr<IPrimaryCommandBuffer> &cmdBuffer)
+{
+	m_currentDrawCmdBuffer = cmdBuffer;
+	m_currentDrawCmdBufferWindow = &window;
+}
+
+void prosper::IPrContext::ResetCurrentDrawCommandBuffer()
+{
+	m_currentDrawCmdBuffer = nullptr;
+	m_currentDrawCmdBufferWindow = nullptr;
+}
+
 void prosper::IPrContext::Draw()
 {
 	{
