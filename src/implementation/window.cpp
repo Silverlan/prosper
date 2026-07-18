@@ -23,7 +23,13 @@ void Window::OnWindowInitialized()
 	}
 }
 
-const std::shared_ptr<IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer() const { return m_commandBuffers.at(GetLastAcquiredSwapchainImageIndex()); }
+const std::shared_ptr<IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer() const
+{
+	auto idx = GetLastAcquiredSwapchainImageIndex();
+	if(!idx)
+		throw std::runtime_error {"No currently acquired swapchain image!"};
+	return m_commandBuffers.at(*idx);
+}
 const std::shared_ptr<IPrimaryCommandBuffer> &Window::GetDrawCommandBuffer(uint32_t swapchainIdx) const
 {
 	static std::shared_ptr<IPrimaryCommandBuffer> nptr = nullptr;
@@ -287,7 +293,7 @@ std::shared_ptr<RenderTarget> &Window::GetStagingRenderTarget()
 	return m_stagingRenderTarget;
 }
 
-bool Window::IsAvailableForRendering() const { return GetLastAcquiredSwapchainImageIndex() != INVALID_SWAPCHAIN_IMAGE_INDEX; }
+bool Window::IsAvailableForRendering() const { return GetLastAcquiredSwapchainImageIndex().has_value(); }
 
 IImage *Window::GetSwapchainImage(uint32_t idx) { return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr; }
 

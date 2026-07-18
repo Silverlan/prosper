@@ -42,7 +42,13 @@ bool prosper::ICommandBuffer::RecordPresentImage(IImage &img, Window &window, ui
 		return false;
 	return RecordPresentImage(img, *imgSc, *fbSc);
 }
-bool prosper::ICommandBuffer::RecordPresentImage(IImage &img, Window &window) { return RecordPresentImage(img, window, window.GetLastAcquiredSwapchainImageIndex()); }
+bool prosper::ICommandBuffer::RecordPresentImage(IImage &img, Window &window)
+{
+	auto idx = window.GetLastAcquiredSwapchainImageIndex();
+	if(!idx)
+		return false;
+	return RecordPresentImage(img, window, *idx);
+}
 
 bool prosper::IPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit, bool simultaneousUseAllowed) const
 {

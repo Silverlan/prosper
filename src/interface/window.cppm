@@ -28,7 +28,7 @@ export namespace prosper {
 
 		bool IsAvailableForRendering() const;
 		uint32_t GetSwapchainImageCount() const { return m_swapchainImages.size(); }
-		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const = 0;
+		virtual std::optional<uint32_t> GetLastAcquiredSwapchainImageIndex() const = 0;
 		IImage *GetSwapchainImage(uint32_t idx);
 		IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 		pragma::platform::Window &GetGlfwWindow() { return *m_glfwWindow; }

@@ -349,7 +349,7 @@ export {
 			  ShaderStageData *shaderStageGs = nullptr, ShaderStageData *shaderStageTc = nullptr, ShaderStageData *shaderStageTe = nullptr, SubPassID subPassId = 0, PipelineID basePipelineId = std::numeric_limits<PipelineID>::max()) = 0;
 			Shader *GetShaderPipeline(PipelineID id, uint32_t &outPipelineIdx) const;
 			virtual bool ClearPipeline(bool graphicsShader, PipelineID pipelineId) = 0;
-			uint32_t GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
+			std::optional<uint32_t> GetLastAcquiredPrimaryWindowSwapchainImageIndex() const;
 
 			virtual std::shared_ptr<IQueryPool> CreateQueryPool(QueryType queryType, uint32_t maxConcurrentQueries) = 0;
 			virtual std::shared_ptr<IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags, uint32_t maxConcurrentQueries) = 0;

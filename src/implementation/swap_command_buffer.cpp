@@ -44,11 +44,11 @@ void ISwapCommandBufferGroup::StartRecording(IRenderPass &rp, IFramebuffer &fb)
 		return;
 	Wait();
 	auto swapchainIdx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
-	if(swapchainIdx == std::numeric_limits<decltype(swapchainIdx)>::max())
+	if(!swapchainIdx)
 		return; // TODO: This should be unreachable
-	Initialize(swapchainIdx);
+	Initialize(*swapchainIdx);
 
-	auto *instance = m_commandBuffers[swapchainIdx].get();
+	auto *instance = m_commandBuffers[*swapchainIdx].get();
 	m_curCommandBuffer = instance;
 
 	Record([this, &rp, &fb](ISecondaryCommandBuffer &cmd) {
@@ -66,9 +66,11 @@ void ISwapCommandBufferGroup::Reuse()
 		return;
 	Wait();
 	auto swapchainIdx = m_windowPtr->GetLastAcquiredSwapchainImageIndex();
-	Initialize(swapchainIdx);
+	if(!swapchainIdx)
+		return;
+	Initialize(*swapchainIdx);
 
-	auto *instance = m_commandBuffers[swapchainIdx].get();
+	auto *instance = m_commandBuffers[*swapchainIdx].get();
 	m_curCommandBuffer = instance;
 }
 bool ISwapCommandBufferGroup::ExecuteCommands(IPrimaryCommandBuffer &cmdBuf)

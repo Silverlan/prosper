@@ -67,7 +67,7 @@ std::array<uint32_t, 2> prosper::IPrContext::GetWindowSize() const { return {m_i
 uint32_t prosper::IPrContext::GetWindowWidth() const { return m_initialWindowSettings.width; }
 uint32_t prosper::IPrContext::GetWindowHeight() const { return m_initialWindowSettings.height; }
 
-uint32_t prosper::IPrContext::GetLastAcquiredPrimaryWindowSwapchainImageIndex() const { return GetWindow().GetLastAcquiredSwapchainImageIndex(); }
+std::optional<uint32_t> prosper::IPrContext::GetLastAcquiredPrimaryWindowSwapchainImageIndex() const { return GetWindow().GetLastAcquiredSwapchainImageIndex(); }
 std::expected<void, std::string> prosper::IPrContext::InitWindow()
 {
 	auto oldSize = (m_window != nullptr) ? m_window->GetGlfwWindow().GetSize() : Vector2i();
@@ -400,9 +400,9 @@ void prosper::IPrContext::ClearKeepAliveResources(uint32_t n)
 	}
 	auto idx = GetWindow().GetLastAcquiredSwapchainImageIndex();
 	std::scoped_lock lock {m_aliveResourceMutex};
-	if(idx >= m_keepAliveResources.size())
+	if(!idx || *idx >= m_keepAliveResources.size())
 		return;
-	auto &resources = m_keepAliveResources.at(idx);
+	auto &resources = m_keepAliveResources.at(*idx);
 	n = pragma::math::min(static_cast<size_t>(n), resources.size());
 	while(n-- > 0u)
 		resources.erase(resources.begin());
@@ -416,7 +416,7 @@ void prosper::IPrContext::ClearKeepAliveResources()
 	}
 	auto idx = GetWindow().GetLastAcquiredSwapchainImageIndex();
 	m_aliveResourceMutex.lock();
-	if(idx >= m_keepAliveResources.size()) {
+	if(!idx || *idx >= m_keepAliveResources.size()) {
 		m_aliveResourceMutex.unlock();
 		return;
 	}
@@ -424,14 +424,14 @@ void prosper::IPrContext::ClearKeepAliveResources()
 		m_aliveResourceMutex.unlock();
 		throw std::logic_error("ClearKeepAliveResources mustn't be called by a resource destructor!");
 	}
-	auto resources = std::move(m_keepAliveResources.at(idx));
-	m_keepAliveResources.at(idx).clear();
+	auto resources = std::move(m_keepAliveResources.at(*idx));
+	m_keepAliveResources.at(*idx).clear();
 	m_aliveResourceMutex.unlock();
 	pragma::math::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources);
 	resources.clear();
 	pragma::math::set_flag(m_stateFlags, StateFlags::ClearingKeepAliveResources, false);
 
-	OnSwapchainResourcesCleared(idx);
+	OnSwapchainResourcesCleared(*idx);
 }
 void prosper::IPrContext::SetMultiThreadedRenderingEnabled(bool enabled)
 {
