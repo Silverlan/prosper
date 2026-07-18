@@ -223,6 +223,7 @@ export {
 			IImage *GetSwapchainImage(uint32_t idx);
 			IFramebuffer *GetSwapchainFramebuffer(uint32_t idx);
 
+			const std::shared_ptr<IPrimaryCommandBuffer> &GetCurrentPrimaryDrawCommandBuffer() { return m_currentDrawCmdBuffer; }
 			uint8_t GetFrameResourceIndex() const { return m_currentFrame; }
 			uint8_t GetPreviousFrameResourceIndex(uint8_t curIdx) const { return (curIdx == 0) ? (GetMaxNumberOfFramesInFlight() - 1) : (curIdx - 1); }
 			uint8_t GetFrameResourceFlag() const { return GetFrameResourceFlag(GetFrameResourceIndex()); }
@@ -473,6 +474,7 @@ export {
 
 			uint8_t m_currentFrame = 0;
 			uint8_t m_maxFramesInFlight = 2;
+			std::shared_ptr<IPrimaryCommandBuffer> m_currentDrawCmdBuffer = nullptr;
 
 			std::function<void(const util::VendorDeviceInfo &)> m_preDeviceCreationCallback = nullptr;
 

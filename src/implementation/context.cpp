@@ -728,7 +728,7 @@ bool prosper::IPrContext::ScheduleRecordUpdateBuffer(IBuffer &buffer, uint64_t o
 #endif
 
 	if(IsRecording()) {
-		auto &drawCmd = GetWindow().GetDrawCommandBuffer();
+		auto &drawCmd = GetCurrentPrimaryDrawCommandBuffer();
 		if(drawCmd->GetActiveRenderPassTargetInfo() == nullptr) // Buffer updates are not allowed while a render pass is active! (https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html)
 		{
 			fRecordSrcBarrier(*drawCmd);

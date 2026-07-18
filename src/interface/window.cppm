@@ -8,6 +8,7 @@ export import :structs;
 export import :types;
 
 export namespace prosper {
+	constexpr uint32_t INVALID_SWAPCHAIN_IMAGE_INDEX = std::numeric_limits<uint32_t>::max();
 	class DLLPROSPER Window : public ContextObject, public std::enable_shared_from_this<Window> {
 	  public:
 		static constexpr auto STAGING_RENDER_TARGET_COLOR_FORMAT = Format::R8G8B8A8_UNorm;
@@ -25,6 +26,7 @@ export namespace prosper {
 		pragma::platform::Window &operator*();
 		const pragma::platform::Window &operator*() const { return const_cast<Window *>(this)->operator*(); }
 
+		bool IsAvailableForRendering() const;
 		uint32_t GetSwapchainImageCount() const { return m_swapchainImages.size(); }
 		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const = 0;
 		IImage *GetSwapchainImage(uint32_t idx);

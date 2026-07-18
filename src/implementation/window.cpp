@@ -287,6 +287,8 @@ std::shared_ptr<RenderTarget> &Window::GetStagingRenderTarget()
 	return m_stagingRenderTarget;
 }
 
+bool Window::IsAvailableForRendering() const { return GetLastAcquiredSwapchainImageIndex() != INVALID_SWAPCHAIN_IMAGE_INDEX; }
+
 IImage *Window::GetSwapchainImage(uint32_t idx) { return (idx < m_swapchainImages.size()) ? m_swapchainImages.at(idx).get() : nullptr; }
 
 IFramebuffer *Window::GetSwapchainFramebuffer(uint32_t idx) { return (idx < m_swapchainFramebuffers.size()) ? m_swapchainFramebuffers.at(idx).get() : nullptr; }
